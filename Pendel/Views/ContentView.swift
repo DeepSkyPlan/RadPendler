@@ -131,7 +131,7 @@ private struct MapTab: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TripMapPanel(options: model.options, selectedID: model.selected?.id)
+            TripMapPanel(options: model.options, selectedID: model.selected?.id) { model.selectedID = $0 }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack {
                     ForEach(model.options) { option in
@@ -163,7 +163,7 @@ private struct OptionChip: View {
                 }
             }
             Text("\(Fmt.time(option.leave))–\(Fmt.time(option.arrival))").font(.caption.monospacedDigit())
-            Text(Fmt.duration(option.duration)).font(.caption2).foregroundStyle(.secondary)
+            Text(RouteMapView.Coordinator.labelText(option)).font(.caption2).foregroundStyle(.secondary)
         }
         .padding(8)
         .background(selected ? option.mode.color.opacity(0.2) : Color(.secondarySystemBackground),

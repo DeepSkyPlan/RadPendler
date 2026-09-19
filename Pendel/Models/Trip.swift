@@ -116,6 +116,16 @@ struct TripOption: Identifiable {
     var bikeDistance: Double { bikeLegs.compactMap(\.distance).reduce(0, +) }
     var walkDistance: Double { legs.filter { $0.kind == .walk }.compactMap(\.distance).reduce(0, +) }
 
+    /// Arrival used for ranking: every change of train counts as `penalty`
+    /// extra seconds, so a direct train beats a slightly faster one with changes.
+    func weightedArrival(_ penalty: TimeInterval) -> Date {
+        arrival.addingTimeInterval(Double(transfers) * penalty)
+    }
+
+    var transferText: String? {
+        transitLegs.isEmpty ? nil : (transfers == 0 ? "direkt" : "\(transfers)× umsteigen")
+    }
+
     /// Bike+rail using U-Bahn or tram somewhere: shown, but only as the
     /// alternative to S-Bahn/regional trains with a bike compartment.
     var isAlternative: Bool {

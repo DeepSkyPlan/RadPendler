@@ -141,6 +141,17 @@ final class PlannerTests: XCTestCase {
         XCTAssertEqual(BikeTransitComposer.rank([u1, u2], preferred: 3, alternatives: 1).count, 2)
     }
 
+    func testDirectTrainBeatsSlightlyFasterConnectionWithChange() throws {
+        let change = try bikeTrain([train("RE3", dep: 1800, arr: 2400, product: .regional), train("S26", dep: 2500, arr: 2900)])
+        let direct = try bikeTrain([train("S1", dep: 1800, arr: 3300)])   // 6.7 min later, 0 changes
+        XCTAssertEqual(BikeTransitComposer.best([change, direct], count: 3).map(\.id), [direct.id, change.id])
+        XCTAssertEqual(BikeTransitComposer.best([change, direct], count: 3, penalty: 0).map(\.id), [change.id, direct.id])
+        XCTAssertEqual(TripPlanner.recommend([change, direct])?.optionID, direct.id)
+        // 15 min earlier with one change is worth it at a 10-min penalty.
+        let early = try bikeTrain([train("RE3", dep: 1800, arr: 2000, product: .regional), train("S26", dep: 2100, arr: 2300)])
+        XCTAssertEqual(TripPlanner.recommend([early, direct])?.optionID, early.id)
+    }
+
     func testOldOfficePostcodeIsMigrated() throws {
         let d = UserDefaults(suiteName: UUID().uuidString)!
         d.set(try JSONEncoder().encode(Place(name: "Musterstraße 1, 10000 Berlin", latitude: 52.5367319, longitude: 13.3605566)),

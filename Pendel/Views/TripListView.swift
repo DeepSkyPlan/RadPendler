@@ -82,6 +82,7 @@ struct TripRow: View {
                     if option.bikeDistance > 0 { Text("Rad \(Fmt.km(option.bikeDistance))") }
                     if option.walkDistance > 0 { Text("zu Fuß \(Fmt.km(option.walkDistance))") }
                     if option.mode == .car, let d = option.legs.first?.distance { Text(Fmt.km(d)) }
+                    if let t = option.transferText { Text(t).fontWeight(option.transfers == 0 ? .semibold : .regular) }
                 }
                 .font(.caption).foregroundStyle(.secondary)
                 if let rain = option.rain {
