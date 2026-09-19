@@ -5,6 +5,7 @@
 - App startet **ohne Adressen**; Start und Ziel werden nach der ersten Wahl auf dem Gerät gespeichert (keine privaten Adressen im Store-Build).
 - Jede Verbindung zeigt ihre Abschnitte als Icons mit km (Rad, Auto, S/U/Bus/Tram), dazu Gesamt-km und Ampelzahl; auf der Karte je Abschnitt ein Schild.
 - Rad ist jetzt violett, damit es sich klar von der grünen S-Bahn unterscheidet.
+- **Rad + Bahn** ist jetzt Türkis (#00ADA3) statt Akzent-Petrol, damit die Empfehlungskarte oben und der Rad-+-Bahn-Abschnitt sich klar vom S-Bahn-Grün darunter absetzen.
 - Regenradar folgt der Fahrt: Play läuft vom Losfahren bis zur Ankunft, die Positionsmarke wandert mit.
 - Radrouten heißen **schnellst** (kürzeste Fahrzeit inkl. Ampeln), **optimal** und **ruhigst**.
 - Fixpunkte in den Einstellungen: Verbindungen, die nicht daran vorbeiführen, werden ausgegraut und nie empfohlen.

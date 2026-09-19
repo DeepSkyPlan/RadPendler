@@ -6,6 +6,7 @@
 <style>
   :root {
     --teal: #009E82;      /* Akzent */
+    --radbahn: #00ADA3;   /* Rad + Bahn */
     --violet: #6B45EB;    /* Rad */
     --red: #E31C2E;       /* Auto */
     --green: #008C4F;     /* S-Bahn */
@@ -97,8 +98,10 @@
   <h2>Farben</h2>
   <h3>Akzent und Verkehrsmittel</h3>
   <div class="grid cols-4">
+    <div class="swatch"><div class="fill" style="background:var(--radbahn)"></div>
+      <div class="meta"><b>Rad + Bahn</b><code>#00ADA3</code></div></div>
     <div class="swatch"><div class="fill" style="background:var(--teal)"></div>
-      <div class="meta"><b>Akzent / Rad + Bahn</b><code>#009E82</code></div></div>
+      <div class="meta"><b>Akzent (Chrome)</b><code>#009E82</code></div></div>
     <div class="swatch"><div class="fill" style="background:var(--violet)"></div>
       <div class="meta"><b>Rad</b><code>#6B45EB</code></div></div>
     <div class="swatch"><div class="fill" style="background:var(--red)"></div>
@@ -158,7 +161,7 @@
     <tr><td>Fakten, Kapseln</td><td>Caption, regular/semibold</td><td><span class="chip">24,2 km</span></td></tr>
     <tr><td>Quellen, Fußnoten</td><td>Caption2</td><td style="font-size:8pt;color:var(--muted)">Stand 00:19 · Rad 29 km/h + 20 s/Ampel</td></tr>
     <tr><td>Abschnittstitel</td><td>Footnote, bold, Großbuchstaben, in Modusfarbe</td>
-        <td style="font-size:8pt;font-weight:700;letter-spacing:.08em;color:var(--teal)">RAD + BAHN</td></tr>
+        <td style="font-size:8pt;font-weight:700;letter-spacing:.08em;color:var(--radbahn)">RAD + BAHN</td></tr>
   </table>
   <p>Zahlen immer mit <code>monospacedDigit()</code>, damit Zeiten beim Aktualisieren nicht springen.
   Zeilen kürzen statt umbrechen (<code>lineLimit(1)</code>, <code>minimumScaleFactor(0.8)</code>),
