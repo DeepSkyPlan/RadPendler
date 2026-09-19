@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1 (Build 6, TestFlight 2026-09-20)
+- Farben: Rad grün, Auto rot, Bus orange, alles auf Schienen blau (S hell, U dunkel, RE und Tram dazwischen), Fähre türkis.
+- Neue Kopfzeile: Start und Ziel an einer gepunkteten Schiene, Tauschknopf dreht sich, Startzeiten als Chips (Jetzt, +15 min, +1 h, +8 h, +18 h, freie Zeit).
+- Karte ist die Standardansicht; ohne Adressen steht dort jetzt derselbe Hinweis wie in der Liste.
+
 ## 0.3.0 (Builds 4 und 5, TestFlight 2026-09-20)
 - Build 5: Farbfamilien — Rad grün, Auto rot, Bus orange, alles auf Schienen blau (S hell, U dunkel, RE/Tram dazwischen), Fähre türkis; Styleguide angepasst.
 - Neues Design: Karten statt Listenzeilen, runde Typografie, Akzentfarbe Petrol, animierter Liste/Karte-Umschalter, Detailseite als Zeitstrahl.
