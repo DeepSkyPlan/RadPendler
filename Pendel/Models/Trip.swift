@@ -41,6 +41,11 @@ enum TransitProduct: Int, CaseIterable {
 
     /// S-Bahn, U-Bahn and regional trains: the stations worth riding a bike to.
     static let bikeStationMask = suburban.rawValue | subway.rawValue | regional.rawValue
+    /// S-Bahn and regional trains always have a bike compartment — the
+    /// preferred way to take the bike. U-Bahn and tram are only the alternative.
+    static let bikeCompartmentMask = suburban.rawValue | regional.rawValue
+
+    var hasBikeCompartment: Bool { rawValue & Self.bikeCompartmentMask != 0 }
     /// Everything but buses — BVG buses do not take bikes.
     static let bikeSearchMask = allCases.filter { $0 != .bus }.reduce(0) { $0 | $1.rawValue }
     static let allMask = allCases.reduce(0) { $0 | $1.rawValue }
@@ -110,5 +115,13 @@ struct TripOption: Identifiable {
     var bikeLegs: [Leg] { legs.filter { $0.kind == .bike } }
     var bikeDistance: Double { bikeLegs.compactMap(\.distance).reduce(0, +) }
     var walkDistance: Double { legs.filter { $0.kind == .walk }.compactMap(\.distance).reduce(0, +) }
+
+    /// Bike+rail using U-Bahn or tram somewhere: shown, but only as the
+    /// alternative to S-Bahn/regional trains with a bike compartment.
+    var isAlternative: Bool {
+        mode == .bikeTransit && transitLegs.contains {
+            if case .transit(_, let p) = $0.kind { !p.hasBikeCompartment } else { false }
+        }
+    }
 
 }

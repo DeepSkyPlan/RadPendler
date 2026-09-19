@@ -13,8 +13,9 @@ final class PlannerTests: XCTestCase {
         return StreetRoute(distance: meters, expectedTravelTime: 0, coordinates: [a, b])
     }
 
-    private func train(_ name: String, dep: TimeInterval, arr: TimeInterval, bike: Bool = true) -> Leg {
-        Leg(kind: .transit(line: name, product: .suburban), fromName: "A", toName: "B",
+    private func train(_ name: String, dep: TimeInterval, arr: TimeInterval, bike: Bool = true,
+                       product: TransitProduct = .suburban) -> Leg {
+        Leg(kind: .transit(line: name, product: product), fromName: "A", toName: "B",
             departure: t0.addingTimeInterval(dep), arrival: t0.addingTimeInterval(arr),
             coordinates: [Place.office.coordinate, Place.home.coordinate], bikeCarriage: bike)
     }
@@ -99,6 +100,52 @@ final class PlannerTests: XCTestCase {
         let bt = option(.bikeTransit, arrive: 62, rainMm: 0)
         let options = [option(.car, arrive: 40), option(.bike, arrive: 60, rainMm: 1.2), option(.transit, arrive: 55), bt]
         XCTAssertEqual(TripPlanner.recommend(options)?.optionID, bt.id)
+    }
+
+    // MARK: S-Bahn first, U-Bahn only as alternative
+
+    private func bikeTrain(_ legs: [Leg]) throws -> TripOption {
+        try XCTUnwrap(BikeTransitComposer.compose(
+            origin: .office, destination: .home, station1: "A", ride1: line(1000), journey: legs,
+            station2: "B", ride2: line(1000), settings: settings, earliestLeave: t0))
+    }
+
+    func testUBahnMakesAnAlternativeRegionalDoesNot() throws {
+        XCTAssertFalse(try bikeTrain([train("S1", dep: 1800, arr: 3000)]).isAlternative)
+        XCTAssertFalse(try bikeTrain([train("RE3", dep: 1800, arr: 2400, product: .regional),
+                                      train("S26", dep: 2600, arr: 3000)]).isAlternative)
+        XCTAssertTrue(try bikeTrain([train("U9", dep: 1800, arr: 2400, product: .subway),
+                                     train("S1", dep: 2600, arr: 3000)]).isAlternative)
+    }
+
+    func testRecommendationTakesSBahnEvenIfUBahnIsFaster() throws {
+        var viaU = try bikeTrain([train("U9", dep: 1800, arr: 2400, product: .subway), train("S1", dep: 2500, arr: 2900)])
+        var viaS = try bikeTrain([train("S7", dep: 1800, arr: 3300)])
+        let dry = RainAssessment(readings: [])
+        viaU.rain = dry; viaS.rain = dry
+        var bike = option(.bike, arrive: 90, rainMm: 1.5)
+        bike.rain = RainAssessment(readings: [RainReading(sample: RainSample(coordinate: Place.home.coordinate, time: t0),
+                                                          millimetres: 1.5, probability: 90)])
+        XCTAssertEqual(TripPlanner.recommend([viaU, viaS, bike])?.optionID, viaS.id)
+        // Without any S-Bahn connection the U-Bahn one is recommended.
+        XCTAssertEqual(TripPlanner.recommend([viaU, bike])?.optionID, viaU.id)
+    }
+
+    func testRankKeepsOneAlternativeUnlessNoSBahnExists() throws {
+        let s1 = try bikeTrain([train("S1", dep: 1800, arr: 3300)])
+        let s7 = try bikeTrain([train("S7", dep: 2400, arr: 3900)])
+        let u1 = try bikeTrain([train("U9", dep: 1800, arr: 2400, product: .subway)])
+        let u2 = try bikeTrain([train("U6", dep: 1900, arr: 2500, product: .subway)])
+        let ranked = BikeTransitComposer.rank([u1, s7, u2, s1], preferred: 3, alternatives: 1)
+        XCTAssertEqual(ranked.map(\.id), [s1.id, s7.id, u1.id])
+        XCTAssertEqual(BikeTransitComposer.rank([u1, u2], preferred: 3, alternatives: 1).count, 2)
+    }
+
+    func testOldOfficePostcodeIsMigrated() throws {
+        let d = UserDefaults(suiteName: UUID().uuidString)!
+        d.set(try JSONEncoder().encode(Place(name: "Musterstraße 1, 10000 Berlin", latitude: 52.5367319, longitude: 13.3605566)),
+              forKey: "origin")
+        XCTAssertEqual(AppSettings(defaults: d).origin.name, "Musterstraße 1, 10557 Berlin")
     }
 
     func testRankingPrefersActiveModeWithinThreeMinutes() {

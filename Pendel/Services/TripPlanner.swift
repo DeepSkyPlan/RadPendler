@@ -30,10 +30,12 @@ struct TripPlanner {
     var streets: StreetRouting = MapKitRouter()
     var rain = RainService()
 
-    /// Stations considered at each end of a bike+rail trip. 3 × 4 = 12 HAFAS
-    /// searches per refresh — each ~0.2 s, run in parallel.
+    /// S-Bahn/regional stations considered at each end of a bike+rail trip.
+    /// 3 × 4 + 2 × 2 = 16 HAFAS searches per refresh — each ~0.2 s, in parallel.
     var originStationCount = 3
     var destinationStationCount = 4
+    /// Nearest stations of any kind (incl. U-Bahn-only) for the alternative search: 2 × 2.
+    var alternativeStationCount = 2
 
     func plan(_ req: PlanRequest) async -> PlanResult {
         async let bike = capture { try await bikeOptions(req) }
@@ -103,42 +105,65 @@ struct TripPlanner {
     /// arrival station. The app does the station choice itself: VBB's HAFAS has
     /// a "bike & ride" mode in its web app, but the mgate request for it is not
     /// documented, and with address endpoints plus the bike filter it finds nothing.
+    ///
+    /// S-Bahn and regional trains first — they always have a bike compartment.
+    /// The main search uses only S/RE stations and S/RE trains; a small second
+    /// search from the nearest stations of any kind lets U-Bahn/tram in, and
+    /// those results are kept only as the alternative.
     func bikeTransitOptions(_ req: PlanRequest) async throws -> [TripOption] {
         let s = req.settings
         let radius = s.maxBikeToStationKm * 1000
         async let fromList = hafas.nearbyStations(around: req.origin.coordinate, radius: radius)
         async let toList = hafas.nearbyStations(around: req.destination.coordinate, radius: radius)
-        let starts = try await Array(fromList.prefix(originStationCount))
-        let ends = try await Array(toList.prefix(destinationStationCount))
-        guard !starts.isEmpty, !ends.isEmpty else {
-            throw PlannerError.noStations(km: s.maxBikeToStationKm)
-        }
+        let fromAll = try await fromList, toAll = try await toList
 
+        var searches: [(from: Station, to: Station, mask: Int)] = []
+        let preferredMask = TransitProduct.bikeCompartmentMask
+        for a in fromAll.filter(\.hasBikeCompartment).prefix(originStationCount) {
+            for b in toAll.filter(\.hasBikeCompartment).prefix(destinationStationCount) {
+                searches.append((a, b, preferredMask))
+            }
+        }
+        for a in fromAll.prefix(alternativeStationCount) {
+            for b in toAll.prefix(alternativeStationCount) {
+                searches.append((a, b, TransitProduct.bikeSearchMask))
+            }
+        }
+        searches.removeAll { $0.from.lid == $0.to.lid }
+        guard !searches.isEmpty else { throw PlannerError.noStations(km: s.maxBikeToStationKm) }
+
+        let starts = unique(searches.map(\.from)), ends = unique(searches.map(\.to))
         let firstLegs = await bikeRoutes(from: req.origin.coordinate, to: starts.map(\.coordinate), reverse: false)
         let lastLegs = await bikeRoutes(from: req.destination.coordinate, to: ends.map(\.coordinate), reverse: true)
+        let ride1 = Dictionary(uniqueKeysWithValues: zip(starts.map(\.lid), firstLegs))
+        let ride2 = Dictionary(uniqueKeysWithValues: zip(ends.map(\.lid), lastLegs))
 
         let candidates = try await withThrowingTaskGroup(of: [TripOption].self) { group in
-            for (i, a) in starts.enumerated() {
-                guard let ride1 = firstLegs[i] else { continue }
-                for (j, b) in ends.enumerated() where a.lid != b.lid {
-                    guard let ride2 = lastLegs[j] else { continue }
-                    group.addTask {
-                        let catchAt = req.earliestLeave.addingTimeInterval(s.bikeTime(ride1.distance) + s.bikeStationBuffer)
-                        let journeys = try await hafas.journeys(from: .station(lid: a.lid), to: .station(lid: b.lid),
-                                                                departing: catchAt, bikeCarriage: true,
-                                                                productMask: TransitProduct.bikeSearchMask, results: 2)
-                        return journeys.compactMap {
-                            BikeTransitComposer.compose(origin: req.origin, destination: req.destination,
-                                                        station1: a.name, ride1: ride1, journey: $0,
-                                                        station2: b.name, ride2: ride2,
-                                                        settings: s, earliestLeave: req.earliestLeave)
-                        }
+            for (a, b, mask) in searches {
+                guard let r1 = ride1[a.lid] ?? nil, let r2 = ride2[b.lid] ?? nil else { continue }
+                group.addTask {
+                    let catchAt = req.earliestLeave.addingTimeInterval(s.bikeTime(r1.distance) + s.bikeStationBuffer)
+                    let journeys = try await hafas.journeys(from: .station(lid: a.lid), to: .station(lid: b.lid),
+                                                            departing: catchAt, bikeCarriage: true,
+                                                            productMask: mask, results: 2)
+                    return journeys.compactMap {
+                        BikeTransitComposer.compose(origin: req.origin, destination: req.destination,
+                                                    station1: a.name, ride1: r1, journey: $0,
+                                                    station2: b.name, ride2: r2,
+                                                    settings: s, earliestLeave: req.earliestLeave)
                     }
                 }
             }
             return try await group.reduce(into: []) { $0 += $1 }
         }
-        return BikeTransitComposer.best(candidates, count: 3)
+        return BikeTransitComposer.rank(candidates, preferred: 3, alternatives: 1)
+    }
+
+    typealias Station = HafasClient.Station
+
+    private func unique(_ stations: [Station]) -> [Station] {
+        var seen = Set<String>()
+        return stations.filter { seen.insert($0.lid).inserted }
     }
 
     /// Bike routes between `anchor` and each station, nil where MapKit found none.
@@ -190,7 +215,10 @@ struct TripPlanner {
     /// the rain short; Bus & Bahn only without any bike option; the car last.
     static func recommend(_ options: [TripOption]) -> Recommendation? {
         let level = { (o: TripOption) in o.rain?.level ?? .dry }
-        let bikeish = options.filter { $0.mode == .bike || $0.mode == .bikeTransit }
+        // U-Bahn/tram connections only count when no S-Bahn/regional one exists.
+        let bikeTrains = options.filter { $0.mode == .bikeTransit && !$0.isAlternative }
+        let bikeTransit = bikeTrains.isEmpty ? options.filter { $0.mode == .bikeTransit } : bikeTrains
+        let bikeish = options.filter { $0.mode == .bike } + bikeTransit
         let dry = bikeish.filter { level($0) <= .possible }
 
         if let pick = dry.min(by: { $0.arrival < $1.arrival }) {
@@ -199,7 +227,7 @@ struct TripPlanner {
                 : "trocken und mit der Bahn schneller als die ganze Strecke per Rad"
             return Recommendation(optionID: pick.id, reason: reason)
         }
-        if let pick = options.filter({ $0.mode == .bikeTransit })
+        if let pick = bikeTransit
             .min(by: { (level($0), $0.arrival) < (level($1), $1.arrival) }) {
             let wet = options.first { $0.mode == .bike }?.rain?.summary
             return Recommendation(optionID: pick.id,
@@ -251,6 +279,15 @@ enum BikeTransitComposer {
                        distance: ride2.distance, coordinates: ride2.coordinates)
         return TripOption(mode: .bikeTransit, legs: [first] + journey + [last], prep: s.prep,
                           note: "\(s.bikeStationBufferMinutes) min Puffer je Bahnhof fürs Rad")
+    }
+
+    /// The best S-Bahn/regional connections, plus U-Bahn/tram ones only as the
+    /// alternative: at most `alternatives` of them, or up to `preferred` when no
+    /// S-Bahn/regional connection exists at all.
+    static func rank(_ options: [TripOption], preferred: Int, alternatives: Int) -> [TripOption] {
+        let main = best(options.filter { !$0.isAlternative }, count: preferred)
+        let alt = best(options.filter(\.isAlternative), count: main.isEmpty ? preferred : alternatives)
+        return main + alt
     }
 
     /// Drop duplicates (same trains reached from different stations — keep the

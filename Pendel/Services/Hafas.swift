@@ -34,6 +34,8 @@ struct HafasClient {
         var productMask: Int
 
         static func == (a: Station, b: Station) -> Bool { a.lid == b.lid }
+
+        var hasBikeCompartment: Bool { productMask & TransitProduct.bikeCompartmentMask != 0 }
     }
 
     enum HafasError: LocalizedError {
