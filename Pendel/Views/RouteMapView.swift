@@ -1,0 +1,266 @@
+import MapKit
+import SwiftUI
+
+/// MKMapView wrapper: SwiftUI's `Map` cannot show tile overlays, and the radar is one.
+struct RouteMapView: UIViewRepresentable {
+    var options: [TripOption]
+    var selectedID: TripOption.ID?
+    var radarFrames: [Date]
+    /// Frame on screen; nil hides the radar.
+    var radarTime: Date?
+
+    func makeUIView(context: Context) -> MKMapView {
+        let map = MKMapView()
+        map.delegate = context.coordinator
+        map.pointOfInterestFilter = .excludingAll
+        map.showsCompass = true
+        map.register(MKMarkerAnnotationView.self, forAnnotationViewWithReuseIdentifier: "pin")
+        return map
+    }
+
+    func updateUIView(_ map: MKMapView, context: Context) {
+        context.coordinator.update(map, self)
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    final class LegLine: MKPolyline {
+        var kind: LegKind = .walk
+        var emphasized = true
+    }
+
+    final class Pin: MKPointAnnotation {
+        var tint: UIColor = .systemGreen
+        var glyph: String = "mappin"
+        var isRider = false
+    }
+
+    final class Coordinator: NSObject, MKMapViewDelegate {
+        private var routeKey = ""
+        private var planKey = ""
+        private var radar: [Date: RadarTileOverlay] = [:]
+        private var renderers: [Date: MKTileOverlayRenderer] = [:]
+        private var shownRadar: Date?
+        private var rider: Pin?
+
+        func update(_ map: MKMapView, _ view: RouteMapView) {
+            // New plan → redraw and fit; new selection only → redraw.
+            let plan = view.options.map { $0.id.uuidString }.joined()
+            let key = plan + (view.selectedID?.uuidString ?? "")
+            if key != routeKey {
+                routeKey = key
+                drawRoutes(map, view)
+                if plan != planKey {
+                    planKey = plan
+                    zoomToRoutes(map, view)
+                }
+            }
+            updateRadar(map, view)
+            updateRider(map, view)
+        }
+
+        private func drawRoutes(_ map: MKMapView, _ view: RouteMapView) {
+            map.removeOverlays(map.overlays.filter { $0 is LegLine })
+            map.removeAnnotations(map.annotations.compactMap { $0 as? Pin }.filter { !$0.isRider })
+            let selected = view.options.first { $0.id == view.selectedID }
+            // Unselected options faint underneath, the selected one on top.
+            let ordered = view.options.filter { $0.id != selected?.id } + (selected.map { [$0] } ?? [])
+            for option in ordered {
+                for leg in option.legs where leg.coordinates.count > 1 {
+                    let line = LegLine(coordinates: leg.coordinates, count: leg.coordinates.count)
+                    line.kind = leg.kind
+                    line.emphasized = selected == nil || option.id == selected?.id
+                    map.addOverlay(line, level: .aboveRoads)
+                }
+            }
+            guard let trip = selected ?? view.options.first, let first = trip.legs.first, let last = trip.legs.last else { return }
+            var pins: [Pin] = []
+            let start = Pin(); start.coordinate = first.coordinates.first ?? CLLocationCoordinate2D()
+            start.title = first.fromName; start.tint = .systemGreen; start.glyph = "figure.stand"
+            pins.append(start)
+            let end = Pin(); end.coordinate = last.coordinates.last ?? CLLocationCoordinate2D()
+            end.title = last.toName; end.tint = .systemRed; end.glyph = "flag.checkered"
+            pins.append(end)
+            for leg in trip.legs where leg.isTransit {
+                let p = Pin(); p.coordinate = leg.coordinates.first ?? CLLocationCoordinate2D()
+                p.title = "\(leg.lineName ?? "") \(Fmt.time(leg.departure))"
+                p.subtitle = leg.fromName
+                p.tint = leg.kind.uiColor; p.glyph = leg.kind.symbol
+                pins.append(p)
+            }
+            map.addAnnotations(pins)
+        }
+
+        private func zoomToRoutes(_ map: MKMapView, _ view: RouteMapView) {
+            let rects = map.overlays.compactMap { ($0 as? LegLine)?.boundingMapRect }
+            guard let first = rects.first else { return }
+            // Before the first layout the map has no size and the fit is lost.
+            guard map.bounds.width > 0 else {
+                DispatchQueue.main.async { [weak self, weak map] in
+                    if let self, let map { self.zoomToRoutes(map, view) }
+                }
+                return
+            }
+            let all = rects.dropFirst().reduce(first) { $0.union($1) }
+            // Bottom inset clears the radar controls floating over the map.
+            map.setVisibleMapRect(all, edgePadding: UIEdgeInsets(top: 50, left: 30, bottom: 110, right: 30), animated: false)
+        }
+
+        /// All frames stay on the map once loaded; only the shown one is
+        /// visible. Swapping overlays per frame would reload tiles and flicker.
+        private func updateRadar(_ map: MKMapView, _ view: RouteMapView) {
+            guard let time = view.radarTime else {
+                renderers.values.forEach { $0.alpha = 0 }
+                shownRadar = nil
+                return
+            }
+            let wanted = Set(view.radarFrames)
+            for (t, overlay) in radar where !wanted.contains(t) {
+                map.removeOverlay(overlay)
+                radar[t] = nil
+                renderers[t] = nil
+            }
+            for t in view.radarFrames where radar[t] == nil {
+                let o = RadarTileOverlay(time: t)
+                radar[t] = o
+                map.insertOverlay(o, at: 0, level: .aboveRoads)
+            }
+            if shownRadar != time {
+                shownRadar = time
+                for (t, r) in renderers { r.alpha = t == time ? 0.7 : 0 }
+            }
+        }
+
+        /// Where the rider would be at the radar frame's time on the selected trip.
+        private func updateRider(_ map: MKMapView, _ view: RouteMapView) {
+            let trip = view.options.first { $0.id == view.selectedID }
+            var position: CLLocationCoordinate2D?
+            var onBike = false
+            if let time = view.radarTime, let trip {
+                for leg in trip.legs {
+                    if let p = RainSampler.position(on: leg.coordinates, departure: leg.departure,
+                                                    arrival: leg.arrival, at: time) {
+                        position = p
+                        onBike = leg.kind == .bike
+                        break
+                    }
+                }
+            }
+            guard let position else {
+                if let rider { map.removeAnnotation(rider); self.rider = nil }
+                return
+            }
+            if rider == nil {
+                let p = Pin(); p.isRider = true; p.title = "Du"
+                rider = p
+                map.addAnnotation(p)
+            }
+            rider?.coordinate = position
+            rider?.glyph = onBike ? "bicycle" : "person.fill"
+            rider?.tint = .systemPurple
+            if let rider, let v = map.view(for: rider) as? MKMarkerAnnotationView {
+                v.glyphImage = UIImage(systemName: rider.glyph)
+            }
+        }
+
+        func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+            if let line = overlay as? LegLine {
+                let r = MKPolylineRenderer(polyline: line)
+                r.strokeColor = line.kind.uiColor.withAlphaComponent(line.emphasized ? 0.95 : 0.3)
+                r.lineWidth = line.emphasized ? 5 : 3
+                if line.kind == .walk { r.lineDashPattern = [2, 6] }
+                r.lineCap = .round
+                return r
+            }
+            if let tiles = overlay as? RadarTileOverlay {
+                let r = MKTileOverlayRenderer(tileOverlay: tiles)
+                r.alpha = tiles.time == shownRadar ? 0.7 : 0
+                renderers[tiles.time] = r
+                return r
+            }
+            return MKOverlayRenderer(overlay: overlay)
+        }
+
+        func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            guard let pin = annotation as? Pin else { return nil }
+            let v = mapView.dequeueReusableAnnotationView(withIdentifier: "pin", for: pin) as! MKMarkerAnnotationView
+            v.markerTintColor = pin.tint
+            v.glyphImage = UIImage(systemName: pin.glyph)
+            v.displayPriority = pin.isRider ? .required : .defaultHigh
+            v.titleVisibility = pin.isRider ? .visible : .adaptive
+            v.zPriority = pin.isRider ? .max : .defaultUnselected
+            return v
+        }
+    }
+}
+
+/// Play/pause and scrubber for the radar frames.
+struct RadarControls: View {
+    var frames: [Date]
+    @Binding var index: Int
+    @Binding var visible: Bool
+    @State private var playing = false
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Toggle(isOn: $visible) { Image(systemName: "cloud.rain") }
+                .toggleStyle(.button)
+                .accessibilityLabel("Regenradar")
+            if visible, !frames.isEmpty {
+                Button { playing.toggle() } label: {
+                    Image(systemName: playing ? "pause.fill" : "play.fill")
+                }
+                .accessibilityLabel(playing ? "Anhalten" : "Abspielen")
+                Slider(value: Binding(get: { Double(index) }, set: { index = Int($0.rounded()) }),
+                       in: 0...Double(max(frames.count - 1, 1)), step: 1)
+                VStack(alignment: .trailing, spacing: 0) {
+                    Text(Fmt.time(frames[min(index, frames.count - 1)]))
+                        .font(.callout.monospacedDigit().weight(.semibold))
+                    Text(frames[min(index, frames.count - 1)] > .now ? "Vorhersage" : "gemessen")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+                .frame(width: 72, alignment: .trailing)
+            } else {
+                Text("Regenradar (DWD)").font(.callout).foregroundStyle(.secondary)
+                Spacer()
+            }
+        }
+        .padding(10)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .task(id: playing) {
+            while playing, !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(700))
+                guard playing else { break }
+                index = (index + 1) % max(frames.count, 1)
+            }
+        }
+    }
+}
+
+/// Map plus radar controls, shared by the map tab and the detail screen.
+struct TripMapPanel: View {
+    var options: [TripOption]
+    var selectedID: TripOption.ID?
+    @State private var frames = RadarTileOverlay.frameTimes()
+    @State private var index = 0
+    @State private var radarOn = true
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            RouteMapView(options: options, selectedID: selectedID, radarFrames: radarOn ? frames : [],
+                         radarTime: radarOn && frames.indices.contains(index) ? frames[index] : nil)
+            RadarControls(frames: frames, index: $index, visible: $radarOn)
+                .padding(8)
+        }
+        .onAppear { resetFrames() }
+        .onChange(of: selectedID) { resetFrames() }
+    }
+
+    /// Fresh frames, starting at the frame closest to the selected trip's
+    /// departure so "play" shows the rain coming towards the ride.
+    private func resetFrames() {
+        frames = RadarTileOverlay.frameTimes()
+        let leave = options.first { $0.id == selectedID }?.leave ?? .now
+        index = frames.enumerated().min { abs($0.element.timeIntervalSince(leave)) < abs($1.element.timeIntervalSince(leave)) }?.offset ?? 0
+    }
+}
