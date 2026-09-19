@@ -88,6 +88,10 @@ struct TripRow: View {
                     Label(rain.summary, systemImage: rain.level.symbol)
                         .font(.caption).foregroundStyle(rain.level.color)
                 }
+                if option.isAlternative {
+                    Label("Alternative mit U-Bahn/Tram — kein festes Radabteil", systemImage: "arrow.triangle.branch")
+                        .font(.caption).foregroundStyle(.orange)
+                }
             }
         }
         .padding(.vertical, 2)

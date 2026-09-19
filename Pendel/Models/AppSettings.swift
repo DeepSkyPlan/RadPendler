@@ -23,8 +23,8 @@ final class AppSettings {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        origin = Self.load("origin", defaults) ?? .office
-        destination = Self.load("destination", defaults) ?? .home
+        origin = Self.migrated(Self.load("origin", defaults)) ?? .office
+        destination = Self.migrated(Self.load("destination", defaults)) ?? .home
         prepMinutes = defaults.object(forKey: "prepMinutes") as? Int ?? 5
         bikeSpeedKmh = defaults.object(forKey: "bikeSpeedKmh") as? Double ?? Self.defaultBikeSpeedKmh
         bikeStationBufferMinutes = defaults.object(forKey: "bikeStationBufferMinutes") as? Int ?? 3
@@ -49,6 +49,11 @@ final class AppSettings {
 
     private func save(_ place: Place, _ key: String) {
         defaults.set(try? JSONEncoder().encode(place), forKey: key)
+    }
+
+    /// 0.1.0 stored the office under Apple's wrong postcode 10000.
+    private static func migrated(_ p: Place?) -> Place? {
+        p?.name == "Musterstraße 1, 10000 Berlin" ? .office : p
     }
 
     private static func load(_ key: String, _ defaults: UserDefaults) -> Place? {

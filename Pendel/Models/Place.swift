@@ -10,10 +10,10 @@ struct Place: Codable, Equatable, Hashable {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
 
-    /// Coordinates from Apple's geocoder. HAFAS knows no "Musterstraße 1" in
-    /// 10000 — its nearest match is house 25 in 10178 — so the app always hands
-    /// HAFAS coordinates, never the address text.
-    static let office = Place(name: "Musterstraße 1, 10000 Berlin",
+    /// The building is new: Apple files No. 26 under 10000 and HAFAS only knows
+    /// No. 25, but the postal address is 10178. Coordinates are Apple's (150 m
+    /// from HAFAS' No. 25); the app always hands HAFAS coordinates, never the text.
+    static let office = Place(name: "Musterstraße 1, 10178 Berlin",
                               latitude: 52.5210000, longitude: 13.4130000)
     static let home = Place(name: "Beispielweg 2, 14000 Musterort",
                             latitude: 52.421300, longitude: 13.1794000)

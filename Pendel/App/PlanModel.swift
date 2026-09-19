@@ -33,7 +33,9 @@ final class PlanModel {
     }
 
     func options(for mode: TravelMode) -> [TripOption] {
-        options.filter { $0.mode == mode }
+        // Stable: U-Bahn/tram alternatives after the S-Bahn/regional connections.
+        let own = options.filter { $0.mode == mode }
+        return own.filter { !$0.isAlternative } + own.filter(\.isAlternative)
     }
 
     func refresh(settings: AppSettings) {
