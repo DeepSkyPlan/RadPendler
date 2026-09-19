@@ -28,8 +28,8 @@ struct SettingsView: View {
                     Text("Zeit vom Planen bis zum Losgehen. Gilt für jedes Verkehrsmittel.")
                 }
                 Section {
-                    Stepper(value: $settings.bikeSpeedKmh, in: 10...40, step: 1) {
-                        Text("Durchschnitt: \(Int(settings.bikeSpeedKmh)) km/h")
+                    Stepper(value: $settings.bikeSpeedKmh, in: 10...45, step: 1) {
+                        Text("Fahrgeschwindigkeit: \(Int(settings.bikeSpeedKmh)) km/h")
                     }
                     Stepper("Puffer am Bahnhof: \(settings.bikeStationBufferMinutes) min",
                             value: $settings.bikeStationBufferMinutes, in: 0...10)
@@ -41,7 +41,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Fahrrad")
                 } footer: {
-                    Text("Die Fahrzeit mit dem Rad wird aus der Streckenlänge und dieser Geschwindigkeit berechnet. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung auf der Strecke addiert. Für die ganze Strecke gibt es bis zu drei Routen: kürzest, Mittelweg und ruhigst (wenig Ampeln, wenig Hauptstraßen). Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet.")
+                    Text("Fahrgeschwindigkeit = Tempo beim Rollen, ohne Halte. Die Fahrzeit ist Strecke ÷ Fahrgeschwindigkeit plus die Wartezeit je Ampelkreuzung (inkl. Anfahren); daraus ergibt sich der angezeigte Schnitt „Ø … km/h“. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung auf der Strecke addiert. Für die ganze Strecke gibt es bis zu drei Routen: kürzest, Mittelweg und ruhigst (wenig Ampeln, wenig Hauptstraßen). Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet.")
                 }
                 Section {
                     Stepper("Umstieg zählt wie \(settings.transferPenaltyMinutes) min", value: $settings.transferPenaltyMinutes, in: 0...30)

@@ -147,6 +147,11 @@ struct TripOption: Identifiable {
     var transfers: Int { max(0, transitLegs.count - 1) }
     var bikeLegs: [Leg] { legs.filter { $0.kind == .bike } }
     var bikeDistance: Double { bikeLegs.compactMap(\.distance).reduce(0, +) }
+    /// Door-to-door average on the bike legs, stops included.
+    var bikeAverageKmh: Double? {
+        let t = bikeLegs.map(\.duration).reduce(0, +)
+        return t > 0 ? bikeDistance / t * 3.6 : nil
+    }
     var walkDistance: Double { legs.filter { $0.kind == .walk }.compactMap(\.distance).reduce(0, +) }
 
     /// Arrival used for ranking: every change of train counts as `penalty`

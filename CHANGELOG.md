@@ -2,7 +2,7 @@
 
 ## 0.2.0 (unreleased)
 - Radroute in drei Varianten: kürzest, Mittelweg, ruhigst (BRouter + Apple Karten), bewertet nach Ampelkreuzungen, gequerten Hauptstraßen (mit Namen, z. B. B 1) und Metern an Hauptstraßen (OpenStreetMap, 30 Tage zwischengespeichert).
-- Wartezeit je Ampel (Standard 20 s) geht in jede Radfahrzeit ein, auch bei Rad + Bahn.
+- Fahrgeschwindigkeit (rollend, Standard 29 km/h) + Wartezeit je Ampel inkl. Anfahren (Standard 20 s) = Radfahrzeit, auch bei Rad + Bahn; Ø km/h inkl. Ampeln wird angezeigt.
 - Umstiege zählen je 10 min (einstellbar); Karte zeigt alle Optionen grau mit Dauer/Umstiegen.
 
 ## 0.1.0 (1) — 2026-09-19
