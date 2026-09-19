@@ -52,6 +52,14 @@ final class PlanModel {
             let r = await planner.plan(req)
             guard !Task.isCancelled else { return }
             result = r
+            #if DEBUG
+            for o in r.options {
+                let st = o.bikeRoute?.stats
+                print("PLAN", o.mode.rawValue, o.bikeRoute?.title ?? "", Fmt.time(o.leave), Fmt.time(o.arrival),
+                      Int(o.bikeDistance), st.map { "signals \($0.signals) crossings \($0.crossings) main \(Int($0.mainRoadMeters))" } ?? "",
+                      o.transitLegs.compactMap(\.lineName))
+            }
+            #endif
             selectedID = r.recommendation?.optionID
             lastRun = .now
             isLoading = false

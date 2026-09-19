@@ -33,13 +33,15 @@ struct SettingsView: View {
                     }
                     Stepper("Puffer am Bahnhof: \(settings.bikeStationBufferMinutes) min",
                             value: $settings.bikeStationBufferMinutes, in: 0...10)
+                    Stepper("Wartezeit je Ampel: \(settings.signalWaitSeconds) s",
+                            value: $settings.signalWaitSeconds, in: 0...90, step: 5)
                     Stepper(value: $settings.maxBikeToStationKm, in: 1...10, step: 0.5) {
                         Text("Radweg zum Bahnhof: bis \(settings.maxBikeToStationKm.formatted(.number.precision(.fractionLength(0...1)))) km")
                     }
                 } header: {
                     Text("Fahrrad")
                 } footer: {
-                    Text("Die Fahrzeit mit dem Rad wird aus der Streckenlänge und dieser Geschwindigkeit berechnet. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet.")
+                    Text("Die Fahrzeit mit dem Rad wird aus der Streckenlänge und dieser Geschwindigkeit berechnet. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung auf der Strecke addiert. Für die ganze Strecke gibt es bis zu drei Routen: kürzest, Mittelweg und ruhigst (wenig Ampeln, wenig Hauptstraßen). Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet.")
                 }
                 Section {
                     Stepper("Umstieg zählt wie \(settings.transferPenaltyMinutes) min", value: $settings.transferPenaltyMinutes, in: 0...30)
@@ -53,7 +55,8 @@ struct SettingsView: View {
                 }
                 Section("Datenquellen") {
                     Text("Fahrplan und Echtzeit: VBB-Fahrinfo (HAFAS)")
-                    Text("Rad- und Autorouten: Apple Karten")
+                    Text("Radrouten: BRouter (brouter.de) und Apple Karten; Autorouten: Apple Karten")
+                    Text("Ampeln und Hauptstraßen: © OpenStreetMap-Mitwirkende (ODbL), via Overpass API")
                     Text("Regenradar: Deutscher Wetterdienst")
                     Text("Regen auf der Strecke: Open-Meteo.com (DWD ICON-D2), CC BY 4.0")
                 }

@@ -101,7 +101,18 @@ struct TripRow: View {
 
     @ViewBuilder private var legSummary: some View {
         let transit = option.transitLegs
-        if transit.isEmpty {
+        if let bike = option.bikeRoute {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(bike.title.capitalized(with: Locale(identifier: "de"))).font(.caption.weight(.semibold))
+                    .foregroundStyle(option.mode.color)
+                if let st = bike.stats {
+                    Text("\(st.signals) Ampeln · \(st.crossings.count)× Hauptstraße queren · \(Fmt.km(st.mainRoadMeters)) an Hauptstraßen")
+                        .font(.caption).foregroundStyle(.secondary)
+                } else if let note = option.note {
+                    Text(note).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        } else if transit.isEmpty {
             Text(option.note ?? option.mode.title).font(.caption).foregroundStyle(.secondary)
         } else {
             HStack(spacing: 4) {

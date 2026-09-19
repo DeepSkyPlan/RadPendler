@@ -22,6 +22,20 @@ struct TripDetailView: View {
                     Text(note).font(.footnote).foregroundStyle(.secondary)
                 }
             }
+            if let bike = option.bikeRoute {
+                Section("Radroute: \(bike.title)") {
+                    if let st = bike.stats {
+                        LabeledContent("Ampelkreuzungen", value: "\(st.signals)")
+                        LabeledContent("An Hauptstraßen", value: Fmt.km(st.mainRoadMeters))
+                        LabeledContent("Hauptstraßen gequert", value: "\(st.crossings.count)")
+                        if !st.crossings.isEmpty {
+                            Text(st.crossings.joined(separator: " → ")).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    LabeledContent("Route von", value: bike.source == "Apple" ? "Apple Karten" : "BRouter (\(bike.source))")
+                        .font(.caption)
+                }
+            }
             Section("Abschnitte") {
                 ForEach(option.legs) { leg in LegRow(leg: leg) }
             }

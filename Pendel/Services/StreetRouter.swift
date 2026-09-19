@@ -7,6 +7,8 @@ struct StreetRoute {
     /// configured speed instead.
     var expectedTravelTime: TimeInterval
     var coordinates: [CLLocationCoordinate2D]
+    /// Signalised junctions on the route, once known from OpenStreetMap.
+    var signals = 0
 }
 
 enum StreetMode: Hashable {
