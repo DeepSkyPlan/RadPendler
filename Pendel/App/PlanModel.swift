@@ -35,17 +35,28 @@ final class PlanModel {
     func options(for mode: TravelMode) -> [TripOption] {
         // Stable: U-Bahn/tram alternatives after the S-Bahn/regional connections.
         let own = options.filter { $0.mode == mode }
-        return own.filter { !$0.isAlternative } + own.filter(\.isAlternative)
+        let sorted = own.filter { !$0.isAlternative } + own.filter(\.isAlternative)
+        return sorted.filter(\.passesWaypoints) + sorted.filter { !$0.passesWaypoints }
     }
+
+    /// True until both addresses are set — the list then explains instead of searching.
+    private(set) var needsAddresses = false
 
     func refresh(settings: AppSettings) {
         task?.cancel()
+        guard let origin = settings.origin, let destination = settings.destination else {
+            needsAddresses = true
+            result = PlanResult()
+            isLoading = false
+            return
+        }
+        needsAddresses = false
         let start: Date
         switch startTime {
         case .now: start = .now
         case .at(let d): start = d
         }
-        let req = PlanRequest(origin: settings.origin, destination: settings.destination,
+        let req = PlanRequest(origin: origin, destination: destination,
                               start: start, settings: settings.snapshot)
         isLoading = true
         task = Task {

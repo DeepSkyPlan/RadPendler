@@ -7,9 +7,12 @@ final class PlannerTests: XCTestCase {
     /// 21 km/h keeps the hand-computed times below round.
     private let settings = PlanSettings(bikeSpeedKmh: 21)
 
+    private let from = Place(name: "Start", latitude: 52.50, longitude: 13.35)
+    private let to = Place(name: "Ziel", latitude: 52.42, longitude: 13.24)
+
     private func line(_ meters: Double) -> StreetRoute {
-        // ~meters due south of the office
-        let a = Place.office.coordinate
+        // ~meters due south of the start
+        let a = from.coordinate
         let b = CLLocationCoordinate2D(latitude: a.latitude - meters / 111_320, longitude: a.longitude)
         return StreetRoute(distance: meters, expectedTravelTime: 0, coordinates: [a, b])
     }
@@ -18,7 +21,7 @@ final class PlannerTests: XCTestCase {
                        product: TransitProduct = .suburban) -> Leg {
         Leg(kind: .transit(line: name, product: product), fromName: "A", toName: "B",
             departure: t0.addingTimeInterval(dep), arrival: t0.addingTimeInterval(arr),
-            coordinates: [Place.office.coordinate, Place.home.coordinate], bikeCarriage: bike)
+            coordinates: [from.coordinate, to.coordinate], bikeCarriage: bike)
     }
 
     func testDefaultRollingSpeedAndLightsGiveTheMeasured21KmhAverage() {
@@ -33,20 +36,30 @@ final class PlannerTests: XCTestCase {
         XCTAssertEqual(20.0 / (defaults.rideTime(r) / 3600), 21, accuracy: 1)
     }
 
-    func testDefaultsAreOfficeToHomeWithFiveMinutesPrep() {
-        let s = AppSettings(defaults: UserDefaults(suiteName: UUID().uuidString)!)
-        XCTAssertEqual(s.origin, .office)
-        XCTAssertEqual(s.destination, .home)
+    func testShipsWithoutAddressesAndKeepsWhatIsPicked() {
+        let suite = UUID().uuidString
+        let s = AppSettings(defaults: UserDefaults(suiteName: suite)!)
+        XCTAssertNil(s.origin, "no address is built into the app")
+        XCTAssertNil(s.destination)
+        XCTAssertFalse(s.isReady)
         XCTAssertEqual(s.prepMinutes, 5)
+
+        s.origin = from
+        s.destination = to
         s.swapDirection()
-        XCTAssertEqual(s.origin, .home)
+        XCTAssertEqual(s.origin, to)
+        XCTAssertTrue(s.isReady)
+        // Kept for the next launch, cleared on request.
+        XCTAssertEqual(AppSettings(defaults: UserDefaults(suiteName: suite)!).origin, to)
+        s.clearPlaces()
+        XCTAssertNil(AppSettings(defaults: UserDefaults(suiteName: suite)!).origin)
     }
 
     func testComposeLeavesAsLateAsCatchesTheTrain() throws {
         // 2 100 m at 21 km/h = 6 min, +3 min buffer → leave 9 min before the train.
         let journey = [train("S7", dep: 30 * 60, arr: 55 * 60)]
         let option = try XCTUnwrap(BikeTransitComposer.compose(
-            origin: .office, destination: .home, station1: "Hbf", ride1: line(2100), journey: journey,
+            origin: from, destination: to, station1: "Hbf", ride1: line(2100), journey: journey,
             station2: "Beispielplatz", ride2: line(3500), settings: settings, earliestLeave: t0.addingTimeInterval(300)))
         XCTAssertEqual(option.leave, t0.addingTimeInterval(21 * 60))
         XCTAssertEqual(option.getReady, t0.addingTimeInterval(16 * 60))
@@ -59,7 +72,7 @@ final class PlannerTests: XCTestCase {
     func testComposeRejectsTrainWithoutBikeCarriage() {
         let journey = [train("S7", dep: 30 * 60, arr: 40 * 60), train("RE1", dep: 45 * 60, arr: 55 * 60, bike: false)]
         XCTAssertNil(BikeTransitComposer.compose(
-            origin: .office, destination: .home, station1: "A", ride1: line(1000), journey: journey,
+            origin: from, destination: to, station1: "A", ride1: line(1000), journey: journey,
             station2: "B", ride2: line(1000), settings: settings, earliestLeave: t0))
     }
 
@@ -67,17 +80,17 @@ final class PlannerTests: XCTestCase {
         // Train in 10 min, but ride (6 min) + buffer (3) + prep (5) = 14 min.
         let journey = [train("S7", dep: 10 * 60, arr: 30 * 60)]
         XCTAssertNil(BikeTransitComposer.compose(
-            origin: .office, destination: .home, station1: "A", ride1: line(2100), journey: journey,
+            origin: from, destination: to, station1: "A", ride1: line(2100), journey: journey,
             station2: "B", ride2: line(1000), settings: settings, earliestLeave: t0.addingTimeInterval(300)))
     }
 
     func testBestDropsDuplicateTrainsKeepingLatestLeave() throws {
         let journey = [train("S1", dep: 30 * 60, arr: 55 * 60)]
         let near = try XCTUnwrap(BikeTransitComposer.compose(
-            origin: .office, destination: .home, station1: "near", ride1: line(1000), journey: journey,
+            origin: from, destination: to, station1: "near", ride1: line(1000), journey: journey,
             station2: "B", ride2: line(2000), settings: settings, earliestLeave: t0))
         let far = try XCTUnwrap(BikeTransitComposer.compose(
-            origin: .office, destination: .home, station1: "far", ride1: line(4000), journey: journey,
+            origin: from, destination: to, station1: "far", ride1: line(4000), journey: journey,
             station2: "B", ride2: line(2000), settings: settings, earliestLeave: t0))
         let best = BikeTransitComposer.best([far, near], count: 3)
         XCTAssertEqual(best.count, 1)
@@ -91,7 +104,7 @@ final class PlannerTests: XCTestCase {
         var o = TripOption(mode: mode, legs: [Leg(kind: kind, fromName: "a", toName: "b", departure: t0,
                                                   arrival: t0.addingTimeInterval(minutes * 60))], prep: 300)
         if let rainMm {
-            o.rain = RainAssessment(readings: [RainReading(sample: RainSample(coordinate: Place.home.coordinate, time: t0),
+            o.rain = RainAssessment(readings: [RainReading(sample: RainSample(coordinate: to.coordinate, time: t0),
                                                            millimetres: rainMm, probability: rainMm > 0 ? 90 : 0)])
         }
         return o
@@ -113,7 +126,7 @@ final class PlannerTests: XCTestCase {
 
     private func bikeTrain(_ legs: [Leg]) throws -> TripOption {
         try XCTUnwrap(BikeTransitComposer.compose(
-            origin: .office, destination: .home, station1: "A", ride1: line(1000), journey: legs,
+            origin: from, destination: to, station1: "A", ride1: line(1000), journey: legs,
             station2: "B", ride2: line(1000), settings: settings, earliestLeave: t0))
     }
 
@@ -131,7 +144,7 @@ final class PlannerTests: XCTestCase {
         let dry = RainAssessment(readings: [])
         viaU.rain = dry; viaS.rain = dry
         var bike = option(.bike, arrive: 90, rainMm: 1.5)
-        bike.rain = RainAssessment(readings: [RainReading(sample: RainSample(coordinate: Place.home.coordinate, time: t0),
+        bike.rain = RainAssessment(readings: [RainReading(sample: RainSample(coordinate: to.coordinate, time: t0),
                                                           millimetres: 1.5, probability: 90)])
         XCTAssertEqual(TripPlanner.recommend([viaU, viaS, bike])?.optionID, viaS.id)
         // Without any S-Bahn connection the U-Bahn one is recommended.
@@ -157,14 +170,6 @@ final class PlannerTests: XCTestCase {
         // 15 min earlier with one change is worth it at a 10-min penalty.
         let early = try bikeTrain([train("RE3", dep: 1800, arr: 2000, product: .regional), train("S26", dep: 2100, arr: 2300)])
         XCTAssertEqual(TripPlanner.recommend([early, direct])?.optionID, early.id)
-    }
-
-    func testOldOfficePostcodeIsMigrated() throws {
-        let d = UserDefaults(suiteName: UUID().uuidString)!
-        d.set(try JSONEncoder().encode(Place(name: "Musterstraße 1, 10000 Berlin", latitude: 52.5367319, longitude: 13.3605566)),
-              forKey: "origin")
-        XCTAssertEqual(AppSettings(defaults: d).origin, .office)
-        XCTAssertEqual(Place.office.latitude, 52.5363163)
     }
 
     func testRankingPrefersActiveModeWithinThreeMinutes() {

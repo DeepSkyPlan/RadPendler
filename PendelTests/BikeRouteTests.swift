@@ -55,14 +55,17 @@ final class BikeRouteTests: XCTestCase {
                                             mainRoadMeters: mainKm * 1000))
     }
 
-    func testPickShortestBalancedQuiet() {
+    func testPickFastestBalancedQuiet() {
         let s = PlanSettings()
-        let short = candidate("fastbike", km: 19.5, signals: 50, crossings: 18, mainKm: 13.5)
+        // Fastest is not the shortest here: 19.7 km with 45 lights beats
+        // 19.5 km with 50 at 20 s each.
+        let short = candidate("fastbike", km: 19.5, signals: 55, crossings: 18, mainKm: 13.5)
         let middle = candidate("trekking", km: 19.7, signals: 45, crossings: 14, mainKm: 9)
-        let quiet = candidate("safety", km: 21.5, signals: 43, crossings: 12, mainKm: 7.6)
+        let quiet = candidate("safety", km: 24.0, signals: 43, crossings: 12, mainKm: 7.6)
         let picked = BikeCandidate.pick([quiet, short, middle], settings: s)
-        XCTAssertEqual(picked.map(\.0.source), ["fastbike", "trekking", "safety"])
-        XCTAssertEqual(picked.map(\.1), [[.shortest], [.balanced], [.quiet]])
+        XCTAssertLessThan(middle.time(s), short.time(s))
+        XCTAssertEqual(picked.map(\.0.source), ["trekking", "safety"])
+        XCTAssertEqual(picked.map(\.1), [[.fastest, .balanced], [.quiet]])
         // Signal waits are part of the riding time: 45 × 20 s = 15 min.
         XCTAssertEqual(middle.time(s), s.bikeTime(19_700) + 900, accuracy: 1)
     }
@@ -72,6 +75,6 @@ final class BikeRouteTests: XCTestCase {
         let worse = candidate("fastbike", km: 20, signals: 50, crossings: 18, mainKm: 13)
         let picked = BikeCandidate.pick([worse, best], settings: PlanSettings())
         XCTAssertEqual(picked.count, 1)
-        XCTAssertEqual(picked[0].1, [.shortest, .balanced, .quiet])
+        XCTAssertEqual(picked[0].1, [.fastest, .balanced, .quiet])
     }
 }

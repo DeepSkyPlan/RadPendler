@@ -57,12 +57,12 @@ enum TransitProduct: Int, CaseIterable {
 
 /// Which of the bike route variants an option is; one route can be several.
 enum BikeVariant: String, CaseIterable, Comparable {
-    case shortest, balanced, quiet
+    case fastest, balanced, quiet
 
     var title: String {
         switch self {
-        case .shortest: "kürzest"
-        case .balanced: "Mittelweg"
+        case .fastest: "schnellst"
+        case .balanced: "optimal"
         case .quiet: "ruhigst"
         }
     }
@@ -109,6 +109,13 @@ struct Leg: Identifiable {
 
     var duration: TimeInterval { arrival.timeIntervalSince(departure) }
 
+    /// Metres: what the router said, else the length of the drawn line.
+    var length: Double? {
+        if let distance { return distance }
+        guard coordinates.count > 1 else { return nil }
+        return zip(coordinates, coordinates.dropFirst()).reduce(0) { $0 + $1.0.distance(to: $1.1) }
+    }
+
     var departureDelay: TimeInterval {
         plannedDeparture.map { departure.timeIntervalSince($0) } ?? 0
     }
@@ -132,6 +139,8 @@ struct TripOption: Identifiable {
     var rain: RainAssessment? = nil
     /// Set on whole-way bike options.
     var bikeRoute: BikeRouteInfo? = nil
+    /// False when the trip misses the fixed points from the settings.
+    var passesWaypoints = true
 
     /// The bike variant the recommendation considers (Mittelweg).
     var isDefaultBikeVariant: Bool {
@@ -153,6 +162,7 @@ struct TripOption: Identifiable {
         return t > 0 ? bikeDistance / t * 3.6 : nil
     }
     var walkDistance: Double { legs.filter { $0.kind == .walk }.compactMap(\.distance).reduce(0, +) }
+    var totalDistance: Double { legs.compactMap(\.length).reduce(0, +) }
 
     /// Arrival used for ranking: every change of train counts as `penalty`
     /// extra seconds, so a direct train beats a slightly faster one with changes.

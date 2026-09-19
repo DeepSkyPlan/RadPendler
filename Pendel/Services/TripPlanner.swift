@@ -59,6 +59,11 @@ struct TripPlanner {
         } catch {
             result.rainFailure = "Regenvorhersage nicht verfügbar: \(error.localizedDescription)"
         }
+        for i in result.options.indices {
+            result.options[i].passesWaypoints = WaypointMatcher.passes(
+                result.options[i], waypoints: req.settings.waypoints,
+                requireAll: req.settings.requireAllWaypoints, radius: req.settings.waypointRadius)
+        }
         let penalty = req.settings.transferPenalty
         result.options.sort { Self.ranking($0, $1, penalty: penalty) }
         result.recommendation = Self.recommend(result.options, penalty: penalty)
@@ -254,6 +259,7 @@ struct TripPlanner {
     /// Earliest arrival first, each change of train counted as `penalty`;
     /// within 3 minutes the more active mode first.
     static func ranking(_ a: TripOption, _ b: TripOption, penalty: TimeInterval = 600) -> Bool {
+        if a.passesWaypoints != b.passesWaypoints { return a.passesWaypoints }
         let wa = a.weightedArrival(penalty), wb = b.weightedArrival(penalty)
         if abs(wa.timeIntervalSince(wb)) < 180, a.mode != b.mode {
             return a.mode.preference < b.mode.preference
@@ -268,8 +274,11 @@ struct TripPlanner {
         let arrival = { (o: TripOption) in o.weightedArrival(penalty) }
         let level = { (o: TripOption) in o.rain?.level ?? .dry }
         // U-Bahn/tram connections only count when no S-Bahn/regional one exists.
-        let bikeTrains = options.filter { $0.mode == .bikeTransit && !$0.isAlternative }
+        let onRoute = options.filter(\.passesWaypoints)
+        let bikeTrains = (onRoute.isEmpty ? options : onRoute).filter { $0.mode == .bikeTransit && !$0.isAlternative }
         let bikeTransit = bikeTrains.isEmpty ? options.filter { $0.mode == .bikeTransit } : bikeTrains
+        // Trips that miss the fixed points are never recommended while others exist.
+        let options = options.contains(where: \.passesWaypoints) ? options.filter(\.passesWaypoints) : options
         let bikeish = options.filter(\.isDefaultBikeVariant) + bikeTransit
         let dry = bikeish.filter { level($0) <= .possible }
 
@@ -381,22 +390,23 @@ struct BikeCandidate {
         time(s) + 0.5 * (stats?.disturbance ?? 0) / s.bikeSpeedMps
     }
 
-    /// kürzest = least distance, ruhigst = least disturbance, Mittelweg =
-    /// best balance. A route winning several roles is listed once with all
-    /// its labels. Without OpenStreetMap data only "kürzest" can be judged;
-    /// BRouter's "safety" route then stands in for "ruhigst".
+    /// schnellst = least riding time (traffic lights included), ruhigst =
+    /// least disturbance, optimal = best balance of the two. A route winning
+    /// several roles is listed once with all its labels. Without OpenStreetMap
+    /// data only the time can be judged; BRouter's "safety" route then stands
+    /// in for "ruhigst".
     static func pick(_ all: [BikeCandidate], settings s: PlanSettings) -> [(BikeCandidate, [BikeVariant])] {
-        guard let shortest = all.indices.min(by: { all[$0].route.distance < all[$1].route.distance }) else { return [] }
+        guard let fastest = all.indices.min(by: { all[$0].time(s) < all[$1].time(s) }) else { return [] }
         let quiet: Int, balanced: Int
         if all.contains(where: { $0.stats != nil }) {
             quiet = all.indices.min { (all[$0].stats?.disturbance ?? .infinity) < (all[$1].stats?.disturbance ?? .infinity) }!
             balanced = all.indices.min { all[$0].balancedScore(s) < all[$1].balancedScore(s) }!
         } else {
-            quiet = all.firstIndex { $0.source == "safety" } ?? shortest
-            balanced = all.firstIndex { $0.source == "trekking" } ?? shortest
+            quiet = all.firstIndex { $0.source == "safety" } ?? fastest
+            balanced = all.firstIndex { $0.source == "trekking" } ?? fastest
         }
         var roles: [Int: [BikeVariant]] = [:]
-        roles[shortest, default: []].append(.shortest)
+        roles[fastest, default: []].append(.fastest)
         roles[balanced, default: []].append(.balanced)
         roles[quiet, default: []].append(.quiet)
         return roles.sorted { $0.value.min()! < $1.value.min()! }.map { (all[$0.key], $0.value.sorted()) }

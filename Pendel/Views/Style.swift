@@ -26,8 +26,9 @@ extension LegKind {
     var uiColor: UIColor {
         switch self {
         case .walk: .systemGray
-        case .bike: UIColor(red: 0.10, green: 0.62, blue: 0.25, alpha: 1)
-        case .car: .systemOrange
+        // Violet, so a bike leg never reads as the green of an S-Bahn line.
+        case .bike: UIColor(red: 0.42, green: 0.27, blue: 0.92, alpha: 1)
+        case .car: UIColor(red: 0.95, green: 0.55, blue: 0.10, alpha: 1)
         case .transit(_, let p):
             switch p {
             case .suburban: UIColor(red: 0.00, green: 0.55, blue: 0.31, alpha: 1)
@@ -63,7 +64,7 @@ extension TravelMode {
     var color: Color {
         switch self {
         case .bike: LegKind.bike.color
-        case .bikeTransit: Color(red: 0.0, green: 0.55, blue: 0.45)
+        case .bikeTransit: Theme.accent
         case .transit: LegKind.transit(line: "", product: .suburban).color
         case .car: LegKind.car.color
         }
@@ -78,6 +79,36 @@ extension RainLevel {
         case .light: .blue
         case .rain, .heavy: .indigo
         }
+    }
+}
+
+/// The legs of an option as icons with their distances: bike → S7 → bike.
+struct LegChainView: View {
+    var option: TripOption
+    var compact = false
+
+    var body: some View {
+        HStack(spacing: compact ? 3 : 5) {
+            ForEach(Array(merged.enumerated()), id: \.offset) { _, leg in
+                HStack(spacing: 2) {
+                    if leg.isTransit {
+                        LineBadge(leg: leg)
+                    } else {
+                        Image(systemName: leg.kind.symbol)
+                            .font(.caption).foregroundStyle(leg.kind.color)
+                    }
+                    if let m = leg.length, m >= 50 || !leg.isTransit {
+                        Text(Fmt.km(m)).font(.caption2).foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Short walks between two trains are just the change; they keep their own
+    /// icon only when they are a real walk (≥ 150 m).
+    private var merged: [Leg] {
+        option.legs.filter { $0.kind != .walk || ($0.length ?? 0) >= 150 }
     }
 }
 
