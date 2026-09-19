@@ -10,13 +10,8 @@ struct Place: Codable, Equatable, Hashable {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
 
-    /// The building is new: Apple files No. 26 under 10000 and HAFAS only knows
-    /// No. 25, but the postal address is 10178. The coordinates are the user's
-    /// own pin of the entrance; the app always hands HAFAS coordinates, never the text.
-    static let office = Place(name: "Musterstraße 1, 10178 Berlin",
-                              latitude: 52.5210000, longitude: 13.4130000)
-    static let home = Place(name: "Beispielweg 2, 14000 Musterort",
-                            latitude: 52.421300, longitude: 13.1794000)
+    // No addresses are built in: the app ships empty and keeps whatever the
+    // user picks, so no private address is in the binary that goes to the store.
 
     /// First line of the name, for tight rows.
     var shortName: String {

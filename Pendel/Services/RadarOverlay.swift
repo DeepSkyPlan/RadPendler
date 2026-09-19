@@ -14,6 +14,21 @@ final class RadarTileOverlay: MKTileOverlay {
         return stride(from: first, through: base + future, by: step).map { Date(timeIntervalSince1970: $0) }
     }
 
+    /// Frames covering a trip: from shortly before leaving to shortly after
+    /// arriving, clipped to what the radar has (last half hour plus the 2 h
+    /// nowcast). Pressing play then walks the ride and the rain together.
+    static func frameTimes(forTripFrom leave: Date, to arrival: Date, now: Date = .now,
+                           step: TimeInterval = 300) -> [Date] {
+        let available = frameTimes(around: now, step: step)
+        guard let first = available.first, let last = available.last else { return [] }
+        let from = max(leave.addingTimeInterval(-600), first)
+        let to = min(arrival.addingTimeInterval(600), last)
+        guard from < to else { return available }
+        let start = (from.timeIntervalSince1970 / step).rounded(.down) * step
+        let end = (to.timeIntervalSince1970 / step).rounded(.up) * step
+        return stride(from: start, through: end, by: step).map { Date(timeIntervalSince1970: $0) }
+    }
+
     init(time: Date) {
         self.time = time
         super.init(urlTemplate: nil)

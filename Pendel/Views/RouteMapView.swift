@@ -8,6 +8,8 @@ struct RouteMapView: UIViewRepresentable {
     var radarFrames: [Date]
     /// Frame on screen; nil hides the radar.
     var radarTime: Date?
+    /// Fixed points from the settings, drawn as flags.
+    var waypoints: [Place] = []
     /// Tap on an option's label on the map.
     var onSelect: ((TripOption.ID) -> Void)? = nil
 
@@ -30,6 +32,8 @@ struct RouteMapView: UIViewRepresentable {
     final class LegLine: MKPolyline {
         var kind: LegKind = .walk
         var emphasized = true
+        /// Belongs to a trip that misses the fixed points.
+        var dimmed = false
     }
 
     final class Pin: MKPointAnnotation {
@@ -128,10 +132,12 @@ struct RouteMapView: UIViewRepresentable {
                     let line = LegLine(coordinates: leg.coordinates, count: leg.coordinates.count)
                     line.kind = leg.kind
                     line.emphasized = selected == nil || option.id == selected?.id
+                    line.dimmed = !option.passesWaypoints
                     map.addOverlay(line, level: .aboveRoads)
                 }
             }
             addLabels(map, view.options, selected: selected?.id)
+            if let selected { addLegBadges(map, selected) }
             guard let trip = selected ?? view.options.first, let first = trip.legs.first, let last = trip.legs.last else { return }
             var pins: [Pin] = []
             let start = Pin(); start.coordinate = first.coordinates.first ?? CLLocationCoordinate2D()
@@ -145,6 +151,11 @@ struct RouteMapView: UIViewRepresentable {
                 p.title = "\(leg.lineName ?? "") \(Fmt.time(leg.departure))"
                 p.subtitle = leg.fromName
                 p.tint = leg.kind.uiColor; p.glyph = leg.kind.symbol
+                pins.append(p)
+            }
+            for w in view.waypoints {
+                let p = Pin(); p.coordinate = w.coordinate; p.title = w.shortName
+                p.tint = .systemIndigo; p.glyph = "pin.fill"
                 pins.append(p)
             }
             map.addAnnotations(pins)
@@ -183,6 +194,25 @@ struct RouteMapView: UIViewRepresentable {
             guard let label = annotation as? OptionLabel, let id = label.optionID else { return }
             mapView.deselectAnnotation(annotation, animated: false)
             onSelect?(id)
+        }
+
+        /// Small badge on every leg of the chosen trip, so it is obvious which
+        /// stretch is ridden, driven or taken by train.
+        private func addLegBadges(_ map: MKMapView, _ trip: TripOption) {
+            for leg in trip.legs where leg.coordinates.count > 1 {
+                guard let m = leg.length, m >= 300,
+                      let c = RainSampler.position(on: leg.coordinates, departure: leg.departure,
+                                                   arrival: leg.arrival,
+                                                   at: leg.departure.addingTimeInterval(leg.duration / 2)) else { continue }
+                let a = OptionLabel()
+                a.coordinate = c
+                a.optionID = trip.id
+                a.symbol = leg.kind.symbol
+                a.text = [leg.lineName, Fmt.km(m)].compactMap { $0 }.joined(separator: " · ")
+                a.color = leg.kind.uiColor
+                a.selected = true
+                map.addAnnotation(a)
+            }
         }
 
         private func zoomToRoutes(_ map: MKMapView, _ view: RouteMapView) {
@@ -261,9 +291,10 @@ struct RouteMapView: UIViewRepresentable {
             if let line = overlay as? LegLine {
                 let r = MKPolylineRenderer(polyline: line)
                 // Other options grey underneath, the chosen one in colour on top.
-                r.strokeColor = line.emphasized ? line.kind.uiColor.withAlphaComponent(0.95)
-                                                : UIColor.systemGray.withAlphaComponent(0.55)
+                r.strokeColor = line.emphasized ? line.kind.uiColor.withAlphaComponent(line.dimmed ? 0.45 : 0.95)
+                                                : UIColor.systemGray.withAlphaComponent(line.dimmed ? 0.25 : 0.55)
                 r.lineWidth = line.emphasized ? 5 : 4
+                if line.dimmed { r.lineDashPattern = [6, 5] }
                 if line.kind == .walk { r.lineDashPattern = [2, 6] }
                 r.lineCap = .round
                 return r
@@ -332,7 +363,7 @@ struct RadarControls: View {
             while playing, !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(700))
                 guard playing else { break }
-                index = (index + 1) % max(frames.count, 1)
+                index = index + 1 < frames.count ? index + 1 : 0
             }
         }
     }
@@ -342,16 +373,19 @@ struct RadarControls: View {
 struct TripMapPanel: View {
     var options: [TripOption]
     var selectedID: TripOption.ID?
+    var waypoints: [Place] = []
     var onSelect: ((TripOption.ID) -> Void)? = nil
     @State private var frames = RadarTileOverlay.frameTimes()
     @State private var index = 0
     @State private var radarOn = true
 
+    private var trip: TripOption? { options.first { $0.id == selectedID } }
+
     var body: some View {
         ZStack(alignment: .bottom) {
             RouteMapView(options: options, selectedID: selectedID, radarFrames: radarOn ? frames : [],
                          radarTime: radarOn && frames.indices.contains(index) ? frames[index] : nil,
-                         onSelect: onSelect)
+                         waypoints: waypoints, onSelect: onSelect)
             RadarControls(frames: frames, index: $index, visible: $radarOn)
                 .padding(8)
         }
@@ -359,11 +393,16 @@ struct TripMapPanel: View {
         .onChange(of: selectedID) { resetFrames() }
     }
 
-    /// Fresh frames, starting at the frame closest to the selected trip's
-    /// departure so "play" shows the rain coming towards the ride.
+    /// Frames for the selected trip, starting at its departure: play then runs
+    /// the ride and the radar forward together.
     private func resetFrames() {
-        frames = RadarTileOverlay.frameTimes()
-        let leave = options.first { $0.id == selectedID }?.leave ?? .now
-        index = frames.enumerated().min { abs($0.element.timeIntervalSince(leave)) < abs($1.element.timeIntervalSince(leave)) }?.offset ?? 0
+        guard let trip else {
+            frames = RadarTileOverlay.frameTimes()
+            index = 0
+            return
+        }
+        frames = RadarTileOverlay.frameTimes(forTripFrom: trip.leave, to: trip.arrival)
+        index = frames.enumerated()
+            .min { abs($0.element.timeIntervalSince(trip.leave)) < abs($1.element.timeIntervalSince(trip.leave)) }?.offset ?? 0
     }
 }

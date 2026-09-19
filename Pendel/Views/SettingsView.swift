@@ -9,18 +9,22 @@ struct SettingsView: View {
         @Bindable var settings = settings
         NavigationStack {
             Form {
-                Section("Adressen") {
+                Section {
                     NavigationLink {
                         AddressSearchView(title: "Start") { settings.origin = $0 }
                     } label: {
-                        LabeledContent("Start", value: settings.origin.name)
+                        LabeledContent("Start", value: settings.origin?.name ?? "nicht gesetzt")
                     }
                     NavigationLink {
                         AddressSearchView(title: "Ziel") { settings.destination = $0 }
                     } label: {
-                        LabeledContent("Ziel", value: settings.destination.name)
+                        LabeledContent("Ziel", value: settings.destination?.name ?? "nicht gesetzt")
                     }
-                    Button("Büro → Beispielweg wiederherstellen") { settings.resetPlaces() }
+                    Button("Beide Adressen löschen", role: .destructive) { settings.clearPlaces() }
+                } header: {
+                    Text("Adressen")
+                } footer: {
+                    Text("Die App wird ohne Adressen ausgeliefert. Start und Ziel bleiben nur auf diesem Gerät gespeichert.")
                 }
                 Section {
                     Stepper("Rüstzeit: \(settings.prepMinutes) min", value: $settings.prepMinutes, in: 0...30)
@@ -50,20 +54,61 @@ struct SettingsView: View {
                 } footer: {
                     Text("Beim Sortieren und Empfehlen wird jeder Umstieg wie so viele Minuten längere Fahrt gewertet. Eine direkte Verbindung gewinnt also, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.")
                 }
+                Section {
+                    ForEach(settings.departurePresets, id: \.self) { m in
+                        Text(AppSettings.offsetTitle(m))
+                    }
+                    .onDelete { settings.departurePresets.remove(atOffsets: $0) }
+                    Menu {
+                        ForEach([5, 10, 15, 30, 45, 60, 120, 240, 480, 720, 1080], id: \.self) { m in
+                            Button(AppSettings.offsetTitle(m)) {
+                                guard !settings.departurePresets.contains(m) else { return }
+                                settings.departurePresets = (settings.departurePresets + [m]).sorted()
+                            }
+                        }
+                    } label: {
+                        Label("Zeitpunkt hinzufügen", systemImage: "plus.circle")
+                    }
+                } header: {
+                    Text("Startzeiten")
+                } footer: {
+                    Text("Diese Vorschläge stehen oben neben „Jetzt“ zur Wahl — für die Fahrt am Abend oder morgen früh.")
+                }
+                Section {
+                    ForEach(settings.waypoints, id: \.self) { p in
+                        Label(p.shortName, systemImage: "mappin.and.ellipse")
+                    }
+                    .onDelete { settings.waypoints.remove(atOffsets: $0) }
+                    NavigationLink {
+                        AddressSearchView(title: "Fixpunkt") { settings.waypoints.append($0) }
+                    } label: {
+                        Label("Fixpunkt hinzufügen", systemImage: "plus.circle")
+                    }
+                    if settings.waypoints.count > 1 {
+                        Toggle("Alle Fixpunkte verlangen", isOn: $settings.requireAllWaypoints)
+                    }
+                } header: {
+                    Text("Fixpunkte")
+                } footer: {
+                    Text("Punkte, über die die Strecke führen soll, z. B. „S Musterhausen“ oder „Berlin Hauptbahnhof“. Verbindungen, die nicht daran vorbeikommen, werden ausgegraut ans Ende gestellt und nie empfohlen. Ohne Fixpunkte gilt keine Einschränkung.")
+                }
                 Section("Auto") {
                     Stepper("Parkplatzsuche: \(settings.parkingMinutes) min", value: $settings.parkingMinutes, in: 0...30)
                 }
-                Section("Datenquellen") {
-                    Text("Fahrplan und Echtzeit: VBB-Fahrinfo (HAFAS)")
-                    Text("Radrouten: BRouter (brouter.de) und Apple Karten; Autorouten: Apple Karten")
-                    Text("Ampeln und Hauptstraßen: © OpenStreetMap-Mitwirkende (ODbL), via Overpass API")
-                    Text("Regenradar: Deutscher Wetterdienst")
-                    Text("Regen auf der Strecke: Open-Meteo.com (DWD ICON-D2), CC BY 4.0")
-                }
-                .font(.footnote)
                 Section {
                     Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"))")
-                        .font(.footnote).foregroundStyle(.secondary)
+                } header: {
+                    Text("Daten, Rechte und Version")
+                } footer: {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Fahrplan und Echtzeit: VBB Verkehrsverbund Berlin-Brandenburg (HAFAS-Fahrinfo).")
+                        Text("Karten, Adresssuche und Autorouten: Apple Karten. © Apple Inc. und Mitwirkende.")
+                        Text("Radrouten: BRouter (brouter.de), auf Basis von OpenStreetMap.")
+                        Text("Ampeln, Straßen und Kartendaten: © OpenStreetMap-Mitwirkende, ODbL 1.0, abgefragt über die Overpass API.")
+                        Text("Regenradar und Niederschlagsvorhersage: Deutscher Wetterdienst (DWD), Datenlizenz Deutschland – Namensnennung 2.0.")
+                        Text("Regen entlang der Strecke: Open-Meteo.com, CC BY 4.0, auf Basis von DWD ICON-D2.")
+                        Text("© 2026 AK. Alle Zeiten ohne Gewähr.")
+                    }
                 }
             }
             .navigationTitle("Einstellungen")
