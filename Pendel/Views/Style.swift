@@ -65,7 +65,11 @@ extension TravelMode {
     var color: Color {
         switch self {
         case .bike: LegKind.bike.color
-        case .bikeTransit: Theme.accent
+        // A bluer turquoise, decoupled from the app accent so the Rad+Bahn section
+        // and its recommendation card read apart from the S-Bahn green (#008C4F) that
+        // sits two sections below in the same list. #00ADA3 — clearly more cyan than
+        // the green, clearly greener than the ferry blue (#0080BF).
+        case .bikeTransit: Color(uiColor: UIColor(red: 0.00, green: 0.68, blue: 0.64, alpha: 1))
         case .transit: LegKind.transit(line: "", product: .suburban).color
         case .car: LegKind.car.color
         }
