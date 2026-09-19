@@ -8,6 +8,8 @@ struct RouteMapView: UIViewRepresentable {
     var radarFrames: [Date]
     /// Frame on screen; nil hides the radar.
     var radarTime: Date?
+    /// Tap on an option's label on the map.
+    var onSelect: ((TripOption.ID) -> Void)? = nil
 
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView()
@@ -15,6 +17,7 @@ struct RouteMapView: UIViewRepresentable {
         map.pointOfInterestFilter = .excludingAll
         map.showsCompass = true
         map.register(MKMarkerAnnotationView.self, forAnnotationViewWithReuseIdentifier: "pin")
+        map.register(OptionLabelView.self, forAnnotationViewWithReuseIdentifier: "label")
         return map
     }
 
@@ -35,7 +38,60 @@ struct RouteMapView: UIViewRepresentable {
         var isRider = false
     }
 
+    /// Duration and transfers of one option, placed on its route.
+    final class OptionLabel: MKPointAnnotation {
+        var optionID: TripOption.ID?
+        var symbol = "bicycle"
+        var text = ""
+        var color: UIColor = .systemGray
+        var selected = false
+    }
+
+    final class OptionLabelView: MKAnnotationView {
+        private let icon = UIImageView()
+        private let label = UILabel()
+
+        override init(annotation: MKAnnotation?, reuseIdentifier: String?) {
+            super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
+            let stack = UIStackView(arrangedSubviews: [icon, label])
+            stack.spacing = 4
+            stack.alignment = .center
+            stack.isLayoutMarginsRelativeArrangement = true
+            stack.layoutMargins = UIEdgeInsets(top: 3, left: 6, bottom: 3, right: 7)
+            stack.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(stack)
+            NSLayoutConstraint.activate([
+                stack.leadingAnchor.constraint(equalTo: leadingAnchor), stack.trailingAnchor.constraint(equalTo: trailingAnchor),
+                stack.topAnchor.constraint(equalTo: topAnchor), stack.bottomAnchor.constraint(equalTo: bottomAnchor),
+            ])
+            label.font = .monospacedDigitSystemFont(ofSize: 12, weight: .semibold)
+            icon.contentMode = .scaleAspectFit
+            icon.preferredSymbolConfiguration = .init(pointSize: 11, weight: .semibold)
+            layer.cornerRadius = 9
+            layer.borderWidth = 1.5
+            collisionMode = .rectangle
+        }
+
+        required init?(coder: NSCoder) { fatalError() }
+
+        func configure(_ a: OptionLabel) {
+            icon.image = UIImage(systemName: a.symbol)
+            label.text = a.text
+            let fg: UIColor = a.selected ? .white : .secondaryLabel
+            icon.tintColor = fg
+            label.textColor = fg
+            backgroundColor = a.selected ? a.color : .systemBackground.withAlphaComponent(0.92)
+            layer.borderColor = (a.selected ? a.color : UIColor.systemGray3).cgColor
+            displayPriority = a.selected ? .required : .defaultHigh
+            zPriority = a.selected ? .max : .defaultUnselected
+            let size = systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
+            frame.size = size
+            centerOffset = .zero
+        }
+    }
+
     final class Coordinator: NSObject, MKMapViewDelegate {
+        var onSelect: ((TripOption.ID) -> Void)?
         private var routeKey = ""
         private var planKey = ""
         private var radar: [Date: RadarTileOverlay] = [:]
@@ -44,6 +100,7 @@ struct RouteMapView: UIViewRepresentable {
         private var rider: Pin?
 
         func update(_ map: MKMapView, _ view: RouteMapView) {
+            onSelect = view.onSelect
             // New plan → redraw and fit; new selection only → redraw.
             let plan = view.options.map { $0.id.uuidString }.joined()
             let key = plan + (view.selectedID?.uuidString ?? "")
@@ -62,6 +119,7 @@ struct RouteMapView: UIViewRepresentable {
         private func drawRoutes(_ map: MKMapView, _ view: RouteMapView) {
             map.removeOverlays(map.overlays.filter { $0 is LegLine })
             map.removeAnnotations(map.annotations.compactMap { $0 as? Pin }.filter { !$0.isRider })
+            map.removeAnnotations(map.annotations.filter { $0 is OptionLabel })
             let selected = view.options.first { $0.id == view.selectedID }
             // Unselected options faint underneath, the selected one on top.
             let ordered = view.options.filter { $0.id != selected?.id } + (selected.map { [$0] } ?? [])
@@ -73,6 +131,7 @@ struct RouteMapView: UIViewRepresentable {
                     map.addOverlay(line, level: .aboveRoads)
                 }
             }
+            addLabels(map, view.options, selected: selected?.id)
             guard let trip = selected ?? view.options.first, let first = trip.legs.first, let last = trip.legs.last else { return }
             var pins: [Pin] = []
             let start = Pin(); start.coordinate = first.coordinates.first ?? CLLocationCoordinate2D()
@@ -89,6 +148,40 @@ struct RouteMapView: UIViewRepresentable {
                 pins.append(p)
             }
             map.addAnnotations(pins)
+        }
+
+        /// One label per option, spread along each route (35 %…65 % of its length)
+        /// so that options sharing a track do not stack their labels.
+        private func addLabels(_ map: MKMapView, _ options: [TripOption], selected: TripOption.ID?) {
+            guard options.count > 1 else { return }
+            for (i, o) in options.enumerated() {
+                let path = o.legs.flatMap(\.coordinates)
+                guard path.count > 1 else { continue }
+                let f = 0.35 + 0.3 * Double(i) / Double(max(options.count - 1, 1))
+                let span = o.arrival.timeIntervalSince(o.leave)
+                guard let c = RainSampler.position(on: path, departure: o.leave, arrival: o.arrival,
+                                                   at: o.leave.addingTimeInterval(span * f)) else { continue }
+                let a = OptionLabel()
+                a.coordinate = c
+                a.optionID = o.id
+                a.symbol = o.mode.symbol
+                a.text = Self.labelText(o)
+                a.color = UIColor(o.mode.color)
+                a.selected = o.id == selected
+                map.addAnnotation(a)
+            }
+        }
+
+        static func labelText(_ o: TripOption) -> String {
+            let d = Fmt.duration(o.duration)
+            guard !o.transitLegs.isEmpty else { return d }
+            return o.transfers == 0 ? "\(d) · direkt" : "\(d) · \(o.transfers)× um"   // short form of transferText
+        }
+
+        func mapView(_ mapView: MKMapView, didSelect annotation: MKAnnotation) {
+            guard let label = annotation as? OptionLabel, let id = label.optionID else { return }
+            mapView.deselectAnnotation(annotation, animated: false)
+            onSelect?(id)
         }
 
         private func zoomToRoutes(_ map: MKMapView, _ view: RouteMapView) {
@@ -166,8 +259,10 @@ struct RouteMapView: UIViewRepresentable {
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let line = overlay as? LegLine {
                 let r = MKPolylineRenderer(polyline: line)
-                r.strokeColor = line.kind.uiColor.withAlphaComponent(line.emphasized ? 0.95 : 0.3)
-                r.lineWidth = line.emphasized ? 5 : 3
+                // Other options grey underneath, the chosen one in colour on top.
+                r.strokeColor = line.emphasized ? line.kind.uiColor.withAlphaComponent(0.95)
+                                                : UIColor.systemGray.withAlphaComponent(0.55)
+                r.lineWidth = line.emphasized ? 5 : 4
                 if line.kind == .walk { r.lineDashPattern = [2, 6] }
                 r.lineCap = .round
                 return r
@@ -182,6 +277,11 @@ struct RouteMapView: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            if let label = annotation as? OptionLabel {
+                let v = mapView.dequeueReusableAnnotationView(withIdentifier: "label", for: label) as! OptionLabelView
+                v.configure(label)
+                return v
+            }
             guard let pin = annotation as? Pin else { return nil }
             let v = mapView.dequeueReusableAnnotationView(withIdentifier: "pin", for: pin) as! MKMarkerAnnotationView
             v.markerTintColor = pin.tint
@@ -241,6 +341,7 @@ struct RadarControls: View {
 struct TripMapPanel: View {
     var options: [TripOption]
     var selectedID: TripOption.ID?
+    var onSelect: ((TripOption.ID) -> Void)? = nil
     @State private var frames = RadarTileOverlay.frameTimes()
     @State private var index = 0
     @State private var radarOn = true
@@ -248,7 +349,8 @@ struct TripMapPanel: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             RouteMapView(options: options, selectedID: selectedID, radarFrames: radarOn ? frames : [],
-                         radarTime: radarOn && frames.indices.contains(index) ? frames[index] : nil)
+                         radarTime: radarOn && frames.indices.contains(index) ? frames[index] : nil,
+                         onSelect: onSelect)
             RadarControls(frames: frames, index: $index, visible: $radarOn)
                 .padding(8)
         }

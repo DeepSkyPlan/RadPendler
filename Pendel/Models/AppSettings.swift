@@ -16,6 +16,8 @@ final class AppSettings {
     var maxBikeToStationKm: Double { didSet { defaults.set(maxBikeToStationKm, forKey: "maxBikeToStationKm") } }
     /// Added to every car trip for finding a parking space.
     var parkingMinutes: Int { didSet { defaults.set(parkingMinutes, forKey: "parkingMinutes") } }
+    /// How many minutes of travel time one change of train is worth avoiding.
+    var transferPenaltyMinutes: Int { didSet { defaults.set(transferPenaltyMinutes, forKey: "transferPenaltyMinutes") } }
 
     static let defaultBikeSpeedKmh = 21.0
 
@@ -30,6 +32,7 @@ final class AppSettings {
         bikeStationBufferMinutes = defaults.object(forKey: "bikeStationBufferMinutes") as? Int ?? 3
         maxBikeToStationKm = defaults.object(forKey: "maxBikeToStationKm") as? Double ?? 5
         parkingMinutes = defaults.object(forKey: "parkingMinutes") as? Int ?? 0
+        transferPenaltyMinutes = defaults.object(forKey: "transferPenaltyMinutes") as? Int ?? 10
     }
 
     func swapDirection() {
@@ -44,7 +47,8 @@ final class AppSettings {
     var snapshot: PlanSettings {
         PlanSettings(prepMinutes: prepMinutes, bikeSpeedKmh: bikeSpeedKmh,
                      bikeStationBufferMinutes: bikeStationBufferMinutes,
-                     maxBikeToStationKm: maxBikeToStationKm, parkingMinutes: parkingMinutes)
+                     maxBikeToStationKm: maxBikeToStationKm, parkingMinutes: parkingMinutes,
+                     transferPenaltyMinutes: transferPenaltyMinutes)
     }
 
     private func save(_ place: Place, _ key: String) {
@@ -71,7 +75,9 @@ struct PlanSettings: Equatable {
     var bikeStationBufferMinutes = 3
     var maxBikeToStationKm = 5.0
     var parkingMinutes = 0
+    var transferPenaltyMinutes = 10
 
+    var transferPenalty: TimeInterval { TimeInterval(transferPenaltyMinutes * 60) }
     var bikeSpeedMps: Double { bikeSpeedKmh / 3.6 }
     var prep: TimeInterval { TimeInterval(prepMinutes * 60) }
     var bikeStationBuffer: TimeInterval { TimeInterval(bikeStationBufferMinutes * 60) }

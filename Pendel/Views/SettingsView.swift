@@ -41,6 +41,13 @@ struct SettingsView: View {
                 } footer: {
                     Text("Die Fahrzeit mit dem Rad wird aus der Streckenlänge und dieser Geschwindigkeit berechnet. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet.")
                 }
+                Section {
+                    Stepper("Umstieg zählt wie \(settings.transferPenaltyMinutes) min", value: $settings.transferPenaltyMinutes, in: 0...30)
+                } header: {
+                    Text("Umsteigen")
+                } footer: {
+                    Text("Beim Sortieren und Empfehlen wird jeder Umstieg wie so viele Minuten längere Fahrt gewertet. Eine direkte Verbindung gewinnt also, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.")
+                }
                 Section("Auto") {
                     Stepper("Parkplatzsuche: \(settings.parkingMinutes) min", value: $settings.parkingMinutes, in: 0...30)
                 }

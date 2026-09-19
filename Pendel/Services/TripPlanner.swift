@@ -56,8 +56,9 @@ struct TripPlanner {
         } catch {
             result.rainFailure = "Regenvorhersage nicht verfügbar: \(error.localizedDescription)"
         }
-        result.options.sort(by: Self.ranking)
-        result.recommendation = Self.recommend(result.options)
+        let penalty = req.settings.transferPenalty
+        result.options.sort { Self.ranking($0, $1, penalty: penalty) }
+        result.recommendation = Self.recommend(result.options, penalty: penalty)
         return result
     }
 
@@ -97,7 +98,7 @@ struct TripPlanner {
         return journeys
             .filter { !$0.contains(where: \.cancelled) }
             .map { TripOption(mode: .transit, legs: $0, prep: req.settings.prep) }
-            .sorted { $0.arrival < $1.arrival }
+            .sorted { $0.weightedArrival(req.settings.transferPenalty) < $1.weightedArrival(req.settings.transferPenalty) }
             .prefix(2).map { $0 }
     }
 
@@ -156,7 +157,7 @@ struct TripPlanner {
             }
             return try await group.reduce(into: []) { $0 += $1 }
         }
-        return BikeTransitComposer.rank(candidates, preferred: 3, alternatives: 1)
+        return BikeTransitComposer.rank(candidates, preferred: 3, alternatives: 1, penalty: s.transferPenalty)
     }
 
     typealias Station = HafasClient.Station
@@ -202,18 +203,21 @@ struct TripPlanner {
 
     // MARK: Ranking
 
-    /// Earliest arrival first; within 3 minutes the more active mode first.
-    static func ranking(_ a: TripOption, _ b: TripOption) -> Bool {
-        if abs(a.arrival.timeIntervalSince(b.arrival)) < 180, a.mode != b.mode {
+    /// Earliest arrival first, each change of train counted as `penalty`;
+    /// within 3 minutes the more active mode first.
+    static func ranking(_ a: TripOption, _ b: TripOption, penalty: TimeInterval = 600) -> Bool {
+        let wa = a.weightedArrival(penalty), wb = b.weightedArrival(penalty)
+        if abs(wa.timeIntervalSince(wb)) < 180, a.mode != b.mode {
             return a.mode.preference < b.mode.preference
         }
-        return a.arrival < b.arrival
+        return wa < wb
     }
 
     /// The user's own rule: dry → ride (the whole way, or with the train if
     /// that arrives earlier); wet → bike in the train, which keeps the time in
     /// the rain short; Bus & Bahn only without any bike option; the car last.
-    static func recommend(_ options: [TripOption]) -> Recommendation? {
+    static func recommend(_ options: [TripOption], penalty: TimeInterval = 600) -> Recommendation? {
+        let arrival = { (o: TripOption) in o.weightedArrival(penalty) }
         let level = { (o: TripOption) in o.rain?.level ?? .dry }
         // U-Bahn/tram connections only count when no S-Bahn/regional one exists.
         let bikeTrains = options.filter { $0.mode == .bikeTransit && !$0.isAlternative }
@@ -221,20 +225,20 @@ struct TripPlanner {
         let bikeish = options.filter { $0.mode == .bike } + bikeTransit
         let dry = bikeish.filter { level($0) <= .possible }
 
-        if let pick = dry.min(by: { $0.arrival < $1.arrival }) {
+        if let pick = dry.min(by: { ranking($0, $1, penalty: penalty) }) {
             let reason = pick.mode == .bike
                 ? "Radstrecke \(pick.rain?.summary ?? "ohne Regendaten")"
                 : "trocken und mit der Bahn schneller als die ganze Strecke per Rad"
             return Recommendation(optionID: pick.id, reason: reason)
         }
         if let pick = bikeTransit
-            .min(by: { (level($0), $0.arrival) < (level($1), $1.arrival) }) {
+            .min(by: { (level($0), arrival($0)) < (level($1), arrival($1)) }) {
             let wet = options.first { $0.mode == .bike }?.rain?.summary
             return Recommendation(optionID: pick.id,
                                   reason: "Regen auf der Radstrecke\(wet.map { " (\($0))" } ?? "") — Rad in die Bahn")
         }
         for mode in [TravelMode.transit, .bike, .car] {
-            if let pick = options.filter({ $0.mode == mode }).min(by: { $0.arrival < $1.arrival }) {
+            if let pick = options.filter({ $0.mode == mode }).min(by: { arrival($0) < arrival($1) }) {
                 return Recommendation(optionID: pick.id, reason: "keine Verbindung mit Radmitnahme gefunden")
             }
         }
@@ -284,15 +288,17 @@ enum BikeTransitComposer {
     /// The best S-Bahn/regional connections, plus U-Bahn/tram ones only as the
     /// alternative: at most `alternatives` of them, or up to `preferred` when no
     /// S-Bahn/regional connection exists at all.
-    static func rank(_ options: [TripOption], preferred: Int, alternatives: Int) -> [TripOption] {
-        let main = best(options.filter { !$0.isAlternative }, count: preferred)
-        let alt = best(options.filter(\.isAlternative), count: main.isEmpty ? preferred : alternatives)
+    static func rank(_ options: [TripOption], preferred: Int, alternatives: Int,
+                     penalty: TimeInterval = 600) -> [TripOption] {
+        let main = best(options.filter { !$0.isAlternative }, count: preferred, penalty: penalty)
+        let alt = best(options.filter(\.isAlternative), count: main.isEmpty ? preferred : alternatives, penalty: penalty)
         return main + alt
     }
 
     /// Drop duplicates (same trains reached from different stations — keep the
-    /// one that leaves latest), then earliest arrival, then latest leave.
-    static func best(_ options: [TripOption], count: Int) -> [TripOption] {
+    /// one that leaves latest), then earliest arrival with each change of
+    /// train counted as `penalty`, then latest leave.
+    static func best(_ options: [TripOption], count: Int, penalty: TimeInterval = 600) -> [TripOption] {
         var bySignature: [String: TripOption] = [:]
         for o in options {
             let key = o.transitLegs.map { "\($0.lineName ?? "")@\(Int($0.departure.timeIntervalSince1970))" }.joined(separator: "|")
@@ -303,7 +309,8 @@ enum BikeTransitComposer {
             bySignature[key] = o
         }
         return bySignature.values
-            .sorted { ($0.arrival, -$0.leave.timeIntervalSince1970) < ($1.arrival, -$1.leave.timeIntervalSince1970) }
+            .sorted { ($0.weightedArrival(penalty), -$0.leave.timeIntervalSince1970)
+                    < ($1.weightedArrival(penalty), -$1.leave.timeIntervalSince1970) }
             .prefix(count).map { $0 }
     }
 }
