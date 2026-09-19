@@ -55,6 +55,32 @@ enum TransitProduct: Int, CaseIterable {
     }
 }
 
+/// Which of the bike route variants an option is; one route can be several.
+enum BikeVariant: String, CaseIterable, Comparable {
+    case shortest, balanced, quiet
+
+    var title: String {
+        switch self {
+        case .shortest: "kürzest"
+        case .balanced: "Mittelweg"
+        case .quiet: "ruhigst"
+        }
+    }
+
+    static func < (a: BikeVariant, b: BikeVariant) -> Bool {
+        allCases.firstIndex(of: a)! < allCases.firstIndex(of: b)!
+    }
+}
+
+struct BikeRouteInfo {
+    var variants: [BikeVariant]
+    var stats: BikeRouteStats?
+    /// BRouter profile or "Apple" — which router drew this line.
+    var source: String
+
+    var title: String { variants.sorted().map(\.title).joined(separator: " · ") }
+}
+
 enum LegKind: Equatable {
     case walk
     case bike
@@ -104,6 +130,13 @@ struct TripOption: Identifiable {
     var prep: TimeInterval
     var note: String? = nil
     var rain: RainAssessment? = nil
+    /// Set on whole-way bike options.
+    var bikeRoute: BikeRouteInfo? = nil
+
+    /// The bike variant the recommendation considers (Mittelweg).
+    var isDefaultBikeVariant: Bool {
+        mode == .bike && (bikeRoute.map { $0.variants.contains(.balanced) } ?? true)
+    }
 
     var leave: Date { legs.first?.departure ?? .distantPast }
     var arrival: Date { legs.last?.arrival ?? .distantPast }

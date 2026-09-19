@@ -27,7 +27,10 @@ struct Recommendation {
 /// Asks all sources at once and merges their answers into one ranked list.
 struct TripPlanner {
     var hafas = HafasClient()
-    var streets: StreetRouting = MapKitRouter()
+    var streets: StreetRouting = CompositeRouter()
+    var brouter = BRouterClient()
+    var apple = MapKitRouter()
+    var roads = RoadDataStore.shared
     var rain = RainService()
 
     /// S-Bahn/regional stations considered at each end of a bike+rail trip.
@@ -68,14 +71,50 @@ struct TripPlanner {
 
     // MARK: Modes
 
+    /// Whole way by bike, as up to three distinct routes: kürzest, Mittelweg,
+    /// ruhigst. Candidates come from Apple Maps and several BRouter profiles;
+    /// OpenStreetMap data then counts traffic lights, large roads crossed and
+    /// metres beside large roads for each. Riding time includes an expected
+    /// wait at every light.
     func bikeOptions(_ req: PlanRequest) async throws -> [TripOption] {
-        let r = try await streets.route(from: req.origin.coordinate, to: req.destination.coordinate,
-                                        mode: .bike, departure: nil)
+        let (o, d) = (req.origin.coordinate, req.destination.coordinate)
+        let requests: [(String, BRouterClient.Profile?, Int)] = [
+            ("Apple", nil, 0), ("trekking", .trekking, 0), ("fastbike", .fastbike, 0),
+            ("safety", .safety, 0), ("safety", .safety, 1), ("safety", .safety, 2),
+        ]
+        let found = await withTaskGroup(of: (Int, String, StreetRoute?).self) { group in
+            for (i, (name, profile, alt)) in requests.enumerated() {
+                group.addTask {
+                    let r: StreetRoute? = if let profile {
+                        try? await brouter.route(from: o, to: d, profile: profile, alternative: alt)
+                    } else {
+                        try? await apple.route(from: o, to: d, mode: .bike, departure: nil)
+                    }
+                    return (i, name, r)
+                }
+            }
+            var out: [(Int, String, StreetRoute)] = []
+            for await (i, name, r) in group { if let r { out.append((i, name, r)) } }
+            return out.sorted { $0.0 < $1.0 }.map { ($0.1, $0.2) }
+        }
+        guard !found.isEmpty else { throw PlannerError.noBikeRoute }
+
+        let data = try? await roads.data(covering: found.flatMap { $0.1.coordinates })
+        let candidates = found.map { name, route in
+            BikeCandidate(source: name, route: route,
+                          stats: data.map { RouteAnalyzer.analyze(route.coordinates, roads: $0) })
+        }
+        let picked = BikeCandidate.pick(candidates, settings: req.settings)
+
         let leave = req.earliestLeave
-        let leg = Leg(kind: .bike, fromName: req.origin.shortName, toName: req.destination.shortName,
-                      departure: leave, arrival: leave.addingTimeInterval(req.settings.bikeTime(r.distance)),
-                      distance: r.distance, coordinates: r.coordinates)
-        return [TripOption(mode: .bike, legs: [leg], prep: req.settings.prep)]
+        return picked.map { c, variants in
+            let leg = Leg(kind: .bike, fromName: req.origin.shortName, toName: req.destination.shortName,
+                          departure: leave, arrival: leave.addingTimeInterval(c.time(req.settings)),
+                          distance: c.route.distance, coordinates: c.route.coordinates)
+            return TripOption(mode: .bike, legs: [leg], prep: req.settings.prep,
+                              note: data == nil ? "Ampeln und Hauptstraßen unbekannt (OpenStreetMap nicht erreichbar)" : nil,
+                              bikeRoute: BikeRouteInfo(variants: variants, stats: c.stats, source: c.source))
+        }
     }
 
     func carOptions(_ req: PlanRequest) async throws -> [TripOption] {
@@ -134,8 +173,17 @@ struct TripPlanner {
         guard !searches.isEmpty else { throw PlannerError.noStations(km: s.maxBikeToStationKm) }
 
         let starts = unique(searches.map(\.from)), ends = unique(searches.map(\.to))
-        let firstLegs = await bikeRoutes(from: req.origin.coordinate, to: starts.map(\.coordinate), reverse: false)
-        let lastLegs = await bikeRoutes(from: req.destination.coordinate, to: ends.map(\.coordinate), reverse: true)
+        var firstLegs = await bikeRoutes(from: req.origin.coordinate, to: starts.map(\.coordinate), reverse: false)
+        var lastLegs = await bikeRoutes(from: req.destination.coordinate, to: ends.map(\.coordinate), reverse: true)
+        // Same traffic-light wait as on the whole-way bike routes.
+        let rides = (firstLegs + lastLegs).compactMap { $0 }
+        if !rides.isEmpty, let data = try? await roads.data(covering: rides.flatMap(\.coordinates)) {
+            let withSignals = { (r: StreetRoute?) -> StreetRoute? in
+                r.map { var r = $0; r.signals = RouteAnalyzer.analyze(r.coordinates, roads: data).signals; return r }
+            }
+            firstLegs = firstLegs.map(withSignals)
+            lastLegs = lastLegs.map(withSignals)
+        }
         let ride1 = Dictionary(uniqueKeysWithValues: zip(starts.map(\.lid), firstLegs))
         let ride2 = Dictionary(uniqueKeysWithValues: zip(ends.map(\.lid), lastLegs))
 
@@ -143,7 +191,7 @@ struct TripPlanner {
             for (a, b, mask) in searches {
                 guard let r1 = ride1[a.lid] ?? nil, let r2 = ride2[b.lid] ?? nil else { continue }
                 group.addTask {
-                    let catchAt = req.earliestLeave.addingTimeInterval(s.bikeTime(r1.distance) + s.bikeStationBuffer)
+                    let catchAt = req.earliestLeave.addingTimeInterval(s.rideTime(r1) + s.bikeStationBuffer)
                     let journeys = try await hafas.journeys(from: .station(lid: a.lid), to: .station(lid: b.lid),
                                                             departing: catchAt, bikeCarriage: true,
                                                             productMask: mask, results: 2)
@@ -222,7 +270,7 @@ struct TripPlanner {
         // U-Bahn/tram connections only count when no S-Bahn/regional one exists.
         let bikeTrains = options.filter { $0.mode == .bikeTransit && !$0.isAlternative }
         let bikeTransit = bikeTrains.isEmpty ? options.filter { $0.mode == .bikeTransit } : bikeTrains
-        let bikeish = options.filter { $0.mode == .bike } + bikeTransit
+        let bikeish = options.filter(\.isDefaultBikeVariant) + bikeTransit
         let dry = bikeish.filter { level($0) <= .possible }
 
         if let pick = dry.min(by: { ranking($0, $1, penalty: penalty) }) {
@@ -233,7 +281,7 @@ struct TripPlanner {
         }
         if let pick = bikeTransit
             .min(by: { (level($0), arrival($0)) < (level($1), arrival($1)) }) {
-            let wet = options.first { $0.mode == .bike }?.rain?.summary
+            let wet = options.first(where: \.isDefaultBikeVariant)?.rain?.summary
             return Recommendation(optionID: pick.id,
                                   reason: "Regen auf der Radstrecke\(wet.map { " (\($0))" } ?? "") — Rad in die Bahn")
         }
@@ -247,9 +295,11 @@ struct TripPlanner {
 
     enum PlannerError: LocalizedError {
         case noStations(km: Double)
+        case noBikeRoute
         var errorDescription: String? {
             switch self {
             case .noStations(let km): "Kein Bahnhof mit Radmitnahme im Umkreis von \(Int(km)) km"
+            case .noBikeRoute: "Keine Radroute gefunden (Apple Karten und BRouter)"
             }
         }
     }
@@ -268,7 +318,7 @@ enum BikeTransitComposer {
         // Leave as late as still catches the first train. Walk legs HAFAS puts
         // in front (platform changes inside the station) count as buffer.
         let boardBy = journey.first?.departure ?? firstTrain.departure
-        let ride1Time = s.bikeTime(ride1.distance)
+        let ride1Time = s.rideTime(ride1)
         let leave = boardBy.addingTimeInterval(-s.bikeStationBuffer - ride1Time)
         guard leave >= earliestLeave.addingTimeInterval(-30) else { return nil }
 
@@ -279,7 +329,7 @@ enum BikeTransitComposer {
                         departure: leave, arrival: leave.addingTimeInterval(ride1Time),
                         distance: ride1.distance, coordinates: ride1.coordinates)
         let last = Leg(kind: .bike, fromName: station2, toName: destination.shortName,
-                       departure: ride2Start, arrival: ride2Start.addingTimeInterval(s.bikeTime(ride2.distance)),
+                       departure: ride2Start, arrival: ride2Start.addingTimeInterval(s.rideTime(ride2)),
                        distance: ride2.distance, coordinates: ride2.coordinates)
         return TripOption(mode: .bikeTransit, legs: [first] + journey + [last], prep: s.prep,
                           note: "\(s.bikeStationBufferMinutes) min Puffer je Bahnhof fürs Rad")
@@ -312,5 +362,43 @@ enum BikeTransitComposer {
             .sorted { ($0.weightedArrival(penalty), -$0.leave.timeIntervalSince1970)
                     < ($1.weightedArrival(penalty), -$1.leave.timeIntervalSince1970) }
             .prefix(count).map { $0 }
+    }
+}
+
+/// One bike route candidate and how it scores.
+struct BikeCandidate {
+    var source: String
+    var route: StreetRoute
+    var stats: BikeRouteStats?
+
+    /// Riding time at the configured speed plus the expected wait at lights.
+    func time(_ s: PlanSettings) -> TimeInterval {
+        s.bikeTime(route.distance) + Double((stats?.signals ?? route.signals) * s.signalWaitSeconds)
+    }
+
+    /// Mittelweg: time plus half the disturbance, converted to riding time.
+    func balancedScore(_ s: PlanSettings) -> Double {
+        time(s) + 0.5 * (stats?.disturbance ?? 0) / s.bikeSpeedMps
+    }
+
+    /// kürzest = least distance, ruhigst = least disturbance, Mittelweg =
+    /// best balance. A route winning several roles is listed once with all
+    /// its labels. Without OpenStreetMap data only "kürzest" can be judged;
+    /// BRouter's "safety" route then stands in for "ruhigst".
+    static func pick(_ all: [BikeCandidate], settings s: PlanSettings) -> [(BikeCandidate, [BikeVariant])] {
+        guard let shortest = all.indices.min(by: { all[$0].route.distance < all[$1].route.distance }) else { return [] }
+        let quiet: Int, balanced: Int
+        if all.contains(where: { $0.stats != nil }) {
+            quiet = all.indices.min { (all[$0].stats?.disturbance ?? .infinity) < (all[$1].stats?.disturbance ?? .infinity) }!
+            balanced = all.indices.min { all[$0].balancedScore(s) < all[$1].balancedScore(s) }!
+        } else {
+            quiet = all.firstIndex { $0.source == "safety" } ?? shortest
+            balanced = all.firstIndex { $0.source == "trekking" } ?? shortest
+        }
+        var roles: [Int: [BikeVariant]] = [:]
+        roles[shortest, default: []].append(.shortest)
+        roles[balanced, default: []].append(.balanced)
+        roles[quiet, default: []].append(.quiet)
+        return roles.sorted { $0.value.min()! < $1.value.min()! }.map { (all[$0.key], $0.value.sorted()) }
     }
 }
