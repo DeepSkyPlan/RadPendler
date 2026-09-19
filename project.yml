@@ -28,7 +28,7 @@ targets:
         buildPhase: resources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: de.keese.pendel
+        PRODUCT_BUNDLE_IDENTIFIER: de.keese.radpendler
         GENERATE_INFOPLIST_FILE: "YES"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_CFBundleDisplayName: "Pendel"
@@ -56,7 +56,7 @@ targets:
       - target: Pendel
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: de.keese.pendel.tests
+        PRODUCT_BUNDLE_IDENTIFIER: de.keese.radpendler.tests
         GENERATE_INFOPLIST_FILE: "YES"
         DEVELOPMENT_TEAM: "5PX3V6L522"
 
