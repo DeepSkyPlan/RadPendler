@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>RadPendler — Styleguide</title>
+<style>
+  :root {
+    --teal: #009E82;      /* Akzent */
+    --violet: #6B45EB;    /* Rad */
+    --red: #E31C2E;       /* Auto */
+    --green: #008C4F;     /* S-Bahn */
+    --blue: #125C91;      /* U-Bahn */
+    --orange: #F28C1A;    /* RE/RB */
+    --plum: #990F3D;      /* Tram */
+    --magenta: #942670;   /* Bus */
+    --cyan: #0080BF;      /* Fähre */
+    --grey: #8E8E93;      /* Fußweg */
+    --ink: #10171c;
+    --muted: #5d6b74;
+    --line: #dfe6ea;
+    --paper: #f5f7f8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 0 8mm;
+    font: 10.5pt/1.5 -apple-system, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink); background: #fff;
+  }
+  .page { padding: 14mm 14mm 10mm; max-width: 210mm; margin: 0 auto; }
+  .page + .page { border-top: 1px dashed var(--line); }
+  @page { size: A4; margin: 0; }
+  h1 { font-size: 26pt; margin: 0 0 2mm; letter-spacing: -0.02em; }
+  h2 { font-size: 13pt; margin: 9mm 0 3mm; padding-bottom: 1.5mm; border-bottom: 2px solid var(--teal); }
+  h3 { font-size: 10.5pt; margin: 5mm 0 2mm; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  p { margin: 0 0 2.5mm; }
+  .lead { color: var(--muted); font-size: 11pt; max-width: 150mm; }
+  .grid { display: grid; gap: 4mm; }
+  .cols-2 { grid-template-columns: 1fr 1fr; }
+  .cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .swatch { border: 1px solid var(--line); border-radius: 4mm; overflow: hidden; }
+  .swatch .fill { height: 18mm; }
+  .swatch .meta { padding: 2mm 3mm; font-size: 8.5pt; }
+  .swatch .meta b { display: block; font-size: 9.5pt; }
+  .swatch .meta code { color: var(--muted); }
+  .card {
+    border: 1px solid var(--line); border-radius: 5mm; padding: 4mm;
+    background: #fff; box-shadow: 0 1mm 2mm rgba(16,23,28,.05);
+  }
+  .card.hero { border: 0.7mm solid var(--teal); box-shadow: 0 2mm 4mm rgba(0,158,130,.18); }
+  .row { display: flex; align-items: center; gap: 3mm; }
+  .bubble {
+    width: 11mm; height: 11mm; border-radius: 50%; color: #fff; display: grid; place-items: center;
+    font-size: 11pt; font-weight: 600; flex: none;
+  }
+  .times { font: 700 15pt/1.1 "SF Pro Rounded", -apple-system, sans-serif; letter-spacing: -0.01em; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 1.2mm; padding: 1mm 2.5mm; border-radius: 99px;
+    background: rgba(16,23,28,.05); color: var(--muted); font-size: 8.5pt; white-space: nowrap;
+  }
+  .chip.strong { background: rgba(0,158,130,.14); color: var(--teal); font-weight: 600; }
+  .badge {
+    display: inline-block; padding: .6mm 1.8mm; border-radius: 1.2mm; color: #fff;
+    font-size: 8.5pt; font-weight: 700;
+  }
+  .pill { display: inline-flex; background: rgba(16,23,28,.06); border-radius: 99px; padding: 1mm; }
+  .pill span { padding: 1.5mm 6mm; border-radius: 99px; font-size: 9pt; font-weight: 600; color: var(--muted); }
+  .pill span.on { background: linear-gradient(135deg, var(--teal), rgba(0,158,130,.65)); color: #fff; }
+  table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+  th, td { text-align: left; padding: 1.6mm 2mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 8pt; letter-spacing: .06em; }
+  code { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 8.5pt; }
+  .do, .dont { border-left: 1mm solid var(--green); padding-left: 3mm; }
+  .dont { border-left-color: var(--red); }
+  .note { background: var(--paper); border-radius: 3mm; padding: 3mm; font-size: 9pt; color: var(--muted); }
+  .foot { margin-top: 8mm; font-size: 8pt; color: var(--muted); }
+  .legchain { display: flex; align-items: center; gap: 2mm; font-size: 9pt; color: var(--muted); }
+  .dotline { display: flex; gap: 3mm; }
+  .dotline .rail { width: 3mm; display: flex; flex-direction: column; align-items: center; }
+  .dotline .dot { width: 2.6mm; height: 2.6mm; border-radius: 50%; background: var(--violet); }
+  .dotline .bar { flex: 1; width: 1mm; background: rgba(107,69,235,.35); }
+</style>
+</head>
+<body>
+
+<section class="page">
+  <h1>RadPendler — Styleguide</h1>
+  <p class="lead">Designkonzept der Pendel-App (iOS, SwiftUI). Eine Karte pro Verbindung, eine Farbe pro
+  Verkehrsmittel, alle Fakten als Kapseln. Version 0.3.0, Stand 20. September 2026.</p>
+
+  <div class="note">
+    <b>Haltung.</b> Die App beantwortet eine Frage: womit fahre ich jetzt los? Deshalb steht oben die
+    Empfehlung, groß und einmal. Alles andere ordnet sich darunter. Keine Verzierung ohne Aussage:
+    jede Farbe steht für ein Verkehrsmittel, jede Kapsel für eine Zahl, die man beim Losfahren braucht.
+  </div>
+
+  <h2>Farben</h2>
+  <h3>Akzent und Verkehrsmittel</h3>
+  <div class="grid cols-4">
+    <div class="swatch"><div class="fill" style="background:var(--teal)"></div>
+      <div class="meta"><b>Akzent / Rad + Bahn</b><code>#009E82</code></div></div>
+    <div class="swatch"><div class="fill" style="background:var(--violet)"></div>
+      <div class="meta"><b>Rad</b><code>#6B45EB</code></div></div>
+    <div class="swatch"><div class="fill" style="background:var(--red)"></div>
+      <div class="meta"><b>Auto</b><code>#E31C2E</code></div></div>
+    <div class="swatch"><div class="fill" style="background:var(--grey)"></div>
+      <div class="meta"><b>Fußweg</b><code>#8E8E93</code>, gestrichelt</div></div>
+    <div class="swatch"><div class="fill" style="background:var(--green)"></div>
+      <div class="meta"><b>S-Bahn</b><code>#008C4F</code></div></div>
+    <div class="swatch"><div class="fill" style="background:var(--orange)"></div>
+      <div class="meta"><b>RE / RB</b><code>#F28C1A</code></div></div>
+    <div class="swatch"><div class="fill" style="background:var(--blue)"></div>
+      <div class="meta"><b>U-Bahn</b><code>#125C91</code></div></div>
+    <div class="swatch"><div class="fill" style="background:var(--plum)"></div>
+      <div class="meta"><b>Tram</b><code>#990F3D</code></div></div>
+    <div class="swatch"><div class="fill" style="background:var(--magenta)"></div>
+      <div class="meta"><b>Bus</b><code>#942670</code></div></div>
+    <div class="swatch"><div class="fill" style="background:var(--cyan)"></div>
+      <div class="meta"><b>Fähre</b><code>#0080BF</code></div></div>
+  </div>
+
+  <h3>Regel</h3>
+  <p>Eine Farbe gehört einem Verkehrsmittel, nie einem Zustand. Rad ist violett, damit es neben der
+  grünen S-Bahn nicht als Bahn gelesen wird; Auto ist rot, Regionalzüge sind orange, die Tram ist
+  dunkler als das Auto-Rot. Flächen sind nie voll gesättigt: Karten nutzen die Farbe mit 14 % Deckung
+  als Hintergrund, 100 % nur in Kreisen, Linien-Plaketten und auf der Landkarte.</p>
+
+  <h3>Wetter</h3>
+  <table>
+    <tr><th>Stufe</th><th>Farbe</th><th>Bedeutung</th></tr>
+    <tr><td>trocken</td><td>grau (sekundär)</td><td>&lt; 0,05 mm je 15 min und &lt; 40 % Wahrscheinlichkeit</td></tr>
+    <tr><td>Schauer möglich</td><td>Teal <code>#30B0C7</code></td><td>kein Niederschlag, aber ≥ 40 % Wahrscheinlichkeit</td></tr>
+    <tr><td>leichter Regen</td><td>Blau <code>#007AFF</code></td><td>ab 0,05 mm je 15 min</td></tr>
+    <tr><td>Regen / stark</td><td>Indigo <code>#5856D6</code></td><td>ab 0,5 bzw. 2 mm je 15 min</td></tr>
+  </table>
+
+  <h3>Flächen</h3>
+  <table>
+    <tr><th>Rolle</th><th>Hell</th><th>Dunkel</th></tr>
+    <tr><td>Seitenhintergrund</td><td colspan="2">Systemgrau mit 10 % Akzent-Verlauf (oben/unten heller)</td></tr>
+    <tr><td>Karte (Card)</td><td colspan="2"><code>secondarySystemGroupedBackground</code></td></tr>
+    <tr><td>Rahmen</td><td colspan="2">Primärfarbe 6 %, hervorgehoben: 2 px Akzent-Verlauf</td></tr>
+    <tr><td>Schatten</td><td colspan="2">Schwarz 5 % / 10 %, Radius 6 / 14, y +4</td></tr>
+  </table>
+  <p class="note">Alle Farben leiten sich von Systemfarben ab oder sind als Paar geprüft: Hell- und
+  Dunkelmodus brauchen keine zweite Palette.</p>
+</section>
+
+<section class="page">
+  <h2>Typografie</h2>
+  <p>Eine Familie: <b>SF Pro Rounded</b> (<code>.system(design: .rounded)</code>). Rund, weil die App
+  im Vorbeigehen gelesen wird — Uhrzeiten und Zahlen sollen freundlich und groß sein.</p>
+  <table>
+    <tr><th>Rolle</th><th>Stil</th><th>Beispiel</th></tr>
+    <tr><td>Uhrzeit Empfehlung</td><td>Title2, bold, Ziffern monospaced</td><td class="times">00:20 → 01:03</td></tr>
+    <tr><td>Uhrzeit Liste</td><td>Title3, bold, monospaced</td><td style="font:700 12.5pt 'SF Pro Rounded'">00:19 → 01:04</td></tr>
+    <tr><td>Adresse, Abschnitt</td><td>Subheadline, semibold</td><td><b>Musterstraße 1</b></td></tr>
+    <tr><td>Fakten, Kapseln</td><td>Caption, regular/semibold</td><td><span class="chip">24,2 km</span></td></tr>
+    <tr><td>Quellen, Fußnoten</td><td>Caption2</td><td style="font-size:8pt;color:var(--muted)">Stand 00:19 · Rad 29 km/h + 20 s/Ampel</td></tr>
+    <tr><td>Abschnittstitel</td><td>Footnote, bold, Großbuchstaben, in Modusfarbe</td>
+        <td style="font-size:8pt;font-weight:700;letter-spacing:.08em;color:var(--teal)">RAD + BAHN</td></tr>
+  </table>
+  <p>Zahlen immer mit <code>monospacedDigit()</code>, damit Zeiten beim Aktualisieren nicht springen.
+  Zeilen kürzen statt umbrechen (<code>lineLimit(1)</code>, <code>minimumScaleFactor(0.8)</code>),
+  außer bei Begründungen und Hinweisen.</p>
+
+  <h2>Maße</h2>
+  <table>
+    <tr><th>Größe</th><th>Wert</th><th>Verwendung</th></tr>
+    <tr><td>Seitenrand</td><td>16 pt</td><td>links und rechts, überall gleich</td></tr>
+    <tr><td>Kartenradius</td><td>22 pt, continuous</td><td>Karten, Kartenausschnitt, Blöcke</td></tr>
+    <tr><td>Innenradius</td><td>14 pt</td><td>Kärtchen unter der Karte</td></tr>
+    <tr><td>Innenabstand</td><td>14 pt</td><td>in jeder Karte</td></tr>
+    <tr><td>Abstand Karten</td><td>10 pt</td><td>innerhalb eines Abschnitts</td></tr>
+    <tr><td>Abstand Abschnitte</td><td>18 pt</td><td>zwischen „Rad + Bahn“, „Fahrrad“, …</td></tr>
+    <tr><td>Kreis (Modus)</td><td>38 pt, Empfehlung 44 pt</td><td>Verlauf + farbiger Schatten</td></tr>
+  </table>
+
+  <h2>Bausteine</h2>
+  <div class="grid cols-2">
+    <div>
+      <h3>Verbindungskarte</h3>
+      <div class="card hero">
+        <div class="row">
+          <div class="bubble" style="background:linear-gradient(135deg,var(--teal),rgba(0,158,130,.65))">🚲</div>
+          <div style="flex:1">
+            <div class="row" style="justify-content:space-between">
+              <span class="times">00:20 → 01:03</span>
+              <span class="chip strong">43 min</span>
+            </div>
+            <div class="legchain" style="margin:1.5mm 0">
+              <span style="color:var(--violet)">🚲</span> 1,6 km
+              <span class="badge" style="background:var(--green)">S7</span> 17,4 km
+              <span style="color:var(--violet)">🚲</span> 5,3 km
+            </div>
+            <div class="row" style="gap:1.5mm">
+              <span class="chip">24,2 km</span>
+              <span class="chip strong">direkt</span>
+              <span class="chip">los 00:15</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:8.5pt;color:var(--muted);margin-top:2mm">Empfehlung: 2 px Rahmen in Modusfarbe,
+      größere Uhrzeit, darunter die Begründung in einer Zeile.</p>
+    </div>
+    <div>
+      <h3>Zustände</h3>
+      <div class="card" style="margin-bottom:3mm">
+        <div class="row"><div class="bubble" style="background:linear-gradient(135deg,var(--violet),rgba(107,69,235,.65))">🚲</div>
+        <div><b>Normal</b><div style="font-size:8.5pt;color:var(--muted)">1 px Rahmen, weicher Schatten</div></div></div>
+      </div>
+      <div class="card" style="filter:grayscale(1);opacity:.55">
+        <div class="row"><div class="bubble" style="background:linear-gradient(135deg,var(--violet),rgba(107,69,235,.65))">🚲</div>
+        <div><b>Nicht über Fixpunkt</b><div style="font-size:8.5pt;color:var(--muted)">grau, 55 % Deckung, ans Ende sortiert</div></div></div>
+      </div>
+      <h3 style="margin-top:4mm">Umschalter</h3>
+      <div class="pill"><span class="on">Liste</span><span>Karte</span></div>
+      <p style="font-size:8.5pt;color:var(--muted);margin-top:2mm">Kapsel mit gleitendem Verlauf
+      (<code>matchedGeometryEffect</code>, <code>.snappy</code> 0,25 s).</p>
+    </div>
+  </div>
+
+  <h3>Kapseln (Chips)</h3>
+  <p>
+    <span class="chip">24,2 km</span>
+    <span class="chip">43 Ampeln</span>
+    <span class="chip">Ø 22 km/h</span>
+    <span class="chip">los 00:15</span>
+    <span class="chip strong">optimal</span>
+    <span class="chip strong" style="background:rgba(0,140,79,.14);color:var(--green)">direkt</span>
+  </p>
+  <p>Grau = Information, farbig = Auszeichnung. Höchstens eine farbige Kapsel je Zeile.</p>
+</section>
+
+<section class="page">
+  <h2>Karte</h2>
+  <table>
+    <tr><th>Element</th><th>Gestaltung</th></tr>
+    <tr><td>Gewählte Route</td><td>5 pt, Farbe des Abschnitts, 95 % Deckung, runde Enden</td></tr>
+    <tr><td>Andere Routen</td><td>4 pt, Systemgrau 55 % — die Wahl bleibt lesbar</td></tr>
+    <tr><td>Fußweg</td><td>gestrichelt 2/6</td></tr>
+    <tr><td>Ohne Fixpunkt</td><td>gestrichelt 6/5, halbe Deckung</td></tr>
+    <tr><td>Abschnittsschild</td><td>weiße Kapsel, Symbol + Linie + km, auf der Mitte des Abschnitts</td></tr>
+    <tr><td>Routenschild</td><td>graue Kapsel mit Dauer und Umstiegen, antippbar zum Wechseln</td></tr>
+    <tr><td>Start / Ziel / Fixpunkt</td><td>Marker grün / rot / indigo</td></tr>
+    <tr><td>Position „Du“</td><td>violetter Marker, wandert mit der Radarzeit</td></tr>
+    <tr><td>Regenradar</td><td>DWD-Kacheln, 70 % Deckung, unter den Routen</td></tr>
+  </table>
+  <div class="note">Die Radarleiste liegt als Material-Kapsel über der Karte und reicht vom Losfahren
+  bis zur Ankunft. Play bewegt Regen und Position gemeinsam — der einzige Ort, an dem die App animiert.</div>
+
+  <h2>Detailseite</h2>
+  <div class="card">
+    <div class="dotline">
+      <div class="rail"><div class="dot"></div><div class="bar"></div></div>
+      <div style="padding-bottom:3mm">
+        <div style="font-size:9pt"><b>00:20</b> Musterstraße 1</div>
+        <div class="row" style="gap:1.5mm;margin:1mm 0"><span style="color:var(--violet)">🚲</span>
+          <span class="chip">1,6 km</span><span class="chip">5 min</span></div>
+        <div style="font-size:9pt"><b>00:25</b> S+U Berlin Hauptbahnhof · Gl. 16</div>
+      </div>
+    </div>
+    <div class="dotline">
+      <div class="rail"><div class="dot" style="background:var(--green)"></div></div>
+      <div>
+        <div style="font-size:9pt"><b>00:31</b> S+U Berlin Hauptbahnhof</div>
+        <div class="row" style="gap:1.5mm;margin:1mm 0">
+          <span class="badge" style="background:var(--green)">S7</span>
+          <span style="font-size:8.5pt">→ Potsdam Hbf</span>
+          <span class="chip">17,4 km</span><span class="chip">25 min</span></div>
+        <div style="font-size:8pt;color:var(--green)">Fahrradmitnahme möglich</div>
+      </div>
+    </div>
+  </div>
+  <p style="font-size:8.5pt;color:var(--muted);margin-top:2mm">Zeitstrahl: Punkt und Linie in der Farbe
+  des Abschnitts, Verspätungen rot hinter der Zeit, Gleis klein dahinter.</p>
+
+  <h2>Bewegung</h2>
+  <table>
+    <tr><th>Anlass</th><th>Animation</th></tr>
+    <tr><td>Liste ↔ Karte</td><td><code>.snappy(0.25)</code>, Kapsel gleitet</td></tr>
+    <tr><td>Auswahl einer Verbindung</td><td><code>.snappy</code>, Farbe und Rahmen wechseln</td></tr>
+    <tr><td>Radar abspielen</td><td>ein Bild alle 0,7 s, Position wandert mit</td></tr>
+    <tr><td>Laden</td><td>ruhender Spinner in der Leiste; Karten bleiben stehen</td></tr>
+  </table>
+  <p>Keine Sprung- oder Hüpfeffekte. Inhalt darf sich nie unter dem Finger verschieben.</p>
+
+  <h2>Bedienung und Zugänglichkeit</h2>
+  <ul style="margin:0 0 3mm 4mm; padding:0">
+    <li>Mindestens 44 pt Tippfläche, auch bei Kapseln und Kärtchen.</li>
+    <li>Jede Karte ist ein einziges Bedienelement (<code>accessibilityElement(children: .combine)</code>).</li>
+    <li>Farbe ist nie die einzige Information: jedes Verkehrsmittel hat zusätzlich ein Symbol, jede
+      Regenstufe zusätzlich Text.</li>
+    <li>Dynamische Schrift wird nicht abgeschaltet; lange Namen kürzen, nicht verkleinern.</li>
+    <li>Deutsch, direkt, ohne Fachjargon: „fertig machen 00:15“ statt „Departure Buffer“.</li>
+  </ul>
+
+  <div class="grid cols-2" style="margin-top:4mm">
+    <div class="do"><b>So</b>
+      <p style="font-size:9pt;margin-top:1mm">Eine Empfehlung oben, Alternativen darunter nach
+      Verkehrsmittel sortiert. Zahlen, die beim Losfahren zählen: Abfahrt, Ankunft, Dauer, km, Ampeln.</p></div>
+    <div class="dont"><b>Nicht so</b>
+      <p style="font-size:9pt;margin-top:1mm">Mehrere Farbakzente in einer Karte, Verläufe als Fläche,
+      Symbole ohne Bedeutung, Prozentbalken, Icons in Grau-in-Grau.</p></div>
+  </div>
+
+  <p class="foot">RadPendler 0.3.0 · Designwerte liegen in <code>Pendel/Views/Theme.swift</code> und
+  <code>Style.swift</code>; dieses Dokument bildet sie ab. Symbole: SF Symbols. Kartendaten Apple,
+  OpenStreetMap (ODbL), Radar DWD.</p>
+</section>
+
+</body>
+</html>
