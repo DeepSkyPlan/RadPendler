@@ -7,14 +7,14 @@
   :root {
     --teal: #009E82;      /* Akzent */
     --radbahn: #00ADA3;   /* Rad + Bahn */
-    --violet: #6B45EB;    /* Rad */
+    --bikegreen: #17A64A; /* Rad */
     --red: #E31C2E;       /* Auto */
-    --green: #008C4F;     /* S-Bahn */
-    --blue: #125C91;      /* U-Bahn */
-    --orange: #F28C1A;    /* RE/RB */
-    --plum: #990F3D;      /* Tram */
-    --magenta: #942670;   /* Bus */
-    --cyan: #0080BF;      /* Fähre */
+    --sblue: #0A85FF;     /* S-Bahn */
+    --ublue: #0A3D91;     /* U-Bahn */
+    --reblue: #4A6BD9;    /* RE/RB */
+    --tramblue: #738CF2;  /* Tram */
+    --busorange: #F28C1A; /* Bus */
+    --cyan: #00A1C7;      /* Fähre */
     --grey: #8E8E93;      /* Fußweg */
     --ink: #10171c;
     --muted: #5d6b74;
@@ -71,15 +71,15 @@
   th, td { text-align: left; padding: 1.6mm 2mm; border-bottom: 1px solid var(--line); vertical-align: top; }
   th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 8pt; letter-spacing: .06em; }
   code { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 8.5pt; }
-  .do, .dont { border-left: 1mm solid var(--green); padding-left: 3mm; }
+  .do, .dont { border-left: 1mm solid var(--bikegreen); padding-left: 3mm; }
   .dont { border-left-color: var(--red); }
   .note { background: var(--paper); border-radius: 3mm; padding: 3mm; font-size: 9pt; color: var(--muted); }
   .foot { margin-top: 8mm; font-size: 8pt; color: var(--muted); }
   .legchain { display: flex; align-items: center; gap: 2mm; font-size: 9pt; color: var(--muted); }
   .dotline { display: flex; gap: 3mm; }
   .dotline .rail { width: 3mm; display: flex; flex-direction: column; align-items: center; }
-  .dotline .dot { width: 2.6mm; height: 2.6mm; border-radius: 50%; background: var(--violet); }
-  .dotline .bar { flex: 1; width: 1mm; background: rgba(107,69,235,.35); }
+  .dotline .dot { width: 2.6mm; height: 2.6mm; border-radius: 50%; background: var(--bikegreen); }
+  .dotline .bar { flex: 1; width: 1mm; background: rgba(23,166,74,.35); }
 </style>
 </head>
 <body>
@@ -87,7 +87,7 @@
 <section class="page">
   <h1>RadPendler — Styleguide</h1>
   <p class="lead">Designkonzept der Pendel-App (iOS, SwiftUI). Eine Karte pro Verbindung, eine Farbe pro
-  Verkehrsmittel, alle Fakten als Kapseln. Version 0.3.0, Stand 20. September 2026.</p>
+  Verkehrsmittel, alle Fakten als Kapseln. Version 0.3.0, Stand 20. September 2026, Build 5.</p>
 
   <div class="note">
     <b>Haltung.</b> Die App beantwortet eine Frage: womit fahre ich jetzt los? Deshalb steht oben die
@@ -102,30 +102,30 @@
       <div class="meta"><b>Rad + Bahn</b><code>#00ADA3</code></div></div>
     <div class="swatch"><div class="fill" style="background:var(--teal)"></div>
       <div class="meta"><b>Akzent (Chrome)</b><code>#009E82</code></div></div>
-    <div class="swatch"><div class="fill" style="background:var(--violet)"></div>
-      <div class="meta"><b>Rad</b><code>#6B45EB</code></div></div>
+    <div class="swatch"><div class="fill" style="background:var(--bikegreen)"></div>
+      <div class="meta"><b>Rad</b><code>#17A64A</code></div></div>
     <div class="swatch"><div class="fill" style="background:var(--red)"></div>
       <div class="meta"><b>Auto</b><code>#E31C2E</code></div></div>
     <div class="swatch"><div class="fill" style="background:var(--grey)"></div>
       <div class="meta"><b>Fußweg</b><code>#8E8E93</code>, gestrichelt</div></div>
-    <div class="swatch"><div class="fill" style="background:var(--green)"></div>
-      <div class="meta"><b>S-Bahn</b><code>#008C4F</code></div></div>
-    <div class="swatch"><div class="fill" style="background:var(--orange)"></div>
-      <div class="meta"><b>RE / RB</b><code>#F28C1A</code></div></div>
-    <div class="swatch"><div class="fill" style="background:var(--blue)"></div>
-      <div class="meta"><b>U-Bahn</b><code>#125C91</code></div></div>
-    <div class="swatch"><div class="fill" style="background:var(--plum)"></div>
-      <div class="meta"><b>Tram</b><code>#990F3D</code></div></div>
-    <div class="swatch"><div class="fill" style="background:var(--magenta)"></div>
-      <div class="meta"><b>Bus</b><code>#942670</code></div></div>
+    <div class="swatch"><div class="fill" style="background:var(--sblue)"></div>
+      <div class="meta"><b>S-Bahn</b><code>#0A85FF</code></div></div>
+    <div class="swatch"><div class="fill" style="background:var(--reblue)"></div>
+      <div class="meta"><b>RE / RB</b><code>#4A6BD9</code></div></div>
+    <div class="swatch"><div class="fill" style="background:var(--ublue)"></div>
+      <div class="meta"><b>U-Bahn</b><code>#0A3D91</code></div></div>
+    <div class="swatch"><div class="fill" style="background:var(--tramblue)"></div>
+      <div class="meta"><b>Tram</b><code>#738CF2</code></div></div>
+    <div class="swatch"><div class="fill" style="background:var(--busorange)"></div>
+      <div class="meta"><b>Bus</b><code>#F28C1A</code></div></div>
     <div class="swatch"><div class="fill" style="background:var(--cyan)"></div>
-      <div class="meta"><b>Fähre</b><code>#0080BF</code></div></div>
+      <div class="meta"><b>Fähre</b><code>#00A1C7</code></div></div>
   </div>
 
   <h3>Regel</h3>
-  <p>Eine Farbe gehört einem Verkehrsmittel, nie einem Zustand. Rad ist violett, damit es neben der
-  grünen S-Bahn nicht als Bahn gelesen wird; Auto ist rot, Regionalzüge sind orange, die Tram ist
-  dunkler als das Auto-Rot. Flächen sind nie voll gesättigt: Karten nutzen die Farbe mit 14 % Deckung
+  <p>Eine Farbe gehört einer Familie, nie einem Zustand: <b>Rad grün, Auto rot, Bus orange, alles auf
+  Schienen blau</b> — S-Bahn hell, U-Bahn dunkel, Regionalzug und Tram dazwischen, Fähre türkis.
+  So sieht man am Streckenzug, wie man unterwegs ist, bevor man die Linienname liest. Flächen sind nie voll gesättigt: Karten nutzen die Farbe mit 14 % Deckung
   als Hintergrund, 100 % nur in Kreisen, Linien-Plaketten und auf der Landkarte.</p>
 
   <h3>Wetter</h3>
@@ -192,9 +192,9 @@
               <span class="chip strong">43 min</span>
             </div>
             <div class="legchain" style="margin:1.5mm 0">
-              <span style="color:var(--violet)">🚲</span> 1,6 km
-              <span class="badge" style="background:var(--green)">S7</span> 17,4 km
-              <span style="color:var(--violet)">🚲</span> 5,3 km
+              <span style="color:var(--bikegreen)">🚲</span> 1,6 km
+              <span class="badge" style="background:var(--sblue)">S7</span> 17,4 km
+              <span style="color:var(--bikegreen)">🚲</span> 5,3 km
             </div>
             <div class="row" style="gap:1.5mm">
               <span class="chip">24,2 km</span>
@@ -210,11 +210,11 @@
     <div>
       <h3>Zustände</h3>
       <div class="card" style="margin-bottom:3mm">
-        <div class="row"><div class="bubble" style="background:linear-gradient(135deg,var(--violet),rgba(107,69,235,.65))">🚲</div>
+        <div class="row"><div class="bubble" style="background:linear-gradient(135deg,var(--bikegreen),rgba(23,166,74,.65))">🚲</div>
         <div><b>Normal</b><div style="font-size:8.5pt;color:var(--muted)">1 px Rahmen, weicher Schatten</div></div></div>
       </div>
       <div class="card" style="filter:grayscale(1);opacity:.55">
-        <div class="row"><div class="bubble" style="background:linear-gradient(135deg,var(--violet),rgba(107,69,235,.65))">🚲</div>
+        <div class="row"><div class="bubble" style="background:linear-gradient(135deg,var(--bikegreen),rgba(23,166,74,.65))">🚲</div>
         <div><b>Nicht über Fixpunkt</b><div style="font-size:8.5pt;color:var(--muted)">grau, 55 % Deckung, ans Ende sortiert</div></div></div>
       </div>
       <h3 style="margin-top:4mm">Umschalter</h3>
@@ -231,7 +231,7 @@
     <span class="chip">Ø 22 km/h</span>
     <span class="chip">los 00:15</span>
     <span class="chip strong">optimal</span>
-    <span class="chip strong" style="background:rgba(0,140,79,.14);color:var(--green)">direkt</span>
+    <span class="chip strong" style="background:rgba(10,133,255,.14);color:var(--sblue)">direkt</span>
   </p>
   <p>Grau = Information, farbig = Auszeichnung. Höchstens eine farbige Kapsel je Zeile.</p>
 </section>
@@ -259,20 +259,20 @@
       <div class="rail"><div class="dot"></div><div class="bar"></div></div>
       <div style="padding-bottom:3mm">
         <div style="font-size:9pt"><b>00:20</b> Musterstraße 1</div>
-        <div class="row" style="gap:1.5mm;margin:1mm 0"><span style="color:var(--violet)">🚲</span>
+        <div class="row" style="gap:1.5mm;margin:1mm 0"><span style="color:var(--bikegreen)">🚲</span>
           <span class="chip">1,6 km</span><span class="chip">5 min</span></div>
         <div style="font-size:9pt"><b>00:25</b> S+U Berlin Hauptbahnhof · Gl. 16</div>
       </div>
     </div>
     <div class="dotline">
-      <div class="rail"><div class="dot" style="background:var(--green)"></div></div>
+      <div class="rail"><div class="dot" style="background:var(--sblue)"></div></div>
       <div>
         <div style="font-size:9pt"><b>00:31</b> S+U Berlin Hauptbahnhof</div>
         <div class="row" style="gap:1.5mm;margin:1mm 0">
-          <span class="badge" style="background:var(--green)">S7</span>
+          <span class="badge" style="background:var(--sblue)">S7</span>
           <span style="font-size:8.5pt">→ Potsdam Hbf</span>
           <span class="chip">17,4 km</span><span class="chip">25 min</span></div>
-        <div style="font-size:8pt;color:var(--green)">Fahrradmitnahme möglich</div>
+        <div style="font-size:8pt;color:var(--sblue)">Fahrradmitnahme möglich</div>
       </div>
     </div>
   </div>

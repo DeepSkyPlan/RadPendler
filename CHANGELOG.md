@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.1 (Build 5, TestFlight 2026-09-20)
+- Farbfamilien: Rad grün, Auto rot, Bus orange, alles auf Schienen blau (S hell, U dunkel, RE/Tram dazwischen), Fähre türkis; Styleguide angepasst.
+
 ## 0.3.0 (Build 4, TestFlight 2026-09-20)
 - Neues Design: Karten statt Listenzeilen, runde Typografie, Akzentfarbe Petrol, animierter Liste/Karte-Umschalter, Detailseite als Zeitstrahl.
 - App startet **ohne Adressen**; Start und Ziel werden nach der ersten Wahl auf dem Gerät gespeichert (keine privaten Adressen im Store-Build).

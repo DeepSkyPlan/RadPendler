@@ -25,19 +25,19 @@ enum Fmt {
 extension LegKind {
     var uiColor: UIColor {
         switch self {
+        // Bike green, car red, bus orange, everything on rails blue — the
+        // family a leg belongs to is readable before the label is.
         case .walk: .systemGray
-        // Violet, so a bike leg never reads as the green of an S-Bahn line.
-        case .bike: UIColor(red: 0.42, green: 0.27, blue: 0.92, alpha: 1)
+        case .bike: UIColor(red: 0.09, green: 0.65, blue: 0.29, alpha: 1)
         case .car: UIColor(red: 0.89, green: 0.11, blue: 0.18, alpha: 1)
         case .transit(_, let p):
             switch p {
-            case .suburban: UIColor(red: 0.00, green: 0.55, blue: 0.31, alpha: 1)
-            case .subway: UIColor(red: 0.07, green: 0.36, blue: 0.57, alpha: 1)
-            // Deeper than the car's red, so the two never read as one colour.
-            case .tram: UIColor(red: 0.60, green: 0.06, blue: 0.24, alpha: 1)
-            case .bus: UIColor(red: 0.58, green: 0.15, blue: 0.43, alpha: 1)
-            case .ferry: UIColor(red: 0.00, green: 0.50, blue: 0.75, alpha: 1)
-            case .express, .regional: UIColor(red: 0.95, green: 0.55, blue: 0.10, alpha: 1)
+            case .suburban: UIColor(red: 0.04, green: 0.52, blue: 1.00, alpha: 1)
+            case .subway: UIColor(red: 0.04, green: 0.24, blue: 0.57, alpha: 1)
+            case .express, .regional: UIColor(red: 0.29, green: 0.42, blue: 0.85, alpha: 1)
+            case .tram: UIColor(red: 0.45, green: 0.55, blue: 0.95, alpha: 1)
+            case .ferry: UIColor(red: 0.00, green: 0.63, blue: 0.78, alpha: 1)
+            case .bus: UIColor(red: 0.95, green: 0.55, blue: 0.10, alpha: 1)
             }
         }
     }
