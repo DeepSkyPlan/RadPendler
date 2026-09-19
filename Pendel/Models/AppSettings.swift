@@ -51,9 +51,11 @@ final class AppSettings {
         defaults.set(try? JSONEncoder().encode(place), forKey: key)
     }
 
-    /// 0.1.0 stored the office under Apple's wrong postcode 10000.
+    /// Earlier builds stored the office with Apple's postcode 10000 and/or
+    /// Apple's geocode (52.5367319, 13.3605566) instead of the real entrance.
     private static func migrated(_ p: Place?) -> Place? {
-        p?.name == "Musterstraße 1, 10000 Berlin" ? .office : p
+        guard let p, p.name.hasPrefix("Musterstraße 1,"), p.latitude == 52.5367319 || p.name.contains("10000") else { return p }
+        return .office
     }
 
     private static func load(_ key: String, _ defaults: UserDefaults) -> Place? {

@@ -11,10 +11,10 @@ struct Place: Codable, Equatable, Hashable {
     }
 
     /// The building is new: Apple files No. 26 under 10000 and HAFAS only knows
-    /// No. 25, but the postal address is 10557. Coordinates are Apple's (150 m
-    /// from HAFAS' No. 25); the app always hands HAFAS coordinates, never the text.
+    /// No. 25, but the postal address is 10557. The coordinates are the user's
+    /// own pin of the entrance; the app always hands HAFAS coordinates, never the text.
     static let office = Place(name: "Musterstraße 1, 10557 Berlin",
-                              latitude: 52.5367319, longitude: 13.3605566)
+                              latitude: 52.5363163, longitude: 13.3610246)
     static let home = Place(name: "Beispielweg 2, 14000 Musterort",
                             latitude: 52.409412, longitude: 13.2306482)
 
