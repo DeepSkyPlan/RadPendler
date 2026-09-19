@@ -26,6 +26,9 @@ struct TripDetailView: View {
                 Section("Radroute: \(bike.title)") {
                     if let st = bike.stats {
                         LabeledContent("Ampelkreuzungen", value: "\(st.signals)")
+                        if let v = option.bikeAverageKmh {
+                            LabeledContent("Schnitt inkl. Ampeln", value: "\(Int(v.rounded())) km/h")
+                        }
                         LabeledContent("An Hauptstraßen", value: Fmt.km(st.mainRoadMeters))
                         LabeledContent("Hauptstraßen gequert", value: "\(st.crossings.count)")
                         if !st.crossings.isEmpty {

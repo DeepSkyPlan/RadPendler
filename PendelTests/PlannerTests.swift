@@ -4,7 +4,8 @@ import XCTest
 
 final class PlannerTests: XCTestCase {
     private let t0 = Date(timeIntervalSince1970: 1_790_003_700)   // Mon 2026-09-21 17:15 CEST
-    private let settings = PlanSettings()
+    /// 21 km/h keeps the hand-computed times below round.
+    private let settings = PlanSettings(bikeSpeedKmh: 21)
 
     private func line(_ meters: Double) -> StreetRoute {
         // ~meters due south of the office
@@ -20,10 +21,16 @@ final class PlannerTests: XCTestCase {
             coordinates: [Place.office.coordinate, Place.home.coordinate], bikeCarriage: bike)
     }
 
-    func testDefaultBikeSpeedIs21() {
-        XCTAssertEqual(AppSettings(defaults: UserDefaults(suiteName: UUID().uuidString)!).bikeSpeedKmh, 21)
-        // 21 km at 21 km/h = one hour
-        XCTAssertEqual(settings.bikeTime(21_000), 3600, accuracy: 1)
+    func testDefaultRollingSpeedAndLightsGiveTheMeasured21KmhAverage() {
+        let d = UserDefaults(suiteName: UUID().uuidString)!
+        d.set(21.0, forKey: "bikeSpeedKmh")   // 0.1.x all-in average must not be read as rolling speed
+        XCTAssertEqual(AppSettings(defaults: d).bikeSpeedKmh, 29)
+        let defaults = PlanSettings()
+        XCTAssertEqual(defaults.bikeTime(29_000), 3600, accuracy: 1)
+        // Commute check: 20 km with ~50 lit junctions at 20 s ≈ 21 km/h door to door.
+        var r = StreetRoute(distance: 20_000, expectedTravelTime: 0, coordinates: [])
+        r.signals = 50
+        XCTAssertEqual(20.0 / (defaults.rideTime(r) / 3600), 21, accuracy: 1)
     }
 
     func testDefaultsAreOfficeToHomeWithFiveMinutesPrep() {

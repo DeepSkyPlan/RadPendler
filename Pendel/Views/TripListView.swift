@@ -44,7 +44,7 @@ struct TripListView: View {
                     Label(rainFailure, systemImage: "cloud.slash").font(.footnote).foregroundStyle(.orange)
                 }
                 if let last = model.lastRun {
-                    Text("Stand \(Fmt.time(last)) · Rad \(Int(settings.bikeSpeedKmh)) km/h · Fahrplan VBB, Regen DWD/Open-Meteo")
+                    Text("Stand \(Fmt.time(last)) · Rad \(Int(settings.bikeSpeedKmh)) km/h + \(settings.signalWaitSeconds) s/Ampel · Fahrplan VBB, Regen DWD/Open-Meteo")
                         .font(.caption2).foregroundStyle(.secondary)
                 }
             }
@@ -80,6 +80,7 @@ struct TripRow: View {
                 HStack(spacing: 8) {
                     Text("fertig machen \(Fmt.time(option.getReady))")
                     if option.bikeDistance > 0 { Text("Rad \(Fmt.km(option.bikeDistance))") }
+                    if option.mode == .bike, let v = option.bikeAverageKmh { Text("Ø \(Int(v.rounded())) km/h") }
                     if option.walkDistance > 0 { Text("zu Fuß \(Fmt.km(option.walkDistance))") }
                     if option.mode == .car, let d = option.legs.first?.distance { Text(Fmt.km(d)) }
                     if let t = option.transferText { Text(t).fontWeight(option.transfers == 0 ? .semibold : .regular) }
