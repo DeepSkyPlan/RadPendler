@@ -145,7 +145,8 @@ final class PlannerTests: XCTestCase {
         let d = UserDefaults(suiteName: UUID().uuidString)!
         d.set(try JSONEncoder().encode(Place(name: "Musterstraße 1, 10000 Berlin", latitude: 52.5210000, longitude: 13.4130000)),
               forKey: "origin")
-        XCTAssertEqual(AppSettings(defaults: d).origin.name, "Musterstraße 1, 10178 Berlin")
+        XCTAssertEqual(AppSettings(defaults: d).origin, .office)
+        XCTAssertEqual(Place.office.latitude, 52.5210000)
     }
 
     func testRankingPrefersActiveModeWithinThreeMinutes() {
