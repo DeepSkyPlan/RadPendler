@@ -1,0 +1,73 @@
+# XcodeGen spec for the Pendel iOS app (the .xcodeproj is generated, not committed):
+#   xcodegen generate
+# Versioning as in VORSim/DeepFrame: MARKETING_VERSION minor = feature, patch = fix;
+# CURRENT_PROJECT_VERSION rises on every upload and never resets.
+
+name: Pendel
+options:
+  bundleIdPrefix: de.keese
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+
+targets:
+  Pendel:
+    type: application
+    platform: iOS
+    sources:
+      - path: Pendel
+        excludes:
+          - "Resources/**"
+      - path: Pendel/Resources
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.keese.pendel
+        GENERATE_INFOPLIST_FILE: "YES"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_KEY_CFBundleDisplayName: "Pendel"
+        INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: "YES"
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        TARGETED_DEVICE_FAMILY: "1"
+        DEVELOPMENT_TEAM: "5PX3V6L522"
+        CODE_SIGN_STYLE: Automatic
+
+  # HAFAS parsing, time arithmetic, the bike+rail composition and the rain
+  # assessment are the parts that can be wrong quietly — a train without bike
+  # carriage or a missed day rollover still renders as a plausible row.
+  PendelTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: PendelTests
+        excludes:
+          - "Fixtures/**"
+      - path: PendelTests/Fixtures
+        buildPhase: resources
+    dependencies:
+      - target: Pendel
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.keese.pendel.tests
+        GENERATE_INFOPLIST_FILE: "YES"
+        DEVELOPMENT_TEAM: "5PX3V6L522"
+
+schemes:
+  Pendel:
+    build:
+      targets:
+        Pendel: all
+        PendelTests: [test]
+    run:
+      config: Debug
+    test:
+      targets:
+        - PendelTests
