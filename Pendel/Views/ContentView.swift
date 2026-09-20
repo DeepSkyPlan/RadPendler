@@ -23,7 +23,7 @@ struct ContentView: View {
                 VStack(spacing: 14) {
                     RouteHeader(origin: settings.origin, destination: settings.destination,
                                 startTime: $model.startTime, prepMinutes: settings.prepMinutes,
-                                presets: settings.departurePresets,
+                                presets: settings.departurePresets, countdown: model.countdownOption,
                                 onEdit: { editing = $0 },
                                 onSwap: { settings.swapDirection(); refresh() })
                     PillPicker(items: [(Tab.list, "Liste", "list.bullet"), (Tab.map, "Karte", "map")],
@@ -37,7 +37,7 @@ struct ContentView: View {
                 }
                 .padding(.top, 6)
             }
-            .navigationTitle("Pendel")
+            .navigationTitle("RadPendler")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
@@ -81,6 +81,8 @@ private struct RouteHeader: View {
     @Binding var startTime: PlanModel.StartTime
     var prepMinutes: Int
     var presets: [Int]
+    /// The trip the countdown counts down to — the next one with a train or bus.
+    var countdown: TripOption?
     var onEdit: (ContentView.PlaceField) -> Void
     var onSwap: () -> Void
 
@@ -88,25 +90,29 @@ private struct RouteHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
+            HStack(alignment: .center, spacing: 10) {
                 rail
                 VStack(alignment: .leading, spacing: 12) {
                     field(origin, placeholder: "Start wählen", field: .origin)
                     field(destination, placeholder: "Ziel wählen", field: .destination)
                 }
-                Spacer(minLength: 0)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 Button {
                     withAnimation(.snappy(duration: 0.35)) { swapTurns += 0.5 }
                     onSwap()
                 } label: {
                     Image(systemName: "arrow.trianglehead.swap")
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(Theme.accent)
                         .rotationEffect(.degrees(swapTurns * 360))
-                        .frame(width: 36, height: 36)
+                        .frame(width: 32, height: 32)
                         .background(Theme.accent.opacity(0.12), in: Circle())
                 }
                 .accessibilityLabel("Richtung tauschen")
+                if let countdown {
+                    Divider().frame(height: 46)
+                    CountdownView(option: countdown).frame(width: 104)
+                }
             }
             DepartureChips(startTime: $startTime, presets: presets, prepMinutes: prepMinutes)
         }
