@@ -180,6 +180,12 @@ struct TripOption: Identifiable {
         arrival.addingTimeInterval(Double(transfers) * penalty)
     }
 
+    /// Mirror for arrival searches: a connection with a change has to leave
+    /// that much later to be worth taking.
+    func weightedLeave(_ penalty: TimeInterval) -> Date {
+        leave.addingTimeInterval(-Double(transfers) * penalty)
+    }
+
     var transferText: String? {
         transitLegs.isEmpty ? nil : (transfers == 0 ? "direkt" : "\(transfers)× umsteigen")
     }

@@ -4,19 +4,34 @@ import Observation
 @MainActor
 @Observable
 final class PlanModel {
-    enum StartTime: Equatable {
-        case now
-        case at(Date)
+    /// What the user asked for: leave now, leave at a time, or be there at a time.
+    enum When: Equatable {
+        case departNow
+        case departAt(Date)
+        case arriveAt(Date)
+
+        var isArrival: Bool { if case .arriveAt = self { true } else { false } }
+
+        var date: Date? {
+            switch self {
+            case .departNow: nil
+            case .departAt(let d), .arriveAt(let d): d
+            }
+        }
     }
 
-    var startTime: StartTime = .now
+    var when: When = .departNow
     private(set) var result = PlanResult()
     private(set) var isLoading = false
     private(set) var lastRun: Date?
-    var selectedID: TripOption.ID?
+    /// Chosen option per mode; the map draws the one of the active mode in colour.
+    var selection: [TravelMode: TripOption.ID] = [:]
+    var activeMode: TravelMode = .bike
+    private(set) var needsAddresses = false
 
     private let planner: TripPlanner
     private var task: Task<Void, Never>?
+    private var lastDirection: String?
 
     init(planner: TripPlanner = TripPlanner()) {
         self.planner = planner
@@ -29,26 +44,43 @@ final class PlanModel {
     }
 
     var selected: TripOption? {
-        options.first { $0.id == selectedID } ?? recommended ?? options.first
-    }
-
-    /// The trip the header counts down to: the recommended one if it uses a
-    /// train or bus, otherwise the next such trip that has not left yet.
-    var countdownOption: TripOption? {
-        let withTransit = options.filter { !$0.transitLegs.isEmpty && $0.passesWaypoints }
-        if let rec = recommended, !rec.transitLegs.isEmpty { return rec }
-        return withTransit.filter { $0.leave > .now }.min { $0.leave < $1.leave } ?? withTransit.first
+        selected(for: activeMode) ?? recommended
     }
 
     func options(for mode: TravelMode) -> [TripOption] {
-        // Stable: U-Bahn/tram alternatives after the S-Bahn/regional connections.
         let own = options.filter { $0.mode == mode }
         let sorted = own.filter { !$0.isAlternative } + own.filter(\.isAlternative)
         return sorted.filter(\.passesWaypoints) + sorted.filter { !$0.passesWaypoints }
     }
 
-    /// True until both addresses are set — the list then explains instead of searching.
-    private(set) var needsAddresses = false
+    func selected(for mode: TravelMode) -> TripOption? {
+        let own = options(for: mode)
+        return selection[mode].flatMap { id in own.first { $0.id == id } } ?? own.first
+    }
+
+    /// Countdown target: with a wanted arrival every mode has a fixed leaving
+    /// time, so the chosen trip counts. Otherwise only trains and buses do —
+    /// bike and car leave whenever one feels like it.
+    var countdownOption: TripOption? {
+        if when.isArrival { return selected ?? recommended }
+        let withTransit = options.filter { !$0.transitLegs.isEmpty && $0.passesWaypoints }
+        if let rec = recommended, !rec.transitLegs.isEmpty { return rec }
+        return withTransit.filter { $0.leave > .now }.min { $0.leave < $1.leave } ?? withTransit.first
+    }
+
+    /// Going to work means "be there at 9", coming home means "leave now" —
+    /// applied when the direction changes, never overriding a manual choice.
+    func applyDefaultWhen(settings: AppSettings) {
+        let direction = "\(settings.origin?.name ?? "")→\(settings.destination?.name ?? "")"
+        guard direction != lastDirection else { return }
+        lastDirection = direction
+        if settings.isWork(settings.destination) {
+            when = .arriveAt(DeparturePreset.clock(settings.workArrivalMinutes / 60,
+                                                   settings.workArrivalMinutes % 60).date())
+        } else {
+            when = .departNow
+        }
+    }
 
     func refresh(settings: AppSettings) {
         task?.cancel()
@@ -59,29 +91,31 @@ final class PlanModel {
             return
         }
         needsAddresses = false
-        let start: Date
-        switch startTime {
-        case .now: start = .now
-        case .at(let d): start = d
+        let target: PlanTarget = switch when {
+        case .departNow: .departAfter(.now)
+        case .departAt(let d): .departAfter(d)
+        case .arriveAt(let d): .arriveBy(d)
         }
-        let req = PlanRequest(origin: origin, destination: destination,
-                              start: start, settings: settings.snapshot)
+        let req = PlanRequest(origin: origin, destination: destination, target: target,
+                              settings: settings.snapshot)
         isLoading = true
         task = Task {
             let r = await planner.plan(req)
             guard !Task.isCancelled else { return }
             result = r
+            selection = [:]
+            if let rec = r.recommendation.flatMap({ rid in r.options.first { $0.id == rid.optionID } }) {
+                selection[rec.mode] = rec.id
+                activeMode = rec.mode
+            }
+            lastRun = .now
+            isLoading = false
             #if DEBUG
             for o in r.options {
-                let st = o.bikeRoute?.stats
                 print("PLAN", o.mode.rawValue, o.bikeRoute?.title ?? "", Fmt.time(o.leave), Fmt.time(o.arrival),
-                      Int(o.bikeDistance), st.map { "signals \($0.signals) crossings \($0.crossings) main \(Int($0.mainRoadMeters))" } ?? "",
                       o.transitLegs.compactMap(\.lineName))
             }
             #endif
-            selectedID = r.recommendation?.optionID
-            lastRun = .now
-            isLoading = false
         }
     }
 }

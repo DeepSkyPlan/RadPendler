@@ -55,15 +55,15 @@ struct SettingsView: View {
                     Text("Beim Sortieren und Empfehlen wird jeder Umstieg wie so viele Minuten längere Fahrt gewertet. Eine direkte Verbindung gewinnt also, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.")
                 }
                 Section {
-                    ForEach(settings.departurePresets, id: \.self) { m in
-                        Text(AppSettings.offsetTitle(m))
+                    ForEach(settings.departurePresets, id: \.self) { p in
+                        Text(p.title)
                     }
                     .onDelete { settings.departurePresets.remove(atOffsets: $0) }
                     Menu {
-                        ForEach([5, 10, 15, 30, 45, 60, 120, 240, 480, 720, 1080], id: \.self) { m in
-                            Button(AppSettings.offsetTitle(m)) {
-                                guard !settings.departurePresets.contains(m) else { return }
-                                settings.departurePresets = (settings.departurePresets + [m]).sorted()
+                        ForEach(DeparturePreset.choices, id: \.self) { p in
+                            Button(p.title) {
+                                guard !settings.departurePresets.contains(p) else { return }
+                                settings.departurePresets.append(p)
                             }
                         }
                     } label: {
@@ -72,7 +72,53 @@ struct SettingsView: View {
                 } header: {
                     Text("Startzeiten")
                 } footer: {
-                    Text("Diese Vorschläge stehen oben neben „Jetzt“ zur Wahl — für die Fahrt am Abend oder morgen früh.")
+                    Text("Diese Vorschläge stehen oben neben „Jetzt“ zur Wahl — relativ („in 15 min“) oder als Uhrzeit („um 8 Uhr“, heute oder morgen).")
+                }
+                Section {
+                    Picker("Arbeitsadresse", selection: Binding(
+                        get: { settings.isWork(settings.destination) ? 1 : (settings.isWork(settings.origin) ? 0 : 2) },
+                        set: { settings.workPlace = $0 == 0 ? settings.origin : ($0 == 1 ? settings.destination : nil) })) {
+                        Text(settings.origin?.shortName ?? "Start").tag(0)
+                        Text(settings.destination?.shortName ?? "Ziel").tag(1)
+                        Text("keine").tag(2)
+                    }
+                    DatePicker("Dort sein um", selection: Binding(
+                        get: { DeparturePreset.clock(settings.workArrivalMinutes / 60, settings.workArrivalMinutes % 60).date() },
+                        set: { d in
+                            let c = Calendar.current.dateComponents([.hour, .minute], from: d)
+                            settings.workArrivalMinutes = (c.hour ?? 9) * 60 + (c.minute ?? 0)
+                        }), displayedComponents: .hourAndMinute)
+                } header: {
+                    Text("Arbeitsweg")
+                } footer: {
+                    Text("Fahrten zur Arbeitsadresse starten mit „Ankunft um …“, Fahrten nach Hause mit „Abfahrt jetzt“. Von Hand umschaltbar.")
+                }
+                Section {
+                    Stepper("Puffer vor der Abfahrt: \(settings.departureBufferMinutes) min",
+                            value: $settings.departureBufferMinutes, in: 0...30)
+                    Stepper("Puffer vor der Ankunft: \(settings.arrivalBufferMinutes) min",
+                            value: $settings.arrivalBufferMinutes, in: 0...30)
+                } header: {
+                    Text("Puffer")
+                } footer: {
+                    Text("Der Abfahrtspuffer verschiebt das Losgehen nach vorn, der Ankunftspuffer lässt die Verbindung früher ankommen. Beide zählen nicht zur angezeigten Fahrzeit.")
+                }
+                Section {
+                    Toggle("Warnton vor der Abfahrt", isOn: $settings.alertsOn)
+                    if settings.alertsOn {
+                        ForEach([15, 10, 5, 3, 1], id: \.self) { m in
+                            Toggle("\(m) min vorher", isOn: Binding(
+                                get: { settings.alertMinutes.contains(m) },
+                                set: { on in
+                                    if on { settings.alertMinutes = (settings.alertMinutes + [m]).sorted(by: >) }
+                                    else { settings.alertMinutes.removeAll { $0 == m } }
+                                }))
+                        }
+                    }
+                } header: {
+                    Text("Countdown")
+                } footer: {
+                    Text("Der Countdown oben rechts zählt bis zum Losgehen für Bahn und Bus — und bei „Ankunft um …“ für jede Fahrt. Der Ton kommt nur, solange die App offen ist.")
                 }
                 Section {
                     ForEach(settings.waypoints, id: \.self) { p in

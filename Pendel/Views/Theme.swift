@@ -56,11 +56,13 @@ extension View {
 struct Chip: View {
     var text: String
     var symbol: String? = nil
+    var icon: AnyView? = nil
     var tint: Color = .secondary
     var strong = false
 
     var body: some View {
         HStack(spacing: 4) {
+            if let icon { icon }
             if let symbol { Image(systemName: symbol).font(.caption2) }
             Text(text).font(.system(.caption, design: .rounded, weight: strong ? .semibold : .regular))
         }
@@ -121,33 +123,75 @@ struct PillPicker<T: Hashable>: View {
     }
 }
 
-/// "Los in 12:30" — how long until one has to leave to catch the train.
-/// Counts every second below ten minutes, then in whole minutes.
-struct CountdownView: View {
-    var option: TripOption
+/// Three dots in a housing: the app's traffic-light mark.
+struct TrafficLightIcon: View {
+    var size: CGFloat = 11
+
+    var body: some View {
+        VStack(spacing: size * 0.08) {
+            Circle().fill(.red)
+            Circle().fill(.yellow)
+            Circle().fill(.green)
+        }
+        .padding(size * 0.12)
+        .frame(width: size * 0.52, height: size * 1.35)
+        .background(Color.primary.opacity(0.55), in: RoundedRectangle(cornerRadius: size * 0.18))
+    }
+}
+
+/// The countdown to leaving: white on red while it is the thing to watch,
+/// grey when no departure is fixed. Beeps at the configured minutes.
+struct CountdownBox: View {
+    var option: TripOption?
+    /// Minutes before departure that get a beep; empty turns the alarm off.
+    var alerts: [Int] = []
+
+    @State private var fired: Set<Int> = []
+    @State private var watched: TripOption.ID?
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
-            let left = option.leave.timeIntervalSince(context.date)
-            VStack(alignment: .trailing, spacing: 1) {
-                Text(left < 0 ? "ABGEFAHREN" : "LOS IN")
-                    .font(.system(size: 9, weight: .bold, design: .rounded))
-                    .foregroundStyle(.secondary)
-                Text(Self.text(left))
-                    .font(.system(size: left < 600 ? 26 : 22, weight: .heavy, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(Self.tint(left))
-                    .contentTransition(.numericText(countsDown: true))
-                HStack(spacing: 3) {
-                    if let leg = option.transitLegs.first { LineBadge(leg: leg) }
-                    Text("ab \(Fmt.time(option.leave))")
-                        .font(.system(size: 10, design: .rounded))
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            .accessibilityLabel("Losgehen in \(Self.text(left))")
+            let left = option.map { $0.leave.timeIntervalSince(context.date) }
+            content(left)
+                .onChange(of: Int((left ?? 0) / 60)) { _, _ in beep(left) }
         }
+    }
+
+    @ViewBuilder private func content(_ left: TimeInterval?) -> some View {
+        VStack(spacing: 1) {
+            Text(left == nil ? "KEINE ABFAHRT" : (left! < 0 ? "ABGEFAHREN" : "LOS IN"))
+                .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                .opacity(0.85)
+            Text(left.map(Self.text) ?? "–")
+                .font(.system(size: (left ?? 0) < 600 ? 25 : 21, weight: .heavy, design: .rounded))
+                .monospacedDigit()
+                .contentTransition(.numericText(countsDown: true))
+            if let option, let leg = option.transitLegs.first {
+                HStack(spacing: 3) {
+                    Text(leg.lineName ?? "")
+                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                        .padding(.horizontal, 3).padding(.vertical, 0.5)
+                        .background(.white.opacity(0.25), in: RoundedRectangle(cornerRadius: 3))
+                    Text(Fmt.time(option.leave)).font(.system(size: 9.5, design: .rounded))
+                }
+            } else if let option {
+                Text("ab \(Fmt.time(option.leave))").font(.system(size: 9.5, design: .rounded))
+            }
+        }
+        .foregroundStyle(left == nil ? AnyShapeStyle(Color.secondary) : AnyShapeStyle(Color.white))
+        .padding(.vertical, 7).padding(.horizontal, 6)
+        .frame(maxWidth: .infinity)
+        .background(Self.box(left), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .accessibilityLabel(left.map { "Losgehen in \(Self.text($0))" } ?? "Keine feste Abfahrt")
+    }
+
+    /// Red while it counts, dark red once it is gone, grey when idle.
+    static func box(_ left: TimeInterval?) -> AnyShapeStyle {
+        guard let left else { return AnyShapeStyle(Color.primary.opacity(0.06)) }
+        if left < 0 { return AnyShapeStyle(Color(red: 0.45, green: 0.05, blue: 0.09)) }
+        return AnyShapeStyle(LinearGradient(colors: [Color(red: 0.90, green: 0.16, blue: 0.22),
+                                                     Color(red: 0.76, green: 0.07, blue: 0.16)],
+                                            startPoint: .top, endPoint: .bottom))
     }
 
     static func text(_ left: TimeInterval) -> String {
@@ -158,11 +202,15 @@ struct CountdownView: View {
         return m < 60 ? "\(m) min" : String(format: "%d:%02d h", m / 60, m % 60)
     }
 
-    static func tint(_ left: TimeInterval) -> Color {
-        switch left {
-        case ..<0: .red
-        case ..<300: .orange
-        default: Theme.accent
+    /// One beep per threshold per trip; a new trip clears what was fired.
+    private func beep(_ left: TimeInterval?) {
+        guard let option, let left, !alerts.isEmpty else { return }
+        if watched != option.id {
+            watched = option.id
+            fired = []
         }
+        let minutes = Int((left / 60).rounded(.up))
+        guard left > 0, alerts.contains(minutes), fired.insert(minutes).inserted else { return }
+        Alarm.beep()
     }
 }

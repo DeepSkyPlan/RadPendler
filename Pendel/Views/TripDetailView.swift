@@ -33,9 +33,17 @@ struct TripDetailView: View {
             HStack(spacing: 12) {
                 ModeBubble(symbol: option.mode.symbol, color: option.mode.color, size: 46)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("\(Fmt.time(option.leave)) → \(Fmt.time(option.arrival))")
-                        .display(.title2, weight: .bold).monospacedDigit()
-                    Text("\(Fmt.duration(option.duration)) · \(Fmt.km(option.totalDistance))")
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(Fmt.duration(option.duration))
+                            .display(.title2, weight: .bold)
+                            .monospacedDigit()
+                            .foregroundStyle(option.mode.color)
+                        Text("\(Fmt.time(option.leave)) → \(Fmt.time(option.arrival))")
+                            .display(.subheadline, weight: .regular)
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(Fmt.km(option.totalDistance))
                         .font(.system(.subheadline, design: .rounded))
                         .foregroundStyle(.secondary)
                 }
@@ -72,7 +80,7 @@ struct TripDetailView: View {
                 .foregroundStyle(LegKind.bike.color)
             if let st = bike.stats {
                 HStack(spacing: 6) {
-                    Chip(text: "\(st.signals) Ampeln", symbol: "light.beacon.max")
+                    Chip(text: "\(st.signals) Ampeln", icon: AnyView(TrafficLightIcon()))
                     Chip(text: "\(st.crossings.count)× quer", symbol: "arrow.left.arrow.right")
                     Chip(text: "\(Fmt.km(st.mainRoadMeters)) an Hauptstraßen", symbol: "road.lanes")
                 }

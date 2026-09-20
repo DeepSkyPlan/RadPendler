@@ -1,14 +1,33 @@
 import CoreLocation
 import Foundation
 
+/// Either "leave after this" or "be there by this".
+enum PlanTarget: Equatable {
+    case departAfter(Date)
+    case arriveBy(Date)
+}
+
 struct PlanRequest {
     var origin: Place
     var destination: Place
-    /// When the user wants to start getting ready; leaving is `start + prep`.
-    var start: Date
+    var target: PlanTarget
     var settings: PlanSettings
 
-    var earliestLeave: Date { start.addingTimeInterval(settings.prep) }
+    /// Earliest moment to walk out of the door: preparation and the departure
+    /// buffer come on top of the chosen start.
+    var earliestLeave: Date {
+        switch target {
+        case .departAfter(let d): d.addingTimeInterval(settings.prep + settings.departureBuffer)
+        case .arriveBy: .now.addingTimeInterval(settings.prep + settings.departureBuffer)
+        }
+    }
+
+    /// The moment to be there, buffer already subtracted.
+    var arriveBy: Date? {
+        if case .arriveBy(let d) = target { d.addingTimeInterval(-settings.arrivalBuffer) } else { nil }
+    }
+
+    var isArrival: Bool { arriveBy != nil }
 }
 
 struct PlanResult {
@@ -111,10 +130,11 @@ struct TripPlanner {
         }
         let picked = BikeCandidate.pick(candidates, settings: req.settings)
 
-        let leave = req.earliestLeave
         return picked.map { c, variants in
+            let ride = c.time(req.settings)
+            let leave = req.arriveBy.map { $0.addingTimeInterval(-ride) } ?? req.earliestLeave
             let leg = Leg(kind: .bike, fromName: req.origin.shortName, toName: req.destination.shortName,
-                          departure: leave, arrival: leave.addingTimeInterval(c.time(req.settings)),
+                          departure: leave, arrival: leave.addingTimeInterval(ride),
                           distance: c.route.distance, coordinates: c.route.coordinates)
             return TripOption(mode: .bike, legs: [leg], prep: req.settings.prep,
                               note: data == nil ? "Ampeln und Hauptstraßen unbekannt (OpenStreetMap nicht erreichbar)" : nil,
@@ -123,12 +143,14 @@ struct TripPlanner {
     }
 
     func carOptions(_ req: PlanRequest) async throws -> [TripOption] {
-        let leave = req.earliestLeave
+        let guess = req.arriveBy ?? req.earliestLeave
         let r = try await streets.route(from: req.origin.coordinate, to: req.destination.coordinate,
-                                        mode: .car, departure: leave)
+                                        mode: .car, departure: guess)
         let parking = TimeInterval(req.settings.parkingMinutes * 60)
+        let drive = r.expectedTravelTime + parking
+        let leave = req.arriveBy.map { $0.addingTimeInterval(-drive) } ?? req.earliestLeave
         let leg = Leg(kind: .car, fromName: req.origin.shortName, toName: req.destination.shortName,
-                      departure: leave, arrival: leave.addingTimeInterval(r.expectedTravelTime + parking),
+                      departure: leave, arrival: leave.addingTimeInterval(drive),
                       distance: r.distance, coordinates: r.coordinates)
         let note = parking > 0 ? "inkl. \(req.settings.parkingMinutes) min Parkplatzsuche" : "Fahrzeit laut Apple Karten mit Verkehrslage"
         return [TripOption(mode: .car, legs: [leg], prep: req.settings.prep, note: note)]
@@ -138,12 +160,17 @@ struct TripPlanner {
         let journeys = try await hafas.journeys(
             from: .address(name: req.origin.name, coordinate: req.origin.coordinate),
             to: .address(name: req.destination.name, coordinate: req.destination.coordinate),
-            departing: req.earliestLeave, bikeCarriage: false, results: 4)
-        return journeys
-            .filter { !$0.contains(where: \.cancelled) }
-            .map { TripOption(mode: .transit, legs: $0, prep: req.settings.prep) }
-            .sorted { $0.weightedArrival(req.settings.transferPenalty) < $1.weightedArrival(req.settings.transferPenalty) }
-            .prefix(2).map { $0 }
+            departing: req.arriveBy ?? req.earliestLeave, arriveBy: req.isArrival,
+            bikeCarriage: false, results: 4)
+        let penalty = req.settings.transferPenalty
+        let running = journeys.filter { !$0.contains(where: \.cancelled) }
+        var options = running.map { TripOption(mode: .transit, legs: $0, prep: req.settings.prep) }
+        if let by = req.arriveBy {
+            let limit = by.addingTimeInterval(60)
+            options = options.filter { $0.arrival <= limit }
+        }
+        options.sort { TripPlanner.ranking($0, $1, penalty: penalty, arrival: req.isArrival) }
+        return Array(options.prefix(3))
     }
 
     /// Ride to a station, take only trains that carry bikes, ride on from the
@@ -196,21 +223,26 @@ struct TripPlanner {
             for (a, b, mask) in searches {
                 guard let r1 = ride1[a.lid] ?? nil, let r2 = ride2[b.lid] ?? nil else { continue }
                 group.addTask {
-                    let catchAt = req.earliestLeave.addingTimeInterval(s.rideTime(r1) + s.bikeStationBuffer)
+                    // An arrival search counts backwards: be at the last station
+                    // in time for the final stretch on the bike.
+                    let when = req.arriveBy.map { $0.addingTimeInterval(-s.rideTime(r2) - s.bikeStationBuffer) }
+                        ?? req.earliestLeave.addingTimeInterval(s.rideTime(r1) + s.bikeStationBuffer)
                     let journeys = try await hafas.journeys(from: .station(lid: a.lid), to: .station(lid: b.lid),
-                                                            departing: catchAt, bikeCarriage: true,
-                                                            productMask: mask, results: 2)
+                                                            departing: when, arriveBy: req.isArrival,
+                                                            bikeCarriage: true, productMask: mask, results: 2)
                     return journeys.compactMap {
                         BikeTransitComposer.compose(origin: req.origin, destination: req.destination,
                                                     station1: a.name, ride1: r1, journey: $0,
-                                                    station2: b.name, ride2: r2,
-                                                    settings: s, earliestLeave: req.earliestLeave)
+                                                    station2: b.name, ride2: r2, settings: s,
+                                                    earliestLeave: req.isArrival ? .distantPast : req.earliestLeave)
                     }
                 }
             }
             return try await group.reduce(into: []) { $0 += $1 }
         }
-        return BikeTransitComposer.rank(candidates, preferred: 3, alternatives: 1, penalty: s.transferPenalty)
+        let inTime = req.arriveBy.map { by in candidates.filter { $0.arrival <= by.addingTimeInterval(60) } } ?? candidates
+        return BikeTransitComposer.rank(inTime, preferred: 3, alternatives: 1,
+                                        penalty: s.transferPenalty, arrival: req.isArrival)
     }
 
     typealias Station = HafasClient.Station
@@ -258,13 +290,21 @@ struct TripPlanner {
 
     /// Earliest arrival first, each change of train counted as `penalty`;
     /// within 3 minutes the more active mode first.
-    static func ranking(_ a: TripOption, _ b: TripOption, penalty: TimeInterval = 600) -> Bool {
+    static func ranking(_ a: TripOption, _ b: TripOption, penalty: TimeInterval = 600,
+                        arrival: Bool = false) -> Bool {
         if a.passesWaypoints != b.passesWaypoints { return a.passesWaypoints }
-        let wa = a.weightedArrival(penalty), wb = b.weightedArrival(penalty)
-        if abs(wa.timeIntervalSince(wb)) < 180, a.mode != b.mode {
+        // Leaving as late as possible is the point of an arrival search.
+        let wa = score(a, penalty: penalty, arrival: arrival)
+        let wb = score(b, penalty: penalty, arrival: arrival)
+        if abs(wa - wb) < 180, a.mode != b.mode {
             return a.mode.preference < b.mode.preference
         }
         return wa < wb
+    }
+
+    private static func score(_ o: TripOption, penalty: TimeInterval, arrival: Bool) -> Double {
+        let d = arrival ? o.weightedLeave(penalty) : o.weightedArrival(penalty)
+        return arrival ? -d.timeIntervalSince1970 : d.timeIntervalSince1970
     }
 
     /// The user's own rule: dry → ride (the whole way, or with the train if
@@ -348,16 +388,18 @@ enum BikeTransitComposer {
     /// alternative: at most `alternatives` of them, or up to `preferred` when no
     /// S-Bahn/regional connection exists at all.
     static func rank(_ options: [TripOption], preferred: Int, alternatives: Int,
-                     penalty: TimeInterval = 600) -> [TripOption] {
-        let main = best(options.filter { !$0.isAlternative }, count: preferred, penalty: penalty)
-        let alt = best(options.filter(\.isAlternative), count: main.isEmpty ? preferred : alternatives, penalty: penalty)
+                     penalty: TimeInterval = 600, arrival: Bool = false) -> [TripOption] {
+        let main = best(options.filter { !$0.isAlternative }, count: preferred, penalty: penalty, arrival: arrival)
+        let alt = best(options.filter(\.isAlternative), count: main.isEmpty ? preferred : alternatives,
+                       penalty: penalty, arrival: arrival)
         return main + alt
     }
 
     /// Drop duplicates (same trains reached from different stations — keep the
     /// one that leaves latest), then earliest arrival with each change of
     /// train counted as `penalty`, then latest leave.
-    static func best(_ options: [TripOption], count: Int, penalty: TimeInterval = 600) -> [TripOption] {
+    static func best(_ options: [TripOption], count: Int, penalty: TimeInterval = 600,
+                     arrival: Bool = false) -> [TripOption] {
         var bySignature: [String: TripOption] = [:]
         for o in options {
             let key = o.transitLegs.map { "\($0.lineName ?? "")@\(Int($0.departure.timeIntervalSince1970))" }.joined(separator: "|")
@@ -368,8 +410,7 @@ enum BikeTransitComposer {
             bySignature[key] = o
         }
         return bySignature.values
-            .sorted { ($0.weightedArrival(penalty), -$0.leave.timeIntervalSince1970)
-                    < ($1.weightedArrival(penalty), -$1.leave.timeIntervalSince1970) }
+            .sorted { TripPlanner.ranking($0, $1, penalty: penalty, arrival: arrival) }
             .prefix(count).map { $0 }
     }
 }
