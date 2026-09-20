@@ -12,8 +12,6 @@ struct RouteMapView: UIViewRepresentable {
     var waypoints: [Place] = []
     /// Tap on an option's label on the map.
     var onSelect: ((TripOption.ID) -> Void)? = nil
-    /// Long press on a bike line: step to the next bike route.
-    var onCycleBike: (() -> Void)? = nil
 
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView()
@@ -122,25 +120,18 @@ struct RouteMapView: UIViewRepresentable {
 
     final class Coordinator: NSObject, MKMapViewDelegate {
         var onSelect: ((TripOption.ID) -> Void)?
-        var onCycleBike: (() -> Void)?
-        private var bikeLines: [[CLLocationCoordinate2D]] = []
+        /// The rectangle that holds every drawn route — where a long press goes back to.
+        private var fitRect: MKMapRect?
 
-        /// Long press within ~40 pt of a bike line cycles through the routes.
+        /// Long press anywhere on the map: back to the whole route in view,
+        /// however far one has panned and zoomed away.
         @objc func handleLongPress(_ g: UILongPressGestureRecognizer) {
-            guard g.state == .began, let map = g.view as? MKMapView, let onCycleBike else { return }
-            let point = g.location(in: map)
-            let tolerance = 40.0
-            for line in bikeLines {
-                for c in line {
-                    let p = map.convert(c, toPointTo: map)
-                    if abs(p.x - point.x) < tolerance, abs(p.y - point.y) < tolerance {
-                        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
-                        onCycleBike()
-                        return
-                    }
-                }
-            }
+            guard g.state == .began, let map = g.view as? MKMapView, let fitRect else { return }
+            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+            map.setVisibleMapRect(fitRect, edgePadding: Self.fitInsets, animated: true)
         }
+
+        static let fitInsets = UIEdgeInsets(top: 50, left: 30, bottom: 110, right: 30)
         private var routeKey = ""
         private var planKey = ""
         private var radar: [Date: RadarTileOverlay] = [:]
@@ -150,10 +141,6 @@ struct RouteMapView: UIViewRepresentable {
 
         func update(_ map: MKMapView, _ view: RouteMapView) {
             onSelect = view.onSelect
-            onCycleBike = view.onCycleBike
-            bikeLines = view.options.filter { $0.mode == .bike }.flatMap { o in
-                o.legs.filter { $0.kind == .bike }.map(\.coordinates)
-            }
             // New plan → redraw and fit; new selection only → redraw.
             let plan = view.options.map { $0.id.uuidString }.joined()
             let key = plan + (view.selectedID?.uuidString ?? "")
@@ -281,8 +268,9 @@ struct RouteMapView: UIViewRepresentable {
                 return
             }
             let all = rects.dropFirst().reduce(first) { $0.union($1) }
+            fitRect = all
             // Bottom inset clears the radar controls floating over the map.
-            map.setVisibleMapRect(all, edgePadding: UIEdgeInsets(top: 50, left: 30, bottom: 110, right: 30), animated: false)
+            map.setVisibleMapRect(all, edgePadding: Self.fitInsets, animated: false)
         }
 
         /// All frames stay on the map once loaded; only the shown one is
@@ -396,6 +384,12 @@ struct RadarControls: View {
             Toggle(isOn: $visible) { Image(systemName: "cloud.rain") }
                 .toggleStyle(.button)
                 .accessibilityLabel("Regenradar")
+            // Tiles still coming in: say so, an empty sky and a missing sky
+            // look exactly alike.
+            if visible, RadarLoads.shared.isLoading {
+                ProgressView().controlSize(.mini)
+                    .accessibilityLabel("Radarbilder werden geladen")
+            }
             if visible, !frames.isEmpty {
                 Button { playing.toggle() } label: {
                     Image(systemName: playing ? "pause.fill" : "play.fill")
@@ -462,7 +456,6 @@ struct TripMapPanel: View {
     var selectedID: TripOption.ID?
     var waypoints: [Place] = []
     var onSelect: ((TripOption.ID) -> Void)? = nil
-    var onCycleBike: (() -> Void)? = nil
     @State private var frames = RadarTileOverlay.frameTimes()
     @State private var index = 0
     @State private var radarOn = true
@@ -473,7 +466,7 @@ struct TripMapPanel: View {
         ZStack(alignment: .bottom) {
             RouteMapView(options: options, selectedID: selectedID, radarFrames: radarOn ? frames : [],
                          radarTime: radarOn && frames.indices.contains(index) ? frames[index] : nil,
-                         waypoints: waypoints, onSelect: onSelect, onCycleBike: onCycleBike)
+                         waypoints: waypoints, onSelect: onSelect)
             RadarControls(frames: frames, index: $index, visible: $radarOn)
                 .padding(8)
         }

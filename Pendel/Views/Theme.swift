@@ -176,6 +176,8 @@ struct CountdownBox: View {
     var option: TripOption?
     /// Minutes before leaving that get a beep; empty turns the alarm off.
     var alerts: [Int] = []
+    /// Toolbar version: one small pill instead of the three-line block.
+    var compact = false
 
     @State private var fired: Set<Int> = []
     @State private var watched: TripOption.ID?
@@ -184,9 +186,34 @@ struct CountdownBox: View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             let left = option.map { $0.getReady.timeIntervalSince(context.date) }
             let gone = option.map { context.date > $0.leave } ?? false
-            content(left, gone: gone)
-                .onChange(of: Int((left ?? 0) / 60)) { _, _ in beep(left) }
+            Group {
+                if compact { pill(left, gone: gone) } else { content(left, gone: gone) }
+            }
+            .onChange(of: Int((left ?? 0) / 60)) { _, _ in beep(left) }
         }
+    }
+
+    /// In the title bar there is room for one line: what it is and how long.
+    /// The line and its time stay in the trip bar below.
+    @ViewBuilder private func pill(_ left: TimeInterval?, gone: Bool) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: gone ? "figure.walk.departure" : "alarm.fill")
+                .font(.system(size: 9, weight: .bold))
+            Text(left.map(Self.text) ?? "–")
+                .font(.system(size: 14, weight: .heavy, design: .rounded))
+                .monospacedDigit()
+                .contentTransition(.numericText(countsDown: true))
+            if let option, let leg = option.transitLegs.first, let line = leg.lineName {
+                Text(line)
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .padding(.horizontal, 3).padding(.vertical, 0.5)
+                    .background(.white.opacity(0.25), in: RoundedRectangle(cornerRadius: 3))
+            }
+        }
+        .foregroundStyle(left == nil ? AnyShapeStyle(Color.secondary) : AnyShapeStyle(Color.white))
+        .padding(.horizontal, 8).padding(.vertical, 4)
+        .background(Self.box(left, gone: gone), in: Capsule())
+        .accessibilityLabel(left.map { "Losgehen in \(Self.text($0))" } ?? "Keine feste Abfahrt")
     }
 
     @ViewBuilder private func content(_ left: TimeInterval?, gone: Bool) -> some View {

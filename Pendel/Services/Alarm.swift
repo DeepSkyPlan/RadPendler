@@ -44,19 +44,27 @@ enum Alarm {
     ///
     /// `minutes` counts down to `getReady`, not to the departure — the same
     /// moment the red box and the "los …" chip name.
+    ///
+    /// Called after every replan, so pulling the screen down re-arms the
+    /// warnings against the timetable that just came in. A plan that found
+    /// nothing — the connection failed, the phone is offline — leaves the
+    /// warnings that are already armed alone: better a warning from five
+    /// minutes ago than none at all.
     static func schedule(for option: TripOption?, alerts minutes: [Int], now: Date = .now) async {
-        clear()
-        guard let option, !minutes.isEmpty, await requestPermission() else { return }
+        guard !minutes.isEmpty else { return await clear() }
+        guard let option, await requestPermission() else { return }
+        // Clearing first and awaiting it: the new requests reuse the same
+        // identifiers, and a clear that finished late would take them with it.
+        await clear()
         for request in requests(for: option, alerts: minutes, now: now) {
             try? await center.add(request)
         }
     }
 
-    static func clear() {
-        center.getPendingNotificationRequests { pending in
-            let mine = pending.map(\.identifier).filter { $0.hasPrefix(prefix) }
-            center.removePendingNotificationRequests(withIdentifiers: mine)
-        }
+    static func clear() async {
+        let mine = await center.pendingNotificationRequests()
+            .map(\.identifier).filter { $0.hasPrefix(prefix) }
+        center.removePendingNotificationRequests(withIdentifiers: mine)
     }
 
     /// The warnings for one trip, in the order they will fire. Pure, so the

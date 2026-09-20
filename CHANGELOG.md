@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.1 (Build 12, TestFlight 2026-09-20)
+- App-Zeichen größer und nach oben links, daneben der Name; der Countdown sitzt jetzt als rote Pille **zwischen Name und Burger-Menü** und ist aus der Adresskarte verschwunden.
+- Die Karte zeigt an, wenn Radarbilder noch geladen werden.
+- Langes Drücken auf eine Modus-Box springt zurück auf deren erste — also beste — Möglichkeit.
+- Langes Drücken auf die Karte holt die ganze Strecke wieder ins Bild (vorher: nächste Radroute).
+- Rad + Bahn trägt jetzt Rad **und** Bahnsymbol; die Farbe ist ein blaueres Grün (#00A8BA).
+- Menü: Version mit „v“, Copyright nur noch „© 2026 AK“ und die Datenquellen — beide so klein wie die Version.
+- Nachplanen: das Ziehen nach unten setzt auch die Mitteilungen neu; ein Suchlauf ohne Ergebnis lässt die bereits scharfen Warnungen stehen, statt sie zu löschen.
+
 ## 0.6.0 (Build 11, TestFlight 2026-09-20)
 - **Mitteilungen auch bei geschlossener App**: die Warnungen vor dem Losgehen kommen jetzt als echte iOS-Mitteilung („In 10 min los“ … „Jetzt los“) mit Verkehrsmittel, Zeiten und Zug; bei offener App zusätzlich der Ton wie bisher. Die App fragt einmal nach der Erlaubnis; ist sie verweigert, steht das in den Einstellungen mit einem Weg dorthin.
 - Der Countdown zählt bis zum **Losgehen** (Abfahrt minus Rüstzeit) statt bis zur Abfahrt — dieselbe Zeit, die der „los …“-Chip nennt; darunter weiter Linie und Abfahrtszeit. „ABGEFAHREN“ erscheint erst, wenn die Bahn wirklich weg ist.
