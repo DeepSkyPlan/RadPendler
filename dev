@@ -1,0 +1,30 @@
+#!/bin/bash
+# Ein Weg hinein, für Terminal und Xcode gleichermaßen.
+#
+# Das .xcodeproj ist generiert und nicht eingecheckt: was im Projektnavigator
+# geklickt wird, ist beim nächsten `generate` wieder weg. Struktur gehört in
+# project.yml, Quelldateien einfach unter RadPendler/ ablegen und neu generieren.
+#
+# Kein -derivedDataPath: so teilen sich Xcode und xcodebuild denselben Index
+# und dieselben Objektdateien. Zwei Pfade hieße zweimal übersetzen.
+set -euo pipefail
+cd "$(dirname "$0")"
+
+PROJ=RadPendler.xcodeproj
+SCHEME=RadPendler
+DEST='platform=iOS Simulator,name=iPhone 17 Pro'
+
+generate() { xcodegen generate; }
+
+# Nach einem Umbenennen oder Verschieben liegt sonst ein Projekt herum, das auf
+# nicht mehr vorhandene Dateien zeigt.
+need_project() { [ -d "$PROJ" ] || generate; }
+
+case "${1:-test}" in
+  generate|gen) generate ;;
+  build)  need_project; xcodebuild -project "$PROJ" -scheme "$SCHEME" -destination "$DEST" build ;;
+  test)   need_project; xcodebuild -project "$PROJ" -scheme "$SCHEME" -destination "$DEST" test ;;
+  open)   need_project; open "$PROJ" ;;
+  clean)  rm -rf "$PROJ"; xcodebuild -scheme "$SCHEME" clean 2>/dev/null || true ;;
+  *) echo "usage: ./dev [generate|build|test|open|clean]" >&2; exit 2 ;;
+esac

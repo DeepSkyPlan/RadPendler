@@ -1,9 +1,9 @@
-# XcodeGen spec for the Pendel iOS app (the .xcodeproj is generated, not committed):
+# XcodeGen spec for the RadPendler iOS app (the .xcodeproj is generated, not committed):
 #   xcodegen generate
 # Versioning as in VORSim/DeepFrame: MARKETING_VERSION minor = feature, patch = fix;
 # CURRENT_PROJECT_VERSION rises on every upload and never resets.
 
-name: Pendel
+name: RadPendler
 options:
   bundleIdPrefix: de.keese
   deploymentTarget:
@@ -17,14 +17,14 @@ settings:
     SWIFT_VERSION: "5.0"
 
 targets:
-  Pendel:
+  RadPendler:
     type: application
     platform: iOS
     sources:
-      - path: Pendel
+      - path: RadPendler
         excludes:
           - "Resources/**"
-      - path: Pendel/Resources
+      - path: RadPendler/Resources
         buildPhase: resources
     settings:
       base:
@@ -43,17 +43,17 @@ targets:
   # HAFAS parsing, time arithmetic, the bike+rail composition and the rain
   # assessment are the parts that can be wrong quietly — a train without bike
   # carriage or a missed day rollover still renders as a plausible row.
-  PendelTests:
+  RadPendlerTests:
     type: bundle.unit-test
     platform: iOS
     sources:
-      - path: PendelTests
+      - path: RadPendlerTests
         excludes:
           - "Fixtures/**"
-      - path: PendelTests/Fixtures
+      - path: RadPendlerTests/Fixtures
         buildPhase: resources
     dependencies:
-      - target: Pendel
+      - target: RadPendler
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: de.keese.radpendler.tests
@@ -61,13 +61,13 @@ targets:
         DEVELOPMENT_TEAM: "5PX3V6L522"
 
 schemes:
-  Pendel:
+  RadPendler:
     build:
       targets:
-        Pendel: all
-        PendelTests: [test]
+        RadPendler: all
+        RadPendlerTests: [test]
     run:
       config: Debug
     test:
       targets:
-        - PendelTests
+        - RadPendlerTests

@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pendel
+@testable import RadPendler
 
 final class CountdownTests: XCTestCase {
     func testWordingBySize() {

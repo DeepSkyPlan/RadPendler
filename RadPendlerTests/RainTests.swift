@@ -1,6 +1,6 @@
 import CoreLocation
 import XCTest
-@testable import Pendel
+@testable import RadPendler
 
 final class RainTests: XCTestCase {
     private let t0 = Date(timeIntervalSince1970: 1_790_003_700)   // 2026-09-21 15:15 UTC

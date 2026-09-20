@@ -1,6 +1,6 @@
 // Renders the app icon: bike above a train and a bus, on a green-to-teal gradient.
 // The title bar draws the same mark as `AppMark` in Views/Theme.swift — keep both in step.
-//   swift tools/make_icon.swift Pendel/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+//   swift tools/make_icon.swift RadPendler/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png
 import AppKit
 import ImageIO
 import UniformTypeIdentifiers

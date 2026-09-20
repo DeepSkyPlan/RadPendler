@@ -177,7 +177,7 @@ enum Polyline {
 }
 
 /// Turns mgate JSON into the app's model. Pure functions, tested against
-/// responses captured in PendelTests/Fixtures.
+/// responses captured in RadPendlerTests/Fixtures.
 enum HafasParser {
     static func serviceResult(_ data: Data) throws -> [String: Any] {
         guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
