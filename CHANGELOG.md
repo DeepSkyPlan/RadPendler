@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.0 (Build 8, TestFlight 2026-09-20)
+- Countdown in der Adressbox, rechte Hälfte: „LOS IN 4:07“ zur nächsten Bahn/Bus-Verbindung, unter 10 min sekundengenau, ab 5 min orange, nach der Abfahrt rot. Darunter Linie und Abfahrtszeit.
+- App heißt jetzt überall **RadPendler** (Homescreen und Titelzeile).
+
 ## 0.3.2 (Build 7, TestFlight 2026-09-20)
 - Radrouten wieder in vier Varianten: schnellst, kürzest, optimal, ruhigst — im Abschnitt „Fahrrad“ als Chips umschaltbar.
 - Gesamtdauer fett in Modusfarbe, Abfahrt → Ankunft daneben in Grau.

@@ -32,6 +32,14 @@ final class PlanModel {
         options.first { $0.id == selectedID } ?? recommended ?? options.first
     }
 
+    /// The trip the header counts down to: the recommended one if it uses a
+    /// train or bus, otherwise the next such trip that has not left yet.
+    var countdownOption: TripOption? {
+        let withTransit = options.filter { !$0.transitLegs.isEmpty && $0.passesWaypoints }
+        if let rec = recommended, !rec.transitLegs.isEmpty { return rec }
+        return withTransit.filter { $0.leave > .now }.min { $0.leave < $1.leave } ?? withTransit.first
+    }
+
     func options(for mode: TravelMode) -> [TripOption] {
         // Stable: U-Bahn/tram alternatives after the S-Bahn/regional connections.
         let own = options.filter { $0.mode == mode }

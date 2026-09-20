@@ -120,3 +120,49 @@ struct PillPicker<T: Hashable>: View {
         .background(Color.primary.opacity(0.06), in: Capsule(style: .continuous))
     }
 }
+
+/// "Los in 12:30" — how long until one has to leave to catch the train.
+/// Counts every second below ten minutes, then in whole minutes.
+struct CountdownView: View {
+    var option: TripOption
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let left = option.leave.timeIntervalSince(context.date)
+            VStack(alignment: .trailing, spacing: 1) {
+                Text(left < 0 ? "ABGEFAHREN" : "LOS IN")
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .foregroundStyle(.secondary)
+                Text(Self.text(left))
+                    .font(.system(size: left < 600 ? 26 : 22, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(Self.tint(left))
+                    .contentTransition(.numericText(countsDown: true))
+                HStack(spacing: 3) {
+                    if let leg = option.transitLegs.first { LineBadge(leg: leg) }
+                    Text("ab \(Fmt.time(option.leave))")
+                        .font(.system(size: 10, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .accessibilityLabel("Losgehen in \(Self.text(left))")
+        }
+    }
+
+    static func text(_ left: TimeInterval) -> String {
+        let s = Int(left.rounded())
+        guard s >= 0 else { return "jetzt" }
+        if s < 600 { return String(format: "%d:%02d", s / 60, s % 60) }
+        let m = s / 60
+        return m < 60 ? "\(m) min" : String(format: "%d:%02d h", m / 60, m % 60)
+    }
+
+    static func tint(_ left: TimeInterval) -> Color {
+        switch left {
+        case ..<0: .red
+        case ..<300: .orange
+        default: Theme.accent
+        }
+    }
+}
