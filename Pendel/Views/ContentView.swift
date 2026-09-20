@@ -1,15 +1,14 @@
 import SwiftUI
 
+/// One screen: where from and to, when, the map, and one card per travel mode.
 struct ContentView: View {
     @Environment(AppSettings.self) private var settings
     @State private var model = PlanModel()
-    /// `-tab map` opens on the map (screenshots, UI tests).
-    /// The map is the default; `-tab list` opens the list (screenshots, UI tests).
-    @State private var tab = UserDefaults.standard.string(forKey: "tab") == "list" ? Tab.list : Tab.map
     @State private var showSettings = false
     @State private var editing: PlaceField?
 
-    enum Tab: String, CaseIterable { case list, map }
+    /// Bike first, then bike+rail, car, and public transport.
+    private let order: [TravelMode] = [.bike, .bikeTransit, .car, .transit]
 
     enum PlaceField: Identifiable {
         case origin, destination
@@ -20,22 +19,41 @@ struct ContentView: View {
         NavigationStack {
             ZStack {
                 Theme.background
-                VStack(spacing: 14) {
-                    RouteHeader(origin: settings.origin, destination: settings.destination,
-                                startTime: $model.startTime, prepMinutes: settings.prepMinutes,
-                                presets: settings.departurePresets, countdown: model.countdownOption,
-                                onEdit: { editing = $0 },
-                                onSwap: { settings.swapDirection(); refresh() })
-                    PillPicker(items: [(Tab.list, "Liste", "list.bullet"), (Tab.map, "Karte", "map")],
-                               selection: $tab)
-                        .padding(.horizontal, Theme.gutter)
-
-                    switch tab {
-                    case .list: TripListView(model: model)
-                    case .map: MapTab(model: model)
+                ScrollView {
+                    VStack(spacing: 14) {
+                        RouteHeader(origin: settings.origin, destination: settings.destination,
+                                    when: $model.when, prepMinutes: settings.prepMinutes,
+                                    presets: settings.departurePresets, countdown: model.countdownOption,
+                                    alerts: settings.alertsOn ? settings.alertMinutes : [],
+                                    onEdit: { editing = $0 },
+                                    onSwap: { settings.swapDirection(); model.applyDefaultWhen(settings: settings); refresh() },
+                                    onWhenChange: refresh)
+                        if model.needsAddresses {
+                            ContentUnavailableView("Start und Ziel wählen", systemImage: "mappin.and.ellipse",
+                                                   description: Text("Oben auf die beiden Zeilen tippen. Die Adressen bleiben auf diesem Gerät."))
+                                .padding(.top, 40)
+                        } else {
+                            TripMapPanel(options: model.options, selectedID: model.selected?.id,
+                                         waypoints: settings.waypoints,
+                                         onSelect: { select($0) },
+                                         onCycleBike: cycleBike)
+                                .frame(height: 300)
+                                .clipShape(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: Theme.corner, style: .continuous)
+                                        .strokeBorder(Color.primary.opacity(0.06))
+                                }
+                                .padding(.horizontal, Theme.gutter)
+                            ForEach(order) { mode in
+                                ModeBlock(model: model, mode: mode)
+                                    .padding(.horizontal, Theme.gutter)
+                            }
+                            footer.padding(.horizontal, Theme.gutter + 4)
+                        }
                     }
+                    .padding(.vertical, 6)
                 }
-                .padding(.top, 6)
+                .refreshable { refresh() }
             }
             .navigationTitle("RadPendler")
             .navigationBarTitleDisplayMode(.inline)
@@ -55,15 +73,20 @@ struct ContentView: View {
                 }
             }
             .sheet(isPresented: $showSettings, onDismiss: refresh) { SettingsView() }
-            .sheet(item: $editing, onDismiss: refresh) { field in
+            .sheet(item: $editing, onDismiss: {
+                model.applyDefaultWhen(settings: settings)
+                refresh()
+            }) { field in
                 NavigationStack {
                     AddressSearchView(title: field == .origin ? "Start" : "Ziel") { place in
                         if field == .origin { settings.origin = place } else { settings.destination = place }
                     }
                 }
             }
-            .task { refresh() }
-            .onChange(of: model.startTime) { refresh() }
+            .task {
+                model.applyDefaultWhen(settings: settings)
+                refresh()
+            }
         }
         .tint(Theme.accent)
     }
@@ -71,20 +94,52 @@ struct ContentView: View {
     private func refresh() {
         model.refresh(settings: settings)
     }
+
+    private func select(_ id: TripOption.ID) {
+        guard let option = model.options.first(where: { $0.id == id }) else { return }
+        withAnimation(.snappy(duration: 0.2)) {
+            model.activeMode = option.mode
+            model.selection[option.mode] = id
+        }
+    }
+
+    /// Long press on a bike line: step to the next bike route.
+    private func cycleBike() {
+        let bikes = model.options(for: .bike)
+        guard bikes.count > 1 else { return }
+        let current = model.selected(for: .bike)?.id
+        let i = bikes.firstIndex { $0.id == current } ?? 0
+        select(bikes[(i + 1) % bikes.count].id)
+    }
+
+    @ViewBuilder private var footer: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if let rainFailure = model.result.rainFailure {
+                Label(rainFailure, systemImage: "cloud.slash").foregroundStyle(.orange)
+            }
+            if let last = model.lastRun {
+                Text("Stand \(Fmt.time(last)) · Rad \(Int(settings.bikeSpeedKmh)) km/h + \(settings.signalWaitSeconds) s/Ampel")
+                Text("Fahrplan VBB · Karten Apple · Radrouten BRouter/OSM · Regen DWD und Open-Meteo")
+            }
+        }
+        .font(.system(.caption2, design: .rounded))
+        .foregroundStyle(.secondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
 }
 
-/// The route bar: one card with a rail from start to destination, a swap
-/// button on the rail, and the departure times as chips underneath.
+/// From, to, the countdown, and the time chips.
 private struct RouteHeader: View {
     var origin: Place?
     var destination: Place?
-    @Binding var startTime: PlanModel.StartTime
+    @Binding var when: PlanModel.When
     var prepMinutes: Int
-    var presets: [Int]
-    /// The trip the countdown counts down to — the next one with a train or bus.
+    var presets: [DeparturePreset]
     var countdown: TripOption?
+    var alerts: [Int]
     var onEdit: (ContentView.PlaceField) -> Void
     var onSwap: () -> Void
+    var onWhenChange: () -> Void
 
     @State private var swapTurns = 0.0
 
@@ -109,19 +164,15 @@ private struct RouteHeader: View {
                         .background(Theme.accent.opacity(0.12), in: Circle())
                 }
                 .accessibilityLabel("Richtung tauschen")
-                if let countdown {
-                    Divider().frame(height: 46)
-                    CountdownView(option: countdown).frame(width: 104)
-                }
+                CountdownBox(option: countdown, alerts: alerts).frame(width: 108)
             }
-            DepartureChips(startTime: $startTime, presets: presets, prepMinutes: prepMinutes)
+            WhenPicker(when: $when, presets: presets, prepMinutes: prepMinutes, onChange: onWhenChange)
         }
-        .padding(16)
+        .padding(14)
         .card()
         .padding(.horizontal, Theme.gutter)
     }
 
-    /// Dot, dotted line, pin — the visual spine of the card.
     private var rail: some View {
         VStack(spacing: 3) {
             Circle().strokeBorder(Theme.accent, lineWidth: 3).frame(width: 11, height: 11)
@@ -138,9 +189,10 @@ private struct RouteHeader: View {
     private func field(_ place: Place?, placeholder: String, field: ContentView.PlaceField) -> some View {
         Button { onEdit(field) } label: {
             Text(place?.shortName ?? placeholder)
-                .display(.headline, weight: place == nil ? .medium : .semibold)
+                .display(.subheadline, weight: place == nil ? .medium : .semibold)
                 .foregroundStyle(place == nil ? .secondary : .primary)
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
         }
@@ -149,51 +201,49 @@ private struct RouteHeader: View {
     }
 }
 
-/// "Jetzt", the saved offsets and a free time, as a row of chips.
-struct DepartureChips: View {
-    @Binding var startTime: PlanModel.StartTime
-    var presets: [Int]
+/// Departure or arrival, plus the saved quick choices.
+private struct WhenPicker: View {
+    @Binding var when: PlanModel.When
+    var presets: [DeparturePreset]
     var prepMinutes: Int
+    var onChange: () -> Void
     @State private var showPicker = false
     @State private var custom = Date.now.addingTimeInterval(1800)
 
-    private var isCustom: Bool {
-        if case .at(let d) = startTime { return !presets.contains { matches($0, d) } }
-        return false
-    }
-
-    /// A preset stays selected for a minute, so the chip does not flicker.
-    private func matches(_ minutes: Int, _ date: Date) -> Bool {
-        abs(date.timeIntervalSinceNow - Double(minutes) * 60) < 60
-    }
-
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                chip("Jetzt", active: startTime == .now) { startTime = .now }
-                ForEach(presets, id: \.self) { m in
-                    let active: Bool = if case .at(let d) = startTime { matches(m, d) } else { false }
-                    chip(AppSettings.offsetTitle(m).replacingOccurrences(of: "in ", with: "+"), active: active) {
-                        startTime = .at(.now.addingTimeInterval(Double(m) * 60))
-                    }
-                }
-                chip(customLabel, symbol: "calendar", active: isCustom) { showPicker = true }
-                Divider().frame(height: 16)
-                Chip(text: "\(prepMinutes) min Rüstzeit", symbol: "figure.walk.departure")
+        VStack(alignment: .leading, spacing: 8) {
+            Picker("", selection: Binding(get: { when.isArrival }, set: { toArrival($0) })) {
+                Text("Abfahrt").tag(false)
+                Text("Ankunft").tag(true)
             }
-            .padding(.vertical, 1)
+            .pickerStyle(.segmented)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    if !when.isArrival {
+                        chip("Jetzt", active: when == .departNow) { set(.departNow) }
+                    }
+                    ForEach(presets, id: \.self) { p in
+                        chip(p.title, active: matches(p)) { set(stamp(p.date())) }
+                    }
+                    chip(customLabel, symbol: "calendar", active: isCustom) {
+                        custom = when.date ?? .now.addingTimeInterval(1800)
+                        showPicker = true
+                    }
+                    Chip(text: "\(prepMinutes) min Rüstzeit", symbol: "figure.walk.departure")
+                }
+                .padding(.horizontal, 2)
+            }
         }
-        .scrollClipDisabled()
         .sheet(isPresented: $showPicker) {
             NavigationStack {
-                DatePicker("Startzeit", selection: $custom)
+                DatePicker(when.isArrival ? "Ankunft" : "Abfahrt", selection: $custom)
                     .datePickerStyle(.graphical)
                     .padding()
-                    .navigationTitle("Wann losgehen?")
+                    .navigationTitle(when.isArrival ? "Wann da sein?" : "Wann losgehen?")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
-                            Button("Übernehmen") { startTime = .at(custom); showPicker = false }
+                            Button("Übernehmen") { set(stamp(custom)); showPicker = false }
                         }
                         ToolbarItem(placement: .cancellationAction) {
                             Button("Abbrechen") { showPicker = false }
@@ -204,8 +254,32 @@ struct DepartureChips: View {
         }
     }
 
+    private func stamp(_ date: Date) -> PlanModel.When {
+        when.isArrival ? .arriveAt(date) : .departAt(date)
+    }
+
+    private func set(_ new: PlanModel.When) {
+        when = new
+        onChange()
+    }
+
+    private func toArrival(_ arrival: Bool) {
+        let base = when.date ?? .now.addingTimeInterval(1800)
+        set(arrival ? .arriveAt(base) : .departAt(base))
+    }
+
+    private func matches(_ p: DeparturePreset) -> Bool {
+        guard let d = when.date else { return false }
+        return abs(d.timeIntervalSince(p.date())) < 60
+    }
+
+    private var isCustom: Bool {
+        guard let d = when.date else { return false }
+        return !presets.contains { abs(d.timeIntervalSince($0.date())) < 60 }
+    }
+
     private var customLabel: String {
-        if case .at(let d) = startTime, isCustom { return Fmt.time(d) }
+        if let d = when.date, isCustom { return Fmt.time(d) }
         return "Zeit"
     }
 
@@ -223,88 +297,5 @@ struct DepartureChips: View {
             }
         }
         .buttonStyle(.plain)
-    }
-}
-
-private struct MapTab: View {
-    @Environment(AppSettings.self) private var settings
-    var model: PlanModel
-
-
-    var body: some View {
-        if model.needsAddresses {
-            ContentUnavailableView("Start und Ziel wählen", systemImage: "mappin.and.ellipse",
-                                   description: Text("Oben auf die beiden Zeilen tippen. Die Adressen bleiben auf diesem Gerät."))
-            Spacer()
-        } else {
-            map
-        }
-    }
-
-    private var map: some View {
-        VStack(spacing: 10) {
-            TripMapPanel(options: model.options, selectedID: model.selected?.id,
-                         waypoints: settings.waypoints) { model.selectedID = $0 }
-                .clipShape(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Theme.corner, style: .continuous)
-                        .strokeBorder(Color.primary.opacity(0.06))
-                }
-                .padding(.horizontal, Theme.gutter)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(model.options) { option in
-                        Button { withAnimation(.snappy) { model.selectedID = option.id } } label: {
-                            OptionChip(option: option, selected: option.id == model.selected?.id,
-                                       recommended: option.id == model.recommended?.id)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, Theme.gutter)
-                .padding(.bottom, 6)
-            }
-        }
-    }
-}
-
-private struct OptionChip: View {
-    var option: TripOption
-    var selected: Bool
-    var recommended: Bool
-
-    /// Distance, lit junctions on bike routes, and changes of train.
-    private var facts: String {
-        var parts = [Fmt.km(option.totalDistance)]
-        if let s = option.bikeRoute?.stats { parts.append("\(s.signals) Ampeln") }
-        if let t = option.transferText { parts.append(t) }
-        return parts.joined(separator: " · ")
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                LegChainView(option: option, compact: true)
-                if recommended { Image(systemName: "star.fill").font(.caption2).foregroundStyle(.yellow) }
-                if let rain = option.rain, rain.level > .dry {
-                    Image(systemName: rain.level.symbol).font(.caption2).foregroundStyle(rain.level.color)
-                }
-            }
-            Text("\(Fmt.time(option.leave))–\(Fmt.time(option.arrival))")
-                .display(.subheadline).monospacedDigit()
-            Text("\(Fmt.duration(option.duration)) · \(facts)")
-                .font(.system(.caption2, design: .rounded))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-        }
-        .padding(10)
-        .frame(minWidth: 150, alignment: .leading)
-        .background(selected ? option.mode.color.opacity(0.14) : Color(.secondarySystemGroupedBackground),
-                    in: RoundedRectangle(cornerRadius: Theme.innerCorner, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: Theme.innerCorner, style: .continuous)
-                .strokeBorder(selected ? option.mode.color.opacity(0.7) : Color.primary.opacity(0.06),
-                              lineWidth: selected ? 1.5 : 1)
-        }
     }
 }

@@ -94,7 +94,13 @@ struct LegChainView: View {
 
     var body: some View {
         HStack(spacing: compact ? 3 : 5) {
-            ForEach(Array(merged.enumerated()), id: \.offset) { _, leg in
+            ForEach(Array(merged.enumerated()), id: \.offset) { i, leg in
+                if i > 0, leg.isTransit, merged[i - 1].isTransit {
+                    Image(systemName: "arrow.triangle.swap")
+                        .font(.system(size: compact ? 8 : 10, weight: .bold))
+                        .foregroundStyle(.red)
+                        .accessibilityLabel("umsteigen")
+                }
                 HStack(spacing: 2) {
                     if leg.isTransit {
                         LineBadge(leg: leg)

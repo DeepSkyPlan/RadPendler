@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0 (Build 9, TestFlight 2026-09-20)
+- Eine Seite statt Liste/Karte: Kopfzeile, Karte, darunter je ein Block für Fahrrad, Rad + Bahn, Auto, Bahn & Bus — jeder Block zeigt eine Karte, die Auswahl läuft über Chips (Radrouten nach Namen, Verbindungen nach Abfahrt und Umstiegen).
+- Ankunftszeit als Suchziel: Umschalter Abfahrt/Ankunft; Fahrten zur Arbeitsadresse starten automatisch mit „Ankunft um 9 Uhr“, Fahrten nach Hause mit „Abfahrt jetzt“.
+- Countdown läuft nur für Bahn/Bus — oder für jede Fahrt, wenn eine Ankunftszeit gesetzt ist; weiß auf Rot wenn aktiv, grau wenn nicht, mit Warntönen bei 10/5/1 min (in den Einstellungen).
+- Puffer vor Abfahrt und Ankunft in den Einstellungen, zählen nicht zur Fahrzeit.
+- Startzeiten als Uhrzeiten möglich („um 8 Uhr“, heute oder morgen).
+- Langes Drücken auf eine Radroute in der Karte schaltet zur nächsten Radroute.
+- Umstiege rot markiert, Ampelzahl mit Ampel-Symbol, Gesamtdauer überall fett, Fahrzeit daneben grau.
+
 ## 0.4.0 (Build 8, TestFlight 2026-09-20)
 - Countdown in der Adressbox, rechte Hälfte: „LOS IN 4:07“ zur nächsten Bahn/Bus-Verbindung, unter 10 min sekundengenau, ab 5 min orange, nach der Abfahrt rot. Darunter Linie und Abfahrtszeit.
 - App heißt jetzt überall **RadPendler** (Homescreen und Titelzeile).

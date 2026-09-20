@@ -67,7 +67,7 @@ struct HafasClient {
 
     /// Connections departing at or after `date`. With `bikeCarriage`, HAFAS only
     /// returns trains that take bikes; the parser still checks every leg.
-    func journeys(from: Location, to: Location, departing date: Date,
+    func journeys(from: Location, to: Location, departing date: Date, arriveBy: Bool = false,
                   bikeCarriage: Bool, productMask: Int = TransitProduct.allMask,
                   results: Int = 4) async throws -> [[Leg]] {
         var filters: [[String: Any]] = [["type": "PROD", "mode": "INC", "value": String(productMask)]]
@@ -75,7 +75,7 @@ struct HafasClient {
         let (day, time) = HafasTime.format(date)
         let req: [String: Any] = [
             "depLocL": [from.json], "arrLocL": [to.json],
-            "outDate": day, "outTime": time, "outFrwd": true,
+            "outDate": day, "outTime": time, "outFrwd": !arriveBy,
             "numF": results, "getPolyline": true, "getPasslist": false,
             "jnyFltrL": filters,
         ]
