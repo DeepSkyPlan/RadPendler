@@ -2,15 +2,18 @@
 
 Multimodaler Pendel-Planer für iOS: Musterstraße 1 (Büro) ↔ Beispielweg 2 (Musterort)
 mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln, Regen und Countdown.
-Verzeichnis `~/_claude.code/Pendel`, git mit Remote `DeepSkyPlan/RadPendler` (privat).
+Verzeichnis `~/_claude.code/RadPendler`, git mit Remote `DeepSkyPlan/RadPendler` (privat).
 
 ## Bauen, testen, ausliefern
 
 ```bash
-xcodegen generate                                # .xcodeproj ist nicht committet
-xcodebuild -project Pendel.xcodeproj -scheme Pendel \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath build test   # 41 Tests
+./dev test      # generiert das .xcodeproj bei Bedarf, dann 41 Tests im Simulator
+./dev open      # Xcode mit demselben DerivedData wie die Kommandozeile
+./dev generate  # nur neu generieren, nach jeder neuen Quelldatei
 ```
+
+Das `.xcodeproj` ist generiert und nicht committet: Änderungen im Projektnavigator
+überlebt kein `generate`. Struktur gehört in `project.yml`.
 
 TestFlight (nur auf Ansage des Nutzers, siehe Memory `testflight-only-on-request`):
 Buildnummer in `project.yml` hochzählen → `xcodegen generate` → `clean archive` →

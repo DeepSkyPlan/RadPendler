@@ -1,6 +1,6 @@
 import CoreLocation
 import XCTest
-@testable import Pendel
+@testable import RadPendler
 
 final class PlannerTests: XCTestCase {
     private let t0 = Date(timeIntervalSince1970: 1_790_003_700)   // Mon 2026-09-21 17:15 CEST

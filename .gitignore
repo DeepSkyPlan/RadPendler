@@ -4,3 +4,4 @@ DerivedData/
 .DS_Store
 __pycache__/
 .claude/settings.local.json
+shots/

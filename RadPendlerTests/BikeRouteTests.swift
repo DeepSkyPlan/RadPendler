@@ -1,6 +1,6 @@
 import CoreLocation
 import XCTest
-@testable import Pendel
+@testable import RadPendler
 
 final class BikeRouteTests: XCTestCase {
     /// Metres → coordinates around the office (x east, y north).

@@ -1,6 +1,6 @@
 import UserNotifications
 import XCTest
-@testable import Pendel
+@testable import RadPendler
 
 /// The warnings that have to reach the phone while the app is closed: the right
 /// number of them, at the right moments, saying the right thing.

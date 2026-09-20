@@ -23,7 +23,7 @@ struct BRouterClient {
             .init(name: "format", value: "geojson"),
         ]
         var request = URLRequest(url: c.url!, timeoutInterval: 20)
-        request.setValue("Pendel iOS (private commute planner)", forHTTPHeaderField: "User-Agent")
+        request.setValue("RadPendler iOS (private commute planner)", forHTTPHeaderField: "User-Agent")
         let (data, response) = try await session.data(for: request)
         if let http = response as? HTTPURLResponse, http.statusCode != 200 {
             throw BRouterError.server(String(data: data.prefix(200), encoding: .utf8) ?? "HTTP \(http.statusCode)")

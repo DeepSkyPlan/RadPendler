@@ -134,7 +134,7 @@ actor RoadDataStore {
         """
         var request = URLRequest(url: URL(string: "https://overpass-api.de/api/interpreter")!, timeoutInterval: 90)
         request.httpMethod = "POST"
-        request.setValue("Pendel iOS (private commute planner)", forHTTPHeaderField: "User-Agent")
+        request.setValue("RadPendler iOS (private commute planner)", forHTTPHeaderField: "User-Agent")
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         var form = URLComponents()
         form.queryItems = [.init(name: "data", value: query)]

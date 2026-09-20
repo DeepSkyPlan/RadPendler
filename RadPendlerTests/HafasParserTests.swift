@@ -1,6 +1,6 @@
 import CoreLocation
 import XCTest
-@testable import Pendel
+@testable import RadPendler
 
 final class HafasParserTests: XCTestCase {
     private func fixture(_ name: String) throws -> [String: Any] {

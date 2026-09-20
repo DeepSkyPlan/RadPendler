@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct PendelApp: App {
+struct RadPendlerApp: App {
     @State private var settings = AppSettings()
 
     var body: some Scene {
