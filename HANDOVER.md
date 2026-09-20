@@ -1,4 +1,4 @@
-# RadPendler — Übergabe (Stand 20.09.2026, 0.5.0 / Build 9)
+# RadPendler — Übergabe (Stand 20.09.2026, 0.6.0 / Build 11)
 
 Multimodaler Pendel-Planer für iOS: Musterstraße 1 (Büro) ↔ Beispielweg 2 (Musterort)
 mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln, Regen und Countdown.
@@ -9,7 +9,7 @@ Verzeichnis `~/_claude.code/Pendel`, lokales git, **kein Remote**.
 ```bash
 xcodegen generate                                # .xcodeproj ist nicht committet
 xcodebuild -project Pendel.xcodeproj -scheme Pendel \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath build test   # 44 Tests
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath build test   # 41 Tests
 ```
 
 TestFlight (nur auf Ansage des Nutzers, siehe Memory `testflight-only-on-request`):
@@ -37,7 +37,8 @@ xcrun simctl spawn booted defaults write de.keese.radpendler origin -data <hex-j
   `BikeTransitComposer`), `Alarm`.
 - `App/PlanModel.swift` — Zustand: `when` (departNow / departAt / arriveAt), Auswahl je Modus,
   `countdownOption`, `applyDefaultWhen`.
-- `Views/` — `ContentView` (eine Seite: Kopfzeile, Karte, Blöcke), `ModeBlock` (+ `TripCard`),
+- `Views/` — `ContentView` (eine Seite: Kopfzeile, Karte, Boxenreihe, Fahrtzeile), `ModeStrip`
+  (+ `SelectedTripBar`), `HelpView` (Anleitung aus dem Burger-Menü),
   `RouteMapView` (MKMapView-Wrapper mit Radar, Schildern, Ampelpunkten, Long-Press),
   `TripDetailView` (Zeitstrahl), `SettingsView`, `Theme` (Design-Bausteine, `CountdownBox`,
   `TrafficLightIcon`), `Style` (Farben, `LegChainView`, `Fmt`).
@@ -75,8 +76,9 @@ xcrun simctl spawn booted defaults write de.keese.radpendler origin -data <hex-j
 
 ## Offen / Ideen
 
-- Punkt „4.“ aus seiner Liste vom 20.09. blieb unausgesprochen — nachfragen.
-- Warnton läuft nur bei offener App; echte Mitteilungen im Hintergrund fehlen.
+- Mitteilungen laufen als `UNTimeIntervalNotificationTrigger` und werden bei jeder Planänderung
+  neu gesetzt (`Alarm.schedule`, Schlüssel `ContentView.alarmKey`). Im Hintergrund plant die App
+  nichts nach — fährt der Zug später ab, als beim letzten Öffnen bekannt war, warnt sie zu früh.
 - Kein GitHub-Remote; Anlegen wurde angeboten, aber nie beauftragt.
 - Externe TestFlight-Tester bräuchten Beta-Prüfung und Datenschutz-URL.
 - Radar visuell nur bei trockenem Wetter geprüft — Regenflächen nie auf der Karte gesehen.

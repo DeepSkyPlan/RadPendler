@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.6.0 (Build 10, unveröffentlicht)
+## 0.6.0 (Build 11, TestFlight 2026-09-20)
+- **Mitteilungen auch bei geschlossener App**: die Warnungen vor dem Losgehen kommen jetzt als echte iOS-Mitteilung („In 10 min los“ … „Jetzt los“) mit Verkehrsmittel, Zeiten und Zug; bei offener App zusätzlich der Ton wie bisher. Die App fragt einmal nach der Erlaubnis; ist sie verweigert, steht das in den Einstellungen mit einem Weg dorthin.
+- Der Countdown zählt bis zum **Losgehen** (Abfahrt minus Rüstzeit) statt bis zur Abfahrt — dieselbe Zeit, die der „los …“-Chip nennt; darunter weiter Linie und Abfahrtszeit. „ABGEFAHREN“ erscheint erst, wenn die Bahn wirklich weg ist.
 - Statt vier Blöcken eine Reihe aus vier Boxen: Fahrrad, Rad + Bahn, Auto, Bahn & Bus — je Box Fahrzeit, worum es sich handelt (Radvariante bzw. Abfahrt) und Punkte für die Zahl der Möglichkeiten. Erster Tipp wählt, jeder weitere schaltet zur nächsten.
 - Die gewählte Fahrt steht als eine Zeile darunter: Abfahrt → Ankunft, Abschnitte, km, Ampeln, „los …“; Antippen öffnet den Zeitstrahl.
 - Gelber Stern markiert die Empfehlung.
