@@ -156,10 +156,16 @@ struct BikeRouteStats: Equatable {
     var crossings: [String]
     /// Metres within 20 m of a large road — on it or on a bike path beside it.
     var mainRoadMeters: Double
+    /// Where the lit junctions are, for drawing them on the map.
+    var signalPoints: [CLLocationCoordinate2D] = []
 
     /// Metre-equivalent of noise and stress: a crossing is as bad as 300 m
     /// beside a main road, a traffic light as 100 m.
     var disturbance: Double { mainRoadMeters + 300 * Double(crossings.count) + 100 * Double(signals) }
+
+    static func == (a: BikeRouteStats, b: BikeRouteStats) -> Bool {
+        a.signals == b.signals && a.crossings == b.crossings && a.mainRoadMeters == b.mainRoadMeters
+    }
 }
 
 enum RouteAnalyzer {
@@ -239,7 +245,7 @@ enum RouteAnalyzer {
 
         // Signalised junctions.
         let routeGrid = SegmentGrid(zip(r, r.dropFirst()).map { ($0, $1) }, cell: 100)
-        var signalPositions: [Double] = []
+        var signalHits: [(s: Double, c: CLLocationCoordinate2D)] = []
         for c in data.signals {
             let p = flat.point(c)
             guard inBox(p) else { continue }
@@ -248,14 +254,17 @@ enum RouteAnalyzer {
                 let d = pointSegment(p, r[i], r[i + 1])
                 if d < best.d { best = (d, cum[i]) }
             }
-            if best.d < 15 { signalPositions.append(best.s) }
+            if best.d < 15 { signalHits.append((best.s, c)) }
         }
-        var junctions = 0, last = -Double.infinity
-        for s in signalPositions.sorted() {
-            if s - last > 60 { junctions += 1 }
-            last = s
+        // One junction can carry several signal nodes: keep the first of each cluster.
+        var junctions: [CLLocationCoordinate2D] = []
+        var last = -Double.infinity
+        for hit in signalHits.sorted(by: { $0.s < $1.s }) {
+            if hit.s - last > 60 { junctions.append(hit.c) }
+            last = hit.s
         }
-        return BikeRouteStats(signals: junctions, crossings: crossings.map(\.name), mainRoadMeters: main)
+        return BikeRouteStats(signals: junctions.count, crossings: crossings.map(\.name),
+                              mainRoadMeters: main, signalPoints: junctions)
     }
 
     static func pointSegment(_ p: SIMD2<Double>, _ a: SIMD2<Double>, _ b: SIMD2<Double>) -> Double {

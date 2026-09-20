@@ -57,13 +57,23 @@ enum TransitProduct: Int, CaseIterable {
 
 /// Which of the bike route variants an option is; one route can be several.
 enum BikeVariant: String, CaseIterable, Comparable {
-    case fastest, balanced, quiet
+    case fastest, shortest, balanced, quiet
 
     var title: String {
         switch self {
         case .fastest: "schnellst"
+        case .shortest: "kürzest"
         case .balanced: "optimal"
         case .quiet: "ruhigst"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .fastest: "hare"
+        case .shortest: "ruler"
+        case .balanced: "checkmark.seal"
+        case .quiet: "leaf"
         }
     }
 

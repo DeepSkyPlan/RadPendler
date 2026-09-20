@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.2 (Build 7, TestFlight 2026-09-20)
+- Radrouten wieder in vier Varianten: schnellst, kürzest, optimal, ruhigst — im Abschnitt „Fahrrad“ als Chips umschaltbar.
+- Gesamtdauer fett in Modusfarbe, Abfahrt → Ankunft daneben in Grau.
+- Vermutete Ampelkreuzungen der gewählten Radroute als gelbe Punkte auf der Karte.
+
 ## 0.3.1 (Build 6, TestFlight 2026-09-20)
 - Farben: Rad grün, Auto rot, Bus orange, alles auf Schienen blau (S hell, U dunkel, RE und Tram dazwischen), Fähre türkis.
 - Neue Kopfzeile: Start und Ziel an einer gepunkteten Schiene, Tauschknopf dreht sich, Startzeiten als Chips (Jetzt, +15 min, +1 h, +8 h, +18 h, freie Zeit).
