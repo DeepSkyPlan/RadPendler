@@ -20,6 +20,7 @@ struct RouteMapView: UIViewRepresentable {
         map.showsCompass = true
         map.register(MKMarkerAnnotationView.self, forAnnotationViewWithReuseIdentifier: "pin")
         map.register(OptionLabelView.self, forAnnotationViewWithReuseIdentifier: "label")
+        map.register(SignalDotView.self, forAnnotationViewWithReuseIdentifier: "signal")
         return map
     }
 
@@ -40,6 +41,25 @@ struct RouteMapView: UIViewRepresentable {
         var tint: UIColor = .systemGreen
         var glyph: String = "mappin"
         var isRider = false
+    }
+
+    /// A junction with traffic lights on the chosen bike route.
+    final class SignalDot: MKPointAnnotation {}
+
+    final class SignalDotView: MKAnnotationView {
+        override init(annotation: MKAnnotation?, reuseIdentifier: String?) {
+            super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
+            frame = CGRect(x: 0, y: 0, width: 9, height: 9)
+            backgroundColor = UIColor(red: 0.98, green: 0.71, blue: 0.11, alpha: 1)
+            layer.cornerRadius = 4.5
+            layer.borderWidth = 1.5
+            layer.borderColor = UIColor.white.cgColor
+            displayPriority = .defaultLow
+            collisionMode = .circle
+            canShowCallout = false
+        }
+
+        required init?(coder: NSCoder) { fatalError() }
     }
 
     /// Duration and transfers of one option, placed on its route.
@@ -123,7 +143,7 @@ struct RouteMapView: UIViewRepresentable {
         private func drawRoutes(_ map: MKMapView, _ view: RouteMapView) {
             map.removeOverlays(map.overlays.filter { $0 is LegLine })
             map.removeAnnotations(map.annotations.compactMap { $0 as? Pin }.filter { !$0.isRider })
-            map.removeAnnotations(map.annotations.filter { $0 is OptionLabel })
+            map.removeAnnotations(map.annotations.filter { $0 is OptionLabel || $0 is SignalDot })
             let selected = view.options.first { $0.id == view.selectedID }
             // Unselected options faint underneath, the selected one on top.
             let ordered = view.options.filter { $0.id != selected?.id } + (selected.map { [$0] } ?? [])
@@ -137,6 +157,12 @@ struct RouteMapView: UIViewRepresentable {
                 }
             }
             addLabels(map, view.options, selected: selected?.id)
+            // Lit junctions of the chosen bike route — where the waiting happens.
+            if let points = selected?.bikeRoute?.stats?.signalPoints {
+                map.addAnnotations(points.map { c in
+                    let d = SignalDot(); d.coordinate = c; d.title = "Ampel"; return d
+                })
+            }
             if let selected { addLegBadges(map, selected) }
             guard let trip = selected ?? view.options.first, let first = trip.legs.first, let last = trip.legs.last else { return }
             var pins: [Pin] = []
@@ -309,6 +335,9 @@ struct RouteMapView: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            if annotation is SignalDot {
+                return mapView.dequeueReusableAnnotationView(withIdentifier: "signal", for: annotation)
+            }
             if let label = annotation as? OptionLabel {
                 let v = mapView.dequeueReusableAnnotationView(withIdentifier: "label", for: label) as! OptionLabelView
                 v.configure(label)

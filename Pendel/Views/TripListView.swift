@@ -3,6 +3,8 @@ import SwiftUI
 struct TripListView: View {
     var model: PlanModel
     @Environment(AppSettings.self) private var settings
+    /// Which of the bike routes the Fahrrad section shows.
+    @State private var bikeVariant: BikeVariant = .balanced
 
     /// Bike+rail first: it is the default whenever the weather is doubtful.
     private let order: [TravelMode] = [.bikeTransit, .bike, .transit, .car]
@@ -40,9 +42,11 @@ struct TripListView: View {
                     }
                 }
                 ForEach(order) { mode in
-                    let options = model.options(for: mode)
+                    let all = model.options(for: mode)
+                    let options = mode == .bike ? bikeOptions(all) : all
                     section(mode.title, symbol: mode.symbol, tint: mode.color) {
                         VStack(spacing: 10) {
+                            if mode == .bike, all.count > 1 { variantPicker(all) }
                             ForEach(options) { option in
                                 NavigationLink { TripDetailView(option: option) } label: {
                                     TripCard(option: option, highlighted: false).card()
@@ -66,6 +70,42 @@ struct TripListView: View {
             .padding(.horizontal, Theme.gutter)
             .padding(.bottom, 24)
         }
+    }
+
+    /// Only the chosen variant, or the closest one the search found.
+    private func bikeOptions(_ all: [TripOption]) -> [TripOption] {
+        guard all.count > 1 else { return all }
+        let match = all.first { $0.bikeRoute?.variants.contains(bikeVariant) ?? false }
+        return [match ?? all[0]]
+    }
+
+    /// Chips for schnellst / kürzest / optimal / ruhigst — one route can carry
+    /// several of them, then the chips simply point at the same card.
+    private func variantPicker(_ all: [TripOption]) -> some View {
+        let available = BikeVariant.allCases.filter { v in
+            all.contains { $0.bikeRoute?.variants.contains(v) ?? false }
+        }
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(available, id: \.self) { v in
+                    let active = v == bikeVariant
+                    Button { withAnimation(.snappy(duration: 0.2)) { bikeVariant = v } } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: v.symbol).font(.caption2)
+                            Text(v.title).font(.system(.caption, design: .rounded, weight: .semibold))
+                        }
+                        .foregroundStyle(active ? .white : TravelMode.bike.color)
+                        .padding(.horizontal, 11).padding(.vertical, 6)
+                        .background {
+                            if active { Capsule().fill(Theme.gradient(TravelMode.bike.color)) }
+                            else { Capsule().fill(TravelMode.bike.color.opacity(0.12)) }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .scrollClipDisabled()
     }
 
     private func section<Content: View>(_ title: String, symbol: String, tint: Color,
@@ -114,14 +154,16 @@ struct TripCard: View {
         HStack(alignment: .top, spacing: 12) {
             ModeBubble(symbol: option.mode.symbol, color: option.mode.color, size: highlighted ? 44 : 38)
             VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(Fmt.time(option.leave))
-                        .display(highlighted ? .title2 : .title3, weight: .bold).monospacedDigit()
-                    Image(systemName: "arrow.right").font(.caption).foregroundStyle(.secondary)
-                    Text(Fmt.time(option.arrival))
-                        .display(highlighted ? .title2 : .title3, weight: .bold).monospacedDigit()
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text("\(Fmt.time(option.leave)) → \(Fmt.time(option.arrival))")
+                        .display(highlighted ? .title3 : .subheadline, weight: .regular)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
                     Spacer(minLength: 0)
-                    Chip(text: Fmt.duration(option.duration), tint: option.mode.color, strong: true)
+                    Text(Fmt.duration(option.duration))
+                        .display(highlighted ? .title2 : .title3, weight: .bold)
+                        .monospacedDigit()
+                        .foregroundStyle(option.mode.color)
                 }
                 LegChainView(option: option)
                 facts

@@ -405,8 +405,10 @@ struct BikeCandidate {
             quiet = all.firstIndex { $0.source == "safety" } ?? fastest
             balanced = all.firstIndex { $0.source == "trekking" } ?? fastest
         }
+        let shortest = all.indices.min { all[$0].route.distance < all[$1].route.distance }!
         var roles: [Int: [BikeVariant]] = [:]
         roles[fastest, default: []].append(.fastest)
+        roles[shortest, default: []].append(.shortest)
         roles[balanced, default: []].append(.balanced)
         roles[quiet, default: []].append(.quiet)
         return roles.sorted { $0.value.min()! < $1.value.min()! }.map { (all[$0.key], $0.value.sorted()) }
