@@ -4,6 +4,8 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(AppSettings.self) private var settings
     @Environment(\.dismiss) private var dismiss
+    /// Whether iOS lets the app post the countdown warnings at all.
+    @State private var notifications: Alarm.Permission = .unknown
 
     var body: some View {
         @Bindable var settings = settings
@@ -104,7 +106,7 @@ struct SettingsView: View {
                     Text("Der Abfahrtspuffer verschiebt das Losgehen nach vorn, der Ankunftspuffer lässt die Verbindung früher ankommen. Beide zählen nicht zur angezeigten Fahrzeit.")
                 }
                 Section {
-                    Toggle("Warnton vor der Abfahrt", isOn: $settings.alertsOn)
+                    Toggle("Warnung vor dem Losgehen", isOn: $settings.alertsOn)
                     if settings.alertsOn {
                         ForEach([15, 10, 5, 3, 1], id: \.self) { m in
                             Toggle("\(m) min vorher", isOn: Binding(
@@ -114,11 +116,22 @@ struct SettingsView: View {
                                     else { settings.alertMinutes.removeAll { $0 == m } }
                                 }))
                         }
+                        if notifications == .denied {
+                            Button {
+                                if let url = URL(string: UIApplication.openSettingsURLString) {
+                                    UIApplication.shared.open(url)
+                                }
+                            } label: {
+                                Label("Mitteilungen sind aus — in den iOS-Einstellungen erlauben",
+                                      systemImage: "bell.slash")
+                                    .foregroundStyle(.orange)
+                            }
+                        }
                     }
                 } header: {
                     Text("Countdown")
                 } footer: {
-                    Text("Der Countdown oben rechts zählt bis zum Losgehen für Bahn und Bus — und bei „Ankunft um …“ für jede Fahrt. Der Ton kommt nur, solange die App offen ist.")
+                    Text("Der Countdown oben rechts zählt bis zum Losgehen für Bahn und Bus — und bei „Ankunft um …“ für jede Fahrt. Warnungen kommen als Mitteilung, auch wenn die App zu ist; bei offener App zusätzlich als Ton.")
                 }
                 Section {
                     ForEach(settings.waypoints, id: \.self) { p in
@@ -161,6 +174,13 @@ struct SettingsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } }
+            }
+            // Asking iOS every time the sheet opens, so the hint disappears as
+            // soon as the permission is granted somewhere else.
+            .task { notifications = await Alarm.permission() }
+            .onChange(of: settings.alertsOn) { _, on in
+                guard on else { return }
+                Task { notifications = await Alarm.requestPermission() ? .granted : .denied }
             }
         }
     }

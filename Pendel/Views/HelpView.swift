@@ -41,7 +41,8 @@ struct HelpView: View {
                     ])
                     section("Countdown", "alarm", [
                         "Der rote Kasten erscheint nur, wenn es eine feste Abfahrt gibt: bei Bahn und Bus, oder wenn eine Ankunftszeit gesetzt ist.",
-                        "Er zählt bis zum Losgehen, unter 10 Minuten sekundengenau. Die Warntöne (Einstellungen → Countdown) kommen nur, solange die App offen ist.",
+                        "Er zählt bis zum Losgehen — Abfahrt minus Rüstzeit —, unter 10 Minuten sekundengenau.",
+                        "Die Warnungen (Einstellungen → Countdown) kommen als Mitteilung aufs Sperrbild, auch wenn die App zu ist; bei offener App zusätzlich als Ton.",
                     ])
                     section("Aktualisieren", "arrow.down", [
                         "Seite nach unten ziehen und loslassen. Einen Knopf dafür gibt es nicht mehr.",

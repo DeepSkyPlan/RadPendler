@@ -70,6 +70,12 @@ struct ContentView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) { menu }
             }
+            // The warnings have to survive a locked screen, so they are real
+            // notifications, rescheduled whenever the trip to watch changes.
+            .task(id: alarmKey) {
+                await Alarm.schedule(for: model.countdownOption,
+                                     alerts: settings.alertsOn ? settings.alertMinutes : [])
+            }
             .sheet(isPresented: $showSettings, onDismiss: refresh) { SettingsView() }
             .sheet(isPresented: $showHelp) { HelpView() }
             .sheet(item: $editing, onDismiss: {
@@ -105,6 +111,16 @@ struct ContentView: View {
                 .font(.system(size: 15, weight: .semibold))
         }
         .accessibilityLabel("Menü")
+    }
+
+    /// Everything the scheduled warnings depend on: which trip, when it wants
+    /// one to get going, and which minutes are armed.
+    private var alarmKey: String {
+        let option = model.countdownOption
+        return [option?.id.uuidString ?? "-",
+                String(Int(option?.getReady.timeIntervalSince1970 ?? 0)),
+                settings.alertsOn ? settings.alertMinutes.map(String.init).joined(separator: ",") : "off"]
+            .joined(separator: "|")
     }
 
     static var version: String {

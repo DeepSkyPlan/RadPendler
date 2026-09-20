@@ -169,9 +169,12 @@ struct TrafficLightIcon: View {
 
 /// The countdown to leaving: white on red while it is the thing to watch,
 /// grey when no departure is fixed. Beeps at the configured minutes.
+///
+/// It counts to **getting ready**, not to the departure — the same moment the
+/// "los …" chip names, because that is the one you can still act on.
 struct CountdownBox: View {
     var option: TripOption?
-    /// Minutes before departure that get a beep; empty turns the alarm off.
+    /// Minutes before leaving that get a beep; empty turns the alarm off.
     var alerts: [Int] = []
 
     @State private var fired: Set<Int> = []
@@ -179,15 +182,16 @@ struct CountdownBox: View {
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
-            let left = option.map { $0.leave.timeIntervalSince(context.date) }
-            content(left)
+            let left = option.map { $0.getReady.timeIntervalSince(context.date) }
+            let gone = option.map { context.date > $0.leave } ?? false
+            content(left, gone: gone)
                 .onChange(of: Int((left ?? 0) / 60)) { _, _ in beep(left) }
         }
     }
 
-    @ViewBuilder private func content(_ left: TimeInterval?) -> some View {
+    @ViewBuilder private func content(_ left: TimeInterval?, gone: Bool) -> some View {
         VStack(spacing: 1) {
-            Text(left == nil ? "KEINE ABFAHRT" : (left! < 0 ? "ABGEFAHREN" : "LOS IN"))
+            Text(left == nil ? "KEINE ABFAHRT" : (gone ? "ABGEFAHREN" : (left! < 0 ? "LOSGEHEN" : "LOS IN")))
                 .font(.system(size: 8.5, weight: .bold, design: .rounded))
                 .opacity(0.85)
             Text(left.map(Self.text) ?? "–")
@@ -209,14 +213,14 @@ struct CountdownBox: View {
         .foregroundStyle(left == nil ? AnyShapeStyle(Color.secondary) : AnyShapeStyle(Color.white))
         .padding(.vertical, 7).padding(.horizontal, 6)
         .frame(maxWidth: .infinity)
-        .background(Self.box(left), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(Self.box(left, gone: gone), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .accessibilityLabel(left.map { "Losgehen in \(Self.text($0))" } ?? "Keine feste Abfahrt")
     }
 
-    /// Red while it counts, dark red once it is gone, grey when idle.
-    static func box(_ left: TimeInterval?) -> AnyShapeStyle {
-        guard let left else { return AnyShapeStyle(Color.primary.opacity(0.06)) }
-        if left < 0 { return AnyShapeStyle(Color(red: 0.45, green: 0.05, blue: 0.09)) }
+    /// Red while it counts, dark red once the trip has left, grey when idle.
+    static func box(_ left: TimeInterval?, gone: Bool = false) -> AnyShapeStyle {
+        guard left != nil else { return AnyShapeStyle(Color.primary.opacity(0.06)) }
+        if gone { return AnyShapeStyle(Color(red: 0.45, green: 0.05, blue: 0.09)) }
         return AnyShapeStyle(LinearGradient(colors: [Color(red: 0.90, green: 0.16, blue: 0.22),
                                                      Color(red: 0.76, green: 0.07, blue: 0.16)],
                                             startPoint: .top, endPoint: .bottom))
