@@ -403,13 +403,24 @@ struct RadarControls: View {
                 .accessibilityLabel(playing ? "Anhalten" : "Abspielen")
                 Slider(value: Binding(get: { Double(index) }, set: { index = Int($0.rounded()) }),
                        in: 0...Double(max(frames.count - 1, 1)), step: 1)
-                VStack(alignment: .trailing, spacing: 0) {
-                    Text(Fmt.time(frames[min(index, frames.count - 1)]))
-                        .font(.callout.monospacedDigit().weight(.semibold))
-                    Text(frames[min(index, frames.count - 1)] > .now ? "Vorhersage" : "gemessen")
-                        .font(.caption2).foregroundStyle(.secondary)
+                // Which minute is on the map — "jetzt 14:48", "in 25 min 15:10".
+                // Tapping jumps back to the current frame.
+                Button {
+                    playing = false
+                    index = Self.nearest(.now, in: frames)
+                } label: {
+                    VStack(alignment: .trailing, spacing: -1) {
+                        Text(Self.relative(shown))
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Text(Fmt.time(shown))
+                            .font(.callout.monospacedDigit().weight(.bold))
+                            .foregroundStyle(.primary)
+                    }
+                    .frame(width: 74, alignment: .trailing)
                 }
-                .frame(width: 72, alignment: .trailing)
+                .buttonStyle(.plain)
+                .accessibilityLabel("Regenradar \(Self.relative(shown)), \(Fmt.time(shown)). Tippen für jetzt.")
             } else {
                 Text("Regenradar (DWD)").font(.callout).foregroundStyle(.secondary)
                 Spacer()
@@ -424,6 +435,24 @@ struct RadarControls: View {
                 index = index + 1 < frames.count ? index + 1 : 0
             }
         }
+    }
+
+    private var shown: Date { frames[min(index, frames.count - 1)] }
+
+    /// A radar frame in words: measured minutes ago, now, or a forecast ahead.
+    static func relative(_ frame: Date, now: Date = .now) -> String {
+        let m = Int((frame.timeIntervalSince(now) / 60).rounded())
+        if m <= -60 { return "vor \(-m / 60) h" }
+        if m < -2 { return "vor \(-m) min" }
+        if m <= 2 { return "jetzt" }
+        if m < 60 { return "in \(m) min" }
+        return m % 60 == 0 ? "in \(m / 60) h" : "in \(m / 60):\(String(format: "%02d", m % 60)) h"
+    }
+
+    /// Index of the frame closest to a moment.
+    static func nearest(_ target: Date, in frames: [Date]) -> Int {
+        frames.enumerated()
+            .min { abs($0.element.timeIntervalSince(target)) < abs($1.element.timeIntervalSince(target)) }?.offset ?? 0
     }
 }
 
@@ -452,16 +481,16 @@ struct TripMapPanel: View {
         .onChange(of: selectedID) { resetFrames() }
     }
 
-    /// Frames for the selected trip, starting at its departure: play then runs
-    /// the ride and the radar forward together.
+    /// Frames around the selected trip, so pressing play runs the ride and the
+    /// rain forward together — but the map opens on the current minute, because
+    /// that is the one thing you always want to see first.
     private func resetFrames() {
         guard let trip else {
             frames = RadarTileOverlay.frameTimes()
-            index = 0
+            index = RadarControls.nearest(.now, in: frames)
             return
         }
         frames = RadarTileOverlay.frameTimes(forTripFrom: trip.leave, to: trip.arrival)
-        index = frames.enumerated()
-            .min { abs($0.element.timeIntervalSince(trip.leave)) < abs($1.element.timeIntervalSince(trip.leave)) }?.offset ?? 0
+        index = RadarControls.nearest(.now, in: frames)
     }
 }
