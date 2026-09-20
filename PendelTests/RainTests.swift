@@ -61,3 +61,25 @@ final class RainTests: XCTestCase {
         XCTAssertTrue(url.absoluteString.contains("crs=EPSG:3857"))
     }
 }
+
+/// The radar's own wording: which minute is on the map, in words.
+final class RadarLabelTests: XCTestCase {
+    private let now = Date(timeIntervalSince1970: 1_790_000_000)
+
+    func testRelativeWording() {
+        XCTAssertEqual(RadarControls.relative(now, now: now), "jetzt")
+        XCTAssertEqual(RadarControls.relative(now.addingTimeInterval(120), now: now), "jetzt")
+        XCTAssertEqual(RadarControls.relative(now.addingTimeInterval(-600), now: now), "vor 10 min")
+        XCTAssertEqual(RadarControls.relative(now.addingTimeInterval(1500), now: now), "in 25 min")
+        XCTAssertEqual(RadarControls.relative(now.addingTimeInterval(3600), now: now), "in 1 h")
+        XCTAssertEqual(RadarControls.relative(now.addingTimeInterval(5400), now: now), "in 1:30 h")
+    }
+
+    func testNearestFramePicksTheClosestMinute() {
+        let frames = (0..<5).map { now.addingTimeInterval(Double($0) * 300 - 600) }
+        XCTAssertEqual(RadarControls.nearest(now, in: frames), 2)
+        XCTAssertEqual(RadarControls.nearest(now.addingTimeInterval(-590), in: frames), 0)
+        XCTAssertEqual(RadarControls.nearest(now.addingTimeInterval(9999), in: frames), 4)
+        XCTAssertEqual(RadarControls.nearest(now, in: []), 0)
+    }
+}

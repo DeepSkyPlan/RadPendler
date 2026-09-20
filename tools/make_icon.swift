@@ -1,4 +1,5 @@
-// Renders the app icon: bike above a train on a green-to-teal gradient.
+// Renders the app icon: bike above a train and a bus, on a green-to-teal gradient.
+// The title bar draws the same mark as `AppMark` in Views/Theme.swift — keep both in step.
 //   swift tools/make_icon.swift Pendel/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png
 import AppKit
 import ImageIO
@@ -23,8 +24,9 @@ func glyph(_ name: String, in rect: CGRect) {
     let w = s.width * k, h = s.height * k
     img.draw(in: CGRect(x: rect.midX - w / 2, y: rect.midY - h / 2, width: w, height: h))
 }
-glyph("bicycle", in: CGRect(x: 150, y: 450, width: 724, height: 420))
-glyph("train.side.front.car", in: CGRect(x: 312, y: 140, width: 400, height: 250))
+glyph("bicycle", in: CGRect(x: 182, y: 470, width: 660, height: 390))
+glyph("train.side.front.car", in: CGRect(x: 120, y: 150, width: 400, height: 240))
+glyph("bus.fill", in: CGRect(x: 570, y: 150, width: 330, height: 240))
 
 let url = URL(fileURLWithPath: CommandLine.arguments[1]) as CFURL
 let dest = CGImageDestinationCreateWithURL(url, UTType.png.identifier as CFString, 1, nil)!

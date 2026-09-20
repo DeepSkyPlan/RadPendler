@@ -24,6 +24,34 @@ enum Theme {
     }
 }
 
+/// The app icon as a view, so the title bar carries the same mark as the home
+/// screen: bike above, train and bus below, on the green-to-teal gradient.
+/// `tools/make_icon.swift` draws the 1024 px version from the same recipe.
+struct AppMark: View {
+    var size: CGFloat = 24
+
+    var body: some View {
+        ZStack {
+            LinearGradient(colors: [Color(red: 0.12, green: 0.66, blue: 0.28),
+                                    Color(red: 0.00, green: 0.38, blue: 0.45)],
+                           startPoint: .topLeading, endPoint: .bottomTrailing)
+            VStack(spacing: size * 0.04) {
+                Image(systemName: "bicycle")
+                    .font(.system(size: size * 0.42, weight: .semibold))
+                HStack(spacing: size * 0.06) {
+                    Image(systemName: "train.side.front.car")
+                    Image(systemName: "bus.fill")
+                }
+                .font(.system(size: size * 0.27, weight: .semibold))
+            }
+            .foregroundStyle(.white)
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: size * 0.23, style: .continuous))
+        .accessibilityHidden(true)
+    }
+}
+
 /// Card used for every block on the screen.
 struct CardBackground: ViewModifier {
     var highlighted = false

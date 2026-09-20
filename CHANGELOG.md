@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.0 (Build 10, unveröffentlicht)
+- Statt vier Blöcken eine Reihe aus vier Boxen: Fahrrad, Rad + Bahn, Auto, Bahn & Bus — je Box Fahrzeit, worum es sich handelt (Radvariante bzw. Abfahrt) und Punkte für die Zahl der Möglichkeiten. Erster Tipp wählt, jeder weitere schaltet zur nächsten.
+- Die gewählte Fahrt steht als eine Zeile darunter: Abfahrt → Ankunft, Abschnitte, km, Ampeln, „los …“; Antippen öffnet den Zeitstrahl.
+- Gelber Stern markiert die Empfehlung.
+- Burger-Menü oben rechts mit Einstellungen, **Anleitung** (neu) sowie Version und Datenquellen; das App-Zeichen steht in der Titelzeile.
+- Aktualisieren nur noch durch Ziehen nach unten — der Spinner läuft, solange die Suche läuft; der Knopf ist weg.
+- Countdown-Kasten erscheint nur, wenn die Abfahrt feststeht (Bahn/Bus oder gesetzte Ankunftszeit), sonst gar nicht.
+- Ankunftssuche bietet nur die zwei Zeiten, die der Pendelweg hat (9 und 19 Uhr), alles andere über die Uhr; Umschalten auf „Ankunft“ springt auf die nächste davon.
+- Regenradar sagt, welche Minute zu sehen ist („jetzt 14:48“, „in 25 min 15:10“), öffnet auf der aktuellen Minute und springt per Tipp dorthin zurück.
+- App-Symbol zeigt jetzt Rad über Zug **und** Bus, dasselbe Zeichen wie in der Titelzeile.
+
 ## 0.5.0 (Build 9, TestFlight 2026-09-20)
 - Eine Seite statt Liste/Karte: Kopfzeile, Karte, darunter je ein Block für Fahrrad, Rad + Bahn, Auto, Bahn & Bus — jeder Block zeigt eine Karte, die Auswahl läuft über Chips (Radrouten nach Namen, Verbindungen nach Abfahrt und Umstiegen).
 - Ankunftszeit als Suchziel: Umschalter Abfahrt/Ankunft; Fahrten zur Arbeitsadresse starten automatisch mit „Ankunft um 9 Uhr“, Fahrten nach Hause mit „Abfahrt jetzt“.

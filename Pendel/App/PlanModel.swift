@@ -58,14 +58,14 @@ final class PlanModel {
         return selection[mode].flatMap { id in own.first { $0.id == id } } ?? own.first
     }
 
-    /// Countdown target: with a wanted arrival every mode has a fixed leaving
-    /// time, so the chosen trip counts. Otherwise only trains and buses do —
-    /// bike and car leave whenever one feels like it.
+    /// Countdown target — only where a departure is actually fixed: a trip with
+    /// a train or a bus in it, or any trip once an arrival time is wanted.
+    /// Bike and car with "leave now" have nothing to count down to, and the box
+    /// stays away instead of showing someone else's train.
     var countdownOption: TripOption? {
-        if when.isArrival { return selected ?? recommended }
-        let withTransit = options.filter { !$0.transitLegs.isEmpty && $0.passesWaypoints }
-        if let rec = recommended, !rec.transitLegs.isEmpty { return rec }
-        return withTransit.filter { $0.leave > .now }.min { $0.leave < $1.leave } ?? withTransit.first
+        guard let trip = selected else { return nil }
+        if when.isArrival { return trip }
+        return trip.transitLegs.isEmpty ? nil : trip
     }
 
     /// Going to work means "be there at 9", coming home means "leave now" —
@@ -80,6 +80,23 @@ final class PlanModel {
         } else {
             when = .departNow
         }
+    }
+
+    /// Pull-to-refresh: run and stay in flight until the plan is in, so the
+    /// spinner lives as long as the search does.
+    func refreshAndWait(settings: AppSettings) async {
+        refresh(settings: settings)
+        await task?.value
+    }
+
+    /// Tap on an already-chosen mode: step to its next option (bike variants,
+    /// the next connection) and wrap around at the end.
+    func cycle(_ mode: TravelMode) {
+        let own = options(for: mode)
+        guard own.count > 1 else { return }
+        let current = selected(for: mode)?.id
+        let i = own.firstIndex { $0.id == current } ?? 0
+        selection[mode] = own[(i + 1) % own.count].id
     }
 
     func refresh(settings: AppSettings) {
