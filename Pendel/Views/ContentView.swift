@@ -22,8 +22,7 @@ struct ContentView: View {
                     VStack(spacing: 12) {
                         RouteHeader(origin: settings.origin, destination: settings.destination,
                                     when: $model.when, prepMinutes: settings.prepMinutes,
-                                    presets: settings.departurePresets, countdown: model.countdownOption,
-                                    alerts: settings.alertsOn ? settings.alertMinutes : [],
+                                    presets: settings.departurePresets,
                                     loading: model.isLoading,
                                     onEdit: { editing = $0 },
                                     onSwap: { settings.swapDirection(); model.applyDefaultWhen(settings: settings); refresh() },
@@ -35,8 +34,7 @@ struct ContentView: View {
                         } else {
                             TripMapPanel(options: model.options, selectedID: model.selected?.id,
                                          waypoints: settings.waypoints,
-                                         onSelect: { select($0) },
-                                         onCycleBike: { model.cycle(.bike) })
+                                         onSelect: { select($0) })
                                 .frame(height: 320)
                                 .clipShape(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
                                 .overlay {
@@ -60,13 +58,25 @@ struct ContentView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    HStack(spacing: 7) {
-                        AppMark(size: 22)
+                ToolbarItem(placement: .topBarLeading) {
+                    HStack(spacing: 8) {
+                        AppMark(size: 32)
                         Text("RadPendler").display(.headline)
                     }
+                    // Without this the bar hands the leading item as little
+                    // width as it likes and drops the name.
+                    .fixedSize()
                     .accessibilityElement(children: .combine)
                     .accessibilityLabel("RadPendler")
+                }
+                // Between the name and the burger, so the one number that is
+                // about to matter sits above everything else.
+                ToolbarItem(placement: .topBarTrailing) {
+                    if let countdown = model.countdownOption {
+                        CountdownBox(option: countdown,
+                                     alerts: settings.alertsOn ? settings.alertMinutes : [],
+                                     compact: true)
+                    }
                 }
                 ToolbarItem(placement: .topBarTrailing) { menu }
             }
@@ -100,11 +110,13 @@ struct ContentView: View {
     /// Refreshing lives in the pull, not in a button.
     private var menu: some View {
         Menu {
-            Button { showSettings = true } label: { Label("Einstellungen", systemImage: "gearshape") }
-            Button { showHelp = true } label: { Label("Anleitung", systemImage: "questionmark.circle") }
-            Section("RadPendler \(Self.version)") {
-                Button {} label: { Text("© 2026 AK") }.disabled(true)
-                Button {} label: { Text("Daten: VBB · Apple Karten · BRouter/OSM · DWD · Open-Meteo") }.disabled(true)
+            // A menu renders section headers small and everything else at full
+            // size, so the two lines that are not actions ride as headers.
+            Section("RadPendler \(Self.version) · © 2026 AK") {
+                Button { showSettings = true } label: { Label("Einstellungen", systemImage: "gearshape") }
+            }
+            Section("VBB · Apple Karten · BRouter/OSM · DWD · Open-Meteo") {
+                Button { showHelp = true } label: { Label("Anleitung", systemImage: "questionmark.circle") }
             }
         } label: {
             Image(systemName: "line.3.horizontal")
@@ -127,7 +139,7 @@ struct ContentView: View {
         let info = Bundle.main.infoDictionary
         let v = info?["CFBundleShortVersionString"] as? String ?? "?"
         let b = info?["CFBundleVersion"] as? String ?? "?"
-        return "\(v) (\(b))"
+        return "v\(v) (\(b))"
     }
 
     private func refresh() {
@@ -165,8 +177,6 @@ private struct RouteHeader: View {
     @Binding var when: PlanModel.When
     var prepMinutes: Int
     var presets: [DeparturePreset]
-    var countdown: TripOption?
-    var alerts: [Int]
     var loading: Bool
     var onEdit: (ContentView.PlaceField) -> Void
     var onSwap: () -> Void
@@ -196,11 +206,6 @@ private struct RouteHeader: View {
                         .background(Theme.accent.opacity(0.12), in: Circle())
                 }
                 .accessibilityLabel("Richtung tauschen")
-                // Only where a departure is fixed: trains and buses, or a wanted
-                // arrival time. Otherwise the box stays away entirely.
-                if let countdown {
-                    CountdownBox(option: countdown, alerts: alerts).frame(width: 108)
-                }
             }
             WhenPicker(when: $when, presets: presets, prepMinutes: prepMinutes, onChange: onWhenChange)
         }

@@ -1,8 +1,8 @@
-# RadPendler — Übergabe (Stand 20.09.2026, 0.6.0 / Build 11)
+# RadPendler — Übergabe (Stand 20.09.2026, 0.6.1 / Build 12)
 
 Multimodaler Pendel-Planer für iOS: Musterstraße 1 (Büro) ↔ Beispielweg 2 (Musterort)
 mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln, Regen und Countdown.
-Verzeichnis `~/_claude.code/Pendel`, lokales git, **kein Remote**.
+Verzeichnis `~/_claude.code/Pendel`, git mit Remote `DeepSkyPlan/RadPendler` (privat).
 
 ## Bauen, testen, ausliefern
 
@@ -79,7 +79,6 @@ xcrun simctl spawn booted defaults write de.keese.radpendler origin -data <hex-j
 - Mitteilungen laufen als `UNTimeIntervalNotificationTrigger` und werden bei jeder Planänderung
   neu gesetzt (`Alarm.schedule`, Schlüssel `ContentView.alarmKey`). Im Hintergrund plant die App
   nichts nach — fährt der Zug später ab, als beim letzten Öffnen bekannt war, warnt sie zu früh.
-- Kein GitHub-Remote; Anlegen wurde angeboten, aber nie beauftragt.
 - Externe TestFlight-Tester bräuchten Beta-Prüfung und Datenschutz-URL.
 - Radar visuell nur bei trockenem Wetter geprüft — Regenflächen nie auf der Karte gesehen.
 - Kreuzungserkennung ist Heuristik (Brücken zählen als Querung, Tunnel nicht).

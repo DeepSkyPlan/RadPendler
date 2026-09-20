@@ -99,6 +99,12 @@ final class PlanModel {
         selection[mode] = own[(i + 1) % own.count].id
     }
 
+    /// Long press on a mode: back to its first option, which is its best one.
+    func selectFirst(_ mode: TravelMode) {
+        guard let first = options(for: mode).first else { return }
+        selection[mode] = first.id
+    }
+
     func refresh(settings: AppSettings) {
         task?.cancel()
         guard let origin = settings.origin, let destination = settings.destination else {

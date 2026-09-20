@@ -30,15 +30,15 @@ struct ModeStrip: View {
         } label: {
             VStack(spacing: 3) {
                 ZStack(alignment: .topTrailing) {
-                    Image(systemName: mode.symbol)
+                    icon(mode)
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(active ? .white : mode.color)
-                        .frame(width: 28, height: 24)
+                        .frame(width: 34, height: 24)
                     if recommended {
                         Image(systemName: "star.fill")
                             .font(.system(size: 7))
                             .foregroundStyle(active ? .white : .yellow)
-                            .offset(x: 3, y: -2)
+                            .offset(x: 5, y: -3)
                     }
                 }
                 Text(option.map { Fmt.duration($0.duration) } ?? "–")
@@ -67,8 +67,28 @@ struct ModeStrip: View {
             .opacity(option?.passesWaypoints == false ? 0.55 : 1)
         }
         .buttonStyle(.plain)
+        // Held down: back to the first, which is the best one of this mode.
+        .simultaneousGesture(LongPressGesture(minimumDuration: 0.45).onEnded { _ in
+            withAnimation(.snappy(duration: 0.2)) { model.selectFirst(mode) }
+            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+        })
         .accessibilityLabel("\(mode.title): \(option.map { Fmt.duration($0.duration) } ?? "keine Verbindung")")
-        .accessibilityHint(count > 1 ? "Nochmal tippen für die nächste von \(count) Möglichkeiten" : "")
+        .accessibilityHint(count > 1 ? "Nochmal tippen für die nächste von \(count) Möglichkeiten, lang drücken für die beste" : "")
+    }
+
+    /// Rad + Bahn is the one mode that is two things, so it gets both symbols;
+    /// the rest have one that says it all.
+    @ViewBuilder private func icon(_ mode: TravelMode) -> some View {
+        if mode == .bikeTransit {
+            // Two glyphs in the width of one, so they need to be a size smaller.
+            HStack(spacing: 3) {
+                Image(systemName: "bicycle")
+                Image(systemName: "train.side.front.car")
+            }
+            .font(.system(size: 13, weight: .semibold))
+        } else {
+            Image(systemName: mode.symbol)
+        }
     }
 
     /// One dot per option of this mode, the chosen one filled — the hint that

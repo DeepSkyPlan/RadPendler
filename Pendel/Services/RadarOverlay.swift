@@ -1,4 +1,16 @@
 import MapKit
+import Observation
+
+/// How many radar tiles are in flight right now, so the map can say that the
+/// rain is still arriving instead of quietly showing an empty sky.
+@MainActor @Observable final class RadarLoads {
+    static let shared = RadarLoads()
+    private(set) var pending = 0
+    var isLoading: Bool { pending > 0 }
+
+    func began() { pending += 1 }
+    func ended() { pending = max(0, pending - 1) }
+}
 
 /// One frame of the DWD precipitation radar (analysis for the past, RV nowcast
 /// up to +2 h), served by the DWD GeoServer as WMS in Web Mercator.
@@ -57,6 +69,14 @@ final class RadarTileOverlay: MKTileOverlay {
             .init(name: "time", value: Self.isoTime(time)),
         ]
         return c.url!
+    }
+
+    override func loadTile(at path: MKTileOverlayPath, result: @escaping (Data?, Error?) -> Void) {
+        Task { @MainActor in RadarLoads.shared.began() }
+        super.loadTile(at: path) { data, error in
+            Task { @MainActor in RadarLoads.shared.ended() }
+            result(data, error)
+        }
     }
 
     private static func isoTime(_ d: Date) -> String {

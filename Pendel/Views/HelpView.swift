@@ -23,6 +23,7 @@ struct HelpView: View {
                     section("Die vier Boxen", "square.grid.2x2", [
                         "Fahrrad, Rad + Bahn, Auto, Bus & Bahn — jede Box zeigt die Fahrzeit und worum es sich handelt: bei Radrouten schnellst, kürzest, optimal oder ruhigst, bei Verbindungen die Abfahrt.",
                         "Ein Tipp wählt die Box aus, der nächste Tipp schaltet zur nächsten Möglichkeit. Die Punkte unter der Zeit zeigen, wie viele es sind.",
+                        "Lang drücken springt zurück auf die erste und damit beste Möglichkeit dieser Box.",
                         "Der gelbe Stern steht an dem, was die App empfiehlt.",
                     ])
                     section("Die Zeile darunter", "chevron.right.circle", [
@@ -31,11 +32,11 @@ struct HelpView: View {
                     ])
                     section("Karte", "map", [
                         "Die gewählte Fahrt liegt farbig oben, die anderen blass darunter. Ein Tipp auf ein Schild in der Karte wählt diese Fahrt.",
-                        "Langes Drücken auf eine Radlinie schaltet zur nächsten Radroute.",
+                        "Langes Drücken irgendwo auf der Karte holt die ganze Strecke wieder ins Bild.",
                         "Gelbe Punkte sind vermutete Ampelkreuzungen der gewählten Radroute.",
                     ])
                     section("Regenradar", "cloud.rain", [
-                        "Der Schalter unten links auf der Karte zeigt das DWD-Radar. Rechts steht, welche Minute zu sehen ist — „jetzt 14:48“, „in 25 min 15:10“.",
+                        "Der Schalter unten links auf der Karte zeigt das DWD-Radar. Rechts steht, welche Minute zu sehen ist — „jetzt 14:48“, „in 25 min 15:10“. Ein kleiner Kreisel daneben heißt: Bilder laden noch.",
                         "Play läuft die Bilder durch; der lila Punkt zeigt, wo man zu dieser Minute auf der Strecke wäre.",
                         "Ein Tipp auf die Zeit springt zurück auf jetzt.",
                     ])
@@ -46,6 +47,7 @@ struct HelpView: View {
                     ])
                     section("Aktualisieren", "arrow.down", [
                         "Seite nach unten ziehen und loslassen. Einen Knopf dafür gibt es nicht mehr.",
+                        "Das plant alles neu — auch die Warnungen werden auf den neuen Fahrplan gesetzt. Findet die Suche nichts, bleiben die alten Warnungen scharf.",
                         "Unten steht, von wann der Stand ist.",
                     ])
                     section("Was die App voraussetzt", "info.circle", [
