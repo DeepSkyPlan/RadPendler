@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0 (Build 14, noch nicht hochgeladen)
+- **iPad**: die App ist jetzt universal und läuft im Vollbild (kein iPadOS-Fenster). Ab regulärer Breite steht alles nebeneinander — links eine Spalte mit Adressen, Zeitwahl, den vier Modus-Boxen und der Fahrtzeile, rechts die Karte über die ganze Höhe. **Alle Streckendetails stehen auf derselben Seite**: Begründung der Empfehlung, Regen- und Umstiegs-Hinweise, die Rad- bzw. Autoroutenkarte mit Ampeln und Querungen und der komplette Zeitstrahl — auf dem iPad ist nichts mehr hinter einem Tipp versteckt.
+- **Apple Watch**: eine eigene watchOS-App (watchOS 10+), die in der iPhone-App mitgeliefert wird. Drei Seiten, vertikal gewischt:
+  - **Countdown** in derselben Ampelfarbe wie auf dem iPhone, mit Linie und Abfahrt → Ankunft. Ohne feste Abfahrt bleibt er grau statt rot zu blinken.
+  - **Fahrt** mit allen Abschnitten, Zeiten, Linien und Kilometern.
+  - **Wie?** — die vier Kategorien Fahrrad, Rad + Bahn, Auto, Bahn & Bus mit ihrer besten Zeit und der Zahl der Wege; eine Kategorie öffnen, einen Weg antippen, und der Countdown zählt auf diesen. „Vorschlag des iPhones" stellt die Auswahl zurück.
+  - Die Uhr **plant nichts selbst**: sie bekommt den fertigen Plan vom iPhone (WatchConnectivity, immer nur der neueste Stand) und legt ihn auf Platte — außer Reichweite steht der letzte bekannte Plan da, mit seinem Alter darunter.
+
 ## 0.7.0 (Build 13, TestFlight 2026-09-21)
 - **Neues App-Zeichen**: eine grüne Kartennadel mit dem Fahrrad im Kopf und einem orangen Bus-Abzeichen an der Schulter, das durch eine Kerbe von der Nadel freigestellt ist (Entwurf „N2 · Wald" aus `_reports/RadPendler_Logos_2.html`). Homescreen und Titelzeile zeichnen dieselbe Geometrie aus `Views/Mark.swift` — sie können nicht mehr auseinanderlaufen.
 - **Der Countdown hat seine eigene Pille**: auf iOS 26 packte die Titelzeile ihn mit dem Burger-Menü in eine gemeinsame Glaskapsel, jetzt trennt ein fester Abstand die beiden.

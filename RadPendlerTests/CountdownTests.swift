@@ -45,7 +45,7 @@ final class CountdownTests: XCTestCase {
     }
 
     func testCountdownColourStepsFollowTheAlertMinutes() {
-        let step = { (minutes: Double) in CountdownBox.urgency(minutes * 60) }
+        let step = { (minutes: Double) in Countdown.urgency(minutes * 60) }
         XCTAssertEqual(step(45), .plenty)
         XCTAssertEqual(step(31), .plenty)
         XCTAssertEqual(step(30), .soon, "half an hour is already the amber half")
@@ -54,7 +54,7 @@ final class CountdownTests: XCTestCase {
         XCTAssertEqual(step(6), .wrapUp)
         XCTAssertEqual(step(5), .go, "the last warning turns it red")
         XCTAssertEqual(step(-3), .go, "overdue stays red until the trip is gone")
-        XCTAssertEqual(CountdownBox.urgency(nil), .idle)
-        XCTAssertEqual(CountdownBox.urgency(600, gone: true), .gone)
+        XCTAssertEqual(Countdown.urgency(nil), .idle)
+        XCTAssertEqual(Countdown.urgency(600, gone: true), .gone)
     }
 }

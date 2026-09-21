@@ -32,6 +32,8 @@ final class PlanModel {
     private let planner: TripPlanner
     private var task: Task<Void, Never>?
     private var lastDirection: String?
+    /// Names of the two ends of the current plan, for the copy on the watch.
+    private var places: (from: String, to: String)?
 
     init(planner: TripPlanner = TripPlanner()) {
         self.planner = planner
@@ -97,12 +99,27 @@ final class PlanModel {
         let current = selected(for: mode)?.id
         let i = own.firstIndex { $0.id == current } ?? 0
         selection[mode] = own[(i + 1) % own.count].id
+        publishToWatch()
     }
 
     /// Long press on a mode: back to its first option, which is its best one.
     func selectFirst(_ mode: TravelMode) {
         guard let first = options(for: mode).first else { return }
         selection[mode] = first.id
+        publishToWatch()
+    }
+
+    /// Hands the watch the plan and the trip its countdown should run on.
+    /// Called after every search and whenever the chosen trip changes — the
+    /// watch never plans anything itself, it mirrors what the phone decided.
+    func publishToWatch() {
+        guard let places, !options.isEmpty else { return }
+        WatchLink.shared.send(TripSnapshot(origin: places.from, destination: places.to,
+                                           options: options,
+                                           recommendedID: recommended?.id,
+                                           countdownID: countdownOption?.id,
+                                           computedAt: lastRun ?? .now,
+                                           arrivalSearch: when.isArrival))
     }
 
     func refresh(settings: AppSettings) {
@@ -121,6 +138,7 @@ final class PlanModel {
         }
         let req = PlanRequest(origin: origin, destination: destination, target: target,
                               settings: settings.snapshot)
+        places = (origin.shortName, destination.shortName)
         isLoading = true
         task = Task {
             let r = await planner.plan(req)
@@ -133,6 +151,7 @@ final class PlanModel {
             }
             lastRun = .now
             isLoading = false
+            publishToWatch()
             #if DEBUG
             for o in r.options {
                 print("PLAN", o.mode.rawValue, o.bikeRoute?.title ?? "", Fmt.time(o.leave), Fmt.time(o.arrival),

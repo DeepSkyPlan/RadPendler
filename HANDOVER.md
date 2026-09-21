@@ -1,7 +1,8 @@
-# RadPendler — Übergabe (Stand 21.09.2026, 0.7.0 / Build 13)
+# RadPendler — Übergabe (Stand 21.09.2026, 0.8.0 / Build 14)
 
-Multimodaler Pendel-Planer für iOS: Musterstraße 1 (Büro) ↔ Beispielweg 2 (Musterort)
-mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln, Regen und Countdown.
+Multimodaler Pendel-Planer für iPhone, iPad und Apple Watch: Musterstraße 1 (Büro) ↔
+Beispielweg 2 (Musterort) mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln,
+Regen und Countdown.
 Verzeichnis `~/_claude.code/RadPendler`, git mit Remote `DeepSkyPlan/RadPendler` (privat).
 
 ## Bauen, testen, ausliefern
@@ -14,6 +15,10 @@ Verzeichnis `~/_claude.code/RadPendler`, git mit Remote `DeepSkyPlan/RadPendler`
 
 Das `.xcodeproj` ist generiert und nicht committet: Änderungen im Projektnavigator
 überlebt kein `generate`. Struktur gehört in `project.yml`.
+
+Die Watch-App hängt als Abhängigkeit am iPhone-Ziel und wird nach `Watch/` kopiert;
+`./dev build` baut sie mit. Einzeln: `-scheme RadPendlerWatch` mit einem
+`platform=watchOS Simulator`-Ziel.
 
 TestFlight (nur auf Ansage des Nutzers, siehe Memory `testflight-only-on-request`):
 Buildnummer in `project.yml` hochzählen → `xcodegen generate` → `clean archive` →
@@ -39,8 +44,13 @@ xcrun simctl spawn booted defaults write de.keese.radpendler origin -data <hex-j
   `RadarOverlay` (DWD-WMS-Kacheln), `Waypoints`, `TripPlanner` (+ `BikeCandidate`,
   `BikeTransitComposer`), `Alarm`.
 - `App/PlanModel.swift` — Zustand: `when` (departNow / departAt / arriveAt), Auswahl je Modus,
-  `countdownOption`, `applyDefaultWhen`.
-- `Views/` — `ContentView` (eine Seite **ohne ScrollView**: Kopfzeile, Karte, Boxenreihe,
+  `countdownOption`, `applyDefaultWhen`, `publishToWatch`.
+- `Shared/` — in **beiden** Zielen: `Countdown` (Farbrampe und Text, damit Uhr und Telefon
+  dieselbe Minute gleich färben) und `TripSnapshot` (der Plan, wie ihn die Uhr sieht:
+  keine Koordinaten, keine Routen, Farben als Hex).
+- `RadPendlerWatch/` — `WatchApp`, `WatchModel` (+ `PhoneLink`: WCSession-Empfang und
+  Zwischenspeicher auf Platte), `WatchViews` (Countdown, Fahrt, Kategorien + Wege).
+- `Views/` — `ContentView` (eine Seite **ohne ScrollView**, ab regulärer Breite zweispaltig: Kopfzeile, Karte, Boxenreihe,
   Fahrtzeile; alles außer der Karte hat feste Höhe, die Karte nimmt den Rest. `LastRunLine`
   in der Radarpille zeigt den Stand und ist der Knopf zum Neuberechnen), `ModeStrip`
   (+ `SelectedTripBar`), `HelpView` (Anleitung aus dem Burger-Menü),
@@ -74,7 +84,12 @@ xcrun simctl spawn booted defaults write de.keese.radpendler origin -data <hex-j
 ## Festlegungen des Nutzers (nicht ohne Rückfrage ändern)
 
 - Die Hauptseite muss ohne Scrollen passen. Was dazukommt, kostet Kartenhöhe — Details
-  gehören hinter den Pfeil in `TripDetailView`.
+  gehören auf dem iPhone hinter den Pfeil in `TripDetailView`; auf dem iPad stehen sie
+  in der linken Spalte (`TripNotes`, `TripFacts`, `TripTimeline` — dieselben Bausteine).
+- Die Uhr plant nie selbst. MapKit-Routen, Overpass und die Radarkacheln gibt es auf
+  watchOS nicht; sie zeigt, was das iPhone zuletzt geschickt hat, und sagt dazu, wie alt
+  das ist. Was die Uhr wählt, gilt nur auf der Uhr — die Mitteilungen kommen weiter vom
+  iPhone und folgen dessen Auswahl.
 - Radgeschwindigkeit ist die **rollende** Geschwindigkeit (29 km/h) plus 20 s je Ampelkreuzung;
   zusammen ergibt das seine gemessenen ~21 km/h.
 - **S-Bahn und Regionalzug zuerst** (festes Radabteil), U-Bahn und Tram nur als markierte

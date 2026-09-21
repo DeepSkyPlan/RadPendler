@@ -20,8 +20,7 @@ struct TripDetailView: View {
                                 .strokeBorder(Color.primary.opacity(0.06))
                         }
                     summary
-                    if let bike = option.bikeRoute { bikeCard(bike) }
-                    if let car = option.carRoute { carCard(car) }
+                    TripFacts(option: option)
                     timeline
                 }
                 .padding(.horizontal, Theme.gutter)
@@ -68,6 +67,27 @@ struct TripDetailView: View {
                     .foregroundStyle(rain.level.color)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
+            TripNotes(option: option, reason: reason)
+        }
+        .padding(14)
+        .card()
+    }
+
+    private var timeline: some View {
+        TripTimeline(option: option).padding(14).card()
+    }
+}
+
+/// Why this trip and not another, plus the warnings that go with it. The phone
+/// squeezes at most one of these into a chip; here they get their words back.
+struct TripNotes: View {
+    var option: TripOption
+    var reason: String?
+
+    private struct Note { var text: String; var symbol: String; var tint: Color }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
             ForEach(notes, id: \.text) { note in
                 Label(note.text, systemImage: note.symbol)
                     .font(.system(.footnote, design: .rounded))
@@ -75,13 +95,8 @@ struct TripDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(14)
-        .card()
     }
 
-    private struct Note { var text: String; var symbol: String; var tint: Color }
-
-    /// Everything the compact bar on the main screen leaves out.
     private var notes: [Note] {
         var out: [Note] = []
         if let reason { out.append(Note(text: reason, symbol: "sparkles", tint: .secondary)) }
@@ -96,27 +111,19 @@ struct TripDetailView: View {
         if let note = option.note { out.append(Note(text: note, symbol: "info.circle", tint: .secondary)) }
         return out
     }
+}
 
-    private func carCard(_ car: CarRouteInfo) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label("Autoroute: \(car.title)", systemImage: "car.fill")
-                .display(.subheadline)
-                .foregroundStyle(LegKind.car.color)
-            HStack(spacing: 6) {
-                Chip(text: Fmt.km(option.totalDistance), symbol: "ruler")
-                if let s = car.signals {
-                    Chip(text: "\(s) Ampeln", icon: AnyView(TrafficLightIcon()))
-                } else {
-                    Chip(text: "Ampeln unbekannt", symbol: "questionmark.circle")
-                }
-            }
-            .lineLimit(1).minimumScaleFactor(0.8)
-            Text("Linienführung und Fahrzeit von Apple Karten, Ampeln aus OpenStreetMap")
-                .font(.system(.caption2, design: .rounded)).foregroundStyle(.secondary)
+/// What kind of route this is: the bike card or the car card. A timetable trip
+/// has no card — its facts are the timeline.
+struct TripFacts: View {
+    var option: TripOption
+
+    var body: some View {
+        if let bike = option.bikeRoute {
+            bikeCard(bike)
+        } else if let car = option.carRoute {
+            carCard(car)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .card()
     }
 
     private func bikeCard(_ bike: BikeRouteInfo) -> some View {
@@ -144,19 +151,46 @@ struct TripDetailView: View {
         .card()
     }
 
-    private var timeline: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(option.legs.enumerated()), id: \.element.id) { i, leg in
-                LegTimelineRow(leg: leg, isLast: i == option.legs.count - 1)
+    private func carCard(_ car: CarRouteInfo) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Autoroute: \(car.title)", systemImage: "car.fill")
+                .display(.subheadline)
+                .foregroundStyle(LegKind.car.color)
+            HStack(spacing: 6) {
+                Chip(text: Fmt.km(option.totalDistance), symbol: "ruler")
+                if let s = car.signals {
+                    Chip(text: "\(s) Ampeln", icon: AnyView(TrafficLightIcon()))
+                } else {
+                    Chip(text: "Ampeln unbekannt", symbol: "questionmark.circle")
+                }
             }
+            .lineLimit(1).minimumScaleFactor(0.8)
+            Text("Linienführung und Fahrzeit von Apple Karten, Ampeln aus OpenStreetMap")
+                .font(.system(.caption2, design: .rounded)).foregroundStyle(.secondary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
         .card()
     }
 }
 
+/// The legs of a trip one under the other. Its own view because the iPad puts
+/// it straight into the side column — there is room for it there, and a tap
+/// less is a tap less.
+struct TripTimeline: View {
+    var option: TripOption
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(option.legs.enumerated()), id: \.element.id) { i, leg in
+                LegTimelineRow(leg: leg, isLast: i == option.legs.count - 1)
+            }
+        }
+    }
+}
+
 /// One leg as a row on a vertical line: dot, times, what and how far.
-private struct LegTimelineRow: View {
+struct LegTimelineRow: View {
     var leg: Leg
     var isLast: Bool
 
