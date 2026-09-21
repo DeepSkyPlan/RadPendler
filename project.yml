@@ -34,6 +34,12 @@ targets:
         copy:
           destination: wrapper
           subpath: Watch
+    # Adressen und Einstellungen wandern über den iCloud-Schlüssel-Wert-Speicher
+    # zwischen iPhone und iPad; der Plan selbst geht weiter direkt an die Uhr.
+    entitlements:
+      path: RadPendler/RadPendler.entitlements
+      properties:
+        com.apple.developer.ubiquity-kvstore-identifier: $(TeamIdentifierPrefix)$(CFBundleIdentifier)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: de.keese.radpendler

@@ -14,6 +14,12 @@ struct RadPendlerApp: App {
         WindowGroup {
             ContentView()
                 .environment(settings)
+                .task {
+                    // Addresses and preferences travel through iCloud, so the
+                    // iPad starts with what the iPhone already knows.
+                    CloudStore.shared.onPull = { settings.load() }
+                    CloudStore.shared.start()
+                }
         }
     }
 }

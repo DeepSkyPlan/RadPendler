@@ -1,6 +1,7 @@
 # Changelog
 
-## 0.9.0 (Build 15, noch nicht hochgeladen)
+## 0.9.0 (Build 15, TestFlight 2026-09-21)
+- **Abgleich über iCloud**: Start, Ziel, Arbeitsadresse, Fixpunkte, die Liste der benutzten Adressen und alle Einstellungen wandern über den iCloud-Schlüssel-Wert-Speicher zwischen deinen Geräten — das iPad startet also mit dem, was das iPhone schon weiß. Ohne angemeldetes iCloud-Konto passiert nichts und die App verhält sich wie vorher. Die Adressliste wird dabei **zusammengeführt**, nicht überschrieben (je Adresse der höhere Zähler und die spätere Benutzung), damit ein Gerät, das gerade erst gezogen hat, die Liste nicht kürzen kann. Der Fahrplan selbst geht weiter direkt per WatchConnectivity an die Uhr — er ist nach Minuten veraltet, dafür ist iCloud zu langsam.
 - **Benutzte Adressen merken**: jede gewählte Adresse landet in einer Liste auf dem Gerät. Die Adresssuche zeigt sie unter „Schon benutzt" noch bevor etwas getippt ist — **nach Häufigkeit sortiert**, bei Gleichstand die zuletzt benutzte zuerst, mit der Zahl der Benutzungen rechts. Tippen übernimmt sie sofort (kein zweiter Geocoder-Aufruf), Wischen vergisst sie. Beim Tippen wird die Liste mitgefiltert (ohne Rücksicht auf Groß/klein und Umlaute) und steht über den Vorschlägen von Apple. Maximal 40 Einträge, danach fallen die am seltensten benutzten heraus.
 - **Adressen mit Postleitzahl**: PLZ und Ort stehen jetzt überall neben bzw. unter der Straße — in der Kopfzeile klein hinter dem Straßennamen, in der Suche und in den Einstellungen als eigene Zeile. PLZ und Ort werden beim Wählen als eigene Felder gespeichert; für Adressen aus älteren Versionen werden sie aus dem gespeicherten Namen gelesen.
 
