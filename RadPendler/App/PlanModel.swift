@@ -45,7 +45,7 @@ final class PlanModel {
 
     var options: [TripOption] { result.options }
 
-    /// Berlin to Musterort is a bike ride; Berlin to Hamburg is not.
+    /// A trip across town is a bike ride; Berlin to Hamburg is not.
     var isLongTrip: Bool { directKm > longTripKm }
 
     /// Order of the four boxes. Beyond `longTripKm` the whole way by bike goes

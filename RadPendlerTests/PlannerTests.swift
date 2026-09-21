@@ -61,7 +61,7 @@ final class PlannerTests: XCTestCase {
         let journey = [train("S7", dep: 30 * 60, arr: 55 * 60)]
         let option = try XCTUnwrap(BikeTransitComposer.compose(
             origin: from, destination: to, station1: "Hbf", ride1: line(2100), journey: journey,
-            station2: "Beispielplatz", ride2: line(3500), settings: settings, earliestLeave: t0.addingTimeInterval(300)))
+            station2: "Bahnhof B", ride2: line(3500), settings: settings, earliestLeave: t0.addingTimeInterval(300)))
         XCTAssertEqual(option.leave, t0.addingTimeInterval(21 * 60))
         XCTAssertEqual(option.getReady, t0.addingTimeInterval(16 * 60))
         // arrive 55 min + 3 min buffer + 10 min ride (3 500 m)

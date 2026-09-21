@@ -2,7 +2,7 @@
 
 Multimodaler Pendel-Planer für iPhone, iPad und Apple Watch: Büro ↔ Zuhause mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln,
 Regen und Countdown.
-Verzeichnis `~/_claude.code/RadPendler`, git mit Remote `DeepSkyPlan/RadPendler` (privat).
+Das Projekt ist quelloffen (MIT); Adressen und Schlüssel gehören nicht hinein.
 
 ## Bauen, testen, ausliefern
 
@@ -19,18 +19,18 @@ Die Watch-App hängt als Abhängigkeit am iPhone-Ziel und wird nach `Watch/` kop
 `./dev build` baut sie mit. Einzeln: `-scheme RadPendlerWatch` mit einem
 `platform=watchOS Simulator`-Ziel.
 
-TestFlight (nur auf Ansage des Nutzers, siehe Memory `testflight-only-on-request`):
-Buildnummer in `project.yml` hochzählen → `xcodegen generate` → `clean archive` →
-`-exportArchive` mit `ExportOptions.plist` (method `app-store-connect`, destination `upload`,
-Team `5PX3V6L522`) und den ASC-Schlüsseln aus `~/.appstoreconnect/`.
-`tools/asc_jwt.swift` druckt ein API-Token für Abfragen (z. B. Buildliste).
-ASC-App **RadPendler**, ID `ASC_APP_ID`, Bundle/SKU `de.keese.radpendler`.
-Apple erlaubt kein Anlegen von Apps per API — das muss der Nutzer im Browser tun.
+TestFlight (nur auf Ansage des Nutzers): Buildnummer in `project.yml` hochzählen →
+`xcodegen generate` → `clean archive` → `-exportArchive` mit einer `ExportOptions.plist`
+(method `app-store-connect`, destination `upload`) und den App-Store-Connect-Schlüsseln
+aus `~/.appstoreconnect/`. `tools/asc_jwt.swift` druckt ein API-Token für Abfragen; es
+liest `ASC_KEY_ID` und `ASC_ISSUER_ID` aus der Umgebung. Schlüssel, Team- und App-IDs
+stehen **nicht** in diesem Repository.
+Apple erlaubt kein Anlegen von Apps per API — das muss von Hand im Browser passieren.
 
 Simulator mit Adressen füttern (zum Screenshotten ohne Tippen):
 
 ```bash
-xcrun simctl spawn booted defaults write de.keese.radpendler origin -data <hex-json>
+xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
 # JSON: {"name":…,"latitude":…,"longitude":…}
 ```
 

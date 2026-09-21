@@ -3,7 +3,9 @@
 import CryptoKit
 import Foundation
 
-let keyID = "ASC_KEY_ID"
+// Set ASC_KEY_ID and ASC_ISSUER_ID in the environment; the .p8 lives in
+// ~/.appstoreconnect/private_keys and never in this repository.
+let keyID = ProcessInfo.processInfo.environment["ASC_KEY_ID"] ?? ""
 let home = FileManager.default.homeDirectoryForCurrentUser
 let issuer = try! String(contentsOf: home.appendingPathComponent(".appstoreconnect/issuer_id.txt"), encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
 let pem = try! String(contentsOf: home.appendingPathComponent(".appstoreconnect/private_keys/AuthKey_\(keyID).p8"), encoding: .utf8)
