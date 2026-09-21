@@ -244,13 +244,51 @@ struct CountdownBox: View {
         .accessibilityLabel(left.map { "Losgehen in \(Self.text($0))" } ?? "Keine feste Abfahrt")
     }
 
-    /// Red while it counts, dark red once the trip has left, grey when idle.
+    /// How much of a hurry the countdown is in. The steps are the default alert
+    /// minutes, so the colour changes at the same moments the app beeps.
+    enum Urgency: Equatable {
+        /// No fixed departure to count to.
+        case idle
+        /// More than half an hour — nothing to do.
+        case plenty
+        /// Half an hour down to the first warning.
+        case soon
+        /// Past the first warning at 10 min: time to wind up.
+        case wrapUp
+        /// Past the last warning at 5 min, or already overdue: get going.
+        case go
+        /// The trip has left.
+        case gone
+
+        /// Every step keeps white text, so each tone has to be dark enough for it.
+        var colors: [Color] {
+            switch self {
+            case .idle: [.clear]
+            case .plenty: [Color(red: 0.11, green: 0.60, blue: 0.31), Color(red: 0.05, green: 0.44, blue: 0.22)]
+            case .soon: [Color(red: 0.72, green: 0.48, blue: 0.03), Color(red: 0.54, green: 0.35, blue: 0.02)]
+            case .wrapUp: [Color(red: 0.84, green: 0.35, blue: 0.03), Color(red: 0.64, green: 0.23, blue: 0.02)]
+            case .go: [Color(red: 0.90, green: 0.16, blue: 0.22), Color(red: 0.76, green: 0.07, blue: 0.16)]
+            case .gone: [Color(red: 0.45, green: 0.05, blue: 0.09), Color(red: 0.33, green: 0.03, blue: 0.06)]
+            }
+        }
+    }
+
+    /// Green, amber, orange, red, dark red — counted against getting ready,
+    /// so red means the door, not the platform.
+    static func urgency(_ left: TimeInterval?, gone: Bool = false) -> Urgency {
+        guard let left else { return .idle }
+        if gone { return .gone }
+        let minutes = left / 60
+        if minutes > 30 { return .plenty }
+        if minutes > 10 { return .soon }
+        if minutes > 5 { return .wrapUp }
+        return .go
+    }
+
     static func box(_ left: TimeInterval?, gone: Bool = false) -> AnyShapeStyle {
-        guard left != nil else { return AnyShapeStyle(Color.primary.opacity(0.06)) }
-        if gone { return AnyShapeStyle(Color(red: 0.45, green: 0.05, blue: 0.09)) }
-        return AnyShapeStyle(LinearGradient(colors: [Color(red: 0.90, green: 0.16, blue: 0.22),
-                                                     Color(red: 0.76, green: 0.07, blue: 0.16)],
-                                            startPoint: .top, endPoint: .bottom))
+        let step = urgency(left, gone: gone)
+        guard step != .idle else { return AnyShapeStyle(Color.primary.opacity(0.06)) }
+        return AnyShapeStyle(LinearGradient(colors: step.colors, startPoint: .top, endPoint: .bottom))
     }
 
     static func text(_ left: TimeInterval) -> String {

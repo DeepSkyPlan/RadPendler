@@ -373,14 +373,28 @@ struct RouteMapView: UIViewRepresentable {
     }
 }
 
-/// Play/pause and scrubber for the radar frames.
+/// Play/pause and scrubber for the radar frames — and, on the main screen, the
+/// line underneath that says how old the plan above it is.
 struct RadarControls: View {
     var frames: [Date]
     @Binding var index: Int
     @Binding var visible: Bool
+    /// When the plan on screen was computed; nil leaves the second line away.
+    var lastRun: Date? = nil
+    var loading = false
+    var onRefresh: (() -> Void)? = nil
     @State private var playing = false
 
     var body: some View {
+        VStack(spacing: 5) {
+            controls
+            if let onRefresh { LastRunLine(lastRun: lastRun, loading: loading, action: onRefresh) }
+        }
+        .padding(10)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var controls: some View {
         HStack(spacing: 10) {
             Toggle(isOn: $visible) { Image(systemName: "cloud.rain") }
                 .toggleStyle(.button)
@@ -421,8 +435,6 @@ struct RadarControls: View {
                 Spacer()
             }
         }
-        .padding(10)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .task(id: playing) {
             while playing, !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(700))
@@ -451,12 +463,63 @@ struct RadarControls: View {
     }
 }
 
+/// When the plan above was computed and how long ago that was, on the same
+/// axis as the radar minutes. Tapping it plans again — the main screen does not
+/// scroll any more, so there is no pull.
+struct LastRunLine: View {
+    var lastRun: Date?
+    var loading: Bool
+    var action: () -> Void
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 15)) { context in
+            Button(action: action) {
+                HStack(spacing: 5) {
+                    Text(text(now: context.date))
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                    Spacer(minLength: 4)
+                    if loading {
+                        ProgressView().controlSize(.mini)
+                    } else {
+                        Image(systemName: "arrow.clockwise").font(.system(size: 10, weight: .bold))
+                    }
+                }
+                .foregroundStyle(.secondary)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(lastRun == nil ? "Neu berechnen" : "Berechnet \(text(now: context.date)). Tippen für neu berechnen.")
+        }
+    }
+
+    private func text(now: Date) -> String {
+        guard let lastRun else { return loading ? "wird berechnet …" : "neu berechnen" }
+        return "Stand \(Fmt.time(lastRun)) · \(Self.ago(now.timeIntervalSince(lastRun)))"
+    }
+
+    /// How old the plan is, in the shortest words that are still exact enough.
+    static func ago(_ seconds: TimeInterval) -> String {
+        let s = Int(max(seconds, 0).rounded())
+        if s < 60 { return "gerade eben" }
+        let m = s / 60
+        if m < 60 { return "vor \(m) min" }
+        return m % 60 == 0 ? "vor \(m / 60) h" : String(format: "vor %d:%02d h", m / 60, m % 60)
+    }
+}
+
 /// Map plus radar controls, shared by the map tab and the detail screen.
 struct TripMapPanel: View {
     var options: [TripOption]
     var selectedID: TripOption.ID?
     var waypoints: [Place] = []
     var onSelect: ((TripOption.ID) -> Void)? = nil
+    /// The stamp on the time axis: when the plan was computed, and the way back
+    /// to a fresh one. Left away on the detail screen, which plans nothing.
+    var lastRun: Date? = nil
+    var loading = false
+    var onRefresh: (() -> Void)? = nil
     @State private var frames = RadarTileOverlay.frameTimes()
     @State private var index = 0
     @State private var radarOn = true
@@ -468,7 +531,8 @@ struct TripMapPanel: View {
             RouteMapView(options: options, selectedID: selectedID, radarFrames: radarOn ? frames : [],
                          radarTime: radarOn && frames.indices.contains(index) ? frames[index] : nil,
                          waypoints: waypoints, onSelect: onSelect)
-            RadarControls(frames: frames, index: $index, visible: $radarOn)
+            RadarControls(frames: frames, index: $index, visible: $radarOn,
+                          lastRun: lastRun, loading: loading, onRefresh: onRefresh)
                 .padding(8)
         }
         .onAppear { resetFrames() }
