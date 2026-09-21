@@ -1,4 +1,4 @@
-# RadPendler — Übergabe (Stand 20.09.2026, 0.6.1 / Build 12)
+# RadPendler — Übergabe (Stand 21.09.2026, 0.7.0 / Build 12)
 
 Multimodaler Pendel-Planer für iOS: Musterstraße 1 (Büro) ↔ Beispielweg 2 (Musterort)
 mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln, Regen und Countdown.
@@ -40,7 +40,9 @@ xcrun simctl spawn booted defaults write de.keese.radpendler origin -data <hex-j
   `BikeTransitComposer`), `Alarm`.
 - `App/PlanModel.swift` — Zustand: `when` (departNow / departAt / arriveAt), Auswahl je Modus,
   `countdownOption`, `applyDefaultWhen`.
-- `Views/` — `ContentView` (eine Seite: Kopfzeile, Karte, Boxenreihe, Fahrtzeile), `ModeStrip`
+- `Views/` — `ContentView` (eine Seite **ohne ScrollView**: Kopfzeile, Karte, Boxenreihe,
+  Fahrtzeile; alles außer der Karte hat feste Höhe, die Karte nimmt den Rest. `LastRunPill`
+  auf der Karte zeigt den Stand und ist der Knopf zum Neuberechnen), `ModeStrip`
   (+ `SelectedTripBar`), `HelpView` (Anleitung aus dem Burger-Menü),
   `RouteMapView` (MKMapView-Wrapper mit Radar, Schildern, Ampelpunkten, Long-Press),
   `TripDetailView` (Zeitstrahl), `SettingsView`, `Theme` (Design-Bausteine, `CountdownBox`,
@@ -66,6 +68,8 @@ xcrun simctl spawn booted defaults write de.keese.radpendler origin -data <hex-j
 
 ## Festlegungen des Nutzers (nicht ohne Rückfrage ändern)
 
+- Die Hauptseite muss ohne Scrollen passen. Was dazukommt, kostet Kartenhöhe — Details
+  gehören hinter den Pfeil in `TripDetailView`.
 - Radgeschwindigkeit ist die **rollende** Geschwindigkeit (29 km/h) plus 20 s je Ampelkreuzung;
   zusammen ergibt das seine gemessenen ~21 km/h.
 - **S-Bahn und Regionalzug zuerst** (festes Radabteil), U-Bahn und Tram nur als markierte
@@ -78,6 +82,11 @@ xcrun simctl spawn booted defaults write de.keese.radpendler origin -data <hex-j
 - Blockreihenfolge: Fahrrad, Rad + Bahn, Auto, Bahn & Bus.
 
 ## Offen / Ideen
+
+- Logo-Vorschläge liegen als `_reports/RadPendler_Logos.html` (sechs Entwürfe plus das
+  heutige Zeichen, je in 132/60/29 px). Die gewählte Form muss in **zwei** Fassungen
+  gezeichnet werden: `tools/make_icon.swift` für die 1024er-PNG und `AppMark` in
+  `Views/Theme.swift` für die Titelzeile.
 
 - Mitteilungen laufen als `UNTimeIntervalNotificationTrigger` und werden bei jeder Planänderung
   neu gesetzt (`Alarm.schedule`, Schlüssel `ContentView.alarmKey`). Im Hintergrund plant die App

@@ -33,4 +33,14 @@ final class CountdownTests: XCTestCase {
             XCTAssertEqual(DeparturePreset(stored: p.stored), p)
         }
     }
+
+    func testAgeOfThePlanOnTheMap() {
+        XCTAssertEqual(LastRunPill.ago(0), "gerade eben")
+        XCTAssertEqual(LastRunPill.ago(59), "gerade eben")
+        XCTAssertEqual(LastRunPill.ago(60), "vor 1 min")
+        XCTAssertEqual(LastRunPill.ago(59 * 60), "vor 59 min")
+        XCTAssertEqual(LastRunPill.ago(3600), "vor 1 h")
+        XCTAssertEqual(LastRunPill.ago(3600 + 7 * 60), "vor 1:07 h")
+        XCTAssertEqual(LastRunPill.ago(-5), "gerade eben", "a clock that jumped back is not a future plan")
+    }
 }

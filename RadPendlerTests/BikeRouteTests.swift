@@ -78,4 +78,36 @@ final class BikeRouteTests: XCTestCase {
         XCTAssertEqual(picked.count, 1)
         XCTAssertEqual(picked[0].1, [.fastest, .shortest, .balanced, .quiet])
     }
+
+    // MARK: Car alternatives
+
+    private func carLine(_ meters: Double, minutes: Double, signals: Int) -> CarCandidate {
+        let route = StreetRoute(distance: meters, expectedTravelTime: minutes * 60,
+                                coordinates: [c(0, 0), c(0, meters)])
+        return CarCandidate(route: route,
+                            stats: BikeRouteStats(signals: signals, crossings: [], mainRoadMeters: 0))
+    }
+
+    func testCarRolesGoToTheLineThatWinsThem() {
+        let motorway = carLine(30_000, minutes: 28, signals: 12)   // long, quick, few lights
+        let town = carLine(21_000, minutes: 35, signals: 41)       // short, slow, many lights
+        let middle = carLine(24_000, minutes: 31, signals: 5)      // fewest lights
+        let picked = CarCandidate.pick([town, motorway, middle])
+        XCTAssertEqual(picked.map(\.1), [[.fastest], [.shortest], [.fewSignals]])
+        XCTAssertEqual(picked[0].0.route.distance, 30_000, "the fastest comes first — it is the default")
+        XCTAssertEqual(picked[1].0.route.distance, 21_000)
+        XCTAssertEqual(picked[2].0.signals, 5)
+    }
+
+    func testOneCarLineIsJustTheFastest() {
+        let only = carLine(26_000, minutes: 33, signals: 20)
+        XCTAssertEqual(CarCandidate.pick([only]).map(\.1), [[.fastest]],
+                       "three labels on a single route say nothing")
+    }
+
+    func testCarWithoutOpenStreetMapDataStillSeparatesQuickAndShort() {
+        let a = CarCandidate(route: StreetRoute(distance: 30_000, expectedTravelTime: 28 * 60, coordinates: []), stats: nil)
+        let b = CarCandidate(route: StreetRoute(distance: 21_000, expectedTravelTime: 35 * 60, coordinates: []), stats: nil)
+        XCTAssertEqual(CarCandidate.pick([a, b]).map(\.1), [[.fastest], [.shortest]])
+    }
 }

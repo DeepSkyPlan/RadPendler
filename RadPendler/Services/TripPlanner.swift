@@ -142,18 +142,32 @@ struct TripPlanner {
         }
     }
 
+    /// The car as the two or three lines Apple actually offers, labelled the
+    /// way the bike routes are: schnellst (the default), kürzest, wenig Ampeln.
+    /// The lights come from the same OpenStreetMap data the bike routes use —
+    /// on a commute that is the difference between the autobahn detour and the
+    /// straight run through town.
     func carOptions(_ req: PlanRequest) async throws -> [TripOption] {
         let guess = req.arriveBy ?? req.earliestLeave
-        let r = try await streets.route(from: req.origin.coordinate, to: req.destination.coordinate,
-                                        mode: .car, departure: guess)
+        let found = try await apple.routes(from: req.origin.coordinate, to: req.destination.coordinate,
+                                           mode: .car, departure: guess)
+        let data = try? await roads.data(covering: found.flatMap(\.coordinates))
+        let candidates = found.map { route in
+            CarCandidate(route: route,
+                         stats: data.map { RouteAnalyzer.analyze(route.coordinates, roads: $0) })
+        }
         let parking = TimeInterval(req.settings.parkingMinutes * 60)
-        let drive = r.expectedTravelTime + parking
-        let leave = req.arriveBy.map { $0.addingTimeInterval(-drive) } ?? req.earliestLeave
-        let leg = Leg(kind: .car, fromName: req.origin.shortName, toName: req.destination.shortName,
-                      departure: leave, arrival: leave.addingTimeInterval(drive),
-                      distance: r.distance, coordinates: r.coordinates)
-        let note = parking > 0 ? "inkl. \(req.settings.parkingMinutes) min Parkplatzsuche" : "Fahrzeit laut Apple Karten mit Verkehrslage"
-        return [TripOption(mode: .car, legs: [leg], prep: req.settings.prep, note: note)]
+        return CarCandidate.pick(candidates).map { c, variants in
+            let drive = c.route.expectedTravelTime + parking
+            let leave = req.arriveBy.map { $0.addingTimeInterval(-drive) } ?? req.earliestLeave
+            let leg = Leg(kind: .car, fromName: req.origin.shortName, toName: req.destination.shortName,
+                          departure: leave, arrival: leave.addingTimeInterval(drive),
+                          distance: c.route.distance, coordinates: c.route.coordinates)
+            let note = parking > 0 ? "inkl. \(req.settings.parkingMinutes) min Parkplatzsuche" : "Fahrzeit laut Apple Karten mit Verkehrslage"
+            return TripOption(mode: .car, legs: [leg], prep: req.settings.prep, note: note,
+                              carRoute: CarRouteInfo(variants: variants, signals: c.stats?.signals,
+                                                     signalPoints: c.stats?.signalPoints ?? []))
+        }
     }
 
     func transitOptions(_ req: PlanRequest) async throws -> [TripOption] {
@@ -412,6 +426,33 @@ enum BikeTransitComposer {
         return bySignature.values
             .sorted { TripPlanner.ranking($0, $1, penalty: penalty, arrival: arrival) }
             .prefix(count).map { $0 }
+    }
+}
+
+/// One car line and how it scores. Apple gives the times; the lights come
+/// from OpenStreetMap, and without them only speed and length can be judged.
+struct CarCandidate {
+    var route: StreetRoute
+    var stats: BikeRouteStats?
+
+    var signals: Int? { stats?.signals }
+
+    /// schnellst = least driving time, kürzest = fewest metres, wenig Ampeln =
+    /// fewest signalised junctions. A line winning several roles is listed once
+    /// with all its labels; when one line wins everything it is simply the
+    /// fastest, because three labels on a single route say nothing.
+    static func pick(_ all: [CarCandidate]) -> [(CarCandidate, [CarVariant])] {
+        guard let fastest = all.indices.min(by: { all[$0].route.expectedTravelTime < all[$1].route.expectedTravelTime })
+        else { return [] }
+        var roles: [Int: [CarVariant]] = [fastest: [.fastest]]
+        let shortest = all.indices.min { all[$0].route.distance < all[$1].route.distance }!
+        roles[shortest, default: []].append(.shortest)
+        if all.contains(where: { $0.signals != nil }) {
+            let quiet = all.indices.min { (all[$0].signals ?? .max) < (all[$1].signals ?? .max) }!
+            roles[quiet, default: []].append(.fewSignals)
+        }
+        if roles.count == 1 { return [(all[fastest], [.fastest])] }
+        return roles.sorted { $0.value.min()! < $1.value.min()! }.map { (all[$0.key], $0.value.sorted()) }
     }
 }
 
