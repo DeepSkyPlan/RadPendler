@@ -26,7 +26,9 @@ struct SettingsView: View {
                 } header: {
                     Text("Adressen")
                 } footer: {
-                    Text("Die App wird ohne Adressen ausgeliefert. Start und Ziel bleiben nur auf diesem Gerät gespeichert.")
+                    Text(CloudStore.shared.available
+                         ? "Die App wird ohne Adressen ausgeliefert. Start, Ziel, die benutzten Adressen und alle Einstellungen gleichen sich über deine iCloud mit deinen anderen Geräten ab — sonst verlässt nichts davon deine Geräte."
+                         : "Die App wird ohne Adressen ausgeliefert. Start und Ziel bleiben nur auf diesem Gerät gespeichert. Mit einem angemeldeten iCloud-Konto gleichen sie sich mit deinen anderen Geräten ab.")
                 }
                 Section {
                     Stepper("Rüstzeit: \(settings.prepMinutes) min", value: $settings.prepMinutes, in: 0...30)

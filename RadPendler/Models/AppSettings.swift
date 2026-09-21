@@ -5,54 +5,54 @@ import Observation
 @Observable
 final class AppSettings {
     /// Empty until the user picks one; then kept on the device.
-    var origin: Place? { didSet { save(origin, "origin") } }
-    var destination: Place? { didSet { save(destination, "destination") } }
+    var origin: Place? = nil { didSet { save(origin, "origin") } }
+    var destination: Place? = nil { didSet { save(destination, "destination") } }
     /// Minutes between "plan now" and walking out of the door.
-    var prepMinutes: Int { didSet { defaults.set(prepMinutes, forKey: "prepMinutes") } }
+    var prepMinutes: Int = 5 { didSet { defaults.set(prepMinutes, forKey: "prepMinutes") } }
     /// Average cycling speed; MapKit's own cycling ETA is ignored.
     /// Speed while rolling, without stops; lights are added per junction.
     /// (0.1.x stored an all-in average under "bikeSpeedKmh" — deliberately not read.)
-    var bikeSpeedKmh: Double { didSet { defaults.set(bikeSpeedKmh, forKey: "bikeMovingSpeedKmh") } }
+    var bikeSpeedKmh: Double = AppSettings.defaultBikeSpeedKmh { didSet { defaults.set(bikeSpeedKmh, forKey: "bikeMovingSpeedKmh") } }
     /// Time to get the bike from the street onto the platform, and back.
-    var bikeStationBufferMinutes: Int { didSet { defaults.set(bikeStationBufferMinutes, forKey: "bikeStationBufferMinutes") } }
+    var bikeStationBufferMinutes: Int = 3 { didSet { defaults.set(bikeStationBufferMinutes, forKey: "bikeStationBufferMinutes") } }
     /// Farthest station the bike+rail search rides to, at either end.
-    var maxBikeToStationKm: Double { didSet { defaults.set(maxBikeToStationKm, forKey: "maxBikeToStationKm") } }
+    var maxBikeToStationKm: Double = 5 { didSet { defaults.set(maxBikeToStationKm, forKey: "maxBikeToStationKm") } }
     /// Added to every car trip for finding a parking space.
-    var parkingMinutes: Int { didSet { defaults.set(parkingMinutes, forKey: "parkingMinutes") } }
+    var parkingMinutes: Int = 0 { didSet { defaults.set(parkingMinutes, forKey: "parkingMinutes") } }
     /// How many minutes of travel time one change of train is worth avoiding.
-    var transferPenaltyMinutes: Int { didSet { defaults.set(transferPenaltyMinutes, forKey: "transferPenaltyMinutes") } }
+    var transferPenaltyMinutes: Int = 10 { didSet { defaults.set(transferPenaltyMinutes, forKey: "transferPenaltyMinutes") } }
     /// Quick departure choices: "in 15 min" or "um 8:00".
-    var departurePresets: [DeparturePreset] {
+    var departurePresets: [DeparturePreset] = [.relative(15), .relative(60), .clock(8, 0), .clock(18, 0)] {
         didSet { defaults.set(departurePresets.map(\.stored), forKey: "departurePresets2") }
     }
 
     /// Places a route has to touch, e.g. "S Musterhausen" — routes that miss
     /// them are shown greyed out at the end of their section.
-    var waypoints: [Place] { didSet { defaults.set(try? JSONEncoder().encode(waypoints), forKey: "waypoints") } }
+    var waypoints: [Place] = [] { didSet { defaults.set(try? JSONEncoder().encode(waypoints), forKey: "waypoints") } }
     /// true: a route must touch every fixed point, false: one is enough.
-    var requireAllWaypoints: Bool { didSet { defaults.set(requireAllWaypoints, forKey: "requireAllWaypoints") } }
+    var requireAllWaypoints: Bool = false { didSet { defaults.set(requireAllWaypoints, forKey: "requireAllWaypoints") } }
 
     /// Extra minutes before every departure that are not travel time.
-    var departureBufferMinutes: Int { didSet { defaults.set(departureBufferMinutes, forKey: "departureBufferMinutes") } }
+    var departureBufferMinutes: Int = 0 { didSet { defaults.set(departureBufferMinutes, forKey: "departureBufferMinutes") } }
     /// How many minutes before the wanted arrival the trip should be there.
-    var arrivalBufferMinutes: Int { didSet { defaults.set(arrivalBufferMinutes, forKey: "arrivalBufferMinutes") } }
+    var arrivalBufferMinutes: Int = 5 { didSet { defaults.set(arrivalBufferMinutes, forKey: "arrivalBufferMinutes") } }
     /// The address the commute goes to in the morning; trips towards it default
     /// to "be there at …" instead of "leave now".
-    var workPlace: Place? { didSet { save(workPlace, "workPlace") } }
+    var workPlace: Place? = nil { didSet { save(workPlace, "workPlace") } }
     /// Default arrival time for trips towards the work address.
-    var workArrivalMinutes: Int { didSet { defaults.set(workArrivalMinutes, forKey: "workArrivalMinutes") } }
+    var workArrivalMinutes: Int = 9 * 60 { didSet { defaults.set(workArrivalMinutes, forKey: "workArrivalMinutes") } }
     /// Minutes before departure at which the countdown beeps.
-    var alertMinutes: [Int] { didSet { defaults.set(alertMinutes, forKey: "alertMinutes") } }
-    var alertsOn: Bool { didSet { defaults.set(alertsOn, forKey: "alertsOn") } }
+    var alertMinutes: [Int] = [10, 5, 1] { didSet { defaults.set(alertMinutes, forKey: "alertMinutes") } }
+    var alertsOn: Bool = true { didSet { defaults.set(alertsOn, forKey: "alertsOn") } }
 
     /// Addresses that have been used before, with how often — the list the
     /// search offers before anything is typed. Device only, like the addresses.
-    var placeHistory: [PlaceUse] {
+    var placeHistory: [PlaceUse] = [] {
         didSet { defaults.set(try? JSONEncoder().encode(placeHistory), forKey: "placeHistory") }
     }
 
     /// Average wait per traffic light on the bike (half of them are green).
-    var signalWaitSeconds: Int { didSet { defaults.set(signalWaitSeconds, forKey: "signalWaitSeconds") } }
+    var signalWaitSeconds: Int = 20 { didSet { defaults.set(signalWaitSeconds, forKey: "signalWaitSeconds") } }
 
     /// 29 km/h rolling + 20 s per signalised junction reproduces the user's
     /// measured ~21 km/h door-to-door on the Musterstraße–Beispielweg commute.
@@ -62,27 +62,35 @@ final class AppSettings {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        origin = Self.load("origin", defaults)
-        destination = Self.load("destination", defaults)
-        prepMinutes = defaults.object(forKey: "prepMinutes") as? Int ?? 5
-        bikeSpeedKmh = defaults.object(forKey: "bikeMovingSpeedKmh") as? Double ?? Self.defaultBikeSpeedKmh
-        bikeStationBufferMinutes = defaults.object(forKey: "bikeStationBufferMinutes") as? Int ?? 3
-        maxBikeToStationKm = defaults.object(forKey: "maxBikeToStationKm") as? Double ?? 5
-        parkingMinutes = defaults.object(forKey: "parkingMinutes") as? Int ?? 0
-        transferPenaltyMinutes = defaults.object(forKey: "transferPenaltyMinutes") as? Int ?? 10
-        signalWaitSeconds = defaults.object(forKey: "signalWaitSeconds") as? Int ?? 20
+        load()
+    }
+
+    /// Reads everything out of UserDefaults. Also the way back in after iCloud
+    /// handed us another device's settings — every property keeps what it has
+    /// when the key is missing, so a partial store cannot wipe anything.
+    func load() {
+        origin = Self.place("origin", defaults)
+        destination = Self.place("destination", defaults)
+        workPlace = Self.place("workPlace", defaults)
+        prepMinutes = defaults.object(forKey: "prepMinutes") as? Int ?? prepMinutes
+        // 0.1.x stored an all-in average under "bikeSpeedKmh" — deliberately not read.
+        bikeSpeedKmh = defaults.object(forKey: "bikeMovingSpeedKmh") as? Double ?? bikeSpeedKmh
+        bikeStationBufferMinutes = defaults.object(forKey: "bikeStationBufferMinutes") as? Int ?? bikeStationBufferMinutes
+        maxBikeToStationKm = defaults.object(forKey: "maxBikeToStationKm") as? Double ?? maxBikeToStationKm
+        parkingMinutes = defaults.object(forKey: "parkingMinutes") as? Int ?? parkingMinutes
+        transferPenaltyMinutes = defaults.object(forKey: "transferPenaltyMinutes") as? Int ?? transferPenaltyMinutes
+        signalWaitSeconds = defaults.object(forKey: "signalWaitSeconds") as? Int ?? signalWaitSeconds
         departurePresets = (defaults.array(forKey: "departurePresets2") as? [String])?
-            .compactMap(DeparturePreset.init(stored:)) ?? [.relative(15), .relative(60), .clock(8, 0), .clock(18, 0)]
-        waypoints = defaults.data(forKey: "waypoints").flatMap { try? JSONDecoder().decode([Place].self, from: $0) } ?? []
-        requireAllWaypoints = defaults.object(forKey: "requireAllWaypoints") as? Bool ?? false
-        departureBufferMinutes = defaults.object(forKey: "departureBufferMinutes") as? Int ?? 0
-        arrivalBufferMinutes = defaults.object(forKey: "arrivalBufferMinutes") as? Int ?? 5
-        workPlace = Self.load("workPlace", defaults)
-        workArrivalMinutes = defaults.object(forKey: "workArrivalMinutes") as? Int ?? 9 * 60
-        alertMinutes = defaults.array(forKey: "alertMinutes") as? [Int] ?? [10, 5, 1]
-        alertsOn = defaults.object(forKey: "alertsOn") as? Bool ?? true
+            .compactMap(DeparturePreset.init(stored:)) ?? departurePresets
+        waypoints = defaults.data(forKey: "waypoints").flatMap { try? JSONDecoder().decode([Place].self, from: $0) } ?? waypoints
+        requireAllWaypoints = defaults.object(forKey: "requireAllWaypoints") as? Bool ?? requireAllWaypoints
+        departureBufferMinutes = defaults.object(forKey: "departureBufferMinutes") as? Int ?? departureBufferMinutes
+        arrivalBufferMinutes = defaults.object(forKey: "arrivalBufferMinutes") as? Int ?? arrivalBufferMinutes
+        workArrivalMinutes = defaults.object(forKey: "workArrivalMinutes") as? Int ?? workArrivalMinutes
+        alertMinutes = defaults.array(forKey: "alertMinutes") as? [Int] ?? alertMinutes
+        alertsOn = defaults.object(forKey: "alertsOn") as? Bool ?? alertsOn
         placeHistory = defaults.data(forKey: "placeHistory")
-            .flatMap { try? JSONDecoder().decode([PlaceUse].self, from: $0) } ?? []
+            .flatMap { try? JSONDecoder().decode([PlaceUse].self, from: $0) } ?? placeHistory
     }
 
     /// Called whenever an address is picked, wherever it was picked.
@@ -126,7 +134,7 @@ final class AppSettings {
         defaults.set(try? JSONEncoder().encode(place), forKey: key)
     }
 
-    private static func load(_ key: String, _ defaults: UserDefaults) -> Place? {
+    private static func place(_ key: String, _ defaults: UserDefaults) -> Place? {
         defaults.data(forKey: key).flatMap { try? JSONDecoder().decode(Place.self, from: $0) }
     }
 }

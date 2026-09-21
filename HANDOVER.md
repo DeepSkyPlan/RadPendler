@@ -41,7 +41,9 @@ xcrun simctl spawn booted defaults write de.keese.radpendler origin -data <hex-j
   (benutzte Adressen mit Zähler; `ranked`, `matching`, `recording` als reine Funktionen auf
   `[PlaceUse]`), `AppSettings` (+ `PlanSettings` als Wertkopie, `DeparturePreset`), `Trip`
   (`TripOption`, `Leg`, `TravelMode`, `BikeVariant`, `CarVariant`, `TransitProduct`).
-- `Services/` — `Hafas` (VBB mgate + Parser), `BRouter` (+ `CompositeRouter`), `StreetRouter`
+- `Services/` — `CloudStore` (iCloud-Schlüssel-Wert-Abgleich der Einstellungen; hört auf
+  `UserDefaults.didChangeNotification` statt auf zwanzig Setter, `placeHistory` wird
+  zusammengeführt statt ersetzt), `WatchLink` (Plan an die Uhr), `Hafas` (VBB mgate + Parser), `BRouter` (+ `CompositeRouter`), `StreetRouter`
   (MapKit), `RoadData` (Overpass + `RouteAnalyzer` + `SegmentGrid`), `Rain` (Open-Meteo),
   `RadarOverlay` (DWD-WMS-Kacheln), `Waypoints`, `TripPlanner` (+ `BikeCandidate`,
   `BikeTransitComposer`), `Alarm`.
@@ -100,8 +102,12 @@ xcrun simctl spawn booted defaults write de.keese.radpendler origin -data <hex-j
 - Umstiege zählen wie 10 min Fahrzeit (einstellbar), direkte Verbindungen gewinnen.
 - Farben: Rad grün, Auto rot, Bus orange, alles auf Schienen blau (S hell, U dunkel, RE/Tram
   dazwischen), Fähre türkis, Rad + Bahn `#00ADA3`.
-- **Keine Adressen im Programm** — die App startet leer, Adressen bleiben auf dem Gerät.
-  Das gilt auch für den Verlauf der benutzten Adressen (`AppSettings.placeHistory`).
+- **Keine Adressen im Programm** — die App startet leer. Adressen und Einstellungen liegen
+  auf dem Gerät und in der **privaten iCloud des Nutzers** (Schlüssel-Wert-Speicher,
+  Entitlement `com.apple.developer.ubiquity-kvstore-identifier`); sie gehen an keinen
+  Server der App. Das gilt auch für den Verlauf der benutzten Adressen.
+- `AppSettings.load()` ist zugleich das Neuladen nach einem iCloud-Zug: jede Eigenschaft
+  behält ihren Wert, wenn der Schlüssel fehlt — ein halber Speicher darf nichts löschen.
 - Adressen werden immer mit PLZ und Ort gezeigt; in der Kopfzeile klein hinter der Straße,
   sonst als zweite Zeile.
 - Blockreihenfolge: Fahrrad, Rad + Bahn, Auto, Bahn & Bus.

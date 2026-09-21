@@ -232,4 +232,26 @@ final class PlannerTests: XCTestCase {
         XCTAssertNil(bare.areaLine)
         XCTAssertEqual(bare.withArea, "Irgendwo")
     }
+
+    func testHistoryMergeKeepsWhatEitherDeviceKnew() {
+        let a = place("Musterstraße 1", 52.5333, 13.3667)
+        let b = place("Beispielweg 2", 52.4086, 13.2261)
+        let c = place("Potsdamer Platz 1", 52.5096, 13.3760)
+        let phone = [PlaceUse(place: a, count: 5, lastUsed: t0),
+                     PlaceUse(place: b, count: 2, lastUsed: t0)]
+        let pad = [PlaceUse(place: a, count: 3, lastUsed: t0.addingTimeInterval(600)),
+                   PlaceUse(place: c, count: 1, lastUsed: t0)]
+        let merged = phone.merging(pad)
+        XCTAssertEqual(merged.map(\.place.shortName), ["Musterstraße 1", "Beispielweg 2", "Potsdamer Platz 1"],
+                       "nothing either side knew may fall out")
+        XCTAssertEqual(merged[0].count, 5, "the higher count wins")
+        XCTAssertEqual(merged[0].lastUsed, t0.addingTimeInterval(600), "the later use wins")
+    }
+
+    func testHistoryMergeFallsBackWhenOneSideIsUnreadable() {
+        let good = try! JSONEncoder().encode([PlaceUse(place: place("A", 52, 13), count: 1, lastUsed: t0)])
+        XCTAssertNil(CloudStore.mergedHistory(local: nil, cloud: good), "nothing local: take what came in")
+        XCTAssertNil(CloudStore.mergedHistory(local: Data("kaputt".utf8), cloud: good))
+        XCTAssertNotNil(CloudStore.mergedHistory(local: good, cloud: good))
+    }
 }

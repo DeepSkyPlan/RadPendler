@@ -69,6 +69,20 @@ extension Array where Element == PlaceUse {
         }
     }
 
+    /// Two devices' lists into one: per address the higher count and the later
+    /// use. Monotone on purpose — a device that has only just pulled from iCloud
+    /// must not be able to shrink the list it did not see yet.
+    func merging(_ other: [PlaceUse], limit: Int = 40) -> [PlaceUse] {
+        var byKey: [String: PlaceUse] = [:]
+        for use in self + other {
+            guard let there = byKey[use.id] else { byKey[use.id] = use; continue }
+            byKey[use.id] = PlaceUse(place: use.lastUsed >= there.lastUsed ? use.place : there.place,
+                                     count: Swift.max(use.count, there.count),
+                                     lastUsed: Swift.max(use.lastUsed, there.lastUsed))
+        }
+        return Array(Array(byKey.values).ranked.prefix(limit))
+    }
+
     /// Counts a use, keeping the newest name and coordinates for the entry.
     func recording(_ place: Place, now: Date = .now, limit: Int = 40) -> [PlaceUse] {
         var out = self
