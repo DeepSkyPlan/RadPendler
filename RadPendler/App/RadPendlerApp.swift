@@ -4,6 +4,12 @@ import SwiftUI
 struct RadPendlerApp: App {
     @State private var settings = AppSettings()
 
+    init() {
+        // Up before the first plan lands, so the first search already reaches
+        // the watch instead of waiting for the second.
+        WatchLink.shared.start()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()

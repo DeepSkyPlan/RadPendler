@@ -3,8 +3,13 @@ import SwiftUI
 /// One screen, and it fits without scrolling: where from and to, when, the map,
 /// the four modes as a strip of boxes and the chosen route in two lines
 /// underneath. Everything else is one tap away.
+///
+/// On an iPad the same pieces stand side by side — the controls in a column of
+/// their own, the map taking the whole rest of the screen — so the app is an
+/// iPad app rather than a phone screen blown up.
 struct ContentView: View {
     @Environment(AppSettings.self) private var settings
+    @Environment(\.horizontalSizeClass) private var widthClass
     @State private var model = PlanModel()
     @State private var showSettings = false
     @State private var showHelp = false
@@ -15,56 +20,16 @@ struct ContentView: View {
         var id: Self { self }
     }
 
+    /// iPad and every other regular width: two columns instead of one.
+    private var isWide: Bool { widthClass == .regular }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Theme.background
                 // No ScrollView: the screen is meant to fit, so everything but
                 // the map has a fixed height and the map takes what is left.
-                VStack(spacing: 10) {
-                    RouteHeader(origin: settings.origin, destination: settings.destination,
-                                when: $model.when, prepMinutes: settings.prepMinutes,
-                                presets: settings.departurePresets,
-                                onEdit: { editing = $0 },
-                                onSwap: { settings.swapDirection(); model.applyDefaultWhen(settings: settings); refresh() },
-                                onWhenChange: refresh)
-                    if model.needsAddresses {
-                        ContentUnavailableView("Start und Ziel wählen", systemImage: "mappin.and.ellipse",
-                                               description: Text("Oben auf die beiden Zeilen tippen. Die Adressen bleiben auf diesem Gerät."))
-                        Spacer(minLength: 0)
-                    } else {
-                        // The stamp rides in the radar bar, on the time axis
-                        // it belongs to; since the page no longer scrolls it is
-                        // also the way to plan again.
-                        TripMapPanel(options: model.options, selectedID: model.selected?.id,
-                                     waypoints: settings.waypoints,
-                                     onSelect: { select($0) },
-                                     lastRun: model.lastRun, loading: model.isLoading,
-                                     onRefresh: refresh)
-                            .frame(minHeight: 150, maxHeight: .infinity)
-                            .clipShape(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: Theme.corner, style: .continuous)
-                                    .strokeBorder(Color.primary.opacity(0.06))
-                            }
-                            .padding(.horizontal, Theme.gutter)
-                        if let rainFailure = model.result.rainFailure {
-                            Label(rainFailure, systemImage: "cloud.slash")
-                                .font(.system(.caption2, design: .rounded))
-                                .foregroundStyle(.orange)
-                                .lineLimit(1)
-                                .padding(.horizontal, Theme.gutter + 4)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        ModeStrip(model: model)
-                            .padding(.horizontal, Theme.gutter)
-                        if let option = model.selected {
-                            SelectedTripBar(model: model, option: option)
-                                .padding(.horizontal, Theme.gutter)
-                        }
-                    }
-                }
-                .padding(.vertical, 6)
+                content
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
@@ -120,6 +85,109 @@ struct ContentView: View {
             }
         }
         .tint(Theme.accent)
+    }
+
+    @ViewBuilder private var content: some View {
+        if model.needsAddresses {
+            VStack(spacing: 10) {
+                header
+                ContentUnavailableView("Start und Ziel wählen", systemImage: "mappin.and.ellipse",
+                                       description: Text("Oben auf die beiden Zeilen tippen. Die Adressen bleiben auf diesem Gerät."))
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 6)
+        } else if isWide {
+            HStack(alignment: .top, spacing: 0) {
+                VStack(spacing: 14) {
+                    header
+                    modes
+                    tripBar
+                    rainNote
+                    // The column is taller than the controls need, so the
+                    // whole detail goes in: why this trip, what kind of route
+                    // it is, and every leg. On an iPad nothing is behind a tap.
+                    if let option = model.selected {
+                        ScrollView {
+                            VStack(spacing: 12) {
+                                TripNotes(option: option, reason: reason(for: option))
+                                    .padding(.horizontal, 2)
+                                TripFacts(option: option)
+                                TripTimeline(option: option)
+                                    .padding(14)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .card()
+                            }
+                            .padding(.horizontal, Theme.gutter)
+                            .padding(.bottom, 8)
+                        }
+                        .scrollIndicators(.hidden)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .frame(width: 400)
+                map.padding(.trailing, Theme.gutter)
+            }
+            .padding(.vertical, 8)
+        } else {
+            VStack(spacing: 10) {
+                header
+                map.padding(.horizontal, Theme.gutter)
+                rainNote
+                modes
+                tripBar
+            }
+            .padding(.vertical, 6)
+        }
+    }
+
+    private var header: some View {
+        RouteHeader(origin: settings.origin, destination: settings.destination,
+                    when: $model.when, prepMinutes: settings.prepMinutes,
+                    presets: settings.departurePresets,
+                    onEdit: { editing = $0 },
+                    onSwap: { settings.swapDirection(); model.applyDefaultWhen(settings: settings); refresh() },
+                    onWhenChange: refresh)
+    }
+
+    /// The stamp rides in the radar bar, on the time axis it belongs to; since
+    /// the page does not scroll it is also the way to plan again.
+    private var map: some View {
+        TripMapPanel(options: model.options, selectedID: model.selected?.id,
+                     waypoints: settings.waypoints,
+                     onSelect: { select($0) },
+                     lastRun: model.lastRun, loading: model.isLoading,
+                     onRefresh: refresh)
+            .frame(minHeight: 150, maxHeight: .infinity)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: Theme.corner, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.06))
+            }
+    }
+
+    private func reason(for option: TripOption) -> String? {
+        model.recommended?.id == option.id ? model.result.recommendation?.reason : nil
+    }
+
+    private var modes: some View {
+        ModeStrip(model: model).padding(.horizontal, Theme.gutter)
+    }
+
+    @ViewBuilder private var tripBar: some View {
+        if let option = model.selected {
+            SelectedTripBar(model: model, option: option).padding(.horizontal, Theme.gutter)
+        }
+    }
+
+    @ViewBuilder private var rainNote: some View {
+        if let rainFailure = model.result.rainFailure {
+            Label(rainFailure, systemImage: "cloud.slash")
+                .font(.system(.caption2, design: .rounded))
+                .foregroundStyle(.orange)
+                .lineLimit(1)
+                .padding(.horizontal, Theme.gutter + 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     /// Everything that is not the plan itself, behind one quiet button.
