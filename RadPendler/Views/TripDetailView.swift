@@ -100,6 +100,11 @@ struct TripNotes: View {
     private var notes: [Note] {
         var out: [Note] = []
         if let reason { out.append(Note(text: reason, symbol: "sparkles", tint: .secondary)) }
+        if option.bikeCarriageUnclear {
+            let open = option.transitLegs.filter { $0.bikeCarriage == .unknown }.compactMap(\.lineName)
+            out.append(Note(text: "Fahrradmitnahme ungeklärt: \(open.joined(separator: ", ")) — in den Einstellungen unter „Fahrradmitnahme“ festlegen",
+                            symbol: "questionmark.circle", tint: .orange))
+        }
         if option.isAlternative {
             out.append(Note(text: "Alternative mit U-Bahn/Tram — kein festes Radabteil",
                             symbol: "arrow.triangle.branch", tint: .orange))
@@ -218,10 +223,9 @@ struct LegTimelineRow: View {
                     Chip(text: Fmt.duration(leg.duration), symbol: "clock")
                 }
                 if leg.isTransit {
-                    Label(leg.bikeCarriage ? "Fahrradmitnahme möglich" : "keine Angabe zur Fahrradmitnahme",
-                          systemImage: leg.bikeCarriage ? "bicycle" : "questionmark.circle")
+                    Label(leg.bikeCarriage.legNote, systemImage: leg.bikeCarriage.symbol)
                         .font(.system(.caption2, design: .rounded))
-                        .foregroundStyle(leg.bikeCarriage ? LegKind.bike.color : .secondary)
+                        .foregroundStyle(leg.bikeCarriage.tint)
                 }
                 if leg.cancelled {
                     Text("Fällt aus").font(.system(.caption, design: .rounded, weight: .bold)).foregroundStyle(.red)

@@ -408,9 +408,13 @@ enum BikeTransitComposer {
                         station1: String, ride1: StreetRoute, journey: [Leg],
                         station2: String, ride2: StreetRoute,
                         settings s: PlanSettings, earliestLeave: Date) -> TripOption? {
-        let transit = journey.filter(\.isTransit)
+        var transit = journey.filter(\.isTransit)
         guard let firstTrain = transit.first, let lastTrain = transit.last,
-              transit.allSatisfy({ $0.bikeCarriage && !$0.cancelled }) else { return nil }
+              transit.allSatisfy({ !$0.cancelled }) else { return nil }
+        // A line the user has ruled out is out. One nobody has judged stays in,
+        // with the warning — that is the whole point of the list.
+        guard transit.allSatisfy({ s.carriage($0) != .no }) else { return nil }
+        transit = transit.map { var l = $0; l.bikeCarriage = s.carriage($0); return l }
 
         // Leave as late as still catches the first train. Walk legs HAFAS puts
         // in front (platform changes inside the station) count as buffer.
@@ -428,7 +432,14 @@ enum BikeTransitComposer {
         let last = Leg(kind: .bike, fromName: station2, toName: destination.shortName,
                        departure: ride2Start, arrival: ride2Start.addingTimeInterval(s.rideTime(ride2)),
                        distance: ride2.distance, coordinates: ride2.coordinates)
-        return TripOption(mode: .bikeTransit, legs: [first] + journey + [last], prep: s.prep,
+        // The legs keep the decision, so the timeline and the warnings agree.
+        let decided = journey.map { leg -> Leg in
+            guard leg.isTransit else { return leg }
+            var l = leg
+            l.bikeCarriage = s.carriage(leg)
+            return l
+        }
+        return TripOption(mode: .bikeTransit, legs: [first] + decided + [last], prep: s.prep,
                           note: "\(s.bikeStationBufferMinutes) min Puffer je Bahnhof fürs Rad")
     }
 

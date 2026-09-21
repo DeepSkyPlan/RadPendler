@@ -17,7 +17,8 @@ final class PlannerTests: XCTestCase {
         return StreetRoute(distance: meters, expectedTravelTime: 0, coordinates: [a, b])
     }
 
-    private func train(_ name: String, dep: TimeInterval, arr: TimeInterval, bike: Bool = true,
+    private func train(_ name: String, dep: TimeInterval, arr: TimeInterval,
+                       bike: BikeCarriage = .yes,
                        product: TransitProduct = .suburban) -> Leg {
         Leg(kind: .transit(line: name, product: product), fromName: "A", toName: "B",
             departure: t0.addingTimeInterval(dep), arrival: t0.addingTimeInterval(arr),
@@ -69,11 +70,56 @@ final class PlannerTests: XCTestCase {
         XCTAssertEqual(option.bikeDistance, 5600)
     }
 
-    func testComposeRejectsTrainWithoutBikeCarriage() {
-        let journey = [train("S7", dep: 30 * 60, arr: 40 * 60), train("RE1", dep: 45 * 60, arr: 55 * 60, bike: false)]
+    func testATrainNobodyHasJudgedIsOfferedWithAWarning() {
+        // No FK remark is not a "no" — it is a question for the user, and the
+        // trip is worth showing while it is open.
+        let journey = [train("S7", dep: 30 * 60, arr: 40 * 60),
+                       train("RE1", dep: 45 * 60, arr: 55 * 60, bike: .unknown)]
+        let option = BikeTransitComposer.compose(
+            origin: from, destination: to, station1: "A", ride1: line(1000), journey: journey,
+            station2: "B", ride2: line(1000), settings: settings, earliestLeave: t0)
+        XCTAssertNotNil(option)
+        XCTAssertTrue(option?.bikeCarriageUnclear ?? false)
+        XCTAssertEqual(option?.transitLegs.filter { $0.bikeCarriage == .unknown }.compactMap(\.lineName), ["RE1"])
+    }
+
+    func testALineTheUserRuledOutIsGone() {
+        var s = settings
+        s.bikeLineStatus = ["RE1": false]
+        let journey = [train("S7", dep: 30 * 60, arr: 40 * 60),
+                       train("RE1", dep: 45 * 60, arr: 55 * 60, bike: .unknown)]
         XCTAssertNil(BikeTransitComposer.compose(
             origin: from, destination: to, station1: "A", ride1: line(1000), journey: journey,
-            station2: "B", ride2: line(1000), settings: settings, earliestLeave: t0))
+            station2: "B", ride2: line(1000), settings: s, earliestLeave: t0))
+    }
+
+    func testTheUsersWordBeatsTheTimetable() {
+        var s = settings
+        s.bikeLineStatus = ["RE1": true]
+        let journey = [train("RE1", dep: 30 * 60, arr: 55 * 60, bike: .unknown)]
+        let option = BikeTransitComposer.compose(
+            origin: from, destination: to, station1: "A", ride1: line(1000), journey: journey,
+            station2: "B", ride2: line(1000), settings: s, earliestLeave: t0)
+        XCTAssertEqual(option?.transitLegs.first?.bikeCarriage, .yes)
+        XCTAssertFalse(option?.bikeCarriageUnclear ?? true, "decided is decided — no warning")
+    }
+
+    func testTheLineListFillsItselfAndKeepsWhatWasDecided() {
+        let t = t0
+        var lines: [BikeLine] = []
+        lines = lines.noting([("S7", .yes), ("M11", .unknown)], now: t)
+        XCTAssertEqual(lines.count, 2)
+        XCTAssertEqual(lines.first { $0.name == "S7" }?.allowed, true, "what the timetable vouches for is pre-filled")
+        XCTAssertNil(lines.first { $0.name == "M11" }?.allowed, "the rest stays open")
+
+        lines = lines.map { $0.name == "M11" ? BikeLine(name: "M11", allowed: false, lastSeen: t) : $0 }
+        lines = lines.noting([("M11", .yes), ("RE1", .unknown)], now: t.addingTimeInterval(60))
+        XCTAssertEqual(lines.first { $0.name == "M11" }?.allowed, false,
+                       "a decision the user made is never overwritten by the timetable")
+        XCTAssertEqual(lines.count, 3)
+        XCTAssertEqual(lines.status, ["S7": true, "M11": false])
+        XCTAssertEqual(lines.sortedForList.map(\.name), ["S7", "M11", "RE1"],
+                       "decided first, the open ones last — they are the list's job")
     }
 
     func testComposeRejectsTrainThatCannotBeReachedAfterPrep() {
@@ -359,5 +405,16 @@ final class PlannerTests: XCTestCase {
         again.resetPriorities()
         XCTAssertEqual(again.modeOrder, TravelMode.defaultOrder)
         XCTAssertEqual(again.rainSwitchLevel, .light)
+    }
+
+    func testCloudOnlyWritesWhatActuallyChanged() {
+        XCTAssertTrue(CloudStore.same(nil, nil))
+        XCTAssertFalse(CloudStore.same(5, nil))
+        XCTAssertTrue(CloudStore.same(5, 5))
+        XCTAssertTrue(CloudStore.same([10, 5, 1], [10, 5, 1]), "arrays compare by content")
+        XCTAssertFalse(CloudStore.same([10, 5, 1], [10, 5]))
+        let data = Data("Musterstraße".utf8)
+        XCTAssertTrue(CloudStore.same(data, Data("Musterstraße".utf8)), "and so does the encoded history")
+        XCTAssertFalse(CloudStore.same(data, Data("Beispielweg".utf8)))
     }
 }

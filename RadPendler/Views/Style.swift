@@ -135,3 +135,29 @@ struct LineBadge: View {
             .background(leg.kind.color, in: RoundedRectangle(cornerRadius: 4))
     }
 }
+
+extension BikeCarriage {
+    var legNote: String {
+        switch self {
+        case .yes: "Fahrradmitnahme möglich"
+        case .no: "keine Fahrradmitnahme"
+        case .unknown: "Fahrradmitnahme ungeklärt"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .yes: "bicycle"
+        case .no: "bicycle.slash"
+        case .unknown: "questionmark.circle"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .yes: LegKind.bike.color
+        case .no: .red
+        case .unknown: .orange
+        }
+    }
+}

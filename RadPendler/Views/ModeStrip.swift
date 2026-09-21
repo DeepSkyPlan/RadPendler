@@ -200,6 +200,9 @@ struct SelectedTripBar: View {
         if let rain = option.rain, rain.level != .dry {
             return Note(text: rain.summary, symbol: rain.level.symbol, tint: rain.level.color)
         }
+        if option.bikeCarriageUnclear {
+            return Note(text: "Rad ungeklärt", symbol: "questionmark.circle", tint: .orange)
+        }
         if option.isAlternative {
             return Note(text: "U-Bahn/Tram", symbol: "arrow.triangle.branch", tint: .orange)
         }

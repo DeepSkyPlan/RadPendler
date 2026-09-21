@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.10.1 (Build 17, noch nicht hochgeladen)
+## 0.11.0 (Build 17, noch nicht hochgeladen)
+- **Zuhause und Arbeit** sind jetzt richtige Adressen in den Einstellungen, jede über die Adresssuche wählbar. Beide bekommen überall ein Zeichen — in der Kopfzeile der Hauptseite, in der Adresssuche und in der Liste der benutzten Adressen — und stehen in der Suche ganz oben.
+- **Fahrradmitnahme pro Linie**: eine neue Liste in den Einstellungen sammelt die Linien, die in gefundenen Verbindungen vorkommen. Was die Auskunft selbst zusichert (VBB-Vermerk `FK`), steht schon auf „Rad ja"; alles andere entscheidest du — ja, nein oder offen. Linien lassen sich auch von Hand eintragen. **Offene Linien werden nicht mehr verschwiegen**: die Verbindung wird vorgeschlagen und trägt den Hinweis „Mitnahme ungeklärt", bis du entschieden hast. Ein „Rad nein" nimmt die Linie aus den Rad + Bahn-Vorschlägen heraus.
+- Das Scrollen in den Einstellungen ruckelte: der iCloud-Abgleich schrieb bei **jeder** Änderung an den Systemeinstellungen den ganzen Satz neu und flusht ihn auf Platte. Jetzt wird nur geschrieben, was sich wirklich geändert hat, und das außerhalb des Hauptthreads.
+- Das Menü ist ein eigenes kleines Fenster statt eines iOS-Menüs: Version und Copyright klein auf getrennten Zeilen, die Quellen als „Datenquellen:" ebenso klein und kursiv.
+- **Das Projekt ist quelloffen** (MIT) — Voraussetzung für die kommende Anbindung von Transitous/MOTIS. Die Testdaten wurden dafür auf neutrale Adressen gebracht, die App selbst enthielt noch nie welche.
+
+## 0.10.1 (Build 17, in 0.11.0 aufgegangen)
 - Das Burger-Menü ist jetzt ein eigenes kleines Fenster statt eines iOS-Menüs: Version und Copyright stehen klein und **auf getrennten Zeilen**, die Quellen heißen **„Datenquellen:"** und stehen ebenso klein und **kursiv** darunter. Ein iOS-Menü zeichnet nur einfachen Text in einer Größe — deshalb der Wechsel.
 
 ## 0.10.0 (Build 16, TestFlight 2026-09-21)
@@ -102,6 +109,6 @@
 ## 0.1.0 (1) — 2026-09-19
 - Erste Version: Liste und Karte für Fahrrad, Rad + Bahn (nur Züge mit Fahrradmitnahme), Bus & Bahn, Auto.
 - Rad + Bahn bevorzugt S-Bahn und Regionalzug (festes Radabteil); U-Bahn/Tram nur als markierte Alternative.
-- Büroadresse: Musterstraße 1, 10557 Berlin.
+- Büroadresse: Musterstraße 1, 10115 Berlin.
 - Rüstzeit (Standard 5 min), Radgeschwindigkeit (Standard 21 km/h), Bahnhofspuffer, Radius, Parkplatzsuche einstellbar.
 - Regenvorhersage entlang der Radstrecke zur Durchfahrtszeit; animiertes DWD-Regenradar mit Position auf der Route.

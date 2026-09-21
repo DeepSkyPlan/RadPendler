@@ -85,6 +85,20 @@ struct SettingsView: View {
                     Text("Fahrgeschwindigkeit = Tempo beim Rollen, ohne Halte. Die Fahrzeit ist Strecke ÷ Fahrgeschwindigkeit plus die Wartezeit je Ampelkreuzung (inkl. Anfahren); daraus ergibt sich der angezeigte Schnitt „Ø … km/h“. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung auf der Strecke addiert. Für die ganze Strecke gibt es bis zu drei Routen: kürzest, Mittelweg und ruhigst (wenig Ampeln, wenig Hauptstraßen). Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet.")
                 }
                 Section {
+                    NavigationLink {
+                        BikeLinesView()
+                    } label: {
+                        LabeledContent("Fahrradmitnahme") {
+                            let open = settings.bikeLines.filter { $0.allowed == nil }.count
+                            Text(settings.bikeLines.isEmpty ? "noch keine Linie"
+                                 : (open == 0 ? "alle geklärt" : "\(open) offen"))
+                                .foregroundStyle(open > 0 ? .orange : .secondary)
+                        }
+                    }
+                } footer: {
+                    Text("Welche Linien das Rad mitnehmen, weißt du besser als jeder Fahrplan. Die Liste füllt sich mit den Linien, die in gefundenen Verbindungen vorkommen; was die Auskunft selbst zusichert, steht schon auf „ja“. Solange eine Linie offen ist, wird die Fahrt trotzdem vorgeschlagen — mit dem Hinweis, dass die Mitnahme ungeklärt ist.")
+                }
+                Section {
                     Stepper("Umstieg zählt wie \(settings.transferPenaltyMinutes) min", value: $settings.transferPenaltyMinutes, in: 0...30)
                 } header: {
                     Text("Umsteigen")
@@ -112,23 +126,33 @@ struct SettingsView: View {
                     Text("Diese Vorschläge stehen oben neben „Jetzt“ zur Wahl — relativ („in 15 min“) oder als Uhrzeit („um 8 Uhr“, heute oder morgen).")
                 }
                 Section {
-                    Picker("Arbeitsadresse", selection: Binding(
-                        get: { settings.isWork(settings.destination) ? 1 : (settings.isWork(settings.origin) ? 0 : 2) },
-                        set: { settings.workPlace = $0 == 0 ? settings.origin : ($0 == 1 ? settings.destination : nil) })) {
-                        Text(settings.origin?.shortName ?? "Start").tag(0)
-                        Text(settings.destination?.shortName ?? "Ziel").tag(1)
-                        Text("keine").tag(2)
+                    ForEach(PlaceRole.allCases, id: \.self) { role in
+                        NavigationLink {
+                            AddressSearchView(title: role.title) { settings.setPlace($0, for: role) }
+                        } label: {
+                            LabeledContent {
+                                Text(settings.place(for: role)?.withArea ?? "nicht gesetzt")
+                            } label: {
+                                Label(role.title, systemImage: role.symbol)
+                            }
+                        }
                     }
-                    DatePicker("Dort sein um", selection: Binding(
+                    if settings.homePlace != nil || settings.workPlace != nil {
+                        Button("Beide vergessen", role: .destructive) {
+                            settings.homePlace = nil
+                            settings.workPlace = nil
+                        }
+                    }
+                    DatePicker("Bei der Arbeit sein um", selection: Binding(
                         get: { DeparturePreset.clock(settings.workArrivalMinutes / 60, settings.workArrivalMinutes % 60).date() },
                         set: { d in
                             let c = Calendar.current.dateComponents([.hour, .minute], from: d)
                             settings.workArrivalMinutes = (c.hour ?? 9) * 60 + (c.minute ?? 0)
                         }), displayedComponents: .hourAndMinute)
                 } header: {
-                    Text("Arbeitsweg")
+                    Text("Zuhause und Arbeit")
                 } footer: {
-                    Text("Fahrten zur Arbeitsadresse starten mit „Ankunft um …“, Fahrten nach Hause mit „Abfahrt jetzt“. Von Hand umschaltbar.")
+                    Text("Diese zwei bekommen überall ein Zeichen — in der Adresssuche, in der Liste der benutzten Adressen und oben auf der Hauptseite — und stehen in der Suche ganz oben. Fahrten zur Arbeit starten mit „Ankunft um …“, Fahrten nach Hause mit „Abfahrt jetzt“; von Hand umschaltbar.")
                 }
                 Section {
                     Stepper("Puffer vor der Abfahrt: \(settings.departureBufferMinutes) min",
@@ -221,6 +245,99 @@ struct SettingsView: View {
     }
 }
 
+/// The lines the app has met, and what the user says about taking the bike on
+/// each. Lines arrive by themselves out of the found routes; a line that has
+/// not turned up yet can be added by hand.
+struct BikeLinesView: View {
+    @Environment(AppSettings.self) private var settings
+    @State private var newLine = ""
+
+    var body: some View {
+        List {
+            Section {
+                HStack {
+                    TextField("Linie, z. B. RE 7", text: $newLine)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.characters)
+                        .onSubmit(add)
+                    Button("Hinzufügen", action: add)
+                        .disabled(newLine.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            } footer: {
+                Text("Für Linien, die noch in keiner Verbindung vorkamen.")
+            }
+            if settings.bikeLines.isEmpty {
+                Section {
+                    Text("Noch keine Linie. Sobald die App eine Verbindung mit Bahn oder Bus findet, stehen deren Linien hier.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+            } else {
+                Section {
+                    ForEach(settings.bikeLines.sortedForList) { line in
+                        HStack(spacing: 10) {
+                            Text(line.name)
+                                .font(.system(.subheadline, design: .rounded, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 7).padding(.vertical, 2)
+                                .background(Theme.accent, in: RoundedRectangle(cornerRadius: 5))
+                            Spacer(minLength: 0)
+                            Picker("", selection: Binding(
+                                get: { line.allowed },
+                                set: { settings.setBikeLine(line.name, allowed: $0) })) {
+                                Text("Rad ja").tag(Bool?.some(true))
+                                Text("Rad nein").tag(Bool?.some(false))
+                                Text("offen").tag(Bool?.none)
+                            }
+                            .pickerStyle(.menu)
+                            .labelsHidden()
+                            .tint(line.allowed == nil ? .orange : .secondary)
+                        }
+                        .swipeActions {
+                            Button("Löschen", role: .destructive) {
+                                settings.bikeLines.removeAll { $0.name == line.name }
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Gesehene Linien")
+                } footer: {
+                    Text("„offen“ heißt: die Verbindung wird weiter vorgeschlagen, aber mit dem Hinweis, dass die Mitnahme ungeklärt ist. „Rad nein“ nimmt sie aus den Rad + Bahn-Vorschlägen heraus.")
+                }
+            }
+        }
+        .navigationTitle("Fahrradmitnahme")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func add() {
+        let name = newLine.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return }
+        settings.setBikeLine(name, allowed: true)
+        newLine = ""
+    }
+}
+
+/// "Zuhause" or "Arbeit" as a small capsule — the mark those two addresses
+/// carry everywhere they appear.
+struct RoleBadge: View {
+    var role: PlaceRole
+    var compact = false
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: role.symbol).font(.system(size: compact ? 8 : 9, weight: .semibold))
+            if !compact {
+                Text(role.title).font(.system(size: 10, weight: .semibold, design: .rounded))
+            }
+        }
+        .foregroundStyle(Theme.accent)
+        .padding(.horizontal, compact ? 4 : 6)
+        .padding(.vertical, 2)
+        .background(Theme.accent.opacity(0.12), in: Capsule())
+        .accessibilityLabel(role.title)
+    }
+}
+
 /// One list of preferences, dragged into the order the user wants. No edit
 /// button: with three or four rows, always-on dragging is less in the way than
 /// a mode to switch into.
@@ -273,10 +390,39 @@ struct AddressSearchView: View {
 
     private var known: [PlaceUse] { settings.placeHistory.matching(query) }
 
+    /// The two named addresses, when they exist and match what is typed.
+    private var named: [(PlaceRole, Place)] {
+        PlaceRole.allCases.compactMap { role in
+            guard let place = settings.place(for: role) else { return nil }
+            let q = query.trimmingCharacters(in: .whitespaces)
+            guard q.isEmpty || place.name.range(of: q, options: [.caseInsensitive, .diacriticInsensitive]) != nil
+                    || role.title.range(of: q, options: [.caseInsensitive]) != nil else { return nil }
+            return (role, place)
+        }
+    }
+
     var body: some View {
         List {
             if let error {
                 Text(error).foregroundStyle(.orange)
+            }
+            if !named.isEmpty {
+                Section {
+                    ForEach(named, id: \.0) { role, place in
+                        Button { pick(place) } label: {
+                            HStack(spacing: 10) {
+                                RoleBadge(role: role)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(place.shortName).foregroundStyle(.primary)
+                                    if let area = place.areaLine {
+                                        Text(area).font(.caption).foregroundStyle(.secondary)
+                                    }
+                                }
+                                Spacer(minLength: 0)
+                            }
+                        }
+                    }
+                }
             }
             if !known.isEmpty {
                 Section("Schon benutzt") {
@@ -310,7 +456,7 @@ struct AddressSearchView: View {
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .overlay {
-            if known.isEmpty && completer.results.isEmpty && query.isEmpty {
+            if named.isEmpty && known.isEmpty && completer.results.isEmpty && query.isEmpty {
                 ContentUnavailableView("Noch keine Adresse", systemImage: "magnifyingglass",
                                        description: Text("Tippen, um zu suchen. Was einmal gewählt wurde, steht beim nächsten Mal oben — je öfter benutzt, desto weiter oben."))
             }
@@ -322,7 +468,10 @@ struct AddressSearchView: View {
     private func row(_ use: PlaceUse) -> some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 1) {
-                Text(use.place.shortName).foregroundStyle(.primary)
+                HStack(spacing: 6) {
+                    Text(use.place.shortName).foregroundStyle(.primary)
+                    if let role = settings.role(of: use.place) { RoleBadge(role: role) }
+                }
                 if let area = use.place.areaLine {
                     Text(area).font(.caption).foregroundStyle(.secondary)
                 }

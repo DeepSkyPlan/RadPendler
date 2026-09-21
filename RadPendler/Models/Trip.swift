@@ -134,6 +134,12 @@ struct BikeRouteInfo {
     var title: String { variants.map(\.title).joined(separator: " · ") }
 }
 
+/// Whether the bike may come along. `unknown` is a real answer, not a missing
+/// one: the trip is still offered, with a warning, until the user has said.
+enum BikeCarriage: String, Codable, Equatable {
+    case yes, no, unknown
+}
+
 enum LegKind: Equatable {
     case walk
     case bike
@@ -156,8 +162,10 @@ struct Leg: Identifiable {
     var departurePlatform: String? = nil
     var arrivalPlatform: String? = nil
     var direction: String? = nil
-    /// For transit legs: HAFAS says this train carries bikes (remark "FK").
-    var bikeCarriage = false
+    /// What is known about taking the bike on this leg. The timetable only ever
+    /// says yes or nothing; the user decides the rest, per line, in the
+    /// settings. Nothing is guessed.
+    var bikeCarriage: BikeCarriage = .unknown
     var cancelled = false
 
     var duration: TimeInterval { arrival.timeIntervalSince(departure) }
@@ -231,6 +239,12 @@ struct TripOption: Identifiable {
 
     var transferText: String? {
         transitLegs.isEmpty ? nil : (transfers == 0 ? "direkt" : "\(transfers)× umsteigen")
+    }
+
+    /// At least one leg whose bike carriage nobody has confirmed — shown with
+    /// a warning instead of being hidden.
+    var bikeCarriageUnclear: Bool {
+        mode == .bikeTransit && transitLegs.contains { $0.bikeCarriage == .unknown }
     }
 
     /// Bike+rail using U-Bahn or tram somewhere: shown, but only as the

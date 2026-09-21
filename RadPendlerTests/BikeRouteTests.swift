@@ -45,8 +45,8 @@ final class BikeRouteTests: XCTestCase {
         let r = try BRouterClient.parse(Data(contentsOf: url))
         XCTAssertEqual(r.distance, 19663)
         XCTAssertGreaterThan(r.coordinates.count, 500)
-        XCTAssertEqual(r.coordinates.first!.latitude, 52.536, accuracy: 0.002)
-        XCTAssertEqual(r.coordinates.last!.latitude, 52.409, accuracy: 0.002)
+        XCTAssertEqual(r.coordinates.first!.latitude, 52.786, accuracy: 0.002)
+        XCTAssertEqual(r.coordinates.last!.latitude, 52.660, accuracy: 0.002)
     }
 
     private func candidate(_ name: String, km: Double, signals: Int, crossings: Int, mainKm: Double) -> BikeCandidate {

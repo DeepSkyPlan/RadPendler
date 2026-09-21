@@ -2,7 +2,7 @@ import CoreLocation
 
 /// A named point the trip starts or ends at.
 struct Place: Codable, Equatable, Hashable {
-    /// Full text, e.g. "Musterstraße 1, 10557 Berlin".
+    /// Full text, e.g. "Musterstraße 1, 10115 Berlin".
     var name: String
     var latitude: Double
     var longitude: Double
@@ -43,6 +43,15 @@ struct Place: Codable, Equatable, Hashable {
     var key: String {
         String(format: "%.4f,%.4f", latitude, longitude)
     }
+}
+
+/// The two addresses that mean something by themselves — the commute runs
+/// between them, and they get a mark wherever an address is shown.
+enum PlaceRole: String, CaseIterable {
+    case home, work
+
+    var title: String { self == .home ? "Zuhause" : "Arbeit" }
+    var symbol: String { self == .home ? "house.fill" : "briefcase.fill" }
 }
 
 /// One address that has been used before, with how often.
@@ -101,5 +110,61 @@ extension CLLocationCoordinate2D {
     func distance(to other: CLLocationCoordinate2D) -> CLLocationDistance {
         CLLocation(latitude: latitude, longitude: longitude)
             .distance(from: CLLocation(latitude: other.latitude, longitude: other.longitude))
+    }
+}
+
+/// One transit line and what the user has decided about taking the bike on it.
+/// The names come out of the routes the app has actually found — nothing is
+/// invented, and nothing is assumed.
+struct BikeLine: Codable, Equatable, Identifiable, Hashable {
+    /// "S7", "RE1", "M11" — as the timetable names it.
+    var name: String
+    /// nil until the user has said; that is what the warning is about.
+    var allowed: Bool?
+    /// When this line was last part of a found route, for sorting.
+    var lastSeen: Date
+
+    var id: String { name }
+
+    var status: BikeCarriage {
+        guard let allowed else { return .unknown }
+        return allowed ? .yes : .no
+    }
+}
+
+extension Array where Element == BikeLine {
+    /// Decided lines first (allowed before refused), then the open ones, each
+    /// group alphabetically — the open ones are the list's actual job.
+    var sortedForList: [BikeLine] {
+        sorted {
+            if ($0.allowed == nil) != ($1.allowed == nil) { return $1.allowed == nil }
+            if $0.allowed != $1.allowed { return $0.allowed == true }
+            return $0.name.localizedStandardCompare($1.name) == .orderedAscending
+        }
+    }
+
+    /// Notes the lines a plan used. A line that is already decided keeps its
+    /// decision; a new one arrives open. `known` pre-fills what the timetable
+    /// itself vouched for, so the user only has to judge the rest.
+    func noting(_ seen: [(name: String, known: BikeCarriage)], now: Date = .now) -> [BikeLine] {
+        var out = self
+        for line in seen where !line.name.isEmpty {
+            if let i = out.firstIndex(where: { $0.name == line.name }) {
+                out[i].lastSeen = now
+                if out[i].allowed == nil, line.known == .yes { out[i].allowed = true }
+            } else {
+                out.append(BikeLine(name: line.name,
+                                    allowed: line.known == .yes ? true : nil,
+                                    lastSeen: now))
+            }
+        }
+        return out
+    }
+
+    /// name → decision, for handing into a planning run.
+    var status: [String: Bool] {
+        reduce(into: [:]) { out, line in
+            if let allowed = line.allowed { out[line.name] = allowed }
+        }
     }
 }
