@@ -41,8 +41,8 @@ xcrun simctl spawn booted defaults write de.keese.radpendler origin -data <hex-j
 - `App/PlanModel.swift` — Zustand: `when` (departNow / departAt / arriveAt), Auswahl je Modus,
   `countdownOption`, `applyDefaultWhen`.
 - `Views/` — `ContentView` (eine Seite **ohne ScrollView**: Kopfzeile, Karte, Boxenreihe,
-  Fahrtzeile; alles außer der Karte hat feste Höhe, die Karte nimmt den Rest. `LastRunPill`
-  auf der Karte zeigt den Stand und ist der Knopf zum Neuberechnen), `ModeStrip`
+  Fahrtzeile; alles außer der Karte hat feste Höhe, die Karte nimmt den Rest. `LastRunLine`
+  in der Radarpille zeigt den Stand und ist der Knopf zum Neuberechnen), `ModeStrip`
   (+ `SelectedTripBar`), `HelpView` (Anleitung aus dem Burger-Menü),
   `RouteMapView` (MKMapView-Wrapper mit Radar, Schildern, Ampelpunkten, Long-Press),
   `TripDetailView` (Zeitstrahl), `SettingsView`, `Theme` (Design-Bausteine, `CountdownBox`,
