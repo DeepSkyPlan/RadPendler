@@ -16,8 +16,8 @@ final class CloudStore {
     /// Exactly what is worth carrying — never everything UserDefaults holds.
     /// The watch's own keys (the last plan, what the wrist picked) are not in
     /// here: that state belongs to the watch it was made on.
-    static let keys = ["origin", "destination", "workPlace", "waypoints", "placeHistory",
-                       "departurePresets2", "prepMinutes", "bikeMovingSpeedKmh",
+    static let keys = ["origin", "destination", "workPlace", "homePlace", "waypoints", "placeHistory",
+                       "bikeLines", "departurePresets2", "prepMinutes", "bikeMovingSpeedKmh",
                        "bikeStationBufferMinutes", "maxBikeToStationKm", "parkingMinutes",
                        "transferPenaltyMinutes", "signalWaitSeconds", "requireAllWaypoints",
                        "departureBufferMinutes", "arrivalBufferMinutes", "workArrivalMinutes",
@@ -37,6 +37,12 @@ final class CloudStore {
     private var applying = false
     private var pushWork: DispatchWorkItem?
     private var started = false
+    /// What was last handed to iCloud. `UserDefaults.didChangeNotification`
+    /// fires for every write anywhere in the process, most of which have
+    /// nothing to do with us; without this the store was rewritten and flushed
+    /// every half second, and the settings list stuttered while scrolling.
+    private var pushed: [String: Any] = [:]
+    private let queue = DispatchQueue(label: "de.keese.radpendler.cloud", qos: .utility)
 
     /// Whether iCloud is doing anything at all — for the line in the settings.
     private(set) var available = false
@@ -59,29 +65,47 @@ final class CloudStore {
         } else {
             pull(Self.keys)
         }
+        for key in Self.keys where pushed[key] == nil { pushed[key] = defaults.object(forKey: key) }
     }
 
     // MARK: Out
 
     @objc private func localChanged() {
         guard !applying else { return }
-        // Settings arrive in bursts (a sheet closing writes several); one push
-        // just after the burst instead of one per key.
+        // Settings arrive in bursts (a sheet closing writes several); one look
+        // just after the burst instead of one per notification.
         pushWork?.cancel()
         let work = DispatchWorkItem { [weak self] in self?.push(Self.keys) }
         pushWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
     }
 
+    /// Writes only what actually differs from what iCloud already has, and
+    /// writes it off the main thread — `synchronize()` touches the disk.
     private func push(_ keys: [String]) {
+        var changed: [String: Any?] = [:]
         for key in keys {
-            if let value = defaults.object(forKey: key) {
-                cloud.set(value, forKey: key)
-            } else {
-                cloud.removeObject(forKey: key)
-            }
+            let value = defaults.object(forKey: key)
+            guard !Self.same(value, pushed[key]) else { continue }
+            changed[key] = value
+            if let value { pushed[key] = value } else { pushed[key] = nil }
         }
-        cloud.synchronize()
+        guard !changed.isEmpty else { return }
+        queue.async { [cloud] in
+            for (key, value) in changed {
+                if let value { cloud.set(value, forKey: key) } else { cloud.removeObject(forKey: key) }
+            }
+            cloud.synchronize()
+        }
+    }
+
+    /// Property-list values compare by content, not by identity.
+    static func same(_ a: Any?, _ b: Any?) -> Bool {
+        switch (a, b) {
+        case (nil, nil): true
+        case (nil, _), (_, nil): false
+        default: NSDictionary(dictionary: ["v": a!]).isEqual(to: ["v": b!])
+        }
     }
 
     // MARK: In
@@ -103,6 +127,7 @@ final class CloudStore {
                 defaults.set(value, forKey: key)
             }
         }
+        for key in keys { pushed[key] = defaults.object(forKey: key) }
         onPull?()
         applying = false
         // Whatever the merge produced has to go back out, or the other device

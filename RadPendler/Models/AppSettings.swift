@@ -39,6 +39,9 @@ final class AppSettings {
     /// The address the commute goes to in the morning; trips towards it default
     /// to "be there at …" instead of "leave now".
     var workPlace: Place? = nil { didSet { save(workPlace, "workPlace") } }
+    /// Where the commute comes back to. Marked wherever an address is shown,
+    /// and offered first in the address search.
+    var homePlace: Place? = nil { didSet { save(homePlace, "homePlace") } }
     /// Default arrival time for trips towards the work address.
     var workArrivalMinutes: Int = 9 * 60 { didSet { defaults.set(workArrivalMinutes, forKey: "workArrivalMinutes") } }
     /// Minutes before departure at which the countdown beeps.
@@ -71,11 +74,18 @@ final class AppSettings {
         didSet { defaults.set(rainSwitchLevel.rawValue, forKey: "rainSwitchLevel") }
     }
 
+    /// Lines the app has seen in a route, and what the user decided about
+    /// taking the bike on them. Open entries are the reason a trip can carry
+    /// the warning "Mitnahme ungeklärt".
+    var bikeLines: [BikeLine] = [] {
+        didSet { defaults.set(try? JSONEncoder().encode(bikeLines), forKey: "bikeLines") }
+    }
+
     /// Average wait per traffic light on the bike (half of them are green).
     var signalWaitSeconds: Int = 20 { didSet { defaults.set(signalWaitSeconds, forKey: "signalWaitSeconds") } }
 
     /// 29 km/h rolling + 20 s per signalised junction reproduces the user's
-    /// measured ~21 km/h door-to-door on the Musterstraße–Beispielweg commute.
+    /// measured ~21 km/h door-to-door on the Berlin commute it was built for.
     static let defaultBikeSpeedKmh = 29.0
 
     private let defaults: UserDefaults
@@ -92,6 +102,7 @@ final class AppSettings {
         origin = Self.place("origin", defaults)
         destination = Self.place("destination", defaults)
         workPlace = Self.place("workPlace", defaults)
+        homePlace = Self.place("homePlace", defaults)
         prepMinutes = defaults.object(forKey: "prepMinutes") as? Int ?? prepMinutes
         // 0.1.x stored an all-in average under "bikeSpeedKmh" — deliberately not read.
         bikeSpeedKmh = defaults.object(forKey: "bikeMovingSpeedKmh") as? Double ?? bikeSpeedKmh
@@ -111,6 +122,8 @@ final class AppSettings {
         alertsOn = defaults.object(forKey: "alertsOn") as? Bool ?? alertsOn
         placeHistory = defaults.data(forKey: "placeHistory")
             .flatMap { try? JSONDecoder().decode([PlaceUse].self, from: $0) } ?? placeHistory
+        bikeLines = defaults.data(forKey: "bikeLines")
+            .flatMap { try? JSONDecoder().decode([BikeLine].self, from: $0) } ?? bikeLines
         modeOrder = storedOrder(defaults.array(forKey: "modeOrder") as? [String], fallback: TravelMode.defaultOrder)
         bikeVariantOrder = storedOrder(defaults.array(forKey: "bikeVariantOrder") as? [String],
                                        fallback: BikeVariant.defaultOrder)
@@ -133,6 +146,21 @@ final class AppSettings {
         placeHistory = placeHistory.recording(place)
     }
 
+    /// Called after every plan: whatever lines it used go into the list.
+    func noteLines(_ seen: [(name: String, known: BikeCarriage)]) {
+        let updated = bikeLines.noting(seen)
+        guard updated != bikeLines else { return }
+        bikeLines = updated
+    }
+
+    func setBikeLine(_ name: String, allowed: Bool?) {
+        if let i = bikeLines.firstIndex(where: { $0.name == name }) {
+            bikeLines[i].allowed = allowed
+        } else {
+            bikeLines.append(BikeLine(name: name, allowed: allowed, lastSeen: .now))
+        }
+    }
+
     func forget(_ use: PlaceUse) {
         placeHistory.removeAll { $0.id == use.id }
     }
@@ -145,9 +173,22 @@ final class AppSettings {
     var isReady: Bool { origin != nil && destination != nil }
 
     /// Is this place the one the morning commute goes to?
-    func isWork(_ place: Place?) -> Bool {
-        guard let place, let work = workPlace else { return false }
-        return place.coordinate.distance(to: work.coordinate) < 150
+    func isWork(_ place: Place?) -> Bool { role(of: place) == .work }
+
+    /// Which of the two named addresses this is, if either. Within 150 m counts
+    /// as the same place: a pin dropped on the other side of the house is still
+    /// home.
+    func role(of place: Place?) -> PlaceRole? {
+        guard let place else { return nil }
+        if let home = homePlace, place.coordinate.distance(to: home.coordinate) < 150 { return .home }
+        if let work = workPlace, place.coordinate.distance(to: work.coordinate) < 150 { return .work }
+        return nil
+    }
+
+    func place(for role: PlaceRole) -> Place? { role == .home ? homePlace : workPlace }
+
+    func setPlace(_ place: Place?, for role: PlaceRole) {
+        if role == .home { homePlace = place } else { workPlace = place }
     }
 
     func clearPlaces() {
@@ -163,7 +204,8 @@ final class AppSettings {
                      waypoints: waypoints, requireAllWaypoints: requireAllWaypoints,
                      departureBufferMinutes: departureBufferMinutes, arrivalBufferMinutes: arrivalBufferMinutes,
                      modeOrder: modeOrder, bikeVariantOrder: bikeVariantOrder,
-                     carVariantOrder: carVariantOrder, rainSwitchLevel: rainSwitchLevel)
+                     carVariantOrder: carVariantOrder, rainSwitchLevel: rainSwitchLevel,
+                     bikeLineStatus: bikeLines.status)
     }
 
     private func save(_ place: Place?, _ key: String) {
@@ -194,6 +236,9 @@ struct PlanSettings: Equatable {
     var bikeVariantOrder: [BikeVariant] = BikeVariant.defaultOrder
     var carVariantOrder: [CarVariant] = CarVariant.defaultOrder
     var rainSwitchLevel: RainLevel = .light
+    /// Line name → whether the bike may come. Missing means undecided, which
+    /// is shown with a warning rather than hidden.
+    var bikeLineStatus: [String: Bool] = [:]
     /// Beyond this, the whole way by bike is a curiosity rather than a plan:
     /// its box moves to the end of the row and the OpenStreetMap corridor gets
     /// too big to ask Overpass for.
@@ -212,6 +257,15 @@ struct PlanSettings: Equatable {
     /// Riding time for a distance at the configured speed.
     func bikeTime(_ meters: Double) -> TimeInterval {
         (meters / bikeSpeedMps).rounded()
+    }
+
+    /// What is known about taking the bike on this leg: what the user decided
+    /// beats what the timetable said, because the user has stood on the
+    /// platform and the timetable has not.
+    func carriage(_ leg: Leg) -> BikeCarriage {
+        guard let line = leg.lineName else { return .yes }
+        if let decided = bikeLineStatus[line] { return decided ? .yes : .no }
+        return leg.bikeCarriage
     }
 
     /// Riding time plus the expected wait at the route's traffic lights.

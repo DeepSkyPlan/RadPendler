@@ -168,6 +168,10 @@ final class PlanModel {
             }
             lastRun = .now
             isLoading = false
+            // Whatever lines this plan used go into the list the user judges.
+            settings.noteLines(r.options.flatMap(\.transitLegs).compactMap { leg in
+                leg.lineName.map { ($0, leg.bikeCarriage) }
+            })
             publishToWatch()
             #if DEBUG
             for o in r.options {

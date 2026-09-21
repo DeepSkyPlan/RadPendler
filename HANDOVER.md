@@ -1,14 +1,13 @@
-# RadPendler — Übergabe (Stand 21.09.2026, 0.10.0 / Build 16)
+# RadPendler — Übergabe (Stand 21.09.2026, 0.11.0 / Build 17)
 
-Multimodaler Pendel-Planer für iPhone, iPad und Apple Watch: Musterstraße 1 (Büro) ↔
-Beispielweg 2 (Musterort) mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln,
+Multimodaler Pendel-Planer für iPhone, iPad und Apple Watch: Büro ↔ Zuhause mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln,
 Regen und Countdown.
 Verzeichnis `~/_claude.code/RadPendler`, git mit Remote `DeepSkyPlan/RadPendler` (privat).
 
 ## Bauen, testen, ausliefern
 
 ```bash
-./dev test      # generiert das .xcodeproj bei Bedarf, dann 61 Tests im Simulator
+./dev test      # generiert das .xcodeproj bei Bedarf, dann 65 Tests im Simulator
 ./dev open      # Xcode mit demselben DerivedData wie die Kommandozeile
 ./dev generate  # nur neu generieren, nach jeder neuen Quelldatei
 ```
@@ -90,6 +89,10 @@ xcrun simctl spawn booted defaults write de.keese.radpendler origin -data <hex-j
 - Die Hauptseite muss ohne Scrollen passen. Was dazukommt, kostet Kartenhöhe — Details
   gehören auf dem iPhone hinter den Pfeil in `TripDetailView`; auf dem iPad stehen sie
   in der linken Spalte (`TripNotes`, `TripFacts`, `TripTimeline` — dieselben Bausteine).
+- Fahrradmitnahme ist dreiwertig (`BikeCarriage`): `yes`, `no`, `unknown`. Der Fahrplan
+  sagt nur ja oder nichts; das Nein kommt immer vom Nutzer, über die Linienliste in den
+  Einstellungen. `unknown` wird **gezeigt und gewarnt**, nicht versteckt — sonst gäbe es
+  mit Datenquellen ohne `FK`-Vermerk gar keine Rad + Bahn-Vorschläge mehr.
 - Die Uhr plant nie selbst. MapKit-Routen, Overpass und die Radarkacheln gibt es auf
   watchOS nicht; sie zeigt, was das iPhone zuletzt geschickt hat, und sagt dazu, wie alt
   das ist. Was die Uhr wählt, gilt nur auf der Uhr — die Mitteilungen kommen weiter vom
@@ -108,6 +111,9 @@ xcrun simctl spawn booted defaults write de.keese.radpendler origin -data <hex-j
 - Umstiege zählen wie 10 min Fahrzeit (einstellbar), direkte Verbindungen gewinnen.
 - Farben: Rad grün, Auto rot, Bus orange, alles auf Schienen blau (S hell, U dunkel, RE/Tram
   dazwischen), Fähre türkis, Rad + Bahn `#00ADA3`.
+- **Das Repo ist öffentlich** (MIT). Keine Adresse, keine echte Koordinate des Nutzers und
+  kein Schlüssel darf hineingeraten — auch nicht in Testdaten, Changelog oder Übergabe.
+  Die Fixtures tragen neutrale Adressen und eine versetzte Geometrie.
 - **Keine Adressen im Programm** — die App startet leer. Adressen und Einstellungen liegen
   auf dem Gerät und in der **privaten iCloud des Nutzers** (Schlüssel-Wert-Speicher,
   Entitlement `com.apple.developer.ubiquity-kvstore-identifier`); sie gehen an keinen

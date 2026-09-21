@@ -18,7 +18,7 @@ final class HafasParserTests: XCTestCase {
         for legs in journeys {
             let transit = legs.filter(\.isTransit)
             XCTAssertFalse(transit.isEmpty)
-            XCTAssertTrue(transit.allSatisfy(\.bikeCarriage), "every train must carry bikes")
+            XCTAssertTrue(transit.allSatisfy { $0.bikeCarriage == .yes }, "every train must carry bikes")
             XCTAssertTrue(transit.allSatisfy { $0.lineName?.hasPrefix("S") == true }, "\(transit.map(\.lineName))")
             XCTAssertTrue(transit.allSatisfy { $0.coordinates.count > 2 }, "polyline decoded")
         }
@@ -39,7 +39,8 @@ final class HafasParserTests: XCTestCase {
             if case .transit(_, .bus) = $0.kind { true } else { false }
         }
         XCTAssertFalse(buses.isEmpty, "Musterort is reached by bus without a bike")
-        XCTAssertTrue(buses.allSatisfy { !$0.bikeCarriage })
+        XCTAssertTrue(buses.allSatisfy { $0.bikeCarriage == .unknown },
+                      "no FK remark is not a no — it is an open question for the user")
         // Legs are chronological.
         for legs in journeys {
             for (a, b) in zip(legs, legs.dropFirst()) {

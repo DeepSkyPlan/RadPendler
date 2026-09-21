@@ -145,6 +145,7 @@ struct ContentView: View {
         RouteHeader(origin: settings.origin, destination: settings.destination,
                     when: $model.when, prepMinutes: settings.prepMinutes,
                     presets: settings.departurePresets,
+                    role: { settings.role(of: $0) },
                     onEdit: { editing = $0 },
                     onSwap: { settings.swapDirection(); model.applyDefaultWhen(settings: settings); refresh() },
                     onWhenChange: refresh)
@@ -283,6 +284,8 @@ private struct RouteHeader: View {
     @Binding var when: PlanModel.When
     var prepMinutes: Int
     var presets: [DeparturePreset]
+    /// Whether this address is the user's home or work, for the little mark.
+    var role: (Place?) -> PlaceRole?
     var onEdit: (ContentView.PlaceField) -> Void
     var onSwap: () -> Void
     var onWhenChange: () -> Void
@@ -339,6 +342,7 @@ private struct RouteHeader: View {
     private func field(_ place: Place?, placeholder: String, field: ContentView.PlaceField) -> some View {
         Button { onEdit(field) } label: {
             HStack(alignment: .firstTextBaseline, spacing: 5) {
+                if let role = role(place) { RoleBadge(role: role, compact: true) }
                 Text(place?.shortName ?? placeholder)
                     .display(.subheadline, weight: place == nil ? .medium : .semibold)
                     .foregroundStyle(place == nil ? .secondary : .primary)

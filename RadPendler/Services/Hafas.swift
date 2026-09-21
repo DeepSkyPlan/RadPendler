@@ -293,7 +293,7 @@ enum HafasParser {
                     coordinates: poly.isEmpty ? ends : poly,
                     departurePlatform: platform(dep, "d"), arrivalPlatform: platform(arr, "a"),
                     direction: jny["dirTxt"] as? String,
-                    bikeCarriage: bikeCarriage(remarks),
+                    bikeCarriage: bikeCarriage(remarks) ? .yes : .unknown,
                     cancelled: (jny["isCncl"] as? Bool ?? false) || (dep["dCncl"] as? Bool ?? false)
                         || (arr["aCncl"] as? Bool ?? false)))
             default:   // WALK, TRSF (transfer inside a station), DEVI
