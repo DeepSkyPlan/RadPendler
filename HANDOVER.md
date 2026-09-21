@@ -1,4 +1,4 @@
-# RadPendler — Übergabe (Stand 21.09.2026, 0.7.0 / Build 12)
+# RadPendler — Übergabe (Stand 21.09.2026, 0.7.0 / Build 13)
 
 Multimodaler Pendel-Planer für iOS: Musterstraße 1 (Büro) ↔ Beispielweg 2 (Musterort)
 mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln, Regen und Countdown.
@@ -7,7 +7,7 @@ Verzeichnis `~/_claude.code/RadPendler`, git mit Remote `DeepSkyPlan/RadPendler`
 ## Bauen, testen, ausliefern
 
 ```bash
-./dev test      # generiert das .xcodeproj bei Bedarf, dann 41 Tests im Simulator
+./dev test      # generiert das .xcodeproj bei Bedarf, dann 46 Tests im Simulator
 ./dev open      # Xcode mit demselben DerivedData wie die Kommandozeile
 ./dev generate  # nur neu generieren, nach jeder neuen Quelldatei
 ```
@@ -46,7 +46,12 @@ xcrun simctl spawn booted defaults write de.keese.radpendler origin -data <hex-j
   (+ `SelectedTripBar`), `HelpView` (Anleitung aus dem Burger-Menü),
   `RouteMapView` (MKMapView-Wrapper mit Radar, Schildern, Ampelpunkten, Long-Press),
   `TripDetailView` (Zeitstrahl), `SettingsView`, `Theme` (Design-Bausteine, `CountdownBox`,
-  `TrafficLightIcon`), `Style` (Farben, `LegChainView`, `Fmt`).
+  `TrafficLightIcon`, `AppMark`), `Style` (Farben, `LegChainView`, `Fmt`),
+  `Mark` (die Geometrie des App-Zeichens in einem 100 × 100-Feld, y nach unten).
+- App-Zeichen: Form und Farben stehen **nur** in `Views/Mark.swift`. Neu rendern mit
+  `swiftc -O -parse-as-library tools/make_icon.swift RadPendler/Views/Mark.swift -o /tmp/mkicon`
+  und `/tmp/mkicon RadPendler/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png`.
+  Die Entwürfe, aus denen gewählt wurde, liegen in `_reports/RadPendler_Logos*.html`.
 - `design/Styleguide.html` + `.pdf` — Designkonzept; PDF wird mit Chrome headless erzeugt
   (Kopie für den Nutzer unter `_claude.code/_reports/RadPendler_Styleguide.pdf`).
 
@@ -82,11 +87,6 @@ xcrun simctl spawn booted defaults write de.keese.radpendler origin -data <hex-j
 - Blockreihenfolge: Fahrrad, Rad + Bahn, Auto, Bahn & Bus.
 
 ## Offen / Ideen
-
-- Logo-Vorschläge liegen als `_reports/RadPendler_Logos.html` (sechs Entwürfe plus das
-  heutige Zeichen, je in 132/60/29 px). Die gewählte Form muss in **zwei** Fassungen
-  gezeichnet werden: `tools/make_icon.swift` für die 1024er-PNG und `AppMark` in
-  `Views/Theme.swift` für die Titelzeile.
 
 - Mitteilungen laufen als `UNTimeIntervalNotificationTrigger` und werden bei jeder Planänderung
   neu gesetzt (`Alarm.schedule`, Schlüssel `ContentView.alarmKey`). Im Hintergrund plant die App

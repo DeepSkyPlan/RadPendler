@@ -25,30 +25,54 @@ enum Theme {
 }
 
 /// The app icon as a view, so the title bar carries the same mark as the home
-/// screen: bike above, train and bus below, on the green-to-teal gradient.
-/// `tools/make_icon.swift` draws the 1024 px version from the same recipe.
+/// screen: a green pin with a bicycle, an amber bus badge on its shoulder.
+/// The geometry lives in `Mark`, which `tools/make_icon.swift` draws the
+/// 1024 px version from — the two cannot drift apart.
 struct AppMark: View {
     var size: CGFloat = 24
 
     var body: some View {
-        ZStack {
-            LinearGradient(colors: [Color(red: 0.12, green: 0.66, blue: 0.28),
-                                    Color(red: 0.00, green: 0.38, blue: 0.45)],
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
-            VStack(spacing: size * 0.04) {
-                Image(systemName: "bicycle")
-                    .font(.system(size: size * 0.42, weight: .semibold))
-                HStack(spacing: size * 0.06) {
-                    Image(systemName: "train.side.front.car")
-                    Image(systemName: "bus.fill")
-                }
-                .font(.system(size: size * 0.27, weight: .semibold))
+        Canvas { context, box in
+            var scale = CGAffineTransform(scaleX: box.width / 100, y: box.height / 100)
+            let k = box.width / 100
+            func path(_ cg: CGPath) -> Path { Path(cg.copy(using: &scale) ?? cg) }
+            let round = StrokeStyle(lineWidth: 1, lineCap: .round, lineJoin: .round)
+
+            // The pin is drawn through a square with the badge's hole in it, so
+            // the badge sits in open ground instead of on top of the pin.
+            context.drawLayer { under in
+                under.clip(to: path(Mark.pinClip), style: FillStyle(eoFill: true))
+                under.fill(path(Mark.pin), with: .color(Mark.color(Mark.pinTint)))
+                under.stroke(path(Mark.pin), with: .color(.white), lineWidth: Mark.outlineWidth * k)
+                under.stroke(path(Mark.bike), with: .color(.white),
+                             style: round.width(Mark.bikeStroke * k))
             }
-            .foregroundStyle(.white)
+            context.fill(path(Mark.badge), with: .color(Mark.color(Mark.badgeTint)))
+            context.stroke(path(Mark.badge), with: .color(.white), lineWidth: Mark.outlineWidth * k)
+            context.stroke(path(Mark.busBody), with: .color(.white),
+                           style: round.width(Mark.busStroke * k))
+            context.fill(path(Mark.busLights), with: .color(.white))
         }
         .frame(width: size, height: size)
+        .background(LinearGradient(colors: [Mark.color(Mark.backgroundTop),
+                                            Mark.color(Mark.backgroundBottom)],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing))
         .clipShape(RoundedRectangle(cornerRadius: size * 0.23, style: .continuous))
         .accessibilityHidden(true)
+    }
+}
+
+private extension StrokeStyle {
+    func width(_ w: CGFloat) -> StrokeStyle {
+        var copy = self
+        copy.lineWidth = w
+        return copy
+    }
+}
+
+extension Mark {
+    static func color(_ c: (CGFloat, CGFloat, CGFloat)) -> Color {
+        Color(.sRGB, red: c.0, green: c.1, blue: c.2)
     }
 }
 

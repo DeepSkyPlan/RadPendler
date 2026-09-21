@@ -1,6 +1,7 @@
 # Changelog
 
-## 0.7.0 (Build 12, noch nicht hochgeladen)
+## 0.7.0 (Build 13, TestFlight 2026-09-21)
+- **Neues App-Zeichen**: eine grüne Kartennadel mit dem Fahrrad im Kopf und einem orangen Bus-Abzeichen an der Schulter, das durch eine Kerbe von der Nadel freigestellt ist (Entwurf „N2 · Wald" aus `_reports/RadPendler_Logos_2.html`). Homescreen und Titelzeile zeichnen dieselbe Geometrie aus `Views/Mark.swift` — sie können nicht mehr auseinanderlaufen.
 - **Der Countdown hat seine eigene Pille**: auf iOS 26 packte die Titelzeile ihn mit dem Burger-Menü in eine gemeinsame Glaskapsel, jetzt trennt ein fester Abstand die beiden.
 - **Der Countdown wechselt die Farbe**: grün über eine halbe Stunde, gelb ab 30 min, orange ab 10 min, rot ab 5 min, dunkelrot sobald die Bahn weg ist. Die Stufen sind die voreingestellten Warnminuten — die Farbe springt in dem Moment um, in dem die App piept.
 - **Stand der Berechnung auf der Zeitachse**: in der Radarpille unter der Karte, zweite Zeile: „Stand 09:54 · vor 3 min“, mitlaufend. Antippen rechnet neu — die Seite scrollt nicht mehr, also gibt es kein Ziehen nach unten mehr.
