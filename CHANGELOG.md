@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.8.0 (Build 14, noch nicht hochgeladen)
+## 0.8.0 (Build 14, TestFlight 2026-09-21)
 - **iPad**: die App ist jetzt universal und läuft im Vollbild (kein iPadOS-Fenster). Ab regulärer Breite steht alles nebeneinander — links eine Spalte mit Adressen, Zeitwahl, den vier Modus-Boxen und der Fahrtzeile, rechts die Karte über die ganze Höhe. **Alle Streckendetails stehen auf derselben Seite**: Begründung der Empfehlung, Regen- und Umstiegs-Hinweise, die Rad- bzw. Autoroutenkarte mit Ampeln und Querungen und der komplette Zeitstrahl — auf dem iPad ist nichts mehr hinter einem Tipp versteckt.
 - **Apple Watch**: eine eigene watchOS-App (watchOS 10+), die in der iPhone-App mitgeliefert wird. Drei Seiten, vertikal gewischt:
   - **Countdown** in derselben Ampelfarbe wie auf dem iPhone, mit Linie und Abfahrt → Ankunft. Ohne feste Abfahrt bleibt er grau statt rot zu blinken.
