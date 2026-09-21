@@ -15,12 +15,12 @@ struct SettingsView: View {
                     NavigationLink {
                         AddressSearchView(title: "Start") { settings.origin = $0 }
                     } label: {
-                        LabeledContent("Start", value: settings.origin?.name ?? "nicht gesetzt")
+                        LabeledContent("Start", value: settings.origin?.withArea ?? "nicht gesetzt")
                     }
                     NavigationLink {
                         AddressSearchView(title: "Ziel") { settings.destination = $0 }
                     } label: {
-                        LabeledContent("Ziel", value: settings.destination?.name ?? "nicht gesetzt")
+                        LabeledContent("Ziel", value: settings.destination?.withArea ?? "nicht gesetzt")
                     }
                     Button("Beide Adressen löschen", role: .destructive) { settings.clearPlaces() }
                 } header: {
@@ -135,7 +135,7 @@ struct SettingsView: View {
                 }
                 Section {
                     ForEach(settings.waypoints, id: \.self) { p in
-                        Label(p.shortName, systemImage: "mappin.and.ellipse")
+                        Label(p.withArea, systemImage: "mappin.and.ellipse")
                     }
                     .onDelete { settings.waypoints.remove(atOffsets: $0) }
                     NavigationLink {
@@ -186,28 +186,49 @@ struct SettingsView: View {
     }
 }
 
-/// Address search with Apple's autocomplete; resolves the pick to coordinates.
+/// Address search: the addresses already used, most used first, and Apple's
+/// autocomplete underneath. Everything is shown with its postal code, because
+/// a street name alone is not an address in Berlin.
 struct AddressSearchView: View {
     var title: String
     var onPick: (Place) -> Void
 
+    @Environment(AppSettings.self) private var settings
     @Environment(\.dismiss) private var dismiss
     @State private var completer = AddressCompleter()
     @State private var query = ""
     @State private var error: String?
+
+    private var known: [PlaceUse] { settings.placeHistory.matching(query) }
 
     var body: some View {
         List {
             if let error {
                 Text(error).foregroundStyle(.orange)
             }
-            ForEach(completer.results, id: \.self) { r in
-                Button {
-                    Task { await pick(r) }
-                } label: {
-                    VStack(alignment: .leading) {
-                        Text(r.title).foregroundStyle(.primary)
-                        if !r.subtitle.isEmpty { Text(r.subtitle).font(.caption).foregroundStyle(.secondary) }
+            if !known.isEmpty {
+                Section("Schon benutzt") {
+                    ForEach(known) { use in
+                        Button { pick(use.place) } label: { row(use) }
+                            .swipeActions {
+                                Button("Vergessen", role: .destructive) { settings.forget(use) }
+                            }
+                    }
+                }
+            }
+            if !completer.results.isEmpty {
+                Section(known.isEmpty ? "" : "Suche") {
+                    ForEach(completer.results, id: \.self) { r in
+                        Button {
+                            Task { await resolve(r) }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(r.title).foregroundStyle(.primary)
+                                if !r.subtitle.isEmpty {
+                                    Text(r.subtitle).font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -216,16 +237,53 @@ struct AddressSearchView: View {
         .onChange(of: query) { completer.query = query }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        .overlay {
+            if known.isEmpty && completer.results.isEmpty && query.isEmpty {
+                ContentUnavailableView("Noch keine Adresse", systemImage: "magnifyingglass",
+                                       description: Text("Tippen, um zu suchen. Was einmal gewählt wurde, steht beim nächsten Mal oben — je öfter benutzt, desto weiter oben."))
+            }
+        }
     }
 
-    private func pick(_ r: MKLocalSearchCompletion) async {
+    /// One remembered address: street big, postal code and town under it, and
+    /// how often it was used — the reason it stands where it stands.
+    private func row(_ use: PlaceUse) -> some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(use.place.shortName).foregroundStyle(.primary)
+                if let area = use.place.areaLine {
+                    Text(area).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 0)
+            if use.count > 1 {
+                Text("\(use.count)×")
+                    .font(.system(.caption, design: .rounded, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+        }
+    }
+
+    private func pick(_ place: Place) {
+        settings.remember(place)
+        onPick(place)
+        dismiss()
+    }
+
+    /// Turns a completion into a place — and builds the name from the placemark
+    /// so the postal code is a field, not something to parse back out later.
+    private func resolve(_ r: MKLocalSearchCompletion) async {
         do {
             let response = try await MKLocalSearch(request: MKLocalSearch.Request(completion: r)).start()
             guard let item = response.mapItems.first else { error = "Adresse nicht gefunden"; return }
-            let name = [r.title, r.subtitle].filter { !$0.isEmpty }.joined(separator: ", ")
-            let c = item.placemark.coordinate
-            onPick(Place(name: name, latitude: c.latitude, longitude: c.longitude))
-            dismiss()
+            let mark = item.placemark
+            let area = [mark.postalCode, mark.locality].compactMap { $0 }.joined(separator: " ")
+            let name = area.isEmpty ? [r.title, r.subtitle].filter { !$0.isEmpty }.joined(separator: ", ")
+                                    : "\(r.title), \(area)"
+            let c = mark.coordinate
+            pick(Place(name: name, latitude: c.latitude, longitude: c.longitude,
+                       postalCode: mark.postalCode, locality: mark.locality))
         } catch {
             self.error = error.localizedDescription
         }

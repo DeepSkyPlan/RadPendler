@@ -302,15 +302,25 @@ private struct RouteHeader: View {
         .padding(.vertical, 4)
     }
 
+    /// Street big, postal code and town small beside it — in Berlin a street
+    /// name alone is not an address.
     private func field(_ place: Place?, placeholder: String, field: ContentView.PlaceField) -> some View {
         Button { onEdit(field) } label: {
-            Text(place?.shortName ?? placeholder)
-                .display(.subheadline, weight: place == nil ? .medium : .semibold)
-                .foregroundStyle(place == nil ? .secondary : .primary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                Text(place?.shortName ?? placeholder)
+                    .display(.subheadline, weight: place == nil ? .medium : .semibold)
+                    .foregroundStyle(place == nil ? .secondary : .primary)
+                    .layoutPriority(1)
+                if let area = place?.areaLine {
+                    Text(area)
+                        .font(.system(.caption2, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel((field == .origin ? "Start: " : "Ziel: ") + (place?.name ?? "nicht gesetzt"))
