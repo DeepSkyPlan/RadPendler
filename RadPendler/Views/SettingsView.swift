@@ -208,7 +208,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Fixpunkte")
                 } footer: {
-                    Text("Punkte, über die die Strecke führen soll, z. B. „S Musterhausen“ oder „Berlin Hauptbahnhof“. Verbindungen, die nicht daran vorbeikommen, werden ausgegraut ans Ende gestellt und nie empfohlen. Ohne Fixpunkte gilt keine Einschränkung.")
+                    Text("Punkte, über die die Strecke führen soll, z. B. „S Ostkreuz“ oder „Berlin Hauptbahnhof“. Verbindungen, die nicht daran vorbeikommen, werden ausgegraut ans Ende gestellt und nie empfohlen. Ohne Fixpunkte gilt keine Einschränkung.")
                 }
                 Section("Auto") {
                     Stepper("Parkplatzsuche: \(settings.parkingMinutes) min", value: $settings.parkingMinutes, in: 0...30)

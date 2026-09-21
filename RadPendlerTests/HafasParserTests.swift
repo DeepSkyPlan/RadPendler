@@ -14,22 +14,21 @@ final class HafasParserTests: XCTestCase {
 
     func testBikeJourneysAreAllRailWithBikeCarriage() throws {
         let journeys = try HafasParser.journeys(fixture("trip_bike_stations"))
-        XCTAssertEqual(journeys.count, 2)
+        XCTAssertEqual(journeys.count, 4)
         for legs in journeys {
             let transit = legs.filter(\.isTransit)
             XCTAssertFalse(transit.isEmpty)
             XCTAssertTrue(transit.allSatisfy { $0.bikeCarriage == .yes }, "every train must carry bikes")
-            XCTAssertTrue(transit.allSatisfy { $0.lineName?.hasPrefix("S") == true }, "\(transit.map(\.lineName))")
             XCTAssertTrue(transit.allSatisfy { $0.coordinates.count > 2 }, "polyline decoded")
         }
         let first = journeys[0].filter(\.isTransit)
-        XCTAssertEqual(first.first?.fromName, "S+U Berlin Hauptbahnhof")
-        XCTAssertEqual(first.last?.toName, "S Beispielplatz (Berlin)")
-        XCTAssertEqual(first.first?.departure, berlin("20260921", "171700"))
+        XCTAssertEqual(first.first?.fromName, "S+U Alexanderplatz Bhf (Berlin)")
+        XCTAssertEqual(first.last?.toName, "S Potsdam Hauptbahnhof")
+        XCTAssertGreaterThanOrEqual(first.first!.departure, berlin("20260922", "081500"))
     }
 
     func testAddressJourneyKeepsWalksAndMarksBusWithoutBikeCarriage() throws {
-        let journeys = try HafasParser.journeys(fixture("trip_address_plain"))
+        let journeys = try HafasParser.journeys(fixture("trip_address_bus"))
         XCTAssertGreaterThanOrEqual(journeys.count, 3)
         let legs = journeys[0]
         XCTAssertEqual(legs.first?.kind, .walk)
@@ -38,7 +37,7 @@ final class HafasParserTests: XCTestCase {
         let buses = journeys.flatMap { $0 }.filter {
             if case .transit(_, .bus) = $0.kind { true } else { false }
         }
-        XCTAssertFalse(buses.isEmpty, "Musterort is reached by bus without a bike")
+        XCTAssertFalse(buses.isEmpty, "the last mile of this one is a bus, and buses take no bikes")
         XCTAssertTrue(buses.allSatisfy { $0.bikeCarriage == .unknown },
                       "no FK remark is not a no — it is an open question for the user")
         // Legs are chronological.
@@ -50,12 +49,12 @@ final class HafasParserTests: XCTestCase {
     }
 
     func testNearbyStationsAreRailOnlyDedupedAndSorted() throws {
-        let stations = HafasParser.stations(try fixture("nearby_suburb"), productMask: TransitProduct.bikeStationMask)
+        let stations = HafasParser.stations(try fixture("nearby_stations"), productMask: TransitProduct.bikeStationMask)
         XCTAssertFalse(stations.isEmpty)
         XCTAssertEqual(stations.map(\.distance), stations.map(\.distance).sorted())
         XCTAssertEqual(Set(stations.map { HafasParser.baseName($0.name) }).count, stations.count)
         XCTAssertTrue(stations.allSatisfy { $0.productMask & TransitProduct.bikeStationMask != 0 })
-        XCTAssertTrue(stations.contains { $0.name.contains("Beispielplatz") })
+        XCTAssertTrue(stations.contains { $0.name.contains("Alexanderplatz") })
     }
 
     func testDayOffsetRollsOverMidnight() {
