@@ -28,6 +28,10 @@ final class PlanModel {
     var selection: [TravelMode: TripOption.ID] = [:]
     var activeMode: TravelMode = .bike
     private(set) var needsAddresses = false
+    /// Straight line between the two ends of the current plan, in kilometres.
+    private(set) var directKm = 0.0
+    private var longTripKm = PlanSettings().longTripKm
+    private var order = TravelMode.defaultOrder
 
     private let planner: TripPlanner
     private var task: Task<Void, Never>?
@@ -40,6 +44,15 @@ final class PlanModel {
     }
 
     var options: [TripOption] { result.options }
+
+    /// Berlin to Musterort is a bike ride; Berlin to Hamburg is not.
+    var isLongTrip: Bool { directKm > longTripKm }
+
+    /// Order of the four boxes. Beyond `longTripKm` the whole way by bike goes
+    /// last — there the answer is the car, the train, or the bike in the train.
+    var modeOrder: [TravelMode] {
+        isLongTrip ? order.filter { $0 != .bike } + [.bike] : order
+    }
 
     var recommended: TripOption? {
         result.recommendation.flatMap { r in options.first { $0.id == r.optionID } }
@@ -119,7 +132,8 @@ final class PlanModel {
                                            recommendedID: recommended?.id,
                                            countdownID: countdownOption?.id,
                                            computedAt: lastRun ?? .now,
-                                           arrivalSearch: when.isArrival))
+                                           arrivalSearch: when.isArrival,
+                                           order: modeOrder))
     }
 
     func refresh(settings: AppSettings) {
@@ -139,6 +153,9 @@ final class PlanModel {
         let req = PlanRequest(origin: origin, destination: destination, target: target,
                               settings: settings.snapshot)
         places = (origin.shortName, destination.shortName)
+        directKm = origin.coordinate.distance(to: destination.coordinate) / 1000
+        longTripKm = settings.snapshot.longTripKm
+        order = settings.modeOrder
         isLoading = true
         task = Task {
             let r = await planner.plan(req)

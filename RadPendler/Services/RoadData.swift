@@ -49,7 +49,13 @@ struct RoadData {
 
     enum OverpassError: LocalizedError {
         case malformed
-        var errorDescription: String? { "OpenStreetMap-Daten: unerwartete Antwort" }
+        case corridorTooBig
+        var errorDescription: String? {
+            switch self {
+            case .malformed: "OpenStreetMap-Daten: unerwartete Antwort"
+            case .corridorTooBig: "Strecke zu lang für die Ampelzählung (OpenStreetMap)"
+            }
+        }
     }
 }
 
@@ -68,6 +74,11 @@ actor RoadDataStore {
         }
 
         var key: String { String(format: "%.2f_%.2f_%.2f_%.2f", south, west, north, east) }
+
+        /// Berlin to Hamburg is about 2.5° of latitude, and Overpass would
+        /// answer that with hundreds of megabytes — if at all. Past this the
+        /// app does without traffic lights and says so.
+        var isTooLarge: Bool { north - south > 1.2 || east - west > 1.8 }
 
         init(south: Double, west: Double, north: Double, east: Double) {
             (self.south, self.west, self.north, self.east) = (south, west, north, east)
@@ -95,6 +106,7 @@ actor RoadDataStore {
 
     func data(covering coords: [CLLocationCoordinate2D]) async throws -> RoadData {
         let box = Box(around: coords)
+        guard !box.isTooLarge else { throw RoadData.OverpassError.corridorTooBig }
         if let hit = memory.first(where: { $0.key.contains(box) }) { return hit.value }
         if let (b, d) = loadFromDisk(covering: box) {
             memory[b] = d

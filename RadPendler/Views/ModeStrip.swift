@@ -6,12 +6,12 @@ import SwiftUI
 /// one line underneath and only unfolds when it is tapped.
 struct ModeStrip: View {
     var model: PlanModel
-    /// Bike first, then bike+rail, car, and public transport.
-    private let order: [TravelMode] = [.bike, .bikeTransit, .car, .transit]
 
     var body: some View {
         HStack(spacing: 7) {
-            ForEach(order) { mode in
+            // Bike first, then bike+rail, car, public transport — except on a
+            // long trip, where the bike alone goes last.
+            ForEach(model.modeOrder) { mode in
                 box(mode)
             }
         }
@@ -121,8 +121,8 @@ struct ModeStrip: View {
             if model.isLoading { return "sucht …" }
             return model.result.failures[mode] != nil ? "Fehler" : "nichts"
         }
-        if let bike = option.bikeRoute { return bike.variants.sorted().first?.title ?? "Route" }
-        if let car = option.carRoute { return car.variants.sorted().first?.title ?? Fmt.km(option.totalDistance) }
+        if let bike = option.bikeRoute { return bike.variants.first?.title ?? "Route" }
+        if let car = option.carRoute { return car.variants.first?.title ?? Fmt.km(option.totalDistance) }
         if option.transitLegs.isEmpty { return Fmt.km(option.totalDistance) }
         return option.transfers == 0 ? "ab \(Fmt.time(option.leave))"
                                      : "\(Fmt.time(option.leave)) · \(option.transfers)×"

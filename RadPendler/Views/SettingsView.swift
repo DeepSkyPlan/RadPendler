@@ -31,6 +31,39 @@ struct SettingsView: View {
                          : "Die App wird ohne Adressen ausgeliefert. Start und Ziel bleiben nur auf diesem Gerät gespeichert. Mit einem angemeldeten iCloud-Konto gleichen sie sich mit deinen anderen Geräten ab.")
                 }
                 Section {
+                    NavigationLink {
+                        PriorityList(title: "Verkehrsmittel", items: $settings.modeOrder,
+                                     footer: "Von oben nach unten: was gewinnt, wenn zwei Fahrten fast gleichzeitig ankommen. Auch die Reihenfolge der vier Kästen auf der Hauptseite.",
+                                     label: \.title, symbol: \.symbol)
+                    } label: {
+                        LabeledContent("Verkehrsmittel", value: settings.modeOrder.map(\.short).joined(separator: " › "))
+                    }
+                    NavigationLink {
+                        PriorityList(title: "Radrouten", items: $settings.bikeVariantOrder,
+                                     footer: "Welche der gefundenen Radrouten vorgeschlagen wird — die oberste. Die anderen bleiben erreichbar, ein Tipp auf den Kasten schaltet weiter.",
+                                     label: \.title, symbol: \.symbol)
+                    } label: {
+                        LabeledContent("Radrouten", value: settings.bikeVariantOrder.first?.title ?? "")
+                    }
+                    NavigationLink {
+                        PriorityList(title: "Autorouten", items: $settings.carVariantOrder,
+                                     footer: "Dasselbe fürs Auto. Apple Karten liefert meist zwei oder drei Linien; welche davon oben steht, entscheidet diese Liste.",
+                                     label: \.title, symbol: { _ in nil })
+                    } label: {
+                        LabeledContent("Autorouten", value: settings.carVariantOrder.first?.title ?? "")
+                    }
+                    Picker("Rad in die Bahn ab", selection: $settings.rainSwitchLevel) {
+                        ForEach([RainLevel.possible, .light, .rain, .heavy], id: \.self) { level in
+                            Text(level.label).tag(level)
+                        }
+                    }
+                    Button("Zurück auf Werkseinstellung") { settings.resetPriorities() }
+                } header: {
+                    Text("Vorlieben")
+                } footer: {
+                    Text("Womit die App plant, wenn sie die Wahl hat. Ab dem gewählten Regen wird nicht mehr die ganze Strecke geradelt, sondern das Rad in die Bahn gestellt — „starker Regen“ heißt also praktisch immer fahren.")
+                }
+                Section {
                     Stepper("Rüstzeit: \(settings.prepMinutes) min", value: $settings.prepMinutes, in: 0...30)
                 } footer: {
                     Text("Zeit vom Planen bis zum Losgehen. Gilt für jedes Verkehrsmittel.")
@@ -185,6 +218,43 @@ struct SettingsView: View {
                 Task { notifications = await Alarm.requestPermission() ? .granted : .denied }
             }
         }
+    }
+}
+
+/// One list of preferences, dragged into the order the user wants. No edit
+/// button: with three or four rows, always-on dragging is less in the way than
+/// a mode to switch into.
+private struct PriorityList<T: Hashable>: View {
+    var title: String
+    @Binding var items: [T]
+    var footer: String
+    var label: (T) -> String
+    var symbol: (T) -> String?
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(Array(items.enumerated()), id: \.element) { index, item in
+                    HStack(spacing: 10) {
+                        Text("\(index + 1)")
+                            .font(.system(.footnote, design: .rounded, weight: .bold))
+                            .foregroundStyle(index == 0 ? Theme.accent : .secondary)
+                            .frame(width: 16)
+                        if let s = symbol(item) {
+                            Image(systemName: s).foregroundStyle(.secondary).frame(width: 22)
+                        }
+                        Text(label(item))
+                        Spacer(minLength: 0)
+                    }
+                }
+                .onMove { items.move(fromOffsets: $0, toOffset: $1) }
+            } footer: {
+                Text(footer)
+            }
+        }
+        .environment(\.editMode, .constant(.active))
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

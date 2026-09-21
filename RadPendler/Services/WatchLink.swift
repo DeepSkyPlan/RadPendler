@@ -53,7 +53,7 @@ extension TripSnapshot {
     /// Reduces a finished plan to what the wrist needs.
     init(origin: String, destination: String, options: [TripOption],
          recommendedID: TripOption.ID?, countdownID: TripOption.ID?, computedAt: Date,
-         arrivalSearch: Bool) {
+         arrivalSearch: Bool, order: [TravelMode]) {
         self.origin = origin
         self.destination = destination
         self.computedAt = computedAt
@@ -64,7 +64,7 @@ extension TripSnapshot {
             let legs = option.legs.filter { $0.kind != .walk || ($0.length ?? 0) >= 150 }
             return Option(id: option.id.uuidString,
                           mode: option.mode.rawValue,
-                          modeRank: Self.rank(option.mode),
+                          modeRank: order.firstIndex(of: option.mode) ?? 9,
                           modeTitle: option.mode.title,
                           symbol: option.mode.symbol,
                           colorHex: UIColor(option.mode.color).hexString,
@@ -85,15 +85,10 @@ extension TripSnapshot {
         self.countdownID = countdownID?.uuidString
     }
 
-    /// Block order on the phone: Rad, Rad + Bahn, Auto, Bahn & Bus.
-    private static func rank(_ mode: TravelMode) -> Int {
-        [.bike, .bikeTransit, .car, .transit].firstIndex(of: mode) ?? 9
-    }
-
     /// Same line the mode boxes carry on the phone.
     private static func caption(_ option: TripOption) -> String {
-        if let bike = option.bikeRoute { return bike.variants.sorted().first?.title ?? "Route" }
-        if let car = option.carRoute { return car.variants.sorted().first?.title ?? Fmt.km(option.totalDistance) }
+        if let bike = option.bikeRoute { return bike.variants.first?.title ?? "Route" }
+        if let car = option.carRoute { return car.variants.first?.title ?? Fmt.km(option.totalDistance) }
         if option.transitLegs.isEmpty { return Fmt.km(option.totalDistance) }
         return option.transfers == 0 ? "ab \(Fmt.time(option.leave))"
                                      : "\(Fmt.time(option.leave)) · \(option.transfers)×"
