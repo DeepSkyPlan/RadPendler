@@ -35,12 +35,26 @@ final class CountdownTests: XCTestCase {
     }
 
     func testAgeOfThePlanOnTheMap() {
-        XCTAssertEqual(LastRunPill.ago(0), "gerade eben")
-        XCTAssertEqual(LastRunPill.ago(59), "gerade eben")
-        XCTAssertEqual(LastRunPill.ago(60), "vor 1 min")
-        XCTAssertEqual(LastRunPill.ago(59 * 60), "vor 59 min")
-        XCTAssertEqual(LastRunPill.ago(3600), "vor 1 h")
-        XCTAssertEqual(LastRunPill.ago(3600 + 7 * 60), "vor 1:07 h")
-        XCTAssertEqual(LastRunPill.ago(-5), "gerade eben", "a clock that jumped back is not a future plan")
+        XCTAssertEqual(LastRunLine.ago(0), "gerade eben")
+        XCTAssertEqual(LastRunLine.ago(59), "gerade eben")
+        XCTAssertEqual(LastRunLine.ago(60), "vor 1 min")
+        XCTAssertEqual(LastRunLine.ago(59 * 60), "vor 59 min")
+        XCTAssertEqual(LastRunLine.ago(3600), "vor 1 h")
+        XCTAssertEqual(LastRunLine.ago(3600 + 7 * 60), "vor 1:07 h")
+        XCTAssertEqual(LastRunLine.ago(-5), "gerade eben", "a clock that jumped back is not a future plan")
+    }
+
+    func testCountdownColourStepsFollowTheAlertMinutes() {
+        let step = { (minutes: Double) in CountdownBox.urgency(minutes * 60) }
+        XCTAssertEqual(step(45), .plenty)
+        XCTAssertEqual(step(31), .plenty)
+        XCTAssertEqual(step(30), .soon, "half an hour is already the amber half")
+        XCTAssertEqual(step(11), .soon)
+        XCTAssertEqual(step(10), .wrapUp, "the first warning turns it orange")
+        XCTAssertEqual(step(6), .wrapUp)
+        XCTAssertEqual(step(5), .go, "the last warning turns it red")
+        XCTAssertEqual(step(-3), .go, "overdue stays red until the trip is gone")
+        XCTAssertEqual(CountdownBox.urgency(nil), .idle)
+        XCTAssertEqual(CountdownBox.urgency(600, gone: true), .gone)
     }
 }

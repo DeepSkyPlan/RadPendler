@@ -33,20 +33,19 @@ struct ContentView: View {
                                                description: Text("Oben auf die beiden Zeilen tippen. Die Adressen bleiben auf diesem Gerät."))
                         Spacer(minLength: 0)
                     } else {
+                        // The stamp rides in the radar bar, on the time axis
+                        // it belongs to; since the page no longer scrolls it is
+                        // also the way to plan again.
                         TripMapPanel(options: model.options, selectedID: model.selected?.id,
                                      waypoints: settings.waypoints,
-                                     onSelect: { select($0) })
+                                     onSelect: { select($0) },
+                                     lastRun: model.lastRun, loading: model.isLoading,
+                                     onRefresh: refresh)
                             .frame(minHeight: 150, maxHeight: .infinity)
                             .clipShape(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
                             .overlay {
                                 RoundedRectangle(cornerRadius: Theme.corner, style: .continuous)
                                     .strokeBorder(Color.primary.opacity(0.06))
-                            }
-                            // Since the page no longer scrolls there is no pull
-                            // to refresh — the stamp is the refresh button.
-                            .overlay(alignment: .topLeading) {
-                                LastRunPill(lastRun: model.lastRun, loading: model.isLoading, action: refresh)
-                                    .padding(8)
                             }
                             .padding(.horizontal, Theme.gutter)
                         if let rainFailure = model.result.rainFailure {
@@ -175,50 +174,6 @@ struct ContentView: View {
         }
     }
 
-}
-
-/// When the plan on screen was computed, and how long ago that was. Tapping it
-/// plans again — the screen does not scroll any more, so there is no pull.
-struct LastRunPill: View {
-    var lastRun: Date?
-    var loading: Bool
-    var action: () -> Void
-
-    var body: some View {
-        TimelineView(.periodic(from: .now, by: 15)) { context in
-            Button(action: action) {
-                HStack(spacing: 4) {
-                    if loading {
-                        ProgressView().controlSize(.mini)
-                    } else {
-                        Image(systemName: "arrow.clockwise").font(.system(size: 9, weight: .bold))
-                    }
-                    Text(text(now: context.date))
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .monospacedDigit()
-                }
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 8).padding(.vertical, 5)
-                .background(.regularMaterial, in: Capsule())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(lastRun == nil ? "Neu berechnen" : "Berechnet \(text(now: context.date)). Tippen für neu berechnen.")
-        }
-    }
-
-    private func text(now: Date) -> String {
-        guard let lastRun else { return loading ? "berechnet …" : "neu berechnen" }
-        return "Stand \(Fmt.time(lastRun)) · \(Self.ago(now.timeIntervalSince(lastRun)))"
-    }
-
-    /// How old the plan is, in the shortest words that are still exact enough.
-    static func ago(_ seconds: TimeInterval) -> String {
-        let s = Int(max(seconds, 0).rounded())
-        if s < 60 { return "gerade eben" }
-        let m = s / 60
-        if m < 60 { return "vor \(m) min" }
-        return m % 60 == 0 ? "vor \(m / 60) h" : String(format: "vor %d:%02d h", m / 60, m % 60)
-    }
 }
 
 /// From, to, departure-or-arrival, and the time chips.
