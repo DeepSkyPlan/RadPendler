@@ -1,34 +1,79 @@
-// Renders the app icon: bike above a train and a bus, on a green-to-teal gradient.
-// The title bar draws the same mark as `AppMark` in Views/Theme.swift — keep both in step.
-//   swift tools/make_icon.swift RadPendler/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png
-import AppKit
+// Renders the 1024 px app icon from `RadPendler/Views/Mark.swift`, so the icon
+// and the mark in the title bar cannot drift apart:
+//
+//   swiftc tools/make_icon.swift RadPendler/Views/Mark.swift -o /tmp/mkicon
+//   /tmp/mkicon RadPendler/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+//
+// Full bleed and without alpha — iOS rounds the corners itself, and the App
+// Store rejects an icon that carries transparency.
+import CoreGraphics
+import Foundation
 import ImageIO
 import UniformTypeIdentifiers
 
-let S: CGFloat = 1024
-let ctx = CGContext(data: nil, width: Int(S), height: Int(S), bitsPerComponent: 8, bytesPerRow: 0,
-                    space: CGColorSpace(name: CGColorSpace.sRGB)!,
-                    bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)!
-let colors = [CGColor(red: 0.12, green: 0.66, blue: 0.28, alpha: 1),
-              CGColor(red: 0.00, green: 0.38, blue: 0.45, alpha: 1)]
-let grad = CGGradient(colorsSpace: nil, colors: colors as CFArray, locations: [0, 1])!
-ctx.drawLinearGradient(grad, start: CGPoint(x: 0, y: S), end: CGPoint(x: S, y: 0), options: [])
+@main
+struct MakeIcon {
+    static func main() {
+    let S = 1024
+    let space = CGColorSpace(name: CGColorSpace.sRGB)!
+    let ctx = CGContext(data: nil, width: S, height: S, bitsPerComponent: 8, bytesPerRow: 0,
+                        space: space, bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)!
 
-NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: false)
-func glyph(_ name: String, in rect: CGRect) {
-    let cfg = NSImage.SymbolConfiguration(pointSize: 300, weight: .semibold)
-        .applying(.init(paletteColors: [.white]))
-    guard let img = NSImage(systemSymbolName: name, accessibilityDescription: nil)?
-        .withSymbolConfiguration(cfg) else { fatalError("no symbol \(name)") }
-    let s = img.size, k = min(rect.width / s.width, rect.height / s.height)
-    let w = s.width * k, h = s.height * k
-    img.draw(in: CGRect(x: rect.midX - w / 2, y: rect.midY - h / 2, width: w, height: h))
+    func color(_ c: (CGFloat, CGFloat, CGFloat)) -> CGColor {
+        CGColor(colorSpace: space, components: [c.0, c.1, c.2, 1])!
+    }
+
+    // `Mark` draws in a 100 × 100 box with y running down; the bitmap runs up.
+    ctx.translateBy(x: 0, y: CGFloat(S))
+    ctx.scaleBy(x: CGFloat(S) / 100, y: -CGFloat(S) / 100)
+
+    let gradient = CGGradient(colorsSpace: space,
+                              colors: [color(Mark.backgroundTop), color(Mark.backgroundBottom)] as CFArray,
+                              locations: [0, 1])!
+    ctx.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: 100, y: 100), options: [])
+
+    ctx.setLineCap(.round)
+    ctx.setLineJoin(.round)
+
+    // Pin and bicycle, cut off where the badge sits.
+    ctx.saveGState()
+    ctx.addPath(Mark.pinClip)
+    ctx.clip(using: .evenOdd)
+    ctx.addPath(Mark.pin)
+    ctx.setFillColor(color(Mark.pinTint))
+    ctx.fillPath()
+    ctx.setStrokeColor(CGColor(colorSpace: space, components: [1, 1, 1, 1])!)
+    ctx.addPath(Mark.pin)
+    ctx.setLineWidth(Mark.outlineWidth)
+    ctx.strokePath()
+    ctx.addPath(Mark.bike)
+    ctx.setLineWidth(Mark.bikeStroke)
+    ctx.strokePath()
+    ctx.restoreGState()
+
+    ctx.setLineCap(.round)
+    ctx.setLineJoin(.round)
+    ctx.setStrokeColor(CGColor(colorSpace: space, components: [1, 1, 1, 1])!)
+    ctx.addPath(Mark.badge)
+    ctx.setFillColor(color(Mark.badgeTint))
+    ctx.fillPath()
+    ctx.addPath(Mark.badge)
+    ctx.setLineWidth(Mark.outlineWidth)
+    ctx.strokePath()
+    ctx.addPath(Mark.busBody)
+    ctx.setLineWidth(Mark.busStroke)
+    ctx.strokePath()
+    ctx.addPath(Mark.busLights)
+    ctx.setFillColor(CGColor(colorSpace: space, components: [1, 1, 1, 1])!)
+    ctx.fillPath()
+
+    guard CommandLine.arguments.count > 1 else {
+        FileHandle.standardError.write(Data("usage: mkicon <out.png>\n".utf8))
+        exit(2)
+    }
+    let url = URL(fileURLWithPath: CommandLine.arguments[1]) as CFURL
+    let dest = CGImageDestinationCreateWithURL(url, UTType.png.identifier as CFString, 1, nil)!
+    CGImageDestinationAddImage(dest, ctx.makeImage()!, nil)
+    CGImageDestinationFinalize(dest)
+    }
 }
-glyph("bicycle", in: CGRect(x: 182, y: 470, width: 660, height: 390))
-glyph("train.side.front.car", in: CGRect(x: 120, y: 150, width: 400, height: 240))
-glyph("bus.fill", in: CGRect(x: 570, y: 150, width: 330, height: 240))
-
-let url = URL(fileURLWithPath: CommandLine.arguments[1]) as CFURL
-let dest = CGImageDestinationCreateWithURL(url, UTType.png.identifier as CFString, 1, nil)!
-CGImageDestinationAddImage(dest, ctx.makeImage()!, nil)
-CGImageDestinationFinalize(dest)
