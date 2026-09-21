@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The four modes as small boxes side by side: icon, travel time and what this
-/// option is (schnellst, kürzest, optimal — or when the train leaves). One tap
+/// option is (schnellst, kürzest, wenig Ampeln — or when the train leaves). One tap
 /// picks the mode, the next tap steps to its next option. The route itself is
 /// one line underneath and only unfolds when it is tapped.
 struct ModeStrip: View {
@@ -53,7 +53,7 @@ struct ModeStrip: View {
                 dots(count: count, index: index(mode), active: active, color: mode.color)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 9)
+            .padding(.vertical, 7)
             .background {
                 RoundedRectangle(cornerRadius: Theme.innerCorner, style: .continuous)
                     .fill(active ? AnyShapeStyle(Theme.gradient(mode.color))
@@ -122,66 +122,65 @@ struct ModeStrip: View {
             return model.result.failures[mode] != nil ? "Fehler" : "nichts"
         }
         if let bike = option.bikeRoute { return bike.variants.sorted().first?.title ?? "Route" }
+        if let car = option.carRoute { return car.variants.sorted().first?.title ?? Fmt.km(option.totalDistance) }
         if option.transitLegs.isEmpty { return Fmt.km(option.totalDistance) }
         return option.transfers == 0 ? "ab \(Fmt.time(option.leave))"
                                      : "\(Fmt.time(option.leave)) · \(option.transfers)×"
     }
 }
 
-/// The chosen trip in one line: when it leaves and arrives, its legs, the few
-/// facts that fit — and a chevron, because everything else lives one tap away.
+/// The chosen trip in two lines: when it leaves and arrives with its legs, and
+/// the handful of facts that change the decision. Everything else — the
+/// timeline, the crossings, the route's origin — waits behind the chevron.
 struct SelectedTripBar: View {
     var model: PlanModel
     var option: TripOption
 
     var body: some View {
         NavigationLink {
-            TripDetailView(option: option)
+            TripDetailView(option: option, reason: recommendationReason)
         } label: {
-            VStack(alignment: .leading, spacing: 7) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
                     Text("\(Fmt.time(option.leave)) → \(Fmt.time(option.arrival))")
                         .display(.subheadline, weight: .semibold)
                         .monospacedDigit()
-                    Spacer(minLength: 0)
+                        .fixedSize()
+                    // The legs take whatever width is left and scroll if the
+                    // trip has more of them than the line can hold.
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        LegChainView(option: option, compact: true).padding(.vertical, 1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     Text(Fmt.duration(option.duration))
                         .display(.subheadline, weight: .bold)
                         .monospacedDigit()
                         .foregroundStyle(option.mode.color)
+                        .fixedSize()
                     Image(systemName: "chevron.right")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.tertiary)
                 }
-                // The legs get their own line: squeezed next to the times they
-                // break their kilometres over two lines.
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LegChainView(option: option, compact: true).padding(.vertical, 1)
-                }
                 HStack(spacing: 5) {
                     Chip(text: "los \(Fmt.time(option.getReady))", symbol: "alarm")
                     Chip(text: Fmt.km(option.totalDistance), symbol: "ruler")
-                    if let s = option.bikeRoute?.stats {
-                        Chip(text: "\(s.signals)", icon: AnyView(TrafficLightIcon()))
-                    }
-                    if let v = option.bikeAverageKmh, option.mode == .bike {
-                        Chip(text: "Ø \(Int(v.rounded())) km/h", symbol: "speedometer")
+                    if let signals = option.bikeRoute?.stats?.signals ?? option.carRoute?.signals {
+                        Chip(text: "\(signals)", icon: AnyView(TrafficLightIcon()))
                     }
                     if let t = option.transferText {
                         Chip(text: t, symbol: option.transfers == 0 ? "arrow.forward" : "arrow.triangle.swap",
                              tint: option.transfers == 0 ? .green : .red, strong: true)
                     }
+                    if let warning {
+                        Chip(text: warning.text, symbol: warning.symbol, tint: warning.tint, strong: true)
+                    }
                     Spacer(minLength: 0)
                 }
                 .lineLimit(1)
-                .minimumScaleFactor(0.75)
-                ForEach(notes, id: \.text) { note in
-                    Label(note.text, systemImage: note.symbol)
-                        .font(.system(.caption, design: .rounded))
-                        .foregroundStyle(note.tint)
-                        .lineLimit(2)
-                }
+                .minimumScaleFactor(0.7)
             }
-            .padding(12)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .card(highlighted: model.recommended?.id == option.id, tint: option.mode.color)
             .contentShape(Rectangle())
@@ -191,28 +190,27 @@ struct SelectedTripBar: View {
 
     private struct Note { var text: String; var symbol: String; var tint: Color }
 
-    /// Only what changes the decision: rain, the recommendation's reason, and
-    /// the warnings that this trip is not the plain one.
-    private var notes: [Note] {
-        var out: [Note] = []
+    private var recommendationReason: String? {
+        model.recommended?.id == option.id ? model.result.recommendation?.reason : nil
+    }
+
+    /// At most one warning, as a chip: rain first, then the two ways this trip
+    /// is not the plain one. The reasons and the full text live in the detail.
+    private var warning: Note? {
         if let rain = option.rain, rain.level != .dry {
-            out.append(Note(text: rain.summary, symbol: rain.level.symbol, tint: rain.level.color))
-        }
-        if model.recommended?.id == option.id, let reason = model.result.recommendation?.reason {
-            out.append(Note(text: reason, symbol: "sparkles", tint: .secondary))
+            return Note(text: rain.summary, symbol: rain.level.symbol, tint: rain.level.color)
         }
         if option.isAlternative {
-            out.append(Note(text: "Alternative mit U-Bahn/Tram — kein festes Radabteil",
-                            symbol: "arrow.triangle.branch", tint: .orange))
+            return Note(text: "U-Bahn/Tram", symbol: "arrow.triangle.branch", tint: .orange)
         }
         if !option.passesWaypoints {
-            out.append(Note(text: "führt nicht über die Fixpunkte",
-                            symbol: "point.topleft.down.to.point.bottomright.curvepath", tint: .secondary))
+            return Note(text: "ohne Fixpunkte", symbol: "point.topleft.down.to.point.bottomright.curvepath",
+                        tint: .secondary)
         }
-        if let failure = model.result.failures[option.mode] {
-            out.append(Note(text: failure, symbol: "exclamationmark.triangle", tint: .orange))
+        if model.result.failures[option.mode] != nil {
+            return Note(text: "Fehler", symbol: "exclamationmark.triangle", tint: .orange)
         }
-        return out
+        return nil
     }
 }
 

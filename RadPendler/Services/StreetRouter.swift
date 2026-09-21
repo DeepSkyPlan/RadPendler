@@ -40,20 +40,36 @@ actor MapKitRouter: StreetRouting {
                          from.latitude, from.longitude, to.latitude, to.longitude)
         if mode != .car, let hit = cache[key] { return hit }
 
+        let response = try await ask(from: from, to: to, mode: mode, departure: departure, alternatives: false)
+        guard let route = response.first else { throw MKError(.directionsNotFound) }
+        if mode != .car { cache[key] = route }
+        return route
+    }
+
+    /// Every line Apple offers, alternates included. Not cached: the car is the
+    /// only caller and its times follow the traffic.
+    func routes(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+                mode: StreetMode, departure: Date?) async throws -> [StreetRoute] {
+        let found = try await ask(from: from, to: to, mode: mode, departure: departure, alternatives: true)
+        guard !found.isEmpty else { throw MKError(.directionsNotFound) }
+        return found
+    }
+
+    private func ask(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D, mode: StreetMode,
+                     departure: Date?, alternatives: Bool) async throws -> [StreetRoute] {
         let request = MKDirections.Request()
         request.source = MKMapItem(placemark: MKPlacemark(coordinate: from))
         request.destination = MKMapItem(placemark: MKPlacemark(coordinate: to))
         request.transportType = mode.transportType
+        request.requestsAlternateRoutes = alternatives
         if mode == .car, let departure { request.departureDate = departure }
         let response = try await MKDirections(request: request).calculate()
-        guard let r = response.routes.first else { throw MKError(.directionsNotFound) }
-
-        var coords = [CLLocationCoordinate2D](repeating: kCLLocationCoordinate2DInvalid,
-                                              count: r.polyline.pointCount)
-        r.polyline.getCoordinates(&coords, range: NSRange(location: 0, length: r.polyline.pointCount))
-        let route = StreetRoute(distance: r.distance, expectedTravelTime: r.expectedTravelTime,
-                                coordinates: coords)
-        if mode != .car { cache[key] = route }
-        return route
+        return response.routes.map { r in
+            var coords = [CLLocationCoordinate2D](repeating: kCLLocationCoordinate2DInvalid,
+                                                  count: r.polyline.pointCount)
+            r.polyline.getCoordinates(&coords, range: NSRange(location: 0, length: r.polyline.pointCount))
+            return StreetRoute(distance: r.distance, expectedTravelTime: r.expectedTravelTime,
+                               coordinates: coords)
+        }
     }
 }

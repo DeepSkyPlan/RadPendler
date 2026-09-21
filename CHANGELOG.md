@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0 (Build 12, noch nicht hochgeladen)
+- **Der Countdown hat seine eigene Pille**: auf iOS 26 packte die Titelzeile ihn mit dem Burger-Menü in eine gemeinsame Glaskapsel, jetzt trennt ein fester Abstand die beiden.
+- **Stand der Berechnung auf der Karte**: oben links „Stand 09:54 · vor 3 min“, sekundengenau mitlaufend. Antippen rechnet neu — die Seite scrollt nicht mehr, also gibt es kein Ziehen nach unten mehr.
+- **Auto in drei Varianten**: schnellst (Voreinstellung), kürzest und wenig Ampeln, aus den Alternativrouten von Apple Karten, die Ampeln aus denselben OpenStreetMap-Daten wie beim Rad. Wie bei den Radrouten: erster Tipp wählt, jeder weitere schaltet weiter, lang drücken zurück auf die beste. Gewinnt eine Linie alles, heißt sie schlicht „schnellst“.
+- **Eine Seite ohne Scrollen**: die Fahrtzeile ist auf zwei Zeilen eingedampft (Zeiten, Abschnitte, Dauer; darunter Chips für Losgehen, km, Ampeln, Umstiege und höchstens eine Warnung), die Fußzeile ist weg und die Karte nimmt sich den übrigen Platz. Begründung der Empfehlung, Regentext im Klartext und die Hinweise stehen jetzt im Detail hinter dem Pfeil.
+- **Abfahrt/Ankunft neben den Adressen**: zwei kleine Pillen rechts statt eines eigenen Segmentschalters — eine Zeile gespart.
+- Menü: die Datenquellen stehen jetzt ganz unten und kursiv (ein iOS-Menü zeichnet nur einfachen Text, dort bleiben sie grau und unantastbar).
+
 ## 0.6.1 (Build 12, TestFlight 2026-09-20)
 - App-Zeichen größer und nach oben links, daneben der Name; der Countdown sitzt jetzt als rote Pille **zwischen Name und Burger-Menü** und ist aus der Adresskarte verschwunden.
 - Die Karte zeigt an, wenn Radarbilder noch geladen werden.

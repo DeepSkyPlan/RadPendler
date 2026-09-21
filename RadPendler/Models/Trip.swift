@@ -82,6 +82,35 @@ enum BikeVariant: String, CaseIterable, Comparable {
     }
 }
 
+/// Which of the car alternatives an option is; one route can be several.
+/// Apple returns two or three lines for a commute — the fastest is the
+/// default, the other roles only get a label when a different line wins them.
+enum CarVariant: String, CaseIterable, Comparable {
+    case fastest, shortest, fewSignals
+
+    var title: String {
+        switch self {
+        case .fastest: "schnellst"
+        case .shortest: "kürzest"
+        case .fewSignals: "wenig Ampeln"
+        }
+    }
+
+    static func < (a: CarVariant, b: CarVariant) -> Bool {
+        allCases.firstIndex(of: a)! < allCases.firstIndex(of: b)!
+    }
+}
+
+/// The chosen car line and what sets it apart from the others.
+struct CarRouteInfo {
+    var variants: [CarVariant]
+    /// Signalised junctions along the way; nil when OpenStreetMap was unreachable.
+    var signals: Int?
+    var signalPoints: [CLLocationCoordinate2D] = []
+
+    var title: String { variants.sorted().map(\.title).joined(separator: " · ") }
+}
+
 struct BikeRouteInfo {
     var variants: [BikeVariant]
     var stats: BikeRouteStats?
@@ -149,6 +178,8 @@ struct TripOption: Identifiable {
     var rain: RainAssessment? = nil
     /// Set on whole-way bike options.
     var bikeRoute: BikeRouteInfo? = nil
+    /// Set on car options.
+    var carRoute: CarRouteInfo? = nil
     /// False when the trip misses the fixed points from the settings.
     var passesWaypoints = true
 

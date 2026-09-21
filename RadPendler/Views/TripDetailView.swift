@@ -2,6 +2,9 @@ import SwiftUI
 
 struct TripDetailView: View {
     var option: TripOption
+    /// Why the app recommends this trip, when it does — the line the trip bar
+    /// used to carry on the main screen.
+    var reason: String? = nil
     @Environment(AppSettings.self) private var settings
 
     var body: some View {
@@ -18,6 +21,7 @@ struct TripDetailView: View {
                         }
                     summary
                     if let bike = option.bikeRoute { bikeCard(bike) }
+                    if let car = option.carRoute { carCard(car) }
                     timeline
                 }
                 .padding(.horizontal, Theme.gutter)
@@ -64,11 +68,53 @@ struct TripDetailView: View {
                     .foregroundStyle(rain.level.color)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
-            if let note = option.note {
-                Text(note).font(.system(.footnote, design: .rounded)).foregroundStyle(.secondary)
+            ForEach(notes, id: \.text) { note in
+                Label(note.text, systemImage: note.symbol)
+                    .font(.system(.footnote, design: .rounded))
+                    .foregroundStyle(note.tint)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+        .padding(14)
+        .card()
+    }
+
+    private struct Note { var text: String; var symbol: String; var tint: Color }
+
+    /// Everything the compact bar on the main screen leaves out.
+    private var notes: [Note] {
+        var out: [Note] = []
+        if let reason { out.append(Note(text: reason, symbol: "sparkles", tint: .secondary)) }
+        if option.isAlternative {
+            out.append(Note(text: "Alternative mit U-Bahn/Tram — kein festes Radabteil",
+                            symbol: "arrow.triangle.branch", tint: .orange))
+        }
+        if !option.passesWaypoints {
+            out.append(Note(text: "führt nicht über die Fixpunkte",
+                            symbol: "point.topleft.down.to.point.bottomright.curvepath", tint: .secondary))
+        }
+        if let note = option.note { out.append(Note(text: note, symbol: "info.circle", tint: .secondary)) }
+        return out
+    }
+
+    private func carCard(_ car: CarRouteInfo) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Autoroute: \(car.title)", systemImage: "car.fill")
+                .display(.subheadline)
+                .foregroundStyle(LegKind.car.color)
+            HStack(spacing: 6) {
+                Chip(text: Fmt.km(option.totalDistance), symbol: "ruler")
+                if let s = car.signals {
+                    Chip(text: "\(s) Ampeln", icon: AnyView(TrafficLightIcon()))
+                } else {
+                    Chip(text: "Ampeln unbekannt", symbol: "questionmark.circle")
+                }
+            }
+            .lineLimit(1).minimumScaleFactor(0.8)
+            Text("Linienführung und Fahrzeit von Apple Karten, Ampeln aus OpenStreetMap")
+                .font(.system(.caption2, design: .rounded)).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
         .card()
     }
