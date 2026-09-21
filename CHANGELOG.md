@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.1 (Build 17, noch nicht hochgeladen)
+- Das Burger-Menü ist jetzt ein eigenes kleines Fenster statt eines iOS-Menüs: Version und Copyright stehen klein und **auf getrennten Zeilen**, die Quellen heißen **„Datenquellen:"** und stehen ebenso klein und **kursiv** darunter. Ein iOS-Menü zeichnet nur einfachen Text in einer Größe — deshalb der Wechsel.
+
 ## 0.10.0 (Build 16, TestFlight 2026-09-21)
 - **Vorlieben einstellbar** (Einstellungen, gleich unter den Adressen). Dein bisheriges Verhalten ist überall die Voreinstellung:
   - **Verkehrsmittel** als Liste zum Ziehen — Rad › Rad + Bahn › Auto › Bahn & Bus. Die Reihenfolge entscheidet, was gewinnt, wenn zwei Fahrten innerhalb von drei Minuten ankommen, sie bestimmt die Reihenfolge der vier Kästen und die Reihenfolge, in der die Empfehlung durchprobiert, wenn keine Verbindung mit Radmitnahme da ist.

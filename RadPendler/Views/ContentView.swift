@@ -13,6 +13,7 @@ struct ContentView: View {
     @State private var model = PlanModel()
     @State private var showSettings = false
     @State private var showHelp = false
+    @State private var showMenu = false
     @State private var editing: PlaceField?
 
     enum PlaceField: Identifiable {
@@ -191,26 +192,57 @@ struct ContentView: View {
     }
 
     /// Everything that is not the plan itself, behind one quiet button.
+    ///
+    /// A popover rather than a `Menu`: an iOS menu renders plain text only, so
+    /// the version, the copyright and the sources could be neither small nor
+    /// italic nor on lines of their own in one.
     private var menu: some View {
-        Menu {
-            // A menu renders section headers small and everything else at full
-            // size, so the version line rides as a header.
-            Section("RadPendler \(Self.version) · © 2026 AK") {
-                Button { showSettings = true } label: { Label("Einstellungen", systemImage: "gearshape") }
-                Button { showHelp = true } label: { Label("Anleitung", systemImage: "questionmark.circle") }
-            }
-            // Last and quiet: where the numbers come from, not something to tap.
-            Section {
-                Button { } label: {
-                    Text("VBB · Apple Karten · BRouter/OSM · DWD · Open-Meteo").italic()
-                }
-                .disabled(true)
-            }
-        } label: {
+        Button { showMenu = true } label: {
             Image(systemName: "line.3.horizontal")
                 .font(.system(size: 15, weight: .semibold))
         }
         .accessibilityLabel("Menü")
+        .popover(isPresented: $showMenu) {
+            VStack(alignment: .leading, spacing: 0) {
+                menuRow("Einstellungen", "gearshape") { showSettings = true }
+                Divider().padding(.leading, 44)
+                menuRow("Anleitung", "questionmark.circle") { showHelp = true }
+                Divider().padding(.top, 6)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("RadPendler \(Self.version)")
+                    Text("© 2026 AK")
+                    Text("Datenquellen: VBB · Apple Karten · BRouter/OSM · DWD · Open-Meteo")
+                        .italic()
+                        .padding(.top, 5)
+                }
+                .font(.system(.caption2, design: .rounded))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
+                .padding(.bottom, 14)
+                .accessibilityElement(children: .combine)
+            }
+            .frame(width: 280)
+            .presentationCompactAdaptation(.popover)
+        }
+    }
+
+    private func menuRow(_ title: String, _ symbol: String, action: @escaping () -> Void) -> some View {
+        Button {
+            showMenu = false
+            // One runloop later: a sheet presented while the popover is still
+            // going away is swallowed.
+            DispatchQueue.main.async(execute: action)
+        } label: {
+            Label(title, systemImage: symbol)
+                .font(.system(.body, design: .rounded))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     /// Everything the scheduled warnings depend on: which trip, when it wants
