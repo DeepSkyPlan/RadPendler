@@ -45,6 +45,12 @@ final class AppSettings {
     var alertMinutes: [Int] { didSet { defaults.set(alertMinutes, forKey: "alertMinutes") } }
     var alertsOn: Bool { didSet { defaults.set(alertsOn, forKey: "alertsOn") } }
 
+    /// Addresses that have been used before, with how often — the list the
+    /// search offers before anything is typed. Device only, like the addresses.
+    var placeHistory: [PlaceUse] {
+        didSet { defaults.set(try? JSONEncoder().encode(placeHistory), forKey: "placeHistory") }
+    }
+
     /// Average wait per traffic light on the bike (half of them are green).
     var signalWaitSeconds: Int { didSet { defaults.set(signalWaitSeconds, forKey: "signalWaitSeconds") } }
 
@@ -75,6 +81,17 @@ final class AppSettings {
         workArrivalMinutes = defaults.object(forKey: "workArrivalMinutes") as? Int ?? 9 * 60
         alertMinutes = defaults.array(forKey: "alertMinutes") as? [Int] ?? [10, 5, 1]
         alertsOn = defaults.object(forKey: "alertsOn") as? Bool ?? true
+        placeHistory = defaults.data(forKey: "placeHistory")
+            .flatMap { try? JSONDecoder().decode([PlaceUse].self, from: $0) } ?? []
+    }
+
+    /// Called whenever an address is picked, wherever it was picked.
+    func remember(_ place: Place) {
+        placeHistory = placeHistory.recording(place)
+    }
+
+    func forget(_ use: PlaceUse) {
+        placeHistory.removeAll { $0.id == use.id }
     }
 
     func swapDirection() {

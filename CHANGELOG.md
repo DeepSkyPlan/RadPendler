@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.0 (Build 15, noch nicht hochgeladen)
+- **Benutzte Adressen merken**: jede gewählte Adresse landet in einer Liste auf dem Gerät. Die Adresssuche zeigt sie unter „Schon benutzt" noch bevor etwas getippt ist — **nach Häufigkeit sortiert**, bei Gleichstand die zuletzt benutzte zuerst, mit der Zahl der Benutzungen rechts. Tippen übernimmt sie sofort (kein zweiter Geocoder-Aufruf), Wischen vergisst sie. Beim Tippen wird die Liste mitgefiltert (ohne Rücksicht auf Groß/klein und Umlaute) und steht über den Vorschlägen von Apple. Maximal 40 Einträge, danach fallen die am seltensten benutzten heraus.
+- **Adressen mit Postleitzahl**: PLZ und Ort stehen jetzt überall neben bzw. unter der Straße — in der Kopfzeile klein hinter dem Straßennamen, in der Suche und in den Einstellungen als eigene Zeile. PLZ und Ort werden beim Wählen als eigene Felder gespeichert; für Adressen aus älteren Versionen werden sie aus dem gespeicherten Namen gelesen.
+
 ## 0.8.0 (Build 14, TestFlight 2026-09-21)
 - **iPad**: die App ist jetzt universal und läuft im Vollbild (kein iPadOS-Fenster). Ab regulärer Breite steht alles nebeneinander — links eine Spalte mit Adressen, Zeitwahl, den vier Modus-Boxen und der Fahrtzeile, rechts die Karte über die ganze Höhe. **Alle Streckendetails stehen auf derselben Seite**: Begründung der Empfehlung, Regen- und Umstiegs-Hinweise, die Rad- bzw. Autoroutenkarte mit Ampeln und Querungen und der komplette Zeitstrahl — auf dem iPad ist nichts mehr hinter einem Tipp versteckt.
 - **Apple Watch**: eine eigene watchOS-App (watchOS 10+), die in der iPhone-App mitgeliefert wird. Drei Seiten, vertikal gewischt:

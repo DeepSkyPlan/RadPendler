@@ -178,4 +178,58 @@ final class PlannerTests: XCTestCase {
         XCTAssertTrue(TripPlanner.ranking(bike, car))
         XCTAssertFalse(TripPlanner.ranking(option(.bike, arrive: 70), car))
     }
+
+    // MARK: Addresses that have been used before
+
+    private func place(_ name: String, _ lat: Double, _ lon: Double,
+                       plz: String? = nil, ort: String? = nil) -> Place {
+        Place(name: name, latitude: lat, longitude: lon, postalCode: plz, locality: ort)
+    }
+
+    func testHistoryRanksByUseThenRecency() {
+        let a = place("Musterstraße 1, 10557 Berlin", 52.5333, 13.3667, plz: "10557", ort: "Berlin")
+        let b = place("Beispielweg 2, 14000 Musterort", 52.4086, 13.2261, plz: "14000", ort: "Musterort")
+        let c = place("Bergstraße 1, 12169 Berlin", 52.4500, 13.3400, plz: "12169", ort: "Berlin")
+        var history: [PlaceUse] = []
+        history = history.recording(a, now: t0)
+        history = history.recording(b, now: t0.addingTimeInterval(60))
+        history = history.recording(a, now: t0.addingTimeInterval(120))
+        history = history.recording(c, now: t0.addingTimeInterval(180))
+        XCTAssertEqual(history.ranked.map(\.place.shortName),
+                       ["Musterstraße 1", "Bergstraße 1", "Beispielweg 2"],
+                       "twice used first, then the more recent of the two singles")
+        XCTAssertEqual(history.ranked.first?.count, 2)
+    }
+
+    func testHistoryMergesTheSameAddressAndSearchesUmlautBlind() {
+        let a = place("Musterstraße 1, 10557 Berlin", 52.53331, 13.36671)
+        let again = place("Musterstraße 1, 10557 Berlin", 52.53334, 13.36674)   // ~4 m apart
+        let history = [PlaceUse]().recording(a, now: t0).recording(again, now: t0.addingTimeInterval(60))
+        XCTAssertEqual(history.count, 1, "the same address picked twice is one entry")
+        XCTAssertEqual(history[0].count, 2)
+        XCTAssertEqual(history.matching("musterstrasse").count, 1)
+        XCTAssertEqual(history.matching("14000").count, 0)
+    }
+
+    func testHistoryDropsTheLeastUsedWhenItIsFull() {
+        var history: [PlaceUse] = []
+        for i in 0..<5 {
+            history = history.recording(place("Straße \(i)", 52.0 + Double(i) / 100, 13.0),
+                                        now: t0.addingTimeInterval(Double(i)), limit: 3)
+        }
+        XCTAssertEqual(history.count, 3)
+        XCTAssertEqual(history.ranked.map(\.place.shortName), ["Straße 4", "Straße 3", "Straße 2"])
+    }
+
+    func testPostalCodeIsShownAndSurvivesOlderAddresses() {
+        let withFields = place("Musterstraße 1, 10557 Berlin", 52.53, 13.36, plz: "10557", ort: "Berlin")
+        XCTAssertEqual(withFields.areaLine, "10557 Berlin")
+        XCTAssertEqual(withFields.withArea, "Musterstraße 1, 10557 Berlin")
+        // Saved before 0.9: no fields, the area has to come out of the name.
+        let older = place("Beispielweg 2, 14000 Musterort, Deutschland", 52.40, 13.22)
+        XCTAssertEqual(older.areaLine, "14000 Musterort")
+        let bare = place("Irgendwo", 52.0, 13.0)
+        XCTAssertNil(bare.areaLine)
+        XCTAssertEqual(bare.withArea, "Irgendwo")
+    }
 }

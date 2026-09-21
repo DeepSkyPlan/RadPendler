@@ -1,4 +1,4 @@
-# RadPendler — Übergabe (Stand 21.09.2026, 0.8.0 / Build 14)
+# RadPendler — Übergabe (Stand 21.09.2026, 0.9.0 / Build 15)
 
 Multimodaler Pendel-Planer für iPhone, iPad und Apple Watch: Musterstraße 1 (Büro) ↔
 Beispielweg 2 (Musterort) mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln,
@@ -8,7 +8,7 @@ Verzeichnis `~/_claude.code/RadPendler`, git mit Remote `DeepSkyPlan/RadPendler`
 ## Bauen, testen, ausliefern
 
 ```bash
-./dev test      # generiert das .xcodeproj bei Bedarf, dann 46 Tests im Simulator
+./dev test      # generiert das .xcodeproj bei Bedarf, dann 50 Tests im Simulator
 ./dev open      # Xcode mit demselben DerivedData wie die Kommandozeile
 ./dev generate  # nur neu generieren, nach jeder neuen Quelldatei
 ```
@@ -37,8 +37,10 @@ xcrun simctl spawn booted defaults write de.keese.radpendler origin -data <hex-j
 
 ## Aufbau
 
-- `Models/` — `Place`, `AppSettings` (+ `PlanSettings` als Wertkopie, `DeparturePreset`), `Trip`
-  (`TripOption`, `Leg`, `TravelMode`, `BikeVariant`, `TransitProduct`).
+- `Models/` — `Place` (mit `postalCode`/`locality`, `areaLine`, `withArea`) und `PlaceUse`
+  (benutzte Adressen mit Zähler; `ranked`, `matching`, `recording` als reine Funktionen auf
+  `[PlaceUse]`), `AppSettings` (+ `PlanSettings` als Wertkopie, `DeparturePreset`), `Trip`
+  (`TripOption`, `Leg`, `TravelMode`, `BikeVariant`, `CarVariant`, `TransitProduct`).
 - `Services/` — `Hafas` (VBB mgate + Parser), `BRouter` (+ `CompositeRouter`), `StreetRouter`
   (MapKit), `RoadData` (Overpass + `RouteAnalyzer` + `SegmentGrid`), `Rain` (Open-Meteo),
   `RadarOverlay` (DWD-WMS-Kacheln), `Waypoints`, `TripPlanner` (+ `BikeCandidate`,
@@ -99,6 +101,9 @@ xcrun simctl spawn booted defaults write de.keese.radpendler origin -data <hex-j
 - Farben: Rad grün, Auto rot, Bus orange, alles auf Schienen blau (S hell, U dunkel, RE/Tram
   dazwischen), Fähre türkis, Rad + Bahn `#00ADA3`.
 - **Keine Adressen im Programm** — die App startet leer, Adressen bleiben auf dem Gerät.
+  Das gilt auch für den Verlauf der benutzten Adressen (`AppSettings.placeHistory`).
+- Adressen werden immer mit PLZ und Ort gezeigt; in der Kopfzeile klein hinter der Straße,
+  sonst als zweite Zeile.
 - Blockreihenfolge: Fahrrad, Rad + Bahn, Auto, Bahn & Bus.
 
 ## Offen / Ideen
