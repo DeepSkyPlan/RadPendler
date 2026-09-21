@@ -51,6 +51,26 @@ final class AppSettings {
         didSet { defaults.set(try? JSONEncoder().encode(placeHistory), forKey: "placeHistory") }
     }
 
+    /// Which mode wins when two trips arrive at nearly the same time, and the
+    /// order of the four boxes. The user's own by default: Rad vor Rad + Bahn
+    /// vor Auto vor Bahn & Bus.
+    var modeOrder: [TravelMode] = TravelMode.defaultOrder {
+        didSet { defaults.set(modeOrder.map(\.rawValue), forKey: "modeOrder") }
+    }
+    /// Which of the bike routes the app suggests, and in which order they are
+    /// stepped through. First = the one that gets recommended.
+    var bikeVariantOrder: [BikeVariant] = BikeVariant.defaultOrder {
+        didSet { defaults.set(bikeVariantOrder.map(\.rawValue), forKey: "bikeVariantOrder") }
+    }
+    var carVariantOrder: [CarVariant] = CarVariant.defaultOrder {
+        didSet { defaults.set(carVariantOrder.map(\.rawValue), forKey: "carVariantOrder") }
+    }
+    /// From this much rain on the bike belongs in the train rather than on the
+    /// whole way. Default: leichter Regen, which is what the app always did.
+    var rainSwitchLevel: RainLevel = .light {
+        didSet { defaults.set(rainSwitchLevel.rawValue, forKey: "rainSwitchLevel") }
+    }
+
     /// Average wait per traffic light on the bike (half of them are green).
     var signalWaitSeconds: Int = 20 { didSet { defaults.set(signalWaitSeconds, forKey: "signalWaitSeconds") } }
 
@@ -91,6 +111,21 @@ final class AppSettings {
         alertsOn = defaults.object(forKey: "alertsOn") as? Bool ?? alertsOn
         placeHistory = defaults.data(forKey: "placeHistory")
             .flatMap { try? JSONDecoder().decode([PlaceUse].self, from: $0) } ?? placeHistory
+        modeOrder = storedOrder(defaults.array(forKey: "modeOrder") as? [String], fallback: TravelMode.defaultOrder)
+        bikeVariantOrder = storedOrder(defaults.array(forKey: "bikeVariantOrder") as? [String],
+                                       fallback: BikeVariant.defaultOrder)
+        carVariantOrder = storedOrder(defaults.array(forKey: "carVariantOrder") as? [String],
+                                      fallback: CarVariant.defaultOrder)
+        rainSwitchLevel = (defaults.object(forKey: "rainSwitchLevel") as? Int)
+            .flatMap(RainLevel.init(rawValue:)) ?? rainSwitchLevel
+    }
+
+    /// Back to what the app ships with — one button beats four drags.
+    func resetPriorities() {
+        modeOrder = TravelMode.defaultOrder
+        bikeVariantOrder = BikeVariant.defaultOrder
+        carVariantOrder = CarVariant.defaultOrder
+        rainSwitchLevel = .light
     }
 
     /// Called whenever an address is picked, wherever it was picked.
@@ -126,7 +161,9 @@ final class AppSettings {
                      maxBikeToStationKm: maxBikeToStationKm, parkingMinutes: parkingMinutes,
                      transferPenaltyMinutes: transferPenaltyMinutes, signalWaitSeconds: signalWaitSeconds,
                      waypoints: waypoints, requireAllWaypoints: requireAllWaypoints,
-                     departureBufferMinutes: departureBufferMinutes, arrivalBufferMinutes: arrivalBufferMinutes)
+                     departureBufferMinutes: departureBufferMinutes, arrivalBufferMinutes: arrivalBufferMinutes,
+                     modeOrder: modeOrder, bikeVariantOrder: bikeVariantOrder,
+                     carVariantOrder: carVariantOrder, rainSwitchLevel: rainSwitchLevel)
     }
 
     private func save(_ place: Place?, _ key: String) {
@@ -153,6 +190,14 @@ struct PlanSettings: Equatable {
     var requireAllWaypoints = false
     var departureBufferMinutes = 0
     var arrivalBufferMinutes = 5
+    var modeOrder: [TravelMode] = TravelMode.defaultOrder
+    var bikeVariantOrder: [BikeVariant] = BikeVariant.defaultOrder
+    var carVariantOrder: [CarVariant] = CarVariant.defaultOrder
+    var rainSwitchLevel: RainLevel = .light
+    /// Beyond this, the whole way by bike is a curiosity rather than a plan:
+    /// its box moves to the end of the row and the OpenStreetMap corridor gets
+    /// too big to ask Overpass for.
+    var longTripKm = 100.0
 
     var departureBuffer: TimeInterval { TimeInterval(departureBufferMinutes * 60) }
     var arrivalBuffer: TimeInterval { TimeInterval(arrivalBufferMinutes * 60) }
@@ -222,4 +267,13 @@ enum DeparturePreset: Hashable {
                                              .relative(60), .relative(120),
                                              .clock(6, 0), .clock(7, 0), .clock(8, 0), .clock(9, 0),
                                              .clock(12, 0), .clock(16, 0), .clock(17, 0), .clock(18, 0), .clock(20, 0)]
+}
+
+/// Reads a stored order back. What the stored list does not mention is appended
+/// in its default position — a variant added in a later version must not vanish
+/// because an older device wrote the list before it existed.
+func storedOrder<T: RawRepresentable & Equatable>(_ stored: [T.RawValue]?, fallback: [T]) -> [T] {
+    guard let stored else { return fallback }
+    let known = stored.compactMap(T.init(rawValue:))
+    return known + fallback.filter { !known.contains($0) }
 }

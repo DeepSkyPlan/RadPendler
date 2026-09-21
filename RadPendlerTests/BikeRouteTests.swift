@@ -65,8 +65,11 @@ final class BikeRouteTests: XCTestCase {
         let picked = BikeCandidate.pick([quiet, short, middle], settings: s)
         XCTAssertLessThan(middle.time(s), short.time(s))
         // fastbike is the shortest by distance, trekking the fastest overall.
-        XCTAssertEqual(picked.map(\.0.source), ["trekking", "fastbike", "safety"])
-        XCTAssertEqual(picked.map(\.1), [[.fastest, .balanced], [.shortest], [.quiet]])
+        // The list comes back in the user's variant order, which ships as
+        // optimal › schnellst › ruhigst › kürzest — so trekking (optimal and
+        // schnellst) leads, then safety (ruhigst), then fastbike (kürzest).
+        XCTAssertEqual(picked.map(\.0.source), ["trekking", "safety", "fastbike"])
+        XCTAssertEqual(picked.map(\.1), [[.balanced, .fastest], [.quiet], [.shortest]])
         // Signal waits are part of the riding time: 45 × 20 s = 15 min.
         XCTAssertEqual(middle.time(s), s.bikeTime(19_700) + 900, accuracy: 1)
     }
@@ -76,7 +79,17 @@ final class BikeRouteTests: XCTestCase {
         let worse = candidate("fastbike", km: 20, signals: 50, crossings: 18, mainKm: 13)
         let picked = BikeCandidate.pick([worse, best], settings: PlanSettings())
         XCTAssertEqual(picked.count, 1)
-        XCTAssertEqual(picked[0].1, [.fastest, .shortest, .balanced, .quiet])
+        XCTAssertEqual(picked[0].1, BikeVariant.defaultOrder, "all four labels, in the user's order")
+    }
+
+    func testTheVariantOrderTravelsThroughToWhatIsSuggested() {
+        let short = candidate("fastbike", km: 19.5, signals: 55, crossings: 18, mainKm: 13.5)
+        let quiet = candidate("safety", km: 24.0, signals: 43, crossings: 12, mainKm: 7.6)
+        var s = PlanSettings()
+        s.bikeVariantOrder = [.shortest, .quiet, .balanced, .fastest]
+        let picked = BikeCandidate.pick([quiet, short], settings: s)
+        XCTAssertEqual(picked.first?.0.source, "fastbike")
+        XCTAssertEqual(picked.first?.1.first, .shortest)
     }
 
     // MARK: Car alternatives

@@ -84,8 +84,10 @@ struct TripPlanner {
                 requireAll: req.settings.requireAllWaypoints, radius: req.settings.waypointRadius)
         }
         let penalty = req.settings.transferPenalty
-        result.options.sort { Self.ranking($0, $1, penalty: penalty) }
-        result.recommendation = Self.recommend(result.options, penalty: penalty)
+        let order = req.settings.modeOrder
+        result.options.sort { Self.ranking($0, $1, penalty: penalty, order: order) }
+        result.recommendation = Self.recommend(result.options, penalty: penalty, order: order,
+                                               rainSwitch: req.settings.rainSwitchLevel)
         return result
     }
 
@@ -130,15 +132,20 @@ struct TripPlanner {
         }
         let picked = BikeCandidate.pick(candidates, settings: req.settings)
 
-        return picked.map { c, variants in
+        return picked.enumerated().map { index, entry in
+            let (c, variants) = entry
             let ride = c.time(req.settings)
             let leave = req.arriveBy.map { $0.addingTimeInterval(-ride) } ?? req.earliestLeave
             let leg = Leg(kind: .bike, fromName: req.origin.shortName, toName: req.destination.shortName,
                           departure: leave, arrival: leave.addingTimeInterval(ride),
                           distance: c.route.distance, coordinates: c.route.coordinates)
-            return TripOption(mode: .bike, legs: [leg], prep: req.settings.prep,
-                              note: data == nil ? "Ampeln und Hauptstraßen unbekannt (OpenStreetMap nicht erreichbar)" : nil,
-                              bikeRoute: BikeRouteInfo(variants: variants, stats: c.stats, source: c.source))
+            var option = TripOption(mode: .bike, legs: [leg], prep: req.settings.prep,
+                                    note: data == nil ? Self.noRoadDataNote(km: c.route.distance / 1000, settings: req.settings) : nil,
+                                    bikeRoute: BikeRouteInfo(variants: variants, stats: c.stats, source: c.source))
+            // Only the route that matches the user's first choice is the one
+            // the recommendation weighs; the others are alternatives.
+            option.isPreferredVariant = index == 0
+            return option
         }
     }
 
@@ -147,6 +154,14 @@ struct TripPlanner {
     /// The lights come from the same OpenStreetMap data the bike routes use —
     /// on a commute that is the difference between the autobahn detour and the
     /// straight run through town.
+    /// Why a route has no traffic-light count: too long to ask Overpass for,
+    /// or Overpass simply did not answer.
+    static func noRoadDataNote(km: Double, settings: PlanSettings) -> String {
+        km > settings.longTripKm
+            ? "Ampeln und Hauptstraßen auf dieser Länge nicht gezählt"
+            : "Ampeln und Hauptstraßen unbekannt (OpenStreetMap nicht erreichbar)"
+    }
+
     func carOptions(_ req: PlanRequest) async throws -> [TripOption] {
         let guess = req.arriveBy ?? req.earliestLeave
         let found = try await apple.routes(from: req.origin.coordinate, to: req.destination.coordinate,
@@ -157,16 +172,19 @@ struct TripPlanner {
                          stats: data.map { RouteAnalyzer.analyze(route.coordinates, roads: $0) })
         }
         let parking = TimeInterval(req.settings.parkingMinutes * 60)
-        return CarCandidate.pick(candidates).map { c, variants in
+        return CarCandidate.pick(candidates, order: req.settings.carVariantOrder).enumerated().map { index, entry in
+            let (c, variants) = entry
             let drive = c.route.expectedTravelTime + parking
             let leave = req.arriveBy.map { $0.addingTimeInterval(-drive) } ?? req.earliestLeave
             let leg = Leg(kind: .car, fromName: req.origin.shortName, toName: req.destination.shortName,
                           departure: leave, arrival: leave.addingTimeInterval(drive),
                           distance: c.route.distance, coordinates: c.route.coordinates)
             let note = parking > 0 ? "inkl. \(req.settings.parkingMinutes) min Parkplatzsuche" : "Fahrzeit laut Apple Karten mit Verkehrslage"
-            return TripOption(mode: .car, legs: [leg], prep: req.settings.prep, note: note,
-                              carRoute: CarRouteInfo(variants: variants, signals: c.stats?.signals,
-                                                     signalPoints: c.stats?.signalPoints ?? []))
+            var option = TripOption(mode: .car, legs: [leg], prep: req.settings.prep, note: note,
+                                    carRoute: CarRouteInfo(variants: variants, signals: c.stats?.signals,
+                                                           signalPoints: c.stats?.signalPoints ?? []))
+            option.isPreferredVariant = index == 0
+            return option
         }
     }
 
@@ -183,7 +201,8 @@ struct TripPlanner {
             let limit = by.addingTimeInterval(60)
             options = options.filter { $0.arrival <= limit }
         }
-        options.sort { TripPlanner.ranking($0, $1, penalty: penalty, arrival: req.isArrival) }
+        options.sort { TripPlanner.ranking($0, $1, penalty: penalty, arrival: req.isArrival,
+                                           order: req.settings.modeOrder) }
         return Array(options.prefix(3))
     }
 
@@ -304,16 +323,23 @@ struct TripPlanner {
 
     /// Earliest arrival first, each change of train counted as `penalty`;
     /// within 3 minutes the more active mode first.
+    /// `order` is the user's list of modes: it decides which one wins when two
+    /// trips arrive within three minutes of each other.
     static func ranking(_ a: TripOption, _ b: TripOption, penalty: TimeInterval = 600,
-                        arrival: Bool = false) -> Bool {
+                        arrival: Bool = false,
+                        order: [TravelMode] = TravelMode.defaultOrder) -> Bool {
         if a.passesWaypoints != b.passesWaypoints { return a.passesWaypoints }
         // Leaving as late as possible is the point of an arrival search.
         let wa = score(a, penalty: penalty, arrival: arrival)
         let wb = score(b, penalty: penalty, arrival: arrival)
         if abs(wa - wb) < 180, a.mode != b.mode {
-            return a.mode.preference < b.mode.preference
+            return rank(a.mode, order) < rank(b.mode, order)
         }
         return wa < wb
+    }
+
+    static func rank(_ mode: TravelMode, _ order: [TravelMode]) -> Int {
+        order.firstIndex(of: mode) ?? order.count
     }
 
     private static func score(_ o: TripOption, penalty: TimeInterval, arrival: Bool) -> Double {
@@ -321,22 +347,28 @@ struct TripPlanner {
         return arrival ? -d.timeIntervalSince1970 : d.timeIntervalSince1970
     }
 
-    /// The user's own rule: dry → ride (the whole way, or with the train if
-    /// that arrives earlier); wet → bike in the train, which keeps the time in
-    /// the rain short; Bus & Bahn only without any bike option; the car last.
-    static func recommend(_ options: [TripOption], penalty: TimeInterval = 600) -> Recommendation? {
+    /// The user's own rule, as far as the settings let it be one: dry → ride
+    /// (the whole way, or with the train if that arrives earlier); wet → bike
+    /// in the train, which keeps the time in the rain short; everything else in
+    /// the order the user put the modes in. "Dry" and the order both come from
+    /// the settings — `rainSwitch` is the level at which the bike goes into the
+    /// train, `order` decides the ties.
+    static func recommend(_ options: [TripOption], penalty: TimeInterval = 600,
+                          order: [TravelMode] = TravelMode.defaultOrder,
+                          rainSwitch: RainLevel = .light) -> Recommendation? {
         let arrival = { (o: TripOption) in o.weightedArrival(penalty) }
         let level = { (o: TripOption) in o.rain?.level ?? .dry }
+        let preferredBike = { (o: TripOption) in o.mode == .bike && o.isPreferredVariant }
         // U-Bahn/tram connections only count when no S-Bahn/regional one exists.
         let onRoute = options.filter(\.passesWaypoints)
         let bikeTrains = (onRoute.isEmpty ? options : onRoute).filter { $0.mode == .bikeTransit && !$0.isAlternative }
         let bikeTransit = bikeTrains.isEmpty ? options.filter { $0.mode == .bikeTransit } : bikeTrains
         // Trips that miss the fixed points are never recommended while others exist.
         let options = options.contains(where: \.passesWaypoints) ? options.filter(\.passesWaypoints) : options
-        let bikeish = options.filter(\.isDefaultBikeVariant) + bikeTransit
-        let dry = bikeish.filter { level($0) <= .possible }
+        let bikeish = options.filter(preferredBike) + bikeTransit
+        let dry = bikeish.filter { level($0) < rainSwitch }
 
-        if let pick = dry.min(by: { ranking($0, $1, penalty: penalty) }) {
+        if let pick = dry.min(by: { ranking($0, $1, penalty: penalty, order: order) }) {
             let reason = pick.mode == .bike
                 ? "Radstrecke \(pick.rain?.summary ?? "ohne Regendaten")"
                 : "trocken und mit der Bahn schneller als die ganze Strecke per Rad"
@@ -344,11 +376,13 @@ struct TripPlanner {
         }
         if let pick = bikeTransit
             .min(by: { (level($0), arrival($0)) < (level($1), arrival($1)) }) {
-            let wet = options.first(where: \.isDefaultBikeVariant)?.rain?.summary
+            let wet = options.first(where: preferredBike)?.rain?.summary
             return Recommendation(optionID: pick.id,
                                   reason: "Regen auf der Radstrecke\(wet.map { " (\($0))" } ?? "") — Rad in die Bahn")
         }
-        for mode in [TravelMode.transit, .bike, .car] {
+        // No connection that takes the bike: fall back in the user's own order,
+        // minus bike + rail, which just had its turn.
+        for mode in order where mode != .bikeTransit {
             if let pick = options.filter({ $0.mode == mode }).min(by: { arrival($0) < arrival($1) }) {
                 return Recommendation(optionID: pick.id, reason: "keine Verbindung mit Radmitnahme gefunden")
             }
@@ -441,7 +475,7 @@ struct CarCandidate {
     /// fewest signalised junctions. A line winning several roles is listed once
     /// with all its labels; when one line wins everything it is simply the
     /// fastest, because three labels on a single route say nothing.
-    static func pick(_ all: [CarCandidate]) -> [(CarCandidate, [CarVariant])] {
+    static func pick(_ all: [CarCandidate], order: [CarVariant] = CarVariant.defaultOrder) -> [(CarCandidate, [CarVariant])] {
         guard let fastest = all.indices.min(by: { all[$0].route.expectedTravelTime < all[$1].route.expectedTravelTime })
         else { return [] }
         var roles: [Int: [CarVariant]] = [fastest: [.fastest]]
@@ -452,7 +486,10 @@ struct CarCandidate {
             roles[quiet, default: []].append(.fewSignals)
         }
         if roles.count == 1 { return [(all[fastest], [.fastest])] }
-        return roles.sorted { $0.value.min()! < $1.value.min()! }.map { (all[$0.key], $0.value.sorted()) }
+        let rank = { (v: CarVariant) in order.firstIndex(of: v) ?? order.count }
+        return roles
+            .map { (all[$0.key], $0.value.sorted { rank($0) < rank($1) }) }
+            .sorted { rank($0.1.first!) < rank($1.1.first!) }
     }
 }
 
@@ -477,6 +514,9 @@ struct BikeCandidate {
     /// several roles is listed once with all its labels. Without OpenStreetMap
     /// data only the time can be judged; BRouter's "safety" route then stands
     /// in for "ruhigst".
+    ///
+    /// The list comes back in the order the user put the variants in, so the
+    /// first route is the one the app suggests and the first the boxes show.
     static func pick(_ all: [BikeCandidate], settings s: PlanSettings) -> [(BikeCandidate, [BikeVariant])] {
         guard let fastest = all.indices.min(by: { all[$0].time(s) < all[$1].time(s) }) else { return [] }
         let quiet: Int, balanced: Int
@@ -493,6 +533,10 @@ struct BikeCandidate {
         roles[shortest, default: []].append(.shortest)
         roles[balanced, default: []].append(.balanced)
         roles[quiet, default: []].append(.quiet)
-        return roles.sorted { $0.value.min()! < $1.value.min()! }.map { (all[$0.key], $0.value.sorted()) }
+        let order = s.bikeVariantOrder
+        let rank = { (v: BikeVariant) in order.firstIndex(of: v) ?? order.count }
+        return roles
+            .map { (all[$0.key], $0.value.sorted { rank($0) < rank($1) }) }
+            .sorted { rank($0.1.first!) < rank($1.1.first!) }
     }
 }

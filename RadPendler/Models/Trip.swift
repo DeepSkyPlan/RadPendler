@@ -24,13 +24,18 @@ enum TravelMode: String, CaseIterable, Identifiable {
         }
     }
 
-    /// When two options arrive at nearly the same time, the more active one wins.
-    var preference: Int {
+    /// What the app ships with — the user can reorder it in the settings, and
+    /// that order decides which mode wins when two trips arrive at nearly the
+    /// same time, and in which order the four boxes stand.
+    static let defaultOrder: [TravelMode] = [.bike, .bikeTransit, .car, .transit]
+
+    /// For the one line that has to hold all four: "Rad › Rad+Bahn › Auto › ÖPNV".
+    var short: String {
         switch self {
-        case .bike: 0
-        case .bikeTransit: 1
-        case .transit: 2
-        case .car: 3
+        case .bike: "Rad"
+        case .bikeTransit: "Rad+Bahn"
+        case .transit: "ÖPNV"
+        case .car: "Auto"
         }
     }
 }
@@ -80,6 +85,10 @@ enum BikeVariant: String, CaseIterable, Comparable {
     static func < (a: BikeVariant, b: BikeVariant) -> Bool {
         allCases.firstIndex(of: a)! < allCases.firstIndex(of: b)!
     }
+
+    /// Ships with "optimal" first: that is the one the app suggests. The user
+    /// can put "ruhigst" or "kürzest" in front of it.
+    static let defaultOrder: [BikeVariant] = [.balanced, .fastest, .quiet, .shortest]
 }
 
 /// Which of the car alternatives an option is; one route can be several.
@@ -99,6 +108,8 @@ enum CarVariant: String, CaseIterable, Comparable {
     static func < (a: CarVariant, b: CarVariant) -> Bool {
         allCases.firstIndex(of: a)! < allCases.firstIndex(of: b)!
     }
+
+    static let defaultOrder: [CarVariant] = [.fastest, .shortest, .fewSignals]
 }
 
 /// The chosen car line and what sets it apart from the others.
@@ -108,7 +119,8 @@ struct CarRouteInfo {
     var signals: Int?
     var signalPoints: [CLLocationCoordinate2D] = []
 
-    var title: String { variants.sorted().map(\.title).joined(separator: " · ") }
+    /// Already in the user's order; the first one names the route.
+    var title: String { variants.map(\.title).joined(separator: " · ") }
 }
 
 struct BikeRouteInfo {
@@ -117,7 +129,9 @@ struct BikeRouteInfo {
     /// BRouter profile or "Apple" — which router drew this line.
     var source: String
 
-    var title: String { variants.sorted().map(\.title).joined(separator: " · ") }
+    /// Already in the order the user put the variants in; the first is the one
+    /// that decides what the box says.
+    var title: String { variants.map(\.title).joined(separator: " · ") }
 }
 
 enum LegKind: Equatable {
@@ -182,11 +196,9 @@ struct TripOption: Identifiable {
     var carRoute: CarRouteInfo? = nil
     /// False when the trip misses the fixed points from the settings.
     var passesWaypoints = true
-
-    /// The bike variant the recommendation considers (Mittelweg).
-    var isDefaultBikeVariant: Bool {
-        mode == .bike && (bikeRoute.map { $0.variants.contains(.balanced) } ?? true)
-    }
+    /// The one route of its mode that matches the user's first choice — the
+    /// only whole-way bike route the recommendation considers.
+    var isPreferredVariant = true
 
     var leave: Date { legs.first?.departure ?? .distantPast }
     var arrival: Date { legs.last?.arrival ?? .distantPast }

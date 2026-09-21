@@ -227,8 +227,8 @@ struct RouteMapView: UIViewRepresentable {
 
         static func labelText(_ o: TripOption) -> String {
             let d = Fmt.duration(o.duration)
-            if let bike = o.bikeRoute { return "\(d) · \(bike.variants.sorted().first!.title)" }
-            if let car = o.carRoute { return "\(d) · \(car.variants.sorted().first!.title)" }
+            if let bike = o.bikeRoute { return "\(d) · \(bike.variants.first!.title)" }
+            if let car = o.carRoute { return "\(d) · \(car.variants.first!.title)" }
             guard !o.transitLegs.isEmpty else { return d }
             return o.transfers == 0 ? "\(d) · direkt" : "\(d) · \(o.transfers)× um"   // short form of transferText
         }

@@ -1,4 +1,4 @@
-# RadPendler — Übergabe (Stand 21.09.2026, 0.9.0 / Build 15)
+# RadPendler — Übergabe (Stand 21.09.2026, 0.10.0 / Build 16)
 
 Multimodaler Pendel-Planer für iPhone, iPad und Apple Watch: Musterstraße 1 (Büro) ↔
 Beispielweg 2 (Musterort) mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln,
@@ -8,7 +8,7 @@ Verzeichnis `~/_claude.code/RadPendler`, git mit Remote `DeepSkyPlan/RadPendler`
 ## Bauen, testen, ausliefern
 
 ```bash
-./dev test      # generiert das .xcodeproj bei Bedarf, dann 50 Tests im Simulator
+./dev test      # generiert das .xcodeproj bei Bedarf, dann 61 Tests im Simulator
 ./dev open      # Xcode mit demselben DerivedData wie die Kommandozeile
 ./dev generate  # nur neu generieren, nach jeder neuen Quelldatei
 ```
@@ -94,6 +94,12 @@ xcrun simctl spawn booted defaults write de.keese.radpendler origin -data <hex-j
   watchOS nicht; sie zeigt, was das iPhone zuletzt geschickt hat, und sagt dazu, wie alt
   das ist. Was die Uhr wählt, gilt nur auf der Uhr — die Mitteilungen kommen weiter vom
   iPhone und folgen dessen Auswahl.
+- Die **Vorlieben sind jetzt Einstellungen**, keine festen Regeln mehr: Reihenfolge der
+  Verkehrsmittel, Reihenfolge der Rad- und Autorouten-Varianten, und ab welchem Regen das
+  Rad in die Bahn gehört. Sein bisheriges Verhalten ist überall die Voreinstellung
+  (`TravelMode.defaultOrder`, `BikeVariant.defaultOrder`, `CarVariant.defaultOrder`,
+  `rainSwitchLevel = .light`) — Änderungen an der Logik müssen die Listen respektieren,
+  nicht die alten festen Reihenfolgen.
 - Radgeschwindigkeit ist die **rollende** Geschwindigkeit (29 km/h) plus 20 s je Ampelkreuzung;
   zusammen ergibt das seine gemessenen ~21 km/h.
 - **S-Bahn und Regionalzug zuerst** (festes Radabteil), U-Bahn und Tram nur als markierte

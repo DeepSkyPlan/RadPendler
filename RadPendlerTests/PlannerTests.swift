@@ -254,4 +254,110 @@ final class PlannerTests: XCTestCase {
         XCTAssertNil(CloudStore.mergedHistory(local: Data("kaputt".utf8), cloud: good))
         XCTAssertNotNil(CloudStore.mergedHistory(local: good, cloud: good))
     }
+
+    // MARK: Long trips
+
+    @MainActor func testBikeAloneGoesLastBeyondTheThreshold() {
+        let model = PlanModel()
+        let suite = UUID().uuidString
+        let settings = AppSettings(defaults: UserDefaults(suiteName: suite)!)
+        // Musterstraße → Beispielweg: 23 km, the commute.
+        settings.origin = Place(name: "Musterstraße 1", latitude: 52.5333, longitude: 13.3667)
+        settings.destination = Place(name: "Beispielweg 2", latitude: 52.4086, longitude: 13.2261)
+        model.refresh(settings: settings)
+        XCTAssertFalse(model.isLongTrip)
+        XCTAssertEqual(model.modeOrder, [.bike, .bikeTransit, .car, .transit])
+
+        // Berlin → Hamburg: 255 km.
+        settings.destination = Place(name: "Hamburg Hbf", latitude: 53.5528, longitude: 10.0067)
+        model.refresh(settings: settings)
+        XCTAssertTrue(model.isLongTrip)
+        XCTAssertEqual(model.modeOrder, [.bikeTransit, .car, .transit, .bike],
+                       "the whole way by bike goes last, the rest keeps its order")
+        XCTAssertEqual(model.directKm, 255, accuracy: 5)
+    }
+
+    func testOverpassIsNotAskedForACorridorItCannotAnswer() {
+        let commute = RoadDataStore.Box(around: [CLLocationCoordinate2D(latitude: 52.5333, longitude: 13.3667),
+                                                 CLLocationCoordinate2D(latitude: 52.4086, longitude: 13.2261)])
+        XCTAssertFalse(commute.isTooLarge)
+        let toHamburg = RoadDataStore.Box(around: [CLLocationCoordinate2D(latitude: 52.5333, longitude: 13.3667),
+                                                   CLLocationCoordinate2D(latitude: 53.5528, longitude: 10.0067)])
+        XCTAssertTrue(toHamburg.isTooLarge, "hundreds of megabytes is not a query, it is a hang")
+    }
+
+    func testTheNoteSaysWhyTheLightsAreMissing() {
+        let s = PlanSettings()
+        XCTAssertTrue(TripPlanner.noRoadDataNote(km: 23, settings: s).contains("nicht erreichbar"))
+        XCTAssertTrue(TripPlanner.noRoadDataNote(km: 255, settings: s).contains("nicht gezählt"))
+    }
+
+    // MARK: Priorities
+
+    func testModeOrderDecidesTheTieAndTheRecommendation() {
+        // Two trips three minutes apart: the tie-break, not the clock, decides.
+        let bike = option(.bike, arrive: 60)
+        let car = option(.car, arrive: 61)
+        XCTAssertTrue(TripPlanner.ranking(bike, car), "ships with Rad before Auto")
+        XCTAssertTrue(TripPlanner.ranking(car, bike, order: [.car, .transit, .bike, .bikeTransit]),
+                      "the user put Auto first")
+    }
+
+    func testRainLevelAtWhichTheBikeGoesIntoTheTrain() {
+        // Drizzle on the bike route; the bike+rail trip arrives later.
+        let drizzle = option(.bike, arrive: 55, rainMm: 0.3)
+        let bikeTrain = option(.bikeTransit, arrive: 70, rainMm: 0)
+        let options = [drizzle, bikeTrain]
+        let bikeWins = TripPlanner.recommend(options, rainSwitch: .rain)
+        XCTAssertEqual(bikeWins?.optionID, drizzle.id, "a shower is not enough to give up the ride")
+        let trainWins = TripPlanner.recommend(options, rainSwitch: .possible)
+        XCTAssertEqual(trainWins?.optionID, bikeTrain.id, "this user gives up at the first drop")
+    }
+
+    func testVariantOrderDecidesWhichRouteIsSuggested() {
+        let quick = BikeCandidate(source: "fastbike",
+                                  route: StreetRoute(distance: 22_000, expectedTravelTime: 0, coordinates: []),
+                                  stats: BikeRouteStats(signals: 40, crossings: ["B 1"], mainRoadMeters: 4000))
+        let calm = BikeCandidate(source: "safety",
+                                 route: StreetRoute(distance: 24_000, expectedTravelTime: 0, coordinates: []),
+                                 stats: BikeRouteStats(signals: 12, crossings: [], mainRoadMeters: 200))
+        var s = PlanSettings(bikeSpeedKmh: 21)
+        s.bikeVariantOrder = [.quiet, .balanced, .fastest, .shortest]
+        let picked = BikeCandidate.pick([quick, calm], settings: s)
+        XCTAssertEqual(picked.first?.1.first, .quiet, "the user asked for the quiet one first")
+        XCTAssertEqual(picked.first?.0.route.distance, 24_000)
+
+        s.bikeVariantOrder = [.shortest, .fastest, .balanced, .quiet]
+        XCTAssertEqual(BikeCandidate.pick([quick, calm], settings: s).first?.1.first, .shortest)
+    }
+
+    func testCarVariantOrderAndAStoredOrderThatIsMissingAValue() {
+        let motorway = CarCandidate(route: StreetRoute(distance: 30_000, expectedTravelTime: 28 * 60, coordinates: []),
+                                    stats: BikeRouteStats(signals: 12, crossings: [], mainRoadMeters: 0))
+        let town = CarCandidate(route: StreetRoute(distance: 21_000, expectedTravelTime: 35 * 60, coordinates: []),
+                                stats: BikeRouteStats(signals: 41, crossings: [], mainRoadMeters: 0))
+        XCTAssertEqual(CarCandidate.pick([motorway, town], order: [.fewSignals, .shortest, .fastest]).first?.1.first,
+                       .fewSignals)
+        // A list written before a variant existed must not drop it.
+        let partial: [TravelMode] = storedOrder(["car", "bike"], fallback: TravelMode.defaultOrder)
+        XCTAssertEqual(partial, [.car, .bike, .bikeTransit, .transit])
+        XCTAssertEqual(storedOrder(nil, fallback: BikeVariant.defaultOrder), BikeVariant.defaultOrder)
+    }
+
+    func testPrioritiesSurviveALaunchAndCanBeReset() {
+        let suite = UUID().uuidString
+        let s = AppSettings(defaults: UserDefaults(suiteName: suite)!)
+        XCTAssertEqual(s.modeOrder, TravelMode.defaultOrder, "the shipped setup is the default")
+        XCTAssertEqual(s.rainSwitchLevel, .light)
+        s.modeOrder = [.transit, .car, .bike, .bikeTransit]
+        s.bikeVariantOrder = [.quiet, .fastest, .balanced, .shortest]
+        s.rainSwitchLevel = .rain
+        let again = AppSettings(defaults: UserDefaults(suiteName: suite)!)
+        XCTAssertEqual(again.modeOrder, [.transit, .car, .bike, .bikeTransit])
+        XCTAssertEqual(again.bikeVariantOrder.first, .quiet)
+        XCTAssertEqual(again.rainSwitchLevel, .rain)
+        again.resetPriorities()
+        XCTAssertEqual(again.modeOrder, TravelMode.defaultOrder)
+        XCTAssertEqual(again.rainSwitchLevel, .light)
+    }
 }

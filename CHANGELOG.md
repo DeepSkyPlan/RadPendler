@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.0 (Build 16, TestFlight 2026-09-21)
+- **Vorlieben einstellbar** (Einstellungen, gleich unter den Adressen). Dein bisheriges Verhalten ist überall die Voreinstellung:
+  - **Verkehrsmittel** als Liste zum Ziehen — Rad › Rad + Bahn › Auto › Bahn & Bus. Die Reihenfolge entscheidet, was gewinnt, wenn zwei Fahrten innerhalb von drei Minuten ankommen, sie bestimmt die Reihenfolge der vier Kästen und die Reihenfolge, in der die Empfehlung durchprobiert, wenn keine Verbindung mit Radmitnahme da ist.
+  - **Radrouten** als Liste — optimal › schnellst › ruhigst › kürzest. Die oberste ist die, die vorgeschlagen und im Kasten genannt wird; „weniger Ampeln vor kürzest" ist damit ein Zug mit dem Finger.
+  - **Autorouten** genauso — schnellst › kürzest › wenig Ampeln.
+  - **„Rad in die Bahn ab"** — bisher fest bei leichtem Regen, jetzt wählbar zwischen „Schauer möglich" und „starker Regen".
+  - **„Zurück auf Werkseinstellung"** stellt alle vier auf den Auslieferungszustand.
+- **Lange Strecken**: jenseits von 100 km rutscht die reine Fahrrad-Option ans Ende der Kästenreihe, und die Ampelzählung wird übersprungen, statt Overpass nach einem Korridor zu fragen, den es nicht beantworten kann. Voll relevant wird das erst mit bundesweiten Fahrplandaten — bis dahin verhindert es vor allem ein Hängen bei weit entfernten Zielen.
+
 ## 0.9.0 (Build 15, TestFlight 2026-09-21)
 - **Abgleich über iCloud**: Start, Ziel, Arbeitsadresse, Fixpunkte, die Liste der benutzten Adressen und alle Einstellungen wandern über den iCloud-Schlüssel-Wert-Speicher zwischen deinen Geräten — das iPad startet also mit dem, was das iPhone schon weiß. Ohne angemeldetes iCloud-Konto passiert nichts und die App verhält sich wie vorher. Die Adressliste wird dabei **zusammengeführt**, nicht überschrieben (je Adresse der höhere Zähler und die spätere Benutzung), damit ein Gerät, das gerade erst gezogen hat, die Liste nicht kürzen kann. Der Fahrplan selbst geht weiter direkt per WatchConnectivity an die Uhr — er ist nach Minuten veraltet, dafür ist iCloud zu langsam.
 - **Benutzte Adressen merken**: jede gewählte Adresse landet in einer Liste auf dem Gerät. Die Adresssuche zeigt sie unter „Schon benutzt" noch bevor etwas getippt ist — **nach Häufigkeit sortiert**, bei Gleichstand die zuletzt benutzte zuerst, mit der Zahl der Benutzungen rechts. Tippen übernimmt sie sofort (kein zweiter Geocoder-Aufruf), Wischen vergisst sie. Beim Tippen wird die Liste mitgefiltert (ohne Rücksicht auf Groß/klein und Umlaute) und steht über den Vorschlägen von Apple. Maximal 40 Einträge, danach fallen die am seltensten benutzten heraus.
