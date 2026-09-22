@@ -10,7 +10,7 @@ Fassung von Name, Untertitel, Keywords und Beschreibung steht am Ende und
 gehört in die Lokalisierung **Englisch (USA)**, damit die Seite in Stores
 außerhalb Deutschlands nicht leer aussieht.
 
-## Einreichungs-Checkliste (0.12.1, Build 19)
+## Einreichungs-Checkliste (0.14.0, Build 21)
 
 Die erste Einreichung überhaupt: bisher lief RadPendler nur über TestFlight,
 intern. In App Store Connect, auf der Versionsseite 0.12.1:
@@ -61,7 +61,7 @@ neu ist, nicht was immer gilt.
 
 ## Beschreibung (max 4000)
 
-Länge: **3955** von 4000 Zeichen.
+Länge: **3978** von 4000 Zeichen.
 
 ```
 Wie kommst du heute zur Arbeit?
@@ -82,16 +82,15 @@ DIE VIER WEGE
   Hauptstraßen und Metern neben Hauptstraßen
 • Rad + Bahn: die App sucht sich die Bahnhöfe selbst, radelt hin, fährt mit und
   radelt weiter
-• Auto: schnellst, kürzest oder wenig Ampeln, aus den Alternativrouten von
-  Apple Karten
+• Auto: optimal, schnellst, kürzest oder wenig Ampeln — jede Linie, die
+  Apple Karten anbietet, nicht nur die schnellste
 • Bus & Bahn: die Fahrplanverbindung mit Umstiegen, Gleisen und Echtzeit
 
 AMPELN, DIE MITZÄHLEN
 Eine Radzeit ohne Ampeln ist eine Radzeit für ein leeres Land. RadPendler holt
-die Lichtsignalanlagen und die Hauptstraßen entlang der Strecke aus
-OpenStreetMap, zählt die Kreuzungen und zeichnet sie als gelbe Punkte auf die
-Karte. Fahrzeit = Strecke ÷ Fahrgeschwindigkeit + Wartezeit je Ampel. Beides
-ist einstellbar, weil beides von dir abhängt.
+Lichtsignalanlagen und Hauptstraßen entlang der Strecke aus OpenStreetMap,
+zählt die Kreuzungen und zeichnet sie auf die Karte. Fahrzeit = Strecke ÷
+Fahrgeschwindigkeit + Wartezeit je Ampel — beides von dir einstellbar.
 
 REGEN, WO DU FÄHRST
 Nicht „Regenwahrscheinlichkeit 40 %“, sondern Regen an den Punkten deiner
@@ -111,7 +110,8 @@ COUNTDOWN BIS ZUM LOSGEHEN
 Oben rechts läuft die Zeit bis zum Losgehen — Abfahrt minus deiner Rüstzeit,
 nicht bis zur Abfahrt. Die Pille färbt sich mit: grün, gelb ab 30 Minuten,
 orange ab 10, rot ab 5, dunkelrot sobald die Bahn weg ist. Die Warnungen kommen
-als Mitteilung, auch wenn die App zu ist.
+als Mitteilung, auch wenn die App zu ist. Ein Tipp auf die Pille stellt beides
+ab, wenn du diese Bahn ohnehin nicht nimmst.
 
 BUNDESWEIT
 In Berlin und Brandenburg antwortet der VBB — dort ist er genauer und sagt als
@@ -127,10 +127,9 @@ auf dem iPhone, die Fahrt mit allen Abschnitten, die vier Kategorien zum
 Umwählen. Die Uhr plant nie selbst: sie zeigt, was das iPhone schickte.
 
 VORLIEBEN STATT REGELN
-Reihenfolge der Verkehrsmittel, Rad- und Autoroutenvariante, was ein Umstieg
-wert ist, wie lange du zum Fertigmachen brauchst, ab wieviel Regen das Rad in
-die Bahn gehört — alles Einstellungen, jede mit einer Voreinstellung, die sich
-bewährt hat.
+Reihenfolge der Verkehrsmittel, Routenvariante, was ein Umstieg wert ist, wie
+lange du zum Fertigmachen brauchst, ab wieviel Regen das Rad in die Bahn
+gehört — alles einstellbar, jedes mit einer bewährten Voreinstellung.
 
 DEINE ADRESSEN BLEIBEN DEINE
 Die App wird ohne Adressen ausgeliefert und enthält keine. Was du eingibst,
@@ -139,8 +138,8 @@ Server dieses Projekts, weil es keinen gibt. Kein Konto, keine Anmeldung, keine
 Analytik, keine Werbung. RadPendler ist quelloffen (MIT).
 
 Datenquellen: VBB, Transitous/MOTIS auf dem DELFI-Datensatz, Apple Karten,
-BRouter auf OpenStreetMap-Daten, OpenStreetMap über Overpass
-(© OpenStreetMap-Mitwirkende, ODbL), Deutscher Wetterdienst und Open-Meteo.
+BRouter und Overpass auf OpenStreetMap-Daten (© OpenStreetMap-Mitwirkende,
+ODbL), Deutscher Wetterdienst und Open-Meteo.
 
 Alle Zeiten ohne Gewähr.
 ```
@@ -381,7 +380,7 @@ lights,countdown  [90]
 
 ### Description
 
-Length: **3429** of 4000 characters.
+Length: **3514** of 4000 characters.
 
 ```
 How are you getting to work today?
@@ -401,7 +400,8 @@ THE FOUR WAYS
   and metres spent alongside main roads
 • Bike + train: the app finds the stations itself, rides there, takes the
   train, rides on
-• Car: fastest, shortest or fewest lights, from Apple Maps' alternative routes
+• Car: best, fastest, shortest or fewest lights — every line Apple Maps
+  offers, not only the quickest
 • Bus and train: the plain timetable connection, with changes, platforms and
   real-time data as far as the service gives it
 
@@ -428,7 +428,8 @@ settings lets you set every line to yes, no or open.
 COUNTDOWN TO LEAVING
 Top right, the clock runs down to leaving — departure minus your getting-ready
 time, not to the departure itself. It changes colour as it goes and warns you
-by notification even when the app is closed.
+by notification even when the app is closed. One tap switches it off when you
+are not taking that train.
 
 ACROSS GERMANY AND BEYOND
 In Berlin and Brandenburg the VBB answers — it is more accurate there and is
@@ -480,7 +481,7 @@ Alles, was nicht aus diesem Repository heraus geht:
 
 5. App anlegen (geht nicht per API): Bundle-ID `de.keese.radpendler`,
    Primärsprache Deutsch, SKU frei wählbar
-6. Build 0.12.1 (19) hochladen, auswählen
+6. Build 0.14.0 (21) hochladen, auswählen
 7. Die Felder von oben eintragen, in der Reihenfolge dieser Datei
 8. Screenshots hochladen — 6,5″ und 13″, hochkant
 9. Den App-Datenschutz-Fragebogen ausfüllen: überall „Nein“
@@ -498,7 +499,7 @@ Alles, was nicht aus diesem Repository heraus geht:
     aufnehmen (Abschnitt Datenschutzmanifest oben)
 14. Die Kontaktadresse in `MotisClient.userAgent` gegen die Adresse prüfen, die
     auf den Seiten steht — Transitous verlangt eine erreichbare
-15. Entscheiden, ob die Versionsnummer für die erste Store-Fassung 0.12.1
+15. Entscheiden, ob die Versionsnummer für die erste Store-Fassung 0.14.0
     bleibt oder auf **1.0.0** geht. Eine 0.x im Store liest sich wie eine
     Beta; die Buildnummer steigt ohnehin weiter
 
