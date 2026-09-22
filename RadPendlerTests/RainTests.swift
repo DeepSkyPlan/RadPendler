@@ -47,7 +47,40 @@ final class RainTests: XCTestCase {
         let slot = series[0].slot(containing: t0.addingTimeInterval(300))
         XCTAssertEqual(slot?.mm, 0.4)
         XCTAssertEqual(slot?.probability, 60)
-        XCTAssertEqual(series[1].slot(containing: t0.addingTimeInterval(1500))?.mm, 0)
+        // A `null` is "no forecast for this slot", not "no rain".
+        let unknown = series[1].slot(containing: t0.addingTimeInterval(1500))
+        XCTAssertNotNil(unknown, "the timestamp exists")
+        XCTAssertNil(unknown?.mm, "and its value is unknown, not zero")
+        XCTAssertEqual(series[1].slot(containing: t0.addingTimeInterval(300))?.mm, 0, "a real 0.0 stays 0.0")
+    }
+
+    func testARideTheForecastDoesNotReachIsUnknownNotDry() {
+        let point = RainSample(coordinate: CLLocationCoordinate2D(latitude: 52.5, longitude: 13.4), time: t0)
+        let nothing = RainAssessment(readings: [RainReading(sample: point, millimetres: nil, probability: nil)])
+        XCTAssertFalse(nothing.hasData)
+        XCTAssertEqual(nothing.summary, "keine Regendaten",
+                       "the app must not report dry weather it never measured")
+        XCTAssertEqual(nothing.level, .dry, "planning still has to pick something")
+        XCTAssertEqual(nothing.maxMillimetres, 0)
+
+        // One measured point among unmeasured ones is enough to judge.
+        let some = RainAssessment(readings: [
+            RainReading(sample: point, millimetres: nil, probability: nil),
+            RainReading(sample: point, millimetres: 0.8, probability: 90),
+        ])
+        XCTAssertTrue(some.hasData)
+        XCTAssertEqual(some.level, .rain)
+        XCTAssertEqual(some.maxProbability, 90)
+    }
+
+    func testAShorterValueArrayThanTimestampsDoesNotCrash() {
+        let json = """
+        {"minutely_15":{"time":["2026-09-21T15:15","2026-09-21T15:30"],"precipitation":[0.2]}}
+        """
+        let series = try! RainService.parse(Data(json.utf8))
+        // Second slot has a timestamp but no value — must read as unknown.
+        XCTAssertNil(series[0].slot(containing: t0.addingTimeInterval(1200))?.mm)
+        XCTAssertEqual(series[0].slot(containing: t0.addingTimeInterval(-1))?.mm, 0.2)
     }
 
     func testRadarFramesCoverPastAndNowcast() {
@@ -81,5 +114,20 @@ final class RadarLabelTests: XCTestCase {
         XCTAssertEqual(RadarControls.nearest(now.addingTimeInterval(-590), in: frames), 0)
         XCTAssertEqual(RadarControls.nearest(now.addingTimeInterval(9999), in: frames), 4)
         XCTAssertEqual(RadarControls.nearest(now, in: []), 0)
+    }
+
+    func testOnlyThreeRadarFramesHangOnTheMapAtOnce() {
+        let frames: [Date] = (0..<22).map { now.addingTimeInterval(Double($0) * 600) }
+        // In the middle: the shown minute and one either side.
+        let middle = RouteMapView.Coordinator.window(around: frames[10], in: frames)
+        XCTAssertEqual(middle, Set<Date>([frames[9], frames[10], frames[11]]))
+        // At the ends it stays inside the list.
+        XCTAssertEqual(RouteMapView.Coordinator.window(around: frames[0], in: frames),
+                       Set<Date>([frames[0], frames[1]]))
+        XCTAssertEqual(RouteMapView.Coordinator.window(around: frames[21], in: frames),
+                       Set<Date>([frames[20], frames[21]]))
+        // A minute that is not in the list keeps only itself.
+        XCTAssertEqual(RouteMapView.Coordinator.window(around: now.addingTimeInterval(5), in: frames),
+                       Set<Date>([now.addingTimeInterval(5)]))
     }
 }

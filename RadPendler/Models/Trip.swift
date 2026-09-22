@@ -43,6 +43,10 @@ enum TravelMode: String, CaseIterable, Identifiable {
 /// HAFAS product classes as the VBB profile numbers them.
 enum TransitProduct: Int, CaseIterable {
     case suburban = 1, subway = 2, tram = 4, bus = 8, ferry = 16, express = 32, regional = 64
+    /// A class the timetable did not name, or named in a way this app does not
+    /// know. It must not pass as a regional train: that would hand it a bike
+    /// compartment nobody promised.
+    case unknown = 128
 
     /// S-Bahn, U-Bahn and regional trains: the stations worth riding a bike to.
     static let bikeStationMask = suburban.rawValue | subway.rawValue | regional.rawValue
@@ -52,11 +56,11 @@ enum TransitProduct: Int, CaseIterable {
 
     var hasBikeCompartment: Bool { rawValue & Self.bikeCompartmentMask != 0 }
     /// Everything but buses — BVG buses do not take bikes.
-    static let bikeSearchMask = allCases.filter { $0 != .bus }.reduce(0) { $0 | $1.rawValue }
-    static let allMask = allCases.reduce(0) { $0 | $1.rawValue }
+    static let bikeSearchMask = allCases.filter { $0 != .bus && $0 != .unknown }.reduce(0) { $0 | $1.rawValue }
+    static let allMask = allCases.filter { $0 != .unknown }.reduce(0) { $0 | $1.rawValue }
 
     init(cls: Int) {
-        self = TransitProduct(rawValue: cls) ?? .regional
+        self = TransitProduct(rawValue: cls) ?? .unknown
     }
 }
 
@@ -222,7 +226,6 @@ struct TripOption: Identifiable {
         let t = bikeLegs.map(\.duration).reduce(0, +)
         return t > 0 ? bikeDistance / t * 3.6 : nil
     }
-    var walkDistance: Double { legs.filter { $0.kind == .walk }.compactMap(\.distance).reduce(0, +) }
     var totalDistance: Double { legs.compactMap(\.length).reduce(0, +) }
 
     /// Arrival used for ranking: every change of train counts as `penalty`

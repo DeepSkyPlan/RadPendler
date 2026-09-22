@@ -15,10 +15,12 @@ struct RainSample: Equatable {
 
 struct RainReading {
     var sample: RainSample
-    /// Precipitation in the 15-minute slot containing `sample.time`, mm.
-    var millimetres: Double
-    /// Probability of any precipitation in that slot, percent.
-    var probability: Int
+    /// Precipitation in the 15-minute slot containing `sample.time`, mm — nil
+    /// when the forecast does not reach that far or the service sent `null`.
+    /// Not knowing is not the same as dry, and the app must not say it is.
+    var millimetres: Double?
+    /// Probability of any precipitation in that slot, percent; nil as above.
+    var probability: Int?
 }
 
 enum RainLevel: Int, Comparable {
@@ -60,20 +62,31 @@ enum RainLevel: Int, Comparable {
 struct RainAssessment {
     var readings: [RainReading]
 
-    var level: RainLevel {
-        readings.map { RainLevel.of(millimetres: $0.millimetres, probability: $0.probability) }.max() ?? .dry
+    /// Only the points the forecast actually covers. Everything below judges
+    /// these; a ride the forecast does not reach is unknown, not dry.
+    var measured: [(level: RainLevel, reading: RainReading)] {
+        readings.compactMap { r in
+            guard let mm = r.millimetres else { return nil }
+            return (RainLevel.of(millimetres: mm, probability: r.probability ?? 0), r)
+        }
     }
 
-    var maxMillimetres: Double { readings.map(\.millimetres).max() ?? 0 }
-    var maxProbability: Int { readings.map(\.probability).max() ?? 0 }
+    /// False when not one point of the ride has a forecast — the recommendation
+    /// then says so instead of claiming dry weather.
+    var hasData: Bool { !measured.isEmpty }
+
+    var level: RainLevel { measured.map(\.level).max() ?? .dry }
+
+    var maxMillimetres: Double { measured.compactMap(\.reading.millimetres).max() ?? 0 }
+    var maxProbability: Int { measured.compactMap(\.reading.probability).max() ?? 0 }
 
     /// First moment on the ride that is wetter than "possible".
     var firstWet: Date? {
-        readings.filter { RainLevel.of(millimetres: $0.millimetres, probability: $0.probability) >= .light }
-            .map(\.sample.time).min()
+        measured.filter { $0.level >= .light }.map(\.reading.sample.time).min()
     }
 
     var summary: String {
+        guard hasData else { return "keine Regendaten" }
         switch level {
         case .dry: return maxProbability > 0 ? "trocken (\(maxProbability) %)" : "trocken"
         case .possible: return "Schauer möglich (\(maxProbability) %)"
@@ -158,26 +171,33 @@ struct RainService {
             .init(name: "start_minutely_15", value: Self.slotString(start)),
             .init(name: "end_minutely_15", value: Self.slotString(end)),
         ]
-        let (data, _) = try await session.data(from: comps.url!)
+        // The only service without a timeout of its own held a finished plan
+        // open for up to a minute; the rain is the last thing added to it.
+        var request = URLRequest(url: comps.url!, timeoutInterval: 15)
+        request.setValue("RadPendler iOS (private commute planner)", forHTTPHeaderField: "User-Agent")
+        let (data, _) = try await session.data(for: request)
         let series = try Self.parse(data)
         guard series.count == points.count else { throw RainError.malformed }
         let byPoint = Dictionary(uniqueKeysWithValues: zip(points, series))
 
         return samples.map { s in
             let slot = byPoint[GridPoint(s.coordinate)]?.slot(containing: s.time)
-            return RainReading(sample: s, millimetres: slot?.mm ?? 0, probability: slot?.probability ?? 0)
+            return RainReading(sample: s, millimetres: slot?.mm, probability: slot?.probability)
         }
     }
 
     struct Series {
         var times: [Date]
-        var mm: [Double]
-        var probability: [Int]
+        var mm: [Double?]
+        var probability: [Int?]
 
         /// Open-Meteo stamps a 15-minute sum with the END of its interval.
-        func slot(containing t: Date) -> (mm: Double, probability: Int)? {
+        /// Both arrays are indexed defensively: a service that sends fewer
+        /// values than timestamps must not take the app down with it.
+        func slot(containing t: Date) -> (mm: Double?, probability: Int?)? {
             guard let i = times.firstIndex(where: { $0 >= t }) else { return nil }
-            return (mm[i], probability.indices.contains(i) ? probability[i] : 0)
+            return (mm.indices.contains(i) ? mm[i] : nil,
+                    probability.indices.contains(i) ? probability[i] : nil)
         }
     }
 
@@ -192,8 +212,9 @@ struct RainService {
             guard let m = o["minutely_15"] as? [String: Any], let t = m["time"] as? [String] else {
                 throw RainError.malformed
             }
-            let mm = (m["precipitation"] as? [Any] ?? []).map { ($0 as? Double) ?? 0 }
-            let p = (m["precipitation_probability"] as? [Any] ?? []).map { ($0 as? Int) ?? 0 }
+            // A `null` means "no forecast for this slot", not "no rain".
+            let mm = (m["precipitation"] as? [Any] ?? []).map { $0 as? Double }
+            let p = (m["precipitation_probability"] as? [Any] ?? []).map { $0 as? Int }
             return Series(times: t.compactMap { fmt.date(from: $0) }, mm: mm, probability: p)
         }
     }

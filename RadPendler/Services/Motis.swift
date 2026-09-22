@@ -62,7 +62,7 @@ struct MotisClient {
         case malformed
         var errorDescription: String? {
             switch self {
-            case .server(let code, let body): "Transitous: HTTP \(code) \(body)"
+            case .server(let code, let body): "Transitous: HTTP \(code) \(foreignText(body))"
             case .malformed: "Transitous: unerwartete Antwort"
             }
         }
@@ -174,29 +174,11 @@ enum MotisParser {
         return iso.date(from: s)
     }
 
-    /// Google's encoded polyline, at the precision the answer names.
+    /// Google's encoded polyline, at the precision the answer names. The
+    /// decoder itself lives once, next to the other one that needed it.
     static func polyline(_ any: Any?) -> [CLLocationCoordinate2D] {
         guard let g = any as? [String: Any], let points = g["points"] as? String else { return [] }
-        let scale = pow(10.0, Double(g["precision"] as? Int ?? 5))
-        var out: [CLLocationCoordinate2D] = []
-        var index = points.startIndex
-        var lat = 0, lon = 0
-        func next() -> Int? {
-            var shift = 0, result = 0
-            while index < points.endIndex {
-                let byte = Int(points[index].asciiValue ?? 0) - 63
-                index = points.index(after: index)
-                result |= (byte & 0x1F) << shift
-                shift += 5
-                if byte < 0x20 { return (result & 1) != 0 ? ~(result >> 1) : (result >> 1) }
-            }
-            return nil
-        }
-        while let dLat = next(), let dLon = next() {
-            lat += dLat
-            lon += dLon
-            out.append(CLLocationCoordinate2D(latitude: Double(lat) / scale, longitude: Double(lon) / scale))
-        }
-        return out
+        return Polyline.decode(points, precision: pow(10.0, Double(g["precision"] as? Int ?? 5)))
     }
+
 }

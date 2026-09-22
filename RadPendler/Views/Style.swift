@@ -1,26 +1,7 @@
 import SwiftUI
 import UIKit
 
-enum Fmt {
-    static func time(_ d: Date) -> String {
-        d.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))
-    }
 
-    static func duration(_ t: TimeInterval) -> String {
-        let m = Int((t / 60).rounded())
-        return m < 60 ? "\(m) min" : String(format: "%d:%02d h", m / 60, m % 60)
-    }
-
-    static func km(_ meters: Double) -> String {
-        meters < 1000 ? "\(Int(meters.rounded())) m"
-            : (meters / 1000).formatted(.number.precision(.fractionLength(1))) + " km"
-    }
-
-    static func delay(_ t: TimeInterval) -> String? {
-        let m = Int((t / 60).rounded())
-        return m == 0 ? nil : (m > 0 ? "+\(m)" : "\(m)")
-    }
-}
 
 extension LegKind {
     var uiColor: UIColor {
@@ -38,6 +19,7 @@ extension LegKind {
             case .tram: UIColor(red: 0.45, green: 0.55, blue: 0.95, alpha: 1)
             case .ferry: UIColor(red: 0.00, green: 0.63, blue: 0.78, alpha: 1)
             case .bus: UIColor(red: 0.95, green: 0.55, blue: 0.10, alpha: 1)
+            case .unknown: .systemGray
             }
         }
     }
@@ -55,6 +37,7 @@ extension LegKind {
             case .tram: "tram.fill"
             case .ferry: "ferry.fill"
             case .subway: "tram.tunnel.fill"
+            case .unknown: "questionmark.circle"
             default: "train.side.front.car"
             }
         }

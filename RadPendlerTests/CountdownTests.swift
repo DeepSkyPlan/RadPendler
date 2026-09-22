@@ -35,13 +35,13 @@ final class CountdownTests: XCTestCase {
     }
 
     func testAgeOfThePlanOnTheMap() {
-        XCTAssertEqual(LastRunLine.ago(0), "gerade eben")
-        XCTAssertEqual(LastRunLine.ago(59), "gerade eben")
-        XCTAssertEqual(LastRunLine.ago(60), "vor 1 min")
-        XCTAssertEqual(LastRunLine.ago(59 * 60), "vor 59 min")
-        XCTAssertEqual(LastRunLine.ago(3600), "vor 1 h")
-        XCTAssertEqual(LastRunLine.ago(3600 + 7 * 60), "vor 1:07 h")
-        XCTAssertEqual(LastRunLine.ago(-5), "gerade eben", "a clock that jumped back is not a future plan")
+        XCTAssertEqual(Fmt.age(0), "gerade eben")
+        XCTAssertEqual(Fmt.age(59), "gerade eben")
+        XCTAssertEqual(Fmt.age(60), "vor 1 min")
+        XCTAssertEqual(Fmt.age(59 * 60), "vor 59 min")
+        XCTAssertEqual(Fmt.age(3600), "vor 1 h")
+        XCTAssertEqual(Fmt.age(3600 + 7 * 60), "vor 1:07 h")
+        XCTAssertEqual(Fmt.age(-5), "gerade eben", "a clock that jumped back is not a future plan")
     }
 
     func testCountdownColourStepsFollowTheAlertMinutes() {

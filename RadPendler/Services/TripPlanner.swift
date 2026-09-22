@@ -127,9 +127,18 @@ struct TripPlanner {
         guard !found.isEmpty else { throw PlannerError.noBikeRoute }
 
         let data = try? await roads.data(covering: found.flatMap { $0.1.coordinates })
-        let candidates = found.map { name, route in
-            BikeCandidate(source: name, route: route,
-                          stats: data.map { RouteAnalyzer.analyze(route.coordinates, roads: $0) })
+        // 63 ms per route, six routes: serially that is 378 ms of the plan for
+        // nothing. They do not depend on each other.
+        let candidates = await withTaskGroup(of: (Int, BikeCandidate).self) { group in
+            for (i, (name, route)) in found.enumerated() {
+                group.addTask {
+                    (i, BikeCandidate(source: name, route: route,
+                                      stats: data.map { RouteAnalyzer.analyze(route.coordinates, roads: $0) }))
+                }
+            }
+            var out: [(Int, BikeCandidate)] = []
+            for await pair in group { out.append(pair) }
+            return out.sorted { $0.0 < $1.0 }.map(\.1)
         }
         let picked = BikeCandidate.pick(candidates, settings: req.settings)
 
@@ -194,9 +203,12 @@ struct TripPlanner {
             ? motis.journeys(from: req.origin.coordinate, to: req.destination.coordinate,
                              at: req.arriveBy ?? req.earliestLeave, arriveBy: req.isArrival,
                              access: .walk, results: 4)
+            // HAFAS routes on the coordinate; the name is only display text it
+            // echoes back. Sending the street and house number would tell the
+            // timetable more about the user than it needs to answer.
             : hafas.journeys(
-            from: .address(name: req.origin.name, coordinate: req.origin.coordinate),
-            to: .address(name: req.destination.name, coordinate: req.destination.coordinate),
+            from: .address(name: "Start", coordinate: req.origin.coordinate),
+            to: .address(name: "Ziel", coordinate: req.destination.coordinate),
             departing: req.arriveBy ?? req.earliestLeave, arriveBy: req.isArrival,
             bikeCarriage: false, results: 4)
         let penalty = req.settings.transferPenalty
@@ -220,6 +232,23 @@ struct TripPlanner {
     /// The main search uses only S/RE stations and S/RE trains; a small second
     /// search from the nearest stations of any kind lets U-Bahn/tram in, and
     /// those results are kept only as the alternative.
+    /// A planner that cannot reach anything: every client points at a host
+    /// that does not resolve, so a test using it fails fast instead of calling
+    /// five live services. Used by the tests that only care about the state a
+    /// search leaves behind, not about its result.
+    static var offline: TripPlanner {
+        let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForRequest = 1
+        config.protocolClasses = [BlockedProtocol.self]
+        let session = URLSession(configuration: config)
+        var planner = TripPlanner()
+        planner.hafas.session = session
+        planner.motis.session = session
+        planner.brouter.session = session
+        planner.rain.session = session
+        return planner
+    }
+
     /// Which timetable answers for this request.
     func source(_ req: PlanRequest) -> TimetableSource {
         req.settings.timetableSource.resolved(from: req.origin.coordinate, to: req.destination.coordinate)
@@ -275,8 +304,12 @@ struct TripPlanner {
         guard !searches.isEmpty else { throw PlannerError.noStations(km: s.maxBikeToStationKm) }
 
         let starts = unique(searches.map(\.from)), ends = unique(searches.map(\.to))
-        var firstLegs = await bikeRoutes(from: req.origin.coordinate, to: starts.map(\.coordinate), reverse: false)
-        var lastLegs = await bikeRoutes(from: req.destination.coordinate, to: ends.map(\.coordinate), reverse: true)
+        // The two ends do not wait for each other: measured 935 ms + 187 ms
+        // sequentially, 935 ms together.
+        async let firstGroup = bikeRoutes(from: req.origin.coordinate, to: starts.map(\.coordinate), reverse: false)
+        async let lastGroup = bikeRoutes(from: req.destination.coordinate, to: ends.map(\.coordinate), reverse: true)
+        var firstLegs = await firstGroup
+        var lastLegs = await lastGroup
         // Same traffic-light wait as on the whole-way bike routes.
         let rides = (firstLegs + lastLegs).compactMap { $0 }
         if !rides.isEmpty, let data = try? await roads.data(covering: rides.flatMap(\.coordinates)) {
@@ -587,4 +620,15 @@ struct BikeCandidate {
             .map { (all[$0.key], $0.value.sorted { rank($0) < rank($1) }) }
             .sorted { rank($0.1.first!) < rank($1.1.first!) }
     }
+}
+
+
+/// Refuses every request. Lets a test run a real planner without a network.
+final class BlockedProtocol: URLProtocol {
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() {
+        client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
+    }
+    override func stopLoading() {}
 }

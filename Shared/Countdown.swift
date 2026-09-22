@@ -36,12 +36,13 @@ enum Countdown {
             }
         }
 
-        /// The word above the number.
-        var caption: String {
+        /// The word above the number. `overdue` is the same red as `go`, but
+        /// it is no longer counting down to anything — it is telling you to move.
+        func caption(overdue: Bool) -> String {
             switch self {
             case .idle: "KEINE ABFAHRT"
             case .gone: "ABGEFAHREN"
-            case .go: "LOS"
+            case .go: overdue ? "LOSGEHEN" : "LOS IN"
             default: "LOS IN"
             }
         }

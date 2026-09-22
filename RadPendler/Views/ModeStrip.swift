@@ -216,12 +216,3 @@ struct SelectedTripBar: View {
         return nil
     }
 }
-
-extension TripOption {
-    /// Where the first train leaves, with its delay.
-    var departureNote: String? {
-        guard let first = transitLegs.first else { return nil }
-        let delay = Fmt.delay(first.departureDelay).map { " \($0) min" } ?? ""
-        return "ab \(first.fromName)\(delay)"
-    }
-}
