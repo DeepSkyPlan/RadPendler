@@ -79,9 +79,13 @@ enum MotisParser {
         return itineraries.compactMap { legs($0) }.filter { !$0.isEmpty }
     }
 
+    /// All or nothing: a leg that cannot be read would otherwise vanish and
+    /// leave a trip that looks complete but is missing a train — with it the
+    /// change, the timeline and, worst, the bike-carriage check for that line.
     static func legs(_ itinerary: [String: Any]) -> [Leg]? {
         guard let raw = itinerary["legs"] as? [[String: Any]] else { return nil }
-        return raw.compactMap(leg)
+        let parsed = raw.compactMap(leg)
+        return parsed.count == raw.count ? parsed : nil
     }
 
     static func leg(_ l: [String: Any]) -> Leg? {
