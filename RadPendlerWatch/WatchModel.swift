@@ -46,6 +46,9 @@ final class WatchModel {
         chosenIndex = index
         UserDefaults.standard.set(mode, forKey: "chosenMode")
         UserDefaults.standard.set(index, forKey: "chosenIndex")
+        // The phone follows: the same trip should be on both screens, and the
+        // warnings come from the phone.
+        link.send(WatchChoice(mode: mode, index: index))
     }
 
     /// Back to what the phone thinks is best.
@@ -68,6 +71,20 @@ final class PhoneLink: NSObject, WCSessionDelegate {
         guard WCSession.isSupported() else { return }
         WCSession.default.delegate = self
         WCSession.default.activate()
+    }
+
+    /// Straight over when the phone is reachable, queued when it is not.
+    func send(_ choice: WatchChoice) {
+        guard WCSession.isSupported(), let data = try? JSONEncoder().encode(choice) else { return }
+        let session = WCSession.default
+        guard session.activationState == .activated else { return }
+        if session.isReachable {
+            session.sendMessage(["choice": data], replyHandler: nil) { _ in
+                session.transferUserInfo(["choice": data])
+            }
+        } else {
+            session.transferUserInfo(["choice": data])
+        }
     }
 
     static func cached() -> TripSnapshot? {

@@ -70,3 +70,12 @@ struct TripSnapshot: Codable, Equatable {
 
     func title(of mode: String) -> String { options(in: mode).first?.modeTitle ?? mode }
 }
+
+
+/// What the wrist picked, on its way back to the phone. Mode plus position,
+/// not an id: every replan brings new ids, and "the second bike route"
+/// survives a replan where an id does not.
+struct WatchChoice: Codable, Equatable {
+    var mode: String
+    var index: Int
+}

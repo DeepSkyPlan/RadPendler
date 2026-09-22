@@ -158,3 +158,23 @@ extension MotisTests {
         XCTAssertEqual(LocationService.place(from: bare, at: c).shortName, "Beispielstadt")
     }
 }
+
+extension MotisTests {
+    @MainActor func testTheWatchChoiceReachesThePhonesSelection() {
+        let model = PlanModel(planner: .offline)
+        // A choice for a mode that found nothing must not select anything.
+        model.apply(WatchChoice(mode: "car", index: 0))
+        XCTAssertNil(model.selected(for: .car))
+        // Nor must an unknown mode name get through.
+        model.apply(WatchChoice(mode: "teleport", index: 0))
+        XCTAssertEqual(model.activeMode, .bike)
+    }
+
+    func testAChoiceTravelsAsModeAndPositionNotAsAnId() throws {
+        let choice = WatchChoice(mode: "bikeTransit", index: 2)
+        let back = try JSONDecoder().decode(WatchChoice.self, from: JSONEncoder().encode(choice))
+        XCTAssertEqual(back, choice)
+        XCTAssertEqual(TravelMode(rawValue: back.mode), .bikeTransit,
+                       "the raw value has to stay the one TravelMode uses")
+    }
+}

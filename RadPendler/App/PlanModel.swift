@@ -120,11 +120,33 @@ final class PlanModel {
         }
     }
 
+    /// Stops whatever is in flight. Tapping an address field calls this: a
+    /// long-distance search occupies the network and the main thread for
+    /// seconds, and waiting for it before one can even type a new destination
+    /// is the wrong way round — the old plan is worthless anyway.
+    func cancel() {
+        task?.cancel()
+        task = nil
+        isLoading = false
+    }
+
     /// Pull-to-refresh: run and stay in flight until the plan is in, so the
     /// spinner lives as long as the search does.
     func refreshAndWait(settings: AppSettings) async {
         refresh(settings: settings)
         await task?.value
+    }
+
+    /// What the wrist picked, applied here. The watch shows the phone's plan,
+    /// so a choice made there means the same trip as a choice made here.
+    func apply(_ choice: WatchChoice) {
+        guard let mode = TravelMode(rawValue: choice.mode) else { return }
+        let own = options(for: mode)
+        guard !own.isEmpty else { return }
+        activeMode = mode
+        selection[mode] = own[min(max(choice.index, 0), own.count - 1)].id
+        forgetStopIfDepartureChanged()
+        publishToWatch()
     }
 
     /// Tap on an already-chosen mode: step to its next option (bike variants,
