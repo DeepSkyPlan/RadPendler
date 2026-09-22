@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.12.0 (Build 18, noch nicht hochgeladen)
+- **Bundesweite Fahrpläne über Transitous.** Neben dem VBB kennt die App jetzt Transitous, die von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz (und darüber hinaus). Neue Einstellung **Fahrplanquelle**: „Automatisch" fragt den VBB, solange Start *und* Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger je Zug, ob Räder mitdürfen — und Transitous für alles andere. „VBB" und „Transitous" lassen sich auch fest wählen.
+- **Rad + Bahn über beliebige Entfernungen**: Transitous plant intermodal, also Rad zum Bahnhof, Zug, Rad weiter — in *einer* Anfrage. Die App muss sich die Bahnhöfe nicht mehr selbst suchen (beim VBB tut sie das weiter, mit 16 Abfragen je Durchlauf). Probe Berlin → Hamburg: Rad, S5, Umstieg, ICE, Rad.
+- Fahrradmitnahme aus GTFS wird **nie als Nein gelesen**: die meisten Datensätze lassen `bikes_allowed` auf der Voreinstellung stehen. Ein „nein" kommt weiter nur aus deiner Linienliste; alles andere ist „ungeklärt" und wird als solches gezeigt.
+- Gleisangaben werden auch aus dem Klartext gelesen („S-Bahnsteig Gleis 4"), wenn der Datensatz kein eigenes Feld dafür hat.
+- Attribution, wie die Nutzungsbedingungen es verlangen: Link auf die Quellen von Transitous im Menü und in den Einstellungen, und jede Anfrage trägt einen `User-Agent` mit Name, Version und Kontakt.
+
 ## 0.11.0 (Build 17, noch nicht hochgeladen)
 - **Zuhause und Arbeit** sind jetzt richtige Adressen in den Einstellungen, jede über die Adresssuche wählbar. Beide bekommen überall ein Zeichen — in der Kopfzeile der Hauptseite, in der Adresssuche und in der Liste der benutzten Adressen — und stehen in der Suche ganz oben.
 - **Fahrradmitnahme pro Linie**: eine neue Liste in den Einstellungen sammelt die Linien, die in gefundenen Verbindungen vorkommen. Was die Auskunft selbst zusichert (VBB-Vermerk `FK`), steht schon auf „Rad ja"; alles andere entscheidest du — ja, nein oder offen. Linien lassen sich auch von Hand eintragen. **Offene Linien werden nicht mehr verschwiegen**: die Verbindung wird vorgeschlagen und trägt den Hinweis „Mitnahme ungeklärt", bis du entschieden hast. Ein „Rad nein" nimmt die Linie aus den Rad + Bahn-Vorschlägen heraus.

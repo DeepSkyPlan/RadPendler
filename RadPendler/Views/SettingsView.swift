@@ -85,6 +85,18 @@ struct SettingsView: View {
                     Text("Fahrgeschwindigkeit = Tempo beim Rollen, ohne Halte. Die Fahrzeit ist Strecke ÷ Fahrgeschwindigkeit plus die Wartezeit je Ampelkreuzung (inkl. Anfahren); daraus ergibt sich der angezeigte Schnitt „Ø … km/h“. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung auf der Strecke addiert. Für die ganze Strecke gibt es bis zu drei Routen: kürzest, Mittelweg und ruhigst (wenig Ampeln, wenig Hauptstraßen). Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet.")
                 }
                 Section {
+                    Picker("Fahrplan", selection: $settings.timetableSource) {
+                        ForEach(TimetableSource.allCases) { Text($0.title).tag($0) }
+                    }
+                    Link(destination: URL(string: "https://transitous.org/sources/")!) {
+                        Label("Datenquellen von Transitous", systemImage: "arrow.up.right.square")
+                    }
+                } header: {
+                    Text("Fahrplanquelle")
+                } footer: {
+                    Text("„Automatisch“ fragt den VBB, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst.")
+                }
+                Section {
                     NavigationLink {
                         BikeLinesView()
                     } label: {

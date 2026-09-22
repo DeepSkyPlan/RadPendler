@@ -46,6 +46,7 @@ struct Recommendation {
 /// Asks all sources at once and merges their answers into one ranked list.
 struct TripPlanner {
     var hafas = HafasClient()
+    var motis = MotisClient()
     var streets: StreetRouting = CompositeRouter()
     var brouter = BRouterClient()
     var apple = MapKitRouter()
@@ -189,7 +190,11 @@ struct TripPlanner {
     }
 
     func transitOptions(_ req: PlanRequest) async throws -> [TripOption] {
-        let journeys = try await hafas.journeys(
+        let journeys = try await source(req) == .transitous
+            ? motis.journeys(from: req.origin.coordinate, to: req.destination.coordinate,
+                             at: req.arriveBy ?? req.earliestLeave, arriveBy: req.isArrival,
+                             access: .walk, results: 4)
+            : hafas.journeys(
             from: .address(name: req.origin.name, coordinate: req.origin.coordinate),
             to: .address(name: req.destination.name, coordinate: req.destination.coordinate),
             departing: req.arriveBy ?? req.earliestLeave, arriveBy: req.isArrival,
@@ -215,7 +220,39 @@ struct TripPlanner {
     /// The main search uses only S/RE stations and S/RE trains; a small second
     /// search from the nearest stations of any kind lets U-Bahn/tram in, and
     /// those results are kept only as the alternative.
+    /// Which timetable answers for this request.
+    func source(_ req: PlanRequest) -> TimetableSource {
+        req.settings.timetableSource.resolved(from: req.origin.coordinate, to: req.destination.coordinate)
+    }
+
+    /// Bike at both ends, planned by Transitous in one request: MOTIS routes
+    /// intermodally, so it picks the stations itself and the app does not have
+    /// to try sixteen station pairs as it does with HAFAS.
+    func motisBikeTransitOptions(_ req: PlanRequest) async throws -> [TripOption] {
+        let s = req.settings
+        let journeys = try await motis.journeys(from: req.origin.coordinate, to: req.destination.coordinate,
+                                                at: req.arriveBy ?? req.earliestLeave,
+                                                arriveBy: req.isArrival, access: .bike, results: 5)
+        let options = journeys.compactMap { legs -> TripOption? in
+            let transit = legs.filter(\.isTransit)
+            guard !transit.isEmpty, transit.allSatisfy({ !$0.cancelled }),
+                  transit.allSatisfy({ s.carriage($0) != .no }),
+                  legs.contains(where: { $0.kind == .bike }) else { return nil }
+            let decided = legs.map { leg -> Leg in
+                guard leg.isTransit else { return leg }
+                var l = leg
+                l.bikeCarriage = s.carriage(leg)
+                return l
+            }
+            return TripOption(mode: .bikeTransit, legs: decided, prep: s.prep,
+                              note: "Fahrten von Transitous; Radzeiten nach deren Schätzung")
+        }
+        return BikeTransitComposer.rank(options, preferred: 3, alternatives: 1,
+                                        penalty: s.transferPenalty, arrival: req.isArrival)
+    }
+
     func bikeTransitOptions(_ req: PlanRequest) async throws -> [TripOption] {
+        guard source(req) == .vbb else { return try await motisBikeTransitOptions(req) }
         let s = req.settings
         let radius = s.maxBikeToStationKm * 1000
         async let fromList = hafas.nearbyStations(around: req.origin.coordinate, radius: radius)
