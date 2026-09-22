@@ -1,17 +1,17 @@
 # Changelog
 
-## 0.14.0 (Build 21, noch nicht hochgeladen)
+## 0.14.0 (Build 21, TestFlight 2026-09-22)
 - **Der Countdown lässt sich abschalten.** Ein Tipp auf die Pille stellt ihn aus: grau, „aus", durchgestrichene Glocke — und die Mitteilungen werden mit abbestellt. Nochmal tippen schaltet ihn wieder an. Sobald eine **andere** Abfahrt gilt, gilt das Nein nicht mehr, denn eine neue Abfahrt ist eine neue Frage.
 - **Die Pille ist jetzt immer da**, auch bei Rad und Auto ohne feste Abfahrt — dort grau statt weg, damit die Titelzeile nicht springt.
 - **Das Auto zeigt alle Linien, die Apple anbietet**, nicht nur die schnellste. Neue Variante **„optimal"** wie beim Rad (Fahrzeit plus die Wartezeit an den Ampeln), dazu schnellst, kürzest und wenig Ampeln; eine Linie ohne eigene Rolle heißt „Alternative" und wird trotzdem gezeigt. Vorbelegt ist „optimal" zuerst. Linien, die sich um weniger als 100 m und eine Minute unterscheiden, gelten als dieselbe.
 - **„Mein Standort" steht jetzt im Suchfeld.** Öffnet man die Startadresse ohne gesetzten Start und mit erteilter Ortungserlaubnis, steht die aktuelle Adresse gleich im Feld — zum Übernehmen oder Überschreiben. Die Standortzeile bleibt oben stehen, auch während getippt wird.
 
-## 0.13.0 (Build 20, noch nicht hochgeladen)
+## 0.13.0 (in Build 21 ausgeliefert)
 - **„Mein Standort" als Startadresse.** Die Adresssuche für den Start beginnt jetzt mit einem Vorschlag: dort, wo du gerade bist. Steht schon eine Erlaubnis, wird die Adresse gleich beim Öffnen aufgelöst und steht mit Straße und PLZ in der Zeile — ein Tipp genügt. Ohne Erlaubnis fragt der erste Tipp danach; wird sie abgelehnt, verschwindet die Zeile und alles andere funktioniert weiter.
 - Der Standort wird **einmal** abgefragt, in eine Adresse übersetzt und danach vergessen: kein Mitschreiben, kein Hintergrundzugriff, keine Bewegungsverfolgung. Die Koordinate geht danach denselben Weg wie jede getippte Adresse — an die Routing- und Fahrplandienste, an sonst niemanden.
 - „Zuhause" und „Arbeit" in den Einstellungen bekommen denselben Vorschlag.
 
-## 0.12.1 (Build 19, noch nicht hochgeladen)
+## 0.12.1 (in Build 21 ausgeliefert)
 - Im Menü dritte Zeile beim Copyright: **„inspired by Oleg"**.
 - Die Datenquellen sind jetzt **wirklich kursiv**. Vorher nicht: SF Rounded hat keinen kursiven Schnitt, und weder SwiftUI noch der Renderer erfinden einen — `.italic()` blieb wirkungslos. Die zwei Zeilen stehen deshalb im normalen Systemschnitt, gleiche Größe wie das Copyright.
 - **Die Quellenangaben sind anklickbare Links** — `transitous.org/sources` und `openstreetmap.org/copyright`, unterstrichen, in der Akzentfarbe, mit Pfeil. Vorher standen sie in derselben grauen Schrift wie der Rest und sahen nach Text aus. Dieselben zwei Links stehen in den Einstellungen unter „Fahrplanquelle".
