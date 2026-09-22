@@ -1,4 +1,4 @@
-# RadPendler — Übergabe (Stand 21.09.2026, 0.11.0 / Build 17)
+# RadPendler — Übergabe (Stand 22.09.2026, 0.12.0 / Build 18)
 
 Multimodaler Pendel-Planer für iPhone, iPad und Apple Watch: Büro ↔ Zuhause mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln,
 Regen und Countdown.
@@ -7,7 +7,9 @@ Das Projekt ist quelloffen (MIT); Adressen und Schlüssel gehören nicht hinein.
 ## Bauen, testen, ausliefern
 
 ```bash
-./dev test      # generiert das .xcodeproj bei Bedarf, dann 65 Tests im Simulator
+./dev test      # generiert das .xcodeproj bei Bedarf, dann 73 Tests im Simulator
+#               MOTIS_LIVE=1 schaltet zusätzlich den echten Transitous-Aufruf frei
+#               (aus Xcode heraus; xcodebuild reicht die Variable nicht durch)
 ./dev open      # Xcode mit demselben DerivedData wie die Kommandozeile
 ./dev generate  # nur neu generieren, nach jeder neuen Quelldatei
 ```
@@ -40,7 +42,8 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   (benutzte Adressen mit Zähler; `ranked`, `matching`, `recording` als reine Funktionen auf
   `[PlaceUse]`), `AppSettings` (+ `PlanSettings` als Wertkopie, `DeparturePreset`), `Trip`
   (`TripOption`, `Leg`, `TravelMode`, `BikeVariant`, `CarVariant`, `TransitProduct`).
-- `Services/` — `CloudStore` (iCloud-Schlüssel-Wert-Abgleich der Einstellungen; hört auf
+- `Services/` — `Motis` (Transitous/MOTIS 2: `MotisClient` + `MotisParser`, inkl.
+  Polylinien-Dekoder), `CloudStore` (iCloud-Schlüssel-Wert-Abgleich der Einstellungen; hört auf
   `UserDefaults.didChangeNotification` statt auf zwanzig Setter, `placeHistory` wird
   zusammengeführt statt ersetzt), `WatchLink` (Plan an die Uhr), `Hafas` (VBB mgate + Parser), `BRouter` (+ `CompositeRouter`), `StreetRouter`
   (MapKit), `RoadData` (Overpass + `RouteAnalyzer` + `SegmentGrid`), `Rain` (Open-Meteo),
@@ -83,6 +86,13 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   Bei Ausfall fehlen Ampeln und Hauptstraßen, die App zeigt das an.
 - **Open-Meteo** `minutely_15` für Regen je Streckenpunkt, **DWD-WMS** `dwd:Niederschlagsradar`
   (−3 d … +2 h) für die Radarkacheln.
+- **Transitous / MOTIS 2** `https://api.transitous.org/api/v1/plan` — bundesweit und darüber
+  hinaus, intermodal (`preTransitModes`/`postTransitModes=BIKE` liefert Rad–Bahn–Rad in einer
+  Antwort). Bedingungen: quelloffen, nicht kommerziell, `User-Agent` mit Name, Version und
+  Kontakt bei **jeder** Anfrage, sichtbarer Link auf <https://transitous.org/sources/>. Alles
+  drei ist umgesetzt — `MotisClient.userAgent`, Menü und Einstellungen. Bei Zweifeln über die
+  Last: deren Matrix-Kanal. `routeType` (GTFS-erweitert) sagt mehr als `mode`, das eine S-Bahn
+  „METRO" nennt. `bikesAllowed: false` heißt **nicht** nein, sondern „nicht gesetzt".
 
 ## Festlegungen des Nutzers (nicht ohne Rückfrage ändern)
 

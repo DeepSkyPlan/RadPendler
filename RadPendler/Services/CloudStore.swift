@@ -17,7 +17,7 @@ final class CloudStore {
     /// The watch's own keys (the last plan, what the wrist picked) are not in
     /// here: that state belongs to the watch it was made on.
     static let keys = ["origin", "destination", "workPlace", "homePlace", "waypoints", "placeHistory",
-                       "bikeLines", "departurePresets2", "prepMinutes", "bikeMovingSpeedKmh",
+                       "bikeLines", "timetableSource", "departurePresets2", "prepMinutes", "bikeMovingSpeedKmh",
                        "bikeStationBufferMinutes", "maxBikeToStationKm", "parkingMinutes",
                        "transferPenaltyMinutes", "signalWaitSeconds", "requireAllWaypoints",
                        "departureBufferMinutes", "arrivalBufferMinutes", "workArrivalMinutes",

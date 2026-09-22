@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 import Observation
 
@@ -81,6 +82,12 @@ final class AppSettings {
         didSet { defaults.set(try? JSONEncoder().encode(bikeLines), forKey: "bikeLines") }
     }
 
+    /// Which timetable answers. Automatic keeps the VBB for the region it
+    /// knows best and hands everything beyond it to Transitous.
+    var timetableSource: TimetableSource = .automatic {
+        didSet { defaults.set(timetableSource.rawValue, forKey: "timetableSource") }
+    }
+
     /// Average wait per traffic light on the bike (half of them are green).
     var signalWaitSeconds: Int = 20 { didSet { defaults.set(signalWaitSeconds, forKey: "signalWaitSeconds") } }
 
@@ -124,6 +131,8 @@ final class AppSettings {
             .flatMap { try? JSONDecoder().decode([PlaceUse].self, from: $0) } ?? placeHistory
         bikeLines = defaults.data(forKey: "bikeLines")
             .flatMap { try? JSONDecoder().decode([BikeLine].self, from: $0) } ?? bikeLines
+        timetableSource = (defaults.string(forKey: "timetableSource"))
+            .flatMap(TimetableSource.init(rawValue:)) ?? timetableSource
         modeOrder = storedOrder(defaults.array(forKey: "modeOrder") as? [String], fallback: TravelMode.defaultOrder)
         bikeVariantOrder = storedOrder(defaults.array(forKey: "bikeVariantOrder") as? [String],
                                        fallback: BikeVariant.defaultOrder)
@@ -205,7 +214,7 @@ final class AppSettings {
                      departureBufferMinutes: departureBufferMinutes, arrivalBufferMinutes: arrivalBufferMinutes,
                      modeOrder: modeOrder, bikeVariantOrder: bikeVariantOrder,
                      carVariantOrder: carVariantOrder, rainSwitchLevel: rainSwitchLevel,
-                     bikeLineStatus: bikeLines.status)
+                     bikeLineStatus: bikeLines.status, timetableSource: timetableSource)
     }
 
     private func save(_ place: Place?, _ key: String) {
@@ -239,6 +248,7 @@ struct PlanSettings: Equatable {
     /// Line name → whether the bike may come. Missing means undecided, which
     /// is shown with a warning rather than hidden.
     var bikeLineStatus: [String: Bool] = [:]
+    var timetableSource: TimetableSource = .automatic
     /// Beyond this, the whole way by bike is a curiosity rather than a plan:
     /// its box moves to the end of the row and the OpenStreetMap corridor gets
     /// too big to ask Overpass for.
@@ -330,4 +340,40 @@ func storedOrder<T: RawRepresentable & Equatable>(_ stored: [T.RawValue]?, fallb
     guard let stored else { return fallback }
     let known = stored.compactMap(T.init(rawValue:))
     return known + fallback.filter { !known.contains($0) }
+}
+
+/// Where the timetable comes from.
+enum TimetableSource: String, CaseIterable, Identifiable {
+    /// VBB inside Berlin and Brandenburg, Transitous everywhere else.
+    case automatic
+    /// The VBB's own HAFAS: the best real-time data for the region, and the
+    /// only one that states bike carriage per train.
+    case vbb
+    /// Transitous (MOTIS) on the nationwide DELFI dataset and beyond.
+    case transitous
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .automatic: "Automatisch"
+        case .vbb: "VBB"
+        case .transitous: "Transitous"
+        }
+    }
+
+    /// Berlin and Brandenburg, generously drawn. Inside it the VBB knows more
+    /// than a nationwide dataset does — outside it, it knows nothing.
+    static let vbbArea = (south: 51.35, west: 11.26, north: 53.56, east: 14.77)
+
+    static func covers(_ c: CLLocationCoordinate2D) -> Bool {
+        c.latitude >= vbbArea.south && c.latitude <= vbbArea.north
+            && c.longitude >= vbbArea.west && c.longitude <= vbbArea.east
+    }
+
+    /// The source that actually answers for this pair of places.
+    func resolved(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D) -> TimetableSource {
+        guard self == .automatic else { return self }
+        return Self.covers(from) && Self.covers(to) ? .vbb : .transitous
+    }
 }

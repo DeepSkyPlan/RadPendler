@@ -215,6 +215,11 @@ struct ContentView: View {
                     Text("Datenquellen: VBB · Apple Karten · BRouter/OSM · DWD · Open-Meteo")
                         .italic()
                         .padding(.top, 5)
+                    // Transitous asks for this link in a visible place, and
+                    // OpenStreetMap's attribution rides along with it.
+                    Link("Transitous · openstreetmap.org/copyright",
+                         destination: URL(string: "https://transitous.org/sources/")!)
+                        .italic()
                 }
                 .font(.system(.caption2, design: .rounded))
                 .foregroundStyle(.secondary)
