@@ -44,7 +44,7 @@ struct HafasClient {
 
         var errorDescription: String? {
             switch self {
-            case .server(let code, let text): "VBB-Auskunft: \(text) (\(code))"
+            case .server(let code, let text): "VBB-Auskunft: \(foreignText(text)) (\(code))"
             case .malformed: "VBB-Auskunft: unerwartete Antwort"
             }
         }
@@ -154,9 +154,12 @@ enum Polyline {
         var coords: [CLLocationCoordinate2D] = []
         let bytes = Array(s.utf8)
         var i = 0, lat = 0, lon = 0
+        // The shift is bounded: a crafted run of continuation bytes would
+        // otherwise drive the accumulator past `Int` and trap on the next
+        // addition. An overlong group is not a number, it is an answer to drop.
         func next() -> Int? {
             var result = 0, shift = 0
-            while i < bytes.count {
+            while i < bytes.count, shift < Geo.maxPolylineShift {
                 let b = Int(bytes[i]) - 63
                 i += 1
                 result |= (b & 0x1F) << shift
@@ -165,14 +168,14 @@ enum Polyline {
             }
             return nil
         }
-        while i < bytes.count {
+        while i < bytes.count, coords.count < Geo.maxPoints {
             guard let dLat = next(), let dLon = next() else { break }
             lat += dLat
             lon += dLon
             coords.append(CLLocationCoordinate2D(latitude: Double(lat) / precision,
                                                  longitude: Double(lon) / precision))
         }
-        return coords
+        return Geo.validated(coords)
     }
 }
 

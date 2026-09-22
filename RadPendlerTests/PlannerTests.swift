@@ -304,7 +304,10 @@ final class PlannerTests: XCTestCase {
     // MARK: Long trips
 
     @MainActor func testBikeAloneGoesLastBeyondTheThreshold() {
-        let model = PlanModel()
+        // A planner whose clients point nowhere: the test is about the order of
+        // the boxes, not about the timetable, and a unit test may not call
+        // BRouter, Overpass, VBB, Open-Meteo and MapKit on every run.
+        let model = PlanModel(planner: .offline)
         let suite = UUID().uuidString
         let settings = AppSettings(defaults: UserDefaults(suiteName: suite)!)
         // Musterstraße → Beispielweg: 23 km, the commute.
@@ -416,5 +419,27 @@ final class PlannerTests: XCTestCase {
         let data = Data("Musterstraße".utf8)
         XCTAssertTrue(CloudStore.same(data, Data("Musterstraße".utf8)), "and so does the encoded history")
         XCTAssertFalse(CloudStore.same(data, Data("Beispielweg".utf8)))
+    }
+
+    func testEverySettingTheAppSavesAlsoTravelsThroughICloud() {
+        // Building AppSettings writes every key it owns, because `load()`
+        // assigns each property and every property saves itself. The suite's
+        // own domain is therefore the complete list — no hand-kept second one.
+        let suite = UUID().uuidString
+        let settings = AppSettings(defaults: UserDefaults(suiteName: suite)!)
+        // The four addresses are nil by default and then erase their key
+        // instead of writing it; give them a value so they show up.
+        settings.origin = from
+        settings.destination = to
+        settings.workPlace = to
+        settings.homePlace = from
+        let saved = Set((UserDefaults.standard.persistentDomain(forName: suite) ?? [:]).keys)
+        XCTAssertFalse(saved.isEmpty, "the settings must write something, or this test proves nothing")
+        let carried = Set(CloudStore.keys)
+        XCTAssertTrue(saved.subtracting(carried).isEmpty,
+                      "these settings never reach the other devices: \(saved.subtracting(carried).sorted())")
+        XCTAssertTrue(carried.subtracting(saved).isEmpty,
+                      "these keys are carried but nobody writes them: \(carried.subtracting(saved).sorted())")
+        UserDefaults.standard.removePersistentDomain(forName: suite)
     }
 }

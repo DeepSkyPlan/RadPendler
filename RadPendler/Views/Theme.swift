@@ -242,7 +242,7 @@ struct CountdownBox: View {
 
     @ViewBuilder private func content(_ left: TimeInterval?, gone: Bool) -> some View {
         VStack(spacing: 1) {
-            Text(left == nil ? "KEINE ABFAHRT" : (gone ? "ABGEFAHREN" : (left! < 0 ? "LOSGEHEN" : "LOS IN")))
+            Text(Countdown.urgency(left, gone: gone).caption(overdue: (left ?? 0) < 0))
                 .font(.system(size: 8.5, weight: .bold, design: .rounded))
                 .opacity(0.85)
             Text(left.map(Self.text) ?? "–")

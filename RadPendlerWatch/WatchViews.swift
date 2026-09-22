@@ -9,30 +9,6 @@ extension Color {
     }
 }
 
-enum WFmt {
-    static func time(_ d: Date) -> String {
-        d.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))
-    }
-
-    static func duration(_ t: TimeInterval) -> String {
-        let m = Int((t / 60).rounded())
-        return m < 60 ? "\(m) min" : String(format: "%d:%02d h", m / 60, m % 60)
-    }
-
-    static func km(_ meters: Double) -> String {
-        meters < 1000 ? "\(Int(meters.rounded())) m"
-            : (meters / 1000).formatted(.number.precision(.fractionLength(1))) + " km"
-    }
-
-    /// How old the plan is — the one number that decides whether to trust it.
-    static func age(_ seconds: TimeInterval) -> String {
-        let s = Int(max(seconds, 0).rounded())
-        if s < 60 { return "gerade eben" }
-        let m = s / 60
-        if m < 60 { return "vor \(m) min" }
-        return m % 60 == 0 ? "vor \(m / 60) h" : String(format: "vor %d:%02d h", m / 60, m % 60)
-    }
-}
 
 /// Three pages, swiped vertically: the countdown, the chosen trip, and the
 /// categories — Rad, Rad + Bahn, Auto, Bahn & Bus — with their options behind
@@ -71,7 +47,7 @@ private struct CountdownPage: View {
             let gone = trip.map { $0.countsDown && context.date > $0.leave } ?? false
             let step = Countdown.urgency(left, gone: gone)
             VStack(spacing: 2) {
-                Text(step.caption)
+                Text(step.caption(overdue: (left ?? 0) < 0))
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .opacity(0.85)
                 Text(left.map(Countdown.text) ?? "–")
@@ -89,7 +65,7 @@ private struct CountdownPage: View {
                                 .padding(.horizontal, 4).padding(.vertical, 1)
                                 .background(.white.opacity(0.25), in: RoundedRectangle(cornerRadius: 4))
                         }
-                        Text("\(WFmt.time(trip.leave)) → \(WFmt.time(trip.arrival))")
+                        Text("\(Fmt.time(trip.leave)) → \(Fmt.time(trip.arrival))")
                             .font(.system(size: 12, design: .rounded))
                             .monospacedDigit()
                     }
@@ -132,7 +108,7 @@ private struct TripPage: View {
                                         .padding(.horizontal, 4).padding(.vertical, 1)
                                         .background(Color(hex: leg.colorHex), in: RoundedRectangle(cornerRadius: 4))
                                 }
-                                Text("\(WFmt.time(leg.departure)) → \(WFmt.time(leg.arrival))")
+                                Text("\(Fmt.time(leg.departure)) → \(Fmt.time(leg.arrival))")
                                     .font(.system(size: 13, weight: .semibold, design: .rounded))
                                     .monospacedDigit()
                             }
@@ -140,17 +116,17 @@ private struct TripPage: View {
                         }
                         Spacer(minLength: 0)
                         if let m = leg.meters {
-                            Text(WFmt.km(m)).font(.system(size: 11, design: .rounded)).foregroundStyle(.secondary)
+                            Text(Fmt.km(m)).font(.system(size: 11, design: .rounded)).foregroundStyle(.secondary)
                         }
                     }
                     .padding(.vertical, 1)
                 }
             } header: {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("\(trip.modeTitle) · \(WFmt.duration(trip.duration))")
+                    Text("\(trip.modeTitle) · \(Fmt.duration(trip.duration))")
                         .font(.system(size: 14, weight: .bold, design: .rounded))
                         .foregroundStyle(Color(hex: trip.colorHex))
-                    Text("los \(WFmt.time(trip.getReady)) · \(WFmt.km(trip.meters))")
+                    Text("los \(Fmt.time(trip.getReady)) · \(Fmt.km(trip.meters))")
                         .font(.system(size: 11, design: .rounded))
                         .foregroundStyle(.secondary)
                     if let rain = trip.rain {
@@ -185,7 +161,7 @@ private struct ModesPage: View {
             TimelineView(.periodic(from: .now, by: 30)) { context in
                 VStack(alignment: .leading, spacing: 1) {
                     Text("\(plan.origin) → \(plan.destination)").lineLimit(1)
-                    Text("Stand \(WFmt.time(plan.computedAt)) · \(WFmt.age(context.date.timeIntervalSince(plan.computedAt)))")
+                    Text("Stand \(Fmt.time(plan.computedAt)) · \(Fmt.age(context.date.timeIntervalSince(plan.computedAt)))")
                 }
                 .font(.system(size: 10, design: .rounded))
                 .foregroundStyle(.secondary)
@@ -207,7 +183,7 @@ private struct ModesPage: View {
                 .foregroundStyle(Color(hex: best?.colorHex ?? "#888888"))
                 .frame(width: 22)
             VStack(alignment: .leading, spacing: 0) {
-                Text(best.map { WFmt.duration($0.duration) } ?? "–")
+                Text(best.map { Fmt.duration($0.duration) } ?? "–")
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                     .monospacedDigit()
                 Text(own.count > 1 ? "\(plan.title(of: mode)) · \(own.count) Wege" : plan.title(of: mode))
@@ -243,10 +219,10 @@ private struct OptionsList: View {
                     HStack(spacing: 8) {
                         VStack(alignment: .leading, spacing: 0) {
                             HStack(spacing: 5) {
-                                Text(WFmt.duration(option.duration))
+                                Text(Fmt.duration(option.duration))
                                     .font(.system(size: 15, weight: .bold, design: .rounded))
                                     .monospacedDigit()
-                                Text("\(WFmt.time(option.leave)) → \(WFmt.time(option.arrival))")
+                                Text("\(Fmt.time(option.leave)) → \(Fmt.time(option.arrival))")
                                     .font(.system(size: 11, design: .rounded))
                                     .monospacedDigit()
                                     .foregroundStyle(.secondary)

@@ -37,7 +37,8 @@ struct BRouterClient {
               let geometry = feature["geometry"] as? [String: Any],
               let coords = geometry["coordinates"] as? [[Double]],
               let props = feature["properties"] as? [String: Any] else { throw BRouterError.malformed }
-        let points = coords.filter { $0.count >= 2 }.map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) }
+        let points = Geo.validated(coords.filter { $0.count >= 2 }
+            .map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) })
         let length = Double(props["track-length"] as? String ?? "") ?? 0
         let time = Double(props["total-time"] as? String ?? "") ?? 0
         guard points.count > 1 else { throw BRouterError.malformed }
@@ -48,7 +49,7 @@ struct BRouterClient {
         case server(String), malformed
         var errorDescription: String? {
             switch self {
-            case .server(let s): "BRouter: \(s)"
+            case .server(let s): "BRouter: \(foreignText(s))"
             case .malformed: "BRouter: unerwartete Antwort"
             }
         }

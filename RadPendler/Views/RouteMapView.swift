@@ -227,8 +227,8 @@ struct RouteMapView: UIViewRepresentable {
 
         static func labelText(_ o: TripOption) -> String {
             let d = Fmt.duration(o.duration)
-            if let bike = o.bikeRoute { return "\(d) · \(bike.variants.first!.title)" }
-            if let car = o.carRoute { return "\(d) · \(car.variants.first!.title)" }
+            if let bike = o.bikeRoute { return "\(d) · \(bike.variants.first?.title ?? "Route")" }
+            if let car = o.carRoute { return "\(d) · \(car.variants.first?.title ?? "Route")" }
             guard !o.transitLegs.isEmpty else { return d }
             return o.transfers == 0 ? "\(d) · direkt" : "\(d) · \(o.transfers)× um"   // short form of transferText
         }
@@ -274,15 +274,21 @@ struct RouteMapView: UIViewRepresentable {
             map.setVisibleMapRect(all, edgePadding: Self.fitInsets, animated: false)
         }
 
-        /// All frames stay on the map once loaded; only the shown one is
-        /// visible. Swapping overlays per frame would reload tiles and flicker.
+        /// Only the shown frame and its two neighbours hang on the map. Keeping
+        /// all twenty-two there cost about seven hundred tile requests in the
+        /// first forty seconds — MapKit loads the tiles of every overlay, alpha
+        /// 0 or not. The neighbours are what keeps scrubbing and playback
+        /// smooth; anything beyond them is a download for a picture nobody sees.
+        ///
+        /// Nothing is mounted before the map has been fitted to the route: on
+        /// the opening world zoom a single frame covers the planet.
         private func updateRadar(_ map: MKMapView, _ view: RouteMapView) {
-            guard let time = view.radarTime else {
+            guard let time = view.radarTime, fitRect != nil else {
                 renderers.values.forEach { $0.alpha = 0 }
                 shownRadar = nil
                 return
             }
-            let wanted = Set(view.radarFrames)
+            let wanted = Self.window(around: time, in: view.radarFrames)
             for (t, overlay) in radar where !wanted.contains(t) {
                 map.removeOverlay(overlay)
                 radar[t] = nil
@@ -297,6 +303,13 @@ struct RouteMapView: UIViewRepresentable {
                 shownRadar = time
                 for (t, r) in renderers { r.alpha = t == time ? 0.7 : 0 }
             }
+        }
+
+        /// The shown minute and one step either side.
+        static func window(around time: Date, in frames: [Date]) -> Set<Date> {
+            guard let i = frames.firstIndex(of: time) else { return [time] }
+            let lo = Swift.max(0, i - 1), hi = Swift.min(frames.count - 1, i + 1)
+            return Set(frames[lo...hi])
         }
 
         /// Where the rider would be at the radar frame's time on the selected trip.
@@ -496,17 +509,9 @@ struct LastRunLine: View {
 
     private func text(now: Date) -> String {
         guard let lastRun else { return loading ? "wird berechnet …" : "neu berechnen" }
-        return "Stand \(Fmt.time(lastRun)) · \(Self.ago(now.timeIntervalSince(lastRun)))"
+        return "Stand \(Fmt.time(lastRun)) · \(Fmt.age(now.timeIntervalSince(lastRun)))"
     }
 
-    /// How old the plan is, in the shortest words that are still exact enough.
-    static func ago(_ seconds: TimeInterval) -> String {
-        let s = Int(max(seconds, 0).rounded())
-        if s < 60 { return "gerade eben" }
-        let m = s / 60
-        if m < 60 { return "vor \(m) min" }
-        return m % 60 == 0 ? "vor \(m / 60) h" : String(format: "vor %d:%02d h", m / 60, m % 60)
-    }
 }
 
 /// Map plus radar controls, shared by the map tab and the detail screen.

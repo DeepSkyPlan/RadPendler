@@ -7,7 +7,7 @@ Das Projekt ist quelloffen (MIT); Adressen und Schlüssel gehören nicht hinein.
 ## Bauen, testen, ausliefern
 
 ```bash
-./dev test      # generiert das .xcodeproj bei Bedarf, dann 73 Tests im Simulator
+./dev test      # generiert das .xcodeproj bei Bedarf, dann 82 Tests im Simulator
 #               MOTIS_LIVE=1 schaltet zusätzlich den echten Transitous-Aufruf frei
 #               (aus Xcode heraus; xcodebuild reicht die Variable nicht durch)
 ./dev open      # Xcode mit demselben DerivedData wie die Kommandozeile
@@ -25,8 +25,9 @@ TestFlight (nur auf Ansage des Nutzers): Buildnummer in `project.yml` hochzähle
 `xcodegen generate` → `clean archive` → `-exportArchive` mit einer `ExportOptions.plist`
 (method `app-store-connect`, destination `upload`) und den App-Store-Connect-Schlüsseln
 aus `~/.appstoreconnect/`. `tools/asc_jwt.swift` druckt ein API-Token für Abfragen; es
-liest `ASC_KEY_ID` und `ASC_ISSUER_ID` aus der Umgebung. Schlüssel, Team- und App-IDs
-stehen **nicht** in diesem Repository.
+liest `ASC_KEY_ID` und `ASC_ISSUER_ID` aus der Umgebung. Schlüssel und App-IDs stehen **nicht** in diesem Repository;
+die Team-ID steht in `project.yml`, weil ohne sie niemand bauen kann — sie steckt
+ohnehin in jedem signierten Binary.
 Apple erlaubt kein Anlegen von Apps per API — das muss von Hand im Browser passieren.
 
 Simulator mit Adressen füttern (zum Screenshotten ohne Tippen):
@@ -120,7 +121,7 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
 - Rad + Bahn ist der Normalfall bei schlechtem Wetter; bei Trockenheit gewinnt das Rad.
 - Umstiege zählen wie 10 min Fahrzeit (einstellbar), direkte Verbindungen gewinnen.
 - Farben: Rad grün, Auto rot, Bus orange, alles auf Schienen blau (S hell, U dunkel, RE/Tram
-  dazwischen), Fähre türkis, Rad + Bahn `#00ADA3`.
+  dazwischen), Fähre türkis, Rad + Bahn `#00A8BA`.
 - **Das Repo ist öffentlich** (MIT). Keine Adresse, keine echte Koordinate des Nutzers und
   kein Schlüssel darf hineingeraten — auch nicht in Testdaten, Changelog oder Übergabe.
   Die Fixtures tragen neutrale Adressen und eine versetzte Geometrie.

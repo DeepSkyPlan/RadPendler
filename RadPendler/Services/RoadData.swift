@@ -32,7 +32,8 @@ struct RoadData {
         var roads: [Road] = []
         for e in elements {
             if e["type"] as? String == "node", let lat = e["lat"] as? Double, let lon = e["lon"] as? Double {
-                signals.append(CLLocationCoordinate2D(latitude: lat, longitude: lon))
+                let c = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+                if Geo.valid(c) { signals.append(c) }
                 continue
             }
             guard let tags = e["tags"] as? [String: String],
@@ -41,8 +42,10 @@ struct RoadData {
             if let t = tags["tunnel"], !t.isEmpty, t != "no" { continue }
             let ref = tags["ref"].flatMap { $0.isEmpty ? nil : $0.replacingOccurrences(of: ";", with: "/") }
             let name = [ref, tags["name"].flatMap { $0.isEmpty ? nil : $0 }].compactMap { $0 }.first ?? "Hauptstraße"
-            roads.append(Road(name: name, points: coords.filter { $0.count >= 2 }
-                .map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) }))
+            let points = Geo.validated(coords.filter { $0.count >= 2 }
+                .map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) })
+            guard points.count >= 2 else { continue }
+            roads.append(Road(name: name, points: points))
         }
         return RoadData(signals: signals, roads: roads)
     }
@@ -73,7 +76,19 @@ actor RoadDataStore {
             return south <= o.south + e && west <= o.west + e && north >= o.north - e && east >= o.east - e
         }
 
+        /// Identifies the box. Not the file name — that would write the
+        /// corridor between home and work onto the disk in plain sight.
         var key: String { String(format: "%.2f_%.2f_%.2f_%.2f", south, west, north, east) }
+
+        /// What the cached file is called: the same box, but unreadable to
+        /// anyone listing the directory.
+        var fileName: String {
+            var hash: UInt64 = 0xcbf29ce484222325
+            for byte in key.utf8 {
+                hash = (hash ^ UInt64(byte)) &* 0x100000001b3
+            }
+            return String(format: "osm-%016llx", hash)
+        }
 
         /// Berlin to Hamburg is about 2.5° of latitude, and Overpass would
         /// answer that with hundreds of megabytes — if at all. Past this the
@@ -99,34 +114,107 @@ actor RoadDataStore {
 
     static let shared = RoadDataStore()
     private var memory: [Box: RoadData] = [:]
+    /// Requests already on their way. Bike, car and bike+rail ask for
+    /// overlapping corridors at the same moment; without this they all miss the
+    /// cache, and Overpass answers the same 4-MB question three times — and
+    /// throttles, which turned a 2-second plan into a 24-second one.
+    private var inFlight: [Box: Task<RoadData, Error>] = [:]
+    /// Two corridors are all a trip has; more is a leak, not a cache.
+    private let maxBoxesInMemory = 2
     private let maxAge: TimeInterval = 30 * 86_400
     private var directory: URL {
         FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent("osm-roads")
     }
 
     func data(covering coords: [CLLocationCoordinate2D]) async throws -> RoadData {
+        guard !coords.isEmpty else { throw RoadData.OverpassError.malformed }
         let box = Box(around: coords)
         guard !box.isTooLarge else { throw RoadData.OverpassError.corridorTooBig }
         if let hit = memory.first(where: { $0.key.contains(box) }) { return hit.value }
+        // Someone is already fetching a corridor that covers this one: wait for
+        // their answer instead of asking the same question again. The task is
+        // registered before the first `await`, or the actor would let the next
+        // caller past this line while we suspend.
+        if let running = inFlight.first(where: { $0.key.contains(box) })?.value {
+            return try await running.value
+        }
         if let (b, d) = loadFromDisk(covering: box) {
-            memory[b] = d
+            remember(b, d)
             return d
         }
-        let raw = try await fetch(box)
-        let parsed = try RoadData.parse(raw)
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        try? raw.write(to: directory.appendingPathComponent("\(box.key).json"))
-        memory[box] = parsed
+        let task = Task { [directory] () throws -> RoadData in
+            let raw = try await Self.fetch(box)
+            let parsed = try RoadData.parse(raw)
+            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let file = directory.appendingPathComponent("\(box.fileName).json")
+            try? raw.write(to: file, options: .completeFileProtection)
+            Self.writeSidecar(box, next: file)
+            return parsed
+        }
+        inFlight[box] = task
+        defer { inFlight[box] = nil }
+        let parsed = try await task.value
+        remember(box, parsed)
+        sweep(keeping: box)
         return parsed
+    }
+
+    /// Keeps the memory cache to the two corridors a trip can have.
+    private func remember(_ box: Box, _ data: RoadData) {
+        memory[box] = data
+        guard memory.count > maxBoxesInMemory else { return }
+        // Drop boxes that the new one already covers first, then anything.
+        for key in memory.keys where key != box && box.contains(key) { memory[key] = nil }
+        while memory.count > maxBoxesInMemory, let victim = memory.keys.first(where: { $0 != box }) {
+            memory[victim] = nil
+        }
+    }
+
+    /// Reads the box back from the little sidecar next to each cached answer.
+    /// The data file is named by a hash, so a directory listing no longer
+    /// spells out the corridor between home and work.
+    private func box(of file: URL) -> Box? {
+        let sidecar = file.deletingPathExtension().appendingPathExtension("box")
+        guard let text = try? String(contentsOf: sidecar, encoding: .utf8) else { return nil }
+        let parts = text.split(separator: " ").compactMap { Double($0) }
+        guard parts.count == 4 else { return nil }
+        return Box(south: parts[0], west: parts[1], north: parts[2], east: parts[3])
+    }
+
+    private static func writeSidecar(_ box: Box, next file: URL) {
+        let sidecar = file.deletingPathExtension().appendingPathExtension("box")
+        let text = "\(box.south) \(box.west) \(box.north) \(box.east)"
+        try? text.write(to: sidecar, atomically: true, encoding: .utf8)
+    }
+
+    /// Deletes what is stale or already contained in the box just written — the
+    /// files were only ever skipped on read, never removed, and three
+    /// overlapping corridors had grown to 13 MB.
+    private func sweep(keeping box: Box) {
+        let fm = FileManager.default
+        guard let files = try? fm.contentsOfDirectory(at: directory,
+                                                      includingPropertiesForKeys: [.contentModificationDateKey])
+        else { return }
+        for f in files where f.pathExtension == "json" {
+            guard f.deletingPathExtension().lastPathComponent != box.fileName else { continue }
+            let age = (try? f.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
+                .map { Date.now.timeIntervalSince($0) } ?? .infinity
+            // No sidecar means the file predates this scheme: it is unreadable
+            // to us now, so it is rubbish either way.
+            let contained = self.box(of: f).map { box.contains($0) } ?? true
+            guard age > maxAge || contained else { continue }
+            try? fm.removeItem(at: f)
+            try? fm.removeItem(at: f.deletingPathExtension().appendingPathExtension("box"))
+        }
     }
 
     private func loadFromDisk(covering box: Box) -> (Box, RoadData)? {
         let fm = FileManager.default
-        guard let files = try? fm.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.contentModificationDateKey]) else { return nil }
-        for f in files {
-            let parts = f.deletingPathExtension().lastPathComponent.split(separator: "_").compactMap { Double($0) }
-            guard parts.count == 4 else { continue }
-            let b = Box(south: parts[0], west: parts[1], north: parts[2], east: parts[3])
+        guard let files = try? fm.contentsOfDirectory(at: directory,
+                                                      includingPropertiesForKeys: [.contentModificationDateKey])
+        else { return nil }
+        for f in files where f.pathExtension == "json" {
+            guard let b = self.box(of: f) else { continue }
             let age = (try? f.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
                 .map { Date.now.timeIntervalSince($0) } ?? .infinity
             guard b.contains(box), age < maxAge, let data = try? Data(contentsOf: f),
@@ -136,15 +224,15 @@ actor RoadDataStore {
         return nil
     }
 
-    private func fetch(_ b: Box) async throws -> Data {
+    private static func fetch(_ b: Box) async throws -> Data {
         let bbox = String(format: "%.3f,%.3f,%.3f,%.3f", b.south, b.west, b.north, b.east)
         let query = """
-        [out:json][timeout:90][bbox:\(bbox)];
+        [out:json][timeout:25][bbox:\(bbox)];
         (node[highway=traffic_signals];node[crossing=traffic_signals];);out skel qt;
         way[highway~"^(trunk|primary|secondary)(_link)?$"];
         convert way ::geom=geom(),ref=t["ref"],name=t["name"],tunnel=t["tunnel"];out geom qt;
         """
-        var request = URLRequest(url: URL(string: "https://overpass-api.de/api/interpreter")!, timeoutInterval: 90)
+        var request = URLRequest(url: URL(string: "https://overpass-api.de/api/interpreter")!, timeoutInterval: 30)
         request.httpMethod = "POST"
         request.setValue("RadPendler iOS (private commute planner)", forHTTPHeaderField: "User-Agent")
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
@@ -309,9 +397,20 @@ struct SegmentGrid {
         }
     }
 
+    /// More cells than this from a single segment means the segment is not a
+    /// road — a NaN, an infinity or two points on opposite sides of the world.
+    /// Converting those to `Int` traps; spanning them fills memory.
+    private static let maxCellsPerSegment = 10_000
+
     private func keys(from lo: SIMD2<Double>, to hi: SIMD2<Double>) -> [SIMD2<Int>] {
-        let x0 = Int((lo.x / size).rounded(.down)), x1 = Int((hi.x / size).rounded(.down))
-        let y0 = Int((lo.y / size).rounded(.down)), y1 = Int((hi.y / size).rounded(.down))
+        guard lo.x.isFinite, lo.y.isFinite, hi.x.isFinite, hi.y.isFinite else { return [] }
+        let fx0 = (lo.x / size).rounded(.down), fx1 = (hi.x / size).rounded(.down)
+        let fy0 = (lo.y / size).rounded(.down), fy1 = (hi.y / size).rounded(.down)
+        let limit = Double(Int.max / 2)
+        guard abs(fx0) < limit, abs(fx1) < limit, abs(fy0) < limit, abs(fy1) < limit else { return [] }
+        let x0 = Int(fx0), x1 = max(Int(fx1), Int(fx0))
+        let y0 = Int(fy0), y1 = max(Int(fy1), Int(fy0))
+        guard (x1 - x0 + 1) * (y1 - y0 + 1) <= Self.maxCellsPerSegment else { return [] }
         var out: [SIMD2<Int>] = []
         for x in x0...x1 { for y in y0...y1 { out.append(SIMD2(x, y)) } }
         return out

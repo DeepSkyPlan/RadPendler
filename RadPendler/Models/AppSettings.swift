@@ -106,10 +106,10 @@ final class AppSettings {
     /// handed us another device's settings — every property keeps what it has
     /// when the key is missing, so a partial store cannot wipe anything.
     func load() {
-        origin = Self.place("origin", defaults)
-        destination = Self.place("destination", defaults)
-        workPlace = Self.place("workPlace", defaults)
-        homePlace = Self.place("homePlace", defaults)
+        origin = Self.place("origin", defaults) ?? origin
+        destination = Self.place("destination", defaults) ?? destination
+        workPlace = Self.place("workPlace", defaults) ?? workPlace
+        homePlace = Self.place("homePlace", defaults) ?? homePlace
         prepMinutes = defaults.object(forKey: "prepMinutes") as? Int ?? prepMinutes
         // 0.1.x stored an all-in average under "bikeSpeedKmh" — deliberately not read.
         bikeSpeedKmh = defaults.object(forKey: "bikeMovingSpeedKmh") as? Double ?? bikeSpeedKmh

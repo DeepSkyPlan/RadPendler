@@ -16,12 +16,16 @@ final class CloudStore {
     /// Exactly what is worth carrying — never everything UserDefaults holds.
     /// The watch's own keys (the last plan, what the wrist picked) are not in
     /// here: that state belongs to the watch it was made on.
+    /// `testEverySettingTheAppSavesAlsoTravelsThroughICloud` fails when a new
+    /// setting is added to `AppSettings` and forgotten here — which is how the
+    /// four preference lists missed the boat between 0.10.0 and 0.12.1.
     static let keys = ["origin", "destination", "workPlace", "homePlace", "waypoints", "placeHistory",
                        "bikeLines", "timetableSource", "departurePresets2", "prepMinutes", "bikeMovingSpeedKmh",
                        "bikeStationBufferMinutes", "maxBikeToStationKm", "parkingMinutes",
                        "transferPenaltyMinutes", "signalWaitSeconds", "requireAllWaypoints",
                        "departureBufferMinutes", "arrivalBufferMinutes", "workArrivalMinutes",
-                       "alertMinutes", "alertsOn"]
+                       "alertMinutes", "alertsOn",
+                       "modeOrder", "bikeVariantOrder", "carVariantOrder", "rainSwitchLevel"]
 
     /// The one key that is merged instead of replaced: a device that has not
     /// pulled yet must not be able to shorten the list it has not seen.
@@ -119,7 +123,13 @@ final class CloudStore {
         guard !keys.isEmpty else { return }
         applying = true
         for key in keys {
-            guard let value = cloud.object(forKey: key) else { continue }
+            guard let value = cloud.object(forKey: key) else {
+                // Gone from the cloud means deleted somewhere, not "no news":
+                // an address removed on the phone stayed on the iPad forever.
+                // The merged list is the exception — it is never shortened.
+                if key != Self.mergedKey { defaults.removeObject(forKey: key) }
+                continue
+            }
             if key == Self.mergedKey, let incoming = value as? Data {
                 defaults.set(Self.mergedHistory(local: defaults.data(forKey: key), cloud: incoming) ?? incoming,
                              forKey: key)
