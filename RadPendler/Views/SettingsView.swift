@@ -13,7 +13,7 @@ struct SettingsView: View {
             Form {
                 Section {
                     NavigationLink {
-                        AddressSearchView(title: "Start") { settings.origin = $0 }
+                        AddressSearchView(title: "Start", offersLocation: true) { settings.origin = $0 }
                     } label: {
                         LabeledContent("Start", value: settings.origin?.withArea ?? "nicht gesetzt")
                     }
@@ -143,7 +143,7 @@ struct SettingsView: View {
                 Section {
                     ForEach(PlaceRole.allCases, id: \.self) { role in
                         NavigationLink {
-                            AddressSearchView(title: role.title) { settings.setPlace($0, for: role) }
+                            AddressSearchView(title: role.title, offersLocation: true) { settings.setPlace($0, for: role) }
                         } label: {
                             LabeledContent {
                                 Text(settings.place(for: role)?.withArea ?? "nicht gesetzt")
@@ -395,13 +395,22 @@ private struct PriorityList<T: Hashable>: View {
 /// a street name alone is not an address in Berlin.
 struct AddressSearchView: View {
     var title: String
+    /// The start of a trip begins where one is standing — there "Mein Standort"
+    /// sits at the top and is what a tap without typing takes.
+    var offersLocation = false
     var onPick: (Place) -> Void
 
     @Environment(AppSettings.self) private var settings
     @Environment(\.dismiss) private var dismiss
     @State private var completer = AddressCompleter()
+    @State private var location = LocationService()
     @State private var query = ""
     @State private var error: String?
+    @State private var locating = false
+    /// The address behind the current fix, looked up as soon as the search for
+    /// a start opens with nothing set — so the first row is a real address and
+    /// one tap is all it takes.
+    @State private var here: Place?
 
     private var known: [PlaceUse] { settings.placeHistory.matching(query) }
 
@@ -420,6 +429,35 @@ struct AddressSearchView: View {
         List {
             if let error {
                 Text(error).foregroundStyle(.orange)
+            }
+            if offersLocation, query.isEmpty, location.permission != .denied {
+                Section {
+                    Button(action: useLocation) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 26, height: 26)
+                                .background(Theme.accent, in: Circle())
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(here?.shortName ?? "Mein Standort").foregroundStyle(.primary)
+                                Text(locating ? "wird bestimmt …" : (here?.areaLine ?? "dort, wo du gerade bist"))
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            if here != nil {
+                                Image(systemName: "location.fill")
+                                    .font(.caption2).foregroundStyle(Theme.accent)
+                            }
+                            Spacer(minLength: 0)
+                            if locating { ProgressView() }
+                        }
+                    }
+                    .disabled(locating)
+                } header: {
+                    Text("Vorschlag")
+                } footer: {
+                    Text("Wird einmal abgefragt und in eine Adresse übersetzt. Die App folgt dir nicht.")
+                }
             }
             if !named.isEmpty {
                 Section {
@@ -466,12 +504,19 @@ struct AddressSearchView: View {
                 }
             }
         }
+        .task {
+            // Only unasked-for work the app does: with nothing set yet, the
+            // start is almost always where one is standing.
+            guard offersLocation, here == nil, location.permission == .allowed else { return }
+            guard let fix = try? await location.current() else { return }
+            here = await location.place(for: fix)
+        }
         .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Adresse oder Ort")
         .onChange(of: query) { completer.query = query }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .overlay {
-            if named.isEmpty && known.isEmpty && completer.results.isEmpty && query.isEmpty {
+            if !offersLocation, named.isEmpty, known.isEmpty, completer.results.isEmpty, query.isEmpty {
                 ContentUnavailableView("Noch keine Adresse", systemImage: "magnifyingglass",
                                        description: Text("Tippen, um zu suchen. Was einmal gewählt wurde, steht beim nächsten Mal oben — je öfter benutzt, desto weiter oben."))
             }
@@ -497,6 +542,21 @@ struct AddressSearchView: View {
                     .font(.system(.caption, design: .rounded, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
+            }
+        }
+    }
+
+    /// One fix, turned into an address, counted like any other pick.
+    private func useLocation() {
+        error = nil
+        locating = true
+        Task {
+            defer { locating = false }
+            do {
+                if let here { return pick(here) }
+                pick(await location.place(for: try await location.current()))
+            } catch {
+                self.error = error.localizedDescription
             }
         }
     }

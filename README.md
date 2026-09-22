@@ -48,9 +48,14 @@ eingecheckt — die Struktur steht in `project.yml` (XcodeGen).
 - **DWD GeoServer WMS** `dwd:Niederschlagsradar` — Regenradar und 2-h-Nowcast.
 - **Open-Meteo** `minutely_15` — Regen je Streckenpunkt.
 
+- **„Mein Standort"** als Startadresse: einmal abgefragt, in eine Adresse
+  übersetzt, danach vergessen — die App folgt niemandem.
+
 ## Privates
 
-Die App wird **ohne Adressen** ausgeliefert und enthält keine. Was der Nutzer
+Die App wird **ohne Adressen** ausgeliefert und enthält keine. Der Standort
+wird nur auf Tippen abgefragt, einmal, und nur um daraus eine Startadresse zu
+machen; danach wird der Manager wieder vergessen. Was der Nutzer
 eingibt, bleibt auf seinen Geräten und in seiner eigenen iCloud
 (Schlüssel-Wert-Speicher); es geht an keinen Server dieses Projekts, weil es
 keinen gibt. Die Testdaten unter `RadPendlerTests/Fixtures` sind echte Antworten

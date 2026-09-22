@@ -1,4 +1,5 @@
 import CoreLocation
+import MapKit
 import XCTest
 @testable import RadPendler
 
@@ -136,5 +137,24 @@ extension MotisTests {
         XCTAssertTrue(legs.allSatisfy { $0.arrival >= $0.departure })
         XCTAssertTrue(legs.contains { $0.coordinates.count > 10 }, "geometry decoded")
         print("LIVE:", legs.map { "\($0.kind) \($0.lineName ?? "") \(Fmt.time($0.departure))" })
+    }
+}
+
+extension MotisTests {
+    func testAFixBecomesAnAddressWithItsPostalCode() {
+        let c = CLLocationCoordinate2D(latitude: 52.5210, longitude: 13.4130)
+        let full = MKPlacemark(coordinate: c, addressDictionary: [
+            "Thoroughfare": "Musterstraße", "SubThoroughfare": "1",
+            "ZIP": "10178", "City": "Berlin",
+        ])
+        let place = LocationService.place(from: full, at: c)
+        XCTAssertEqual(place.shortName, "Musterstraße 1")
+        XCTAssertEqual(place.areaLine, "10178 Berlin")
+        XCTAssertEqual(place.postalCode, "10178")
+        XCTAssertEqual(place.latitude, 52.5210, accuracy: 0.0001)
+
+        // A field somewhere without a street still has to become something.
+        let bare = MKPlacemark(coordinate: c, addressDictionary: ["City": "Beispielstadt"])
+        XCTAssertEqual(LocationService.place(from: bare, at: c).shortName, "Beispielstadt")
     }
 }

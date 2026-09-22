@@ -12,8 +12,8 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: "0.12.1"
-    CURRENT_PROJECT_VERSION: "19"
+    MARKETING_VERSION: "0.13.0"
+    CURRENT_PROJECT_VERSION: "20"
     SWIFT_VERSION: "5.0"
 
 targets:
@@ -49,6 +49,9 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: "YES"
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        # One fix on demand, never a trail: the app asks only when "Mein
+        # Standort" is tapped and forgets the manager afterwards.
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Damit „Mein Standort“ als Startadresse eingesetzt werden kann. Der Standort wird einmal abgefragt, in eine Adresse übersetzt und nicht gespeichert; die App folgt niemandem."
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         # iPad turns every way up; the layout follows the size class, not the device.
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"

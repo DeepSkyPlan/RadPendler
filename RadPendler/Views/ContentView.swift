@@ -75,7 +75,8 @@ struct ContentView: View {
                 refresh()
             }) { field in
                 NavigationStack {
-                    AddressSearchView(title: field == .origin ? "Start" : "Ziel") { place in
+                    AddressSearchView(title: field == .origin ? "Start" : "Ziel",
+                                      offersLocation: field == .origin) { place in
                         if field == .origin { settings.origin = place } else { settings.destination = place }
                     }
                 }
