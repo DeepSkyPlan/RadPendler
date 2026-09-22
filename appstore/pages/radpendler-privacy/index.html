@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RadPendler — Datenschutzerklärung</title>
+<style>
+  body { font: 16px/1.6 -apple-system, system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 20px; color: #14231f; }
+  h1 { font-size: 1.6rem; } h2 { font-size: 1.15rem; margin-top: 1.6em; }
+  .date { color: #667; } code { background: #eef4f3; padding: 1px 5px; border-radius: 4px; }
+  address { font-style: normal; margin: 0.6em 0 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: .95rem; }
+  th, td { border: 1px solid #dde6e4; padding: 6px 9px; text-align: left; vertical-align: top; }
+  th { background: #f3f7f6; font-weight: 600; }
+  a { color: #00857c; }
+  @media (prefers-color-scheme: dark) {
+    body { background:#0b1513; color:#dff0ec; } code{background:#152421;} .date{color:#8aa09a;}
+    a{color:#3fd0c4;} th,td{border-color:#1c2a27;} th{background:#111f1c;}
+  }
+</style>
+</head>
+<body>
+
+<p style="margin-bottom:1.2em"><a href="https://deepskyplan.github.io/radpendler-app/">← RadPendler</a></p>
+
+<h1>Datenschutzerklärung — RadPendler</h1>
+<p class="date">Stand: 22. September 2026</p>
+
+<p>RadPendler ist ein Pendel-Planer für iPhone, iPad und Apple Watch. Die App
+ist so gebaut, dass sie ohne die Erhebung personenbezogener Daten auskommt: es
+gibt kein Konto, keine Anmeldung und keinen Server dieses Projekts.</p>
+
+<h2>Was wir erheben</h2>
+<p><strong>Nichts.</strong> RadPendler erhebt, speichert und teilt keine
+personenbezogenen Daten. Es gibt keine Nutzerkonten, keine Analytik, keine
+Werbung, keine Tracking-SDKs von Dritten und keinen Server, auf den etwas
+fließen könnte — weil dieses Projekt keinen betreibt.</p>
+
+<h2>Was auf deinen Geräten bleibt</h2>
+<p>Alles, was du eingibst, liegt im privaten Speicher der App auf dem Gerät:
+Start- und Zieladresse, die Adressen für „Zuhause“ und „Arbeit“, Fixpunkte, die
+Liste der zuletzt benutzten Adressen, deine Entscheidungen zur Fahrradmitnahme
+je Linie und alle Einstellungen. Die App wird <em>ohne</em> Adressen
+ausgeliefert und enthält keine.</p>
+<p>Ist auf deinem Gerät ein iCloud-Konto angemeldet, gleichen sich diese
+Angaben über den <strong>iCloud-Schlüssel-Wert-Speicher</strong> zwischen deinen
+eigenen Geräten ab — also zwischen deinem iPhone und deinem iPad. Das ist
+<em>deine</em> iCloud: die Daten liegen bei Apple unter deinem Konto und sind
+für uns nicht einsehbar. Ohne angemeldetes iCloud-Konto bleibt alles auf dem
+einen Gerät. Der aktuelle Plan geht zusätzlich direkt an deine Apple Watch
+(WatchConnectivity); er enthält bewusst keine Koordinaten und keine Routen,
+sondern nur Zeiten, Linien und Farben.</p>
+<p>Löschst du die App, sind diese Daten auf dem Gerät weg. Was in deiner iCloud
+liegt, löschst du über die iCloud-Einstellungen deines Apple-Kontos.</p>
+
+<h2>Was das Gerät an Dritte sendet — und warum</h2>
+<p>Eine Route lässt sich nicht berechnen, ohne zu sagen, wo sie anfängt und wo
+sie hinführt. Sobald du eine Verbindung suchst, überträgt dein Gerät deshalb
+<strong>Start- und Zielkoordinaten</strong> (bzw. den gesuchten Adresstext, den
+Kartenausschnitt oder Punkte entlang der Strecke) an die folgenden Dienste.
+Diese Anfragen gehen direkt von deinem Gerät an den jeweiligen Anbieter; sie
+laufen über keinen Server dieses Projekts, und wir sehen sie nicht.</p>
+
+<table>
+<tr><th>Dienst</th><th>Wofür</th><th>Was übertragen wird</th></tr>
+<tr>
+  <td><a href="https://www.vbb.de/">VBB</a> Verkehrsverbund Berlin-Brandenburg
+      (<code>fahrinfo.vbb.de</code>)</td>
+  <td>Fahrplan und Echtzeit in Berlin und Brandenburg, Fahrradmitnahme je Zug</td>
+  <td>Start- und Zielkoordinaten bzw. Haltestellen, Datum und Uhrzeit</td>
+</tr>
+<tr>
+  <td><a href="https://transitous.org/">Transitous</a> / MOTIS
+      (<code>api.transitous.org</code>)</td>
+  <td>Fahrpläne außerhalb des VBB-Gebiets, intermodale Rad-Bahn-Planung</td>
+  <td>Start- und Zielkoordinaten, Datum und Uhrzeit, ein <code>User-Agent</code>
+      mit Name und Version der App und einer Kontaktadresse, wie deren
+      Nutzungsbedingungen es verlangen</td>
+</tr>
+<tr>
+  <td>Apple <a href="https://www.apple.com/de/maps/">MapKit</a></td>
+  <td>Kartenkacheln, Adresssuche, Auto- und Fußwege</td>
+  <td>Kartenausschnitt, Suchtext, Start- und Zielkoordinaten</td>
+</tr>
+<tr>
+  <td><a href="https://brouter.de/">BRouter</a></td>
+  <td>Radrouten auf OpenStreetMap-Daten</td>
+  <td>Start- und Zielkoordinaten</td>
+</tr>
+<tr>
+  <td><a href="https://www.openstreetmap.org/">OpenStreetMap</a> über die
+      Overpass API</td>
+  <td>Ampeln und Hauptstraßen im Korridor der Route</td>
+  <td>ein rechteckiger Ausschnitt um die Strecke — nicht die Route selbst;
+      die Antwort wird 30 Tage auf dem Gerät zwischengespeichert</td>
+</tr>
+<tr>
+  <td><a href="https://www.dwd.de/">Deutscher Wetterdienst</a> (GeoServer-WMS)</td>
+  <td>Regenradar und Nowcast als Kartenbilder</td>
+  <td>der Kartenausschnitt und der Zeitpunkt</td>
+</tr>
+<tr>
+  <td><a href="https://open-meteo.com/">Open-Meteo</a></td>
+  <td>Regen an den Punkten deiner Strecke</td>
+  <td>einzelne Koordinaten entlang der Route</td>
+</tr>
+</table>
+
+<p>Für jeden dieser Anbieter gilt dessen eigene Datenschutzerklärung. Wie bei
+jeder Netzanfrage erreicht den Anbieter dabei auch die IP-Adresse deines
+Geräts, und eine IP-Adresse ist ein personenbezogenes Datum. Wir sehen sie
+nicht und bekommen sie nicht. Wir sagen es lieber deutlich, als alles
+aufzuzählen, was auf dem Gerät bleibt, und die Lücke sprechen zu lassen.</p>
+
+<p>Wenn du keine Verbindung suchst, sendet die App nichts. Ohne Netz zeigt sie,
+was sie zuletzt wusste, und sagt dazu, wie alt das ist.</p>
+
+<h2>Berechtigungen</h2>
+<p><strong>Standort (Beim Verwenden der App)</strong> — freiwillig, und nur
+dafür, den Start auf deine aktuelle Position zu legen. Lehnst du ab,
+funktioniert die App unverändert weiter; Start und Ziel wählst du dann von
+Hand. Die Position wird nicht an uns übertragen — sie geht, wie jede andere
+Startkoordinate, nur an die oben genannten Routing- und Fahrplandienste.</p>
+<p><strong>Mitteilungen</strong> — freiwillig, für die Warnungen vor dem
+Losgehen. Es sind <em>lokale</em> Mitteilungen: sie werden auf dem Gerät
+erzeugt und ausgelöst. Es gibt keinen Push-Dienst und kein Gerätetoken, das
+irgendwohin ginge.</p>
+<p>RadPendler fragt nach keinen weiteren Berechtigungen. Kamera, Mikrofon,
+Fotos, Kontakte, Kalender und Gesundheitsdaten werden nicht verwendet.</p>
+
+<h2>Kinder</h2>
+<p>RadPendler erhebt wissentlich von niemandem Daten, auch nicht von
+Kindern.</p>
+
+<h2>Verantwortlich</h2>
+<p>Verantwortlicher im Sinne der DSGVO und Ansprechpartner für alles, was auf
+dieser Seite steht:</p>
+<address>
+RadPendler (Privatperson, Deutschland)<br>
+<a href="mailto:deepframe.support@gmail.com">deepframe.support@gmail.com</a>
+</address>
+<p>Nach der DSGVO hast du das Recht, Auskunft über die zu dir gespeicherten
+personenbezogenen Daten zu verlangen, sie berichtigen oder löschen zu lassen,
+ihre Verarbeitung einschränken zu lassen, sie in einem übertragbaren Format zu
+erhalten und der Verarbeitung zu widersprechen. Du kannst dich außerdem bei der
+Datenschutz-Aufsichtsbehörde deines Wohn- oder Arbeitsortes beschweren.</p>
+<p>Praktisch gibt es hier nichts, wogegen sich diese Rechte richten könnten:
+RadPendler hält keine personenbezogenen Daten über dich auf irgendeinem Server,
+und das Wenige auf deinem Gerät wird mit der App gelöscht. Eine Anfrage
+bekommt genau diese Antwort, ehrlich und schriftlich.</p>
+
+<h2>Quelloffen</h2>
+<p>RadPendler steht unter der MIT-Lizenz. Wer nachsehen will, ob hier steht,
+was der Code tut, kann das tun.</p>
+
+<h2>Änderungen</h2>
+<p>Ändert sich diese Erklärung, erscheint die neue Fassung unter derselben
+Adresse mit neuem Datum.</p>
+
+<h2>Kontakt</h2>
+<p>Fragen: <a href="mailto:deepframe.support@gmail.com">deepframe.support@gmail.com</a></p>
+
+</body>
+</html>
