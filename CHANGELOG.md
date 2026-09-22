@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0 (Build 22, TestFlight 2026-09-22)
+- **Version 1.0.** Eine 0.x im Store liest sich wie eine Beta.
+- **Ein Tipp auf Start oder Ziel bricht die laufende Berechnung ab.** Bei einer weiten Strecke wartete man vorher Sekunden auf einen Plan, den man gerade wegwerfen wollte. Die Abbrüche laufen bis in die Netzverbindungen durch.
+- **Auf der Uhr führt die Wahl eines Weges zurück zum Countdown**, statt in der Liste stecken zu bleiben — und die Wahl bleibt nicht auf der Uhr: **das iPhone übernimmt sie**. Erreichbar per Nachricht, sonst als Übertragung nachgereicht. Gemerkt wird Kategorie plus Position, nicht die id, damit die Wahl eine Neuplanung überlebt.
+- Im Menü stehen die Quellen wieder **nur als Namen**; die anklickbaren Links stehen in den Einstellungen, wo sie nach Links aussehen dürfen.
+- Store-Texte deutsch und englisch auf denselben Stand.
+
 ## 0.14.0 (Build 21, TestFlight 2026-09-22)
 - **Der Countdown lässt sich abschalten.** Ein Tipp auf die Pille stellt ihn aus: grau, „aus", durchgestrichene Glocke — und die Mitteilungen werden mit abbestellt. Nochmal tippen schaltet ihn wieder an. Sobald eine **andere** Abfahrt gilt, gilt das Nein nicht mehr, denn eine neue Abfahrt ist eine neue Frage.
 - **Die Pille ist jetzt immer da**, auch bei Rad und Auto ohne feste Abfahrt — dort grau statt weg, damit die Titelzeile nicht springt.
