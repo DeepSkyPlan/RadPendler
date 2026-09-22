@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.0 (Build 20, noch nicht hochgeladen)
+- **„Mein Standort" als Startadresse.** Die Adresssuche für den Start beginnt jetzt mit einem Vorschlag: dort, wo du gerade bist. Steht schon eine Erlaubnis, wird die Adresse gleich beim Öffnen aufgelöst und steht mit Straße und PLZ in der Zeile — ein Tipp genügt. Ohne Erlaubnis fragt der erste Tipp danach; wird sie abgelehnt, verschwindet die Zeile und alles andere funktioniert weiter.
+- Der Standort wird **einmal** abgefragt, in eine Adresse übersetzt und danach vergessen: kein Mitschreiben, kein Hintergrundzugriff, keine Bewegungsverfolgung. Die Koordinate geht danach denselben Weg wie jede getippte Adresse — an die Routing- und Fahrplandienste, an sonst niemanden.
+- „Zuhause" und „Arbeit" in den Einstellungen bekommen denselben Vorschlag.
+
 ## 0.12.1 (Build 19, noch nicht hochgeladen)
 - Im Menü dritte Zeile beim Copyright: **„inspired by Oleg"**.
 - Die Datenquellen sind jetzt **wirklich kursiv**. Vorher nicht: SF Rounded hat keinen kursiven Schnitt, und weder SwiftUI noch der Renderer erfinden einen — `.italic()` blieb wirkungslos. Die zwei Zeilen stehen deshalb im normalen Systemschnitt, gleiche Größe wie das Copyright.

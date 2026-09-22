@@ -7,7 +7,7 @@ Das Projekt ist quelloffen (MIT); Adressen und Schlüssel gehören nicht hinein.
 ## Bauen, testen, ausliefern
 
 ```bash
-./dev test      # generiert das .xcodeproj bei Bedarf, dann 82 Tests im Simulator
+./dev test      # generiert das .xcodeproj bei Bedarf, dann 79 Tests im Simulator
 #               MOTIS_LIVE=1 schaltet zusätzlich den echten Transitous-Aufruf frei
 #               (aus Xcode heraus; xcodebuild reicht die Variable nicht durch)
 ./dev open      # Xcode mit demselben DerivedData wie die Kommandozeile
@@ -43,7 +43,9 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   (benutzte Adressen mit Zähler; `ranked`, `matching`, `recording` als reine Funktionen auf
   `[PlaceUse]`), `AppSettings` (+ `PlanSettings` als Wertkopie, `DeparturePreset`), `Trip`
   (`TripOption`, `Leg`, `TravelMode`, `BikeVariant`, `CarVariant`, `TransitProduct`).
-- `Services/` — `Motis` (Transitous/MOTIS 2: `MotisClient` + `MotisParser`, inkl.
+- `Services/` — `Location` (ein einzelner Fix auf Tippen, danach nichts mehr;
+  `place(from:at:)` ist absichtlich `nonisolated`, damit es ohne Gerät testbar ist),
+  `Motis` (Transitous/MOTIS 2: `MotisClient` + `MotisParser`, inkl.
   Polylinien-Dekoder), `CloudStore` (iCloud-Schlüssel-Wert-Abgleich der Einstellungen; hört auf
   `UserDefaults.didChangeNotification` statt auf zwanzig Setter, `placeHistory` wird
   zusammengeführt statt ersetzt), `WatchLink` (Plan an die Uhr), `Hafas` (VBB mgate + Parser), `BRouter` (+ `CompositeRouter`), `StreetRouter`
@@ -125,6 +127,10 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
 - **Das Repo ist öffentlich** (MIT). Keine Adresse, keine echte Koordinate des Nutzers und
   kein Schlüssel darf hineingeraten — auch nicht in Testdaten, Changelog oder Übergabe.
   Die Fixtures tragen neutrale Adressen und eine versetzte Geometrie.
+- **Ortung nur auf Tippen, nie im Hintergrund.** `requestLocation()` liefert einen
+  einzelnen Fix; es gibt kein `startUpdatingLocation`, kein
+  `allowsBackgroundLocationUpdates`, keine Bewegungsverfolgung. Wer das ändert, ändert
+  auch den App-Datenschutz-Fragebogen und die Datenschutzerklärung.
 - **Keine Adressen im Programm** — die App startet leer. Adressen und Einstellungen liegen
   auf dem Gerät und in der **privaten iCloud des Nutzers** (Schlüssel-Wert-Speicher,
   Entitlement `com.apple.developer.ubiquity-kvstore-identifier`); sie gehen an keinen
