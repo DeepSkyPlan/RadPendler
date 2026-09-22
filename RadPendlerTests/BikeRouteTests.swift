@@ -106,7 +106,8 @@ final class BikeRouteTests: XCTestCase {
         let town = carLine(21_000, minutes: 35, signals: 41)       // short, slow, many lights
         let middle = carLine(24_000, minutes: 31, signals: 5)      // fewest lights
         let picked = CarCandidate.pick([town, motorway, middle])
-        XCTAssertEqual(picked.map(\.1), [[.fastest], [.shortest], [.fewSignals]])
+        // "optimal" ships first, so the line that wins it leads the list.
+        XCTAssertEqual(picked.map(\.1), [[.balanced, .fastest], [.shortest], [.fewSignals]])
         XCTAssertEqual(picked[0].0.route.distance, 30_000, "the fastest comes first — it is the default")
         XCTAssertEqual(picked[1].0.route.distance, 21_000)
         XCTAssertEqual(picked[2].0.signals, 5)
@@ -115,12 +116,38 @@ final class BikeRouteTests: XCTestCase {
     func testOneCarLineIsJustTheFastest() {
         let only = carLine(26_000, minutes: 33, signals: 20)
         XCTAssertEqual(CarCandidate.pick([only]).map(\.1), [[.fastest]],
-                       "three labels on a single route say nothing")
+                       "four labels on a single route say nothing")
     }
 
     func testCarWithoutOpenStreetMapDataStillSeparatesQuickAndShort() {
         let a = CarCandidate(route: StreetRoute(distance: 30_000, expectedTravelTime: 28 * 60, coordinates: []), stats: nil)
         let b = CarCandidate(route: StreetRoute(distance: 21_000, expectedTravelTime: 35 * 60, coordinates: []), stats: nil)
         XCTAssertEqual(CarCandidate.pick([a, b]).map(\.1), [[.fastest], [.shortest]])
+    }
+}
+
+extension BikeRouteTests {
+    func testTheCarOffersEveryLineAppleFound() {
+        var s = PlanSettings()
+        s.signalWaitSeconds = 20
+        // Motorway: quickest, but twelve junctions. Town: shortest and slow
+        // with forty. Middle: a minute slower than the motorway and five
+        // junctions — the best balance, and the calmest.
+        let motorway = carLine(30_000, minutes: 28, signals: 12)
+        let town = carLine(21_000, minutes: 35, signals: 41)
+        let middle = carLine(24_000, minutes: 29, signals: 5)
+        let picked = CarCandidate.pick([motorway, town, middle], settings: s)
+        XCTAssertEqual(picked.count, 3, "no line Apple offered may disappear")
+        XCTAssertEqual(Set(picked.flatMap(\.1)), Set([.fastest, .shortest, .balanced, .fewSignals]))
+        XCTAssertEqual(picked.first?.1.first, .balanced, "optimal ships first, as it does for the bike")
+        XCTAssertEqual(picked.first?.0.route.distance, 24_000)
+    }
+
+    func testALineWithoutARoleIsStillOffered() {
+        let best = carLine(20_000, minutes: 25, signals: 5)
+        let nothing = carLine(26_000, minutes: 33, signals: 30)
+        let picked = CarCandidate.pick([best, nothing], settings: PlanSettings())
+        XCTAssertEqual(picked.count, 2)
+        XCTAssertEqual(picked.last?.1, [.alternative], "shown as an alternative rather than dropped")
     }
 }

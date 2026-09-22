@@ -202,6 +202,9 @@ struct CountdownBox: View {
     var alerts: [Int] = []
     /// Toolbar version: one small pill instead of the three-line block.
     var compact = false
+    /// Switched off by the user: the pill stays, greyed, with a struck-through
+    /// bell — so it is clear that nothing will ring, and where to switch it on.
+    var stopped = false
 
     @State private var fired: Set<Int> = []
     @State private var watched: TripOption.ID?
@@ -221,9 +224,10 @@ struct CountdownBox: View {
     /// The line and its time stay in the trip bar below.
     @ViewBuilder private func pill(_ left: TimeInterval?, gone: Bool) -> some View {
         HStack(spacing: 4) {
-            Image(systemName: gone ? "figure.walk.departure" : "alarm.fill")
+            Image(systemName: stopped ? "alarm.waves.left.and.right.fill" : (gone ? "figure.walk.departure" : "alarm.fill"))
                 .font(.system(size: 9, weight: .bold))
-            Text(left.map(Self.text) ?? "–")
+                .symbolVariant(stopped ? .slash : .none)
+            Text(stopped ? "aus" : (left.map(Self.text) ?? "–"))
                 .font(.system(size: 14, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .contentTransition(.numericText(countsDown: true))
@@ -234,10 +238,11 @@ struct CountdownBox: View {
                     .background(.white.opacity(0.25), in: RoundedRectangle(cornerRadius: 3))
             }
         }
-        .foregroundStyle(left == nil ? AnyShapeStyle(Color.secondary) : AnyShapeStyle(Color.white))
+        .foregroundStyle(left == nil || stopped ? AnyShapeStyle(Color.secondary) : AnyShapeStyle(Color.white))
         .padding(.horizontal, 8).padding(.vertical, 4)
-        .background(Self.box(left, gone: gone), in: Capsule())
-        .accessibilityLabel(left.map { "Losgehen in \(Self.text($0))" } ?? "Keine feste Abfahrt")
+        .background(stopped ? AnyShapeStyle(Color.primary.opacity(0.06)) : Self.box(left, gone: gone), in: Capsule())
+        .accessibilityLabel(accessibility(left))
+        .accessibilityHint(left == nil && !stopped ? "" : "Tippen, um den Countdown \(stopped ? "einzuschalten" : "auszuschalten")")
     }
 
     @ViewBuilder private func content(_ left: TimeInterval?, gone: Bool) -> some View {
@@ -270,6 +275,11 @@ struct CountdownBox: View {
 
     /// Green, amber, orange, red, dark red. The steps live in `Countdown`,
     /// so the watch colours the same minute the same way.
+    private func accessibility(_ left: TimeInterval?) -> String {
+        if stopped { return "Countdown ausgeschaltet" }
+        return left.map { "Losgehen in \(Self.text($0))" } ?? "Keine feste Abfahrt"
+    }
+
     static func box(_ left: TimeInterval?, gone: Bool = false) -> AnyShapeStyle {
         let step = Countdown.urgency(left, gone: gone)
         guard step != .idle else { return AnyShapeStyle(Color.primary.opacity(0.06)) }

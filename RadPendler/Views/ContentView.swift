@@ -48,12 +48,17 @@ struct ContentView: View {
                 }
                 // Between the name and the burger, so the one number that is
                 // about to matter sits above everything else.
+                // Always there, also for bike and car, where there is nothing
+                // to count to — grey then, so the row does not jump about.
+                // A tap switches it off; the warnings go with it.
                 ToolbarItem(placement: .topBarTrailing) {
-                    if let countdown = model.countdownOption {
-                        CountdownBox(option: countdown,
+                    Button { model.toggleCountdown() } label: {
+                        CountdownBox(option: model.activeCountdown,
                                      alerts: settings.alertsOn ? settings.alertMinutes : [],
-                                     compact: true)
+                                     compact: true, stopped: model.countdownStopped)
                     }
+                    .buttonStyle(.plain)
+                    .disabled(model.countdownOption == nil && !model.countdownStopped)
                 }
                 // iOS 26 packs neighbouring bar items into one glass capsule;
                 // the countdown is its own pill, not part of the menu button.
@@ -65,7 +70,7 @@ struct ContentView: View {
             // The warnings have to survive a locked screen, so they are real
             // notifications, rescheduled whenever the trip to watch changes.
             .task(id: alarmKey) {
-                await Alarm.schedule(for: model.countdownOption,
+                await Alarm.schedule(for: model.activeCountdown,
                                      alerts: settings.alertsOn ? settings.alertMinutes : [])
             }
             .sheet(isPresented: $showSettings, onDismiss: refresh) { SettingsView() }
@@ -275,7 +280,7 @@ struct ContentView: View {
     /// Everything the scheduled warnings depend on: which trip, when it wants
     /// one to get going, and which minutes are armed.
     private var alarmKey: String {
-        let option = model.countdownOption
+        let option = model.activeCountdown
         return [option?.id.uuidString ?? "-",
                 String(Int(option?.getReady.timeIntervalSince1970 ?? 0)),
                 settings.alertsOn ? settings.alertMinutes.map(String.init).joined(separator: ",") : "off"]

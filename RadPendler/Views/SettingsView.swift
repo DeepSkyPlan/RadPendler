@@ -430,7 +430,7 @@ struct AddressSearchView: View {
             if let error {
                 Text(error).foregroundStyle(.orange)
             }
-            if offersLocation, query.isEmpty, location.permission != .denied {
+            if offersLocation, location.permission != .denied {
                 Section {
                     Button(action: useLocation) {
                         HStack(spacing: 10) {
@@ -506,10 +506,14 @@ struct AddressSearchView: View {
         }
         .task {
             // Only unasked-for work the app does: with nothing set yet, the
-            // start is almost always where one is standing.
+            // start is almost always where one is standing. The address then
+            // stands in the search field as the default, ready to take or to
+            // type over.
             guard offersLocation, here == nil, location.permission == .allowed else { return }
             guard let fix = try? await location.current() else { return }
-            here = await location.place(for: fix)
+            let found = await location.place(for: fix)
+            here = found
+            if query.isEmpty { query = found.withArea }
         }
         .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Adresse oder Ort")
         .onChange(of: query) { completer.query = query }
