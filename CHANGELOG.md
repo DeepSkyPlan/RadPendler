@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.1 (Build 19, noch nicht hochgeladen)
+- Im Menü dritte Zeile beim Copyright: **„inspired by Oleg"**.
+- Die Datenquellen sind jetzt **wirklich kursiv**. Vorher nicht: SF Rounded hat keinen kursiven Schnitt, und weder SwiftUI noch der Renderer erfinden einen — `.italic()` blieb wirkungslos. Die zwei Zeilen stehen deshalb im normalen Systemschnitt, gleiche Größe wie das Copyright.
+- **Die Quellenangaben sind anklickbare Links** — `transitous.org/sources` und `openstreetmap.org/copyright`, unterstrichen, in der Akzentfarbe, mit Pfeil. Vorher standen sie in derselben grauen Schrift wie der Rest und sahen nach Text aus. Dieselben zwei Links stehen in den Einstellungen unter „Fahrplanquelle".
+
 ## 0.12.0 (Build 18, TestFlight 2026-09-22)
 - **Bundesweite Fahrpläne über Transitous.** Neben dem VBB kennt die App jetzt Transitous, die von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz (und darüber hinaus). Neue Einstellung **Fahrplanquelle**: „Automatisch" fragt den VBB, solange Start *und* Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger je Zug, ob Räder mitdürfen — und Transitous für alles andere. „VBB" und „Transitous" lassen sich auch fest wählen.
 - **Rad + Bahn über beliebige Entfernungen**: Transitous plant intermodal, also Rad zum Bahnhof, Zug, Rad weiter — in *einer* Anfrage. Die App muss sich die Bahnhöfe nicht mehr selbst suchen (beim VBB tut sie das weiter, mit 16 Abfragen je Durchlauf). Probe Berlin → Hamburg: Rad, S5, Umstieg, ICE, Rad.
