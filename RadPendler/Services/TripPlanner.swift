@@ -432,7 +432,10 @@ struct TripPlanner {
         // U-Bahn/tram connections only count when no S-Bahn/regional one exists.
         let onRoute = options.filter(\.passesWaypoints)
         let bikeTrains = (onRoute.isEmpty ? options : onRoute).filter { $0.mode == .bikeTransit && !$0.isAlternative }
-        let bikeTransit = bikeTrains.isEmpty ? options.filter { $0.mode == .bikeTransit } : bikeTrains
+        // The fallback stays inside the fixed points too — it used to reach
+        // past them while the line below promised it would not.
+        let anyBikeTransit = (onRoute.isEmpty ? options : onRoute).filter { $0.mode == .bikeTransit }
+        let bikeTransit = bikeTrains.isEmpty ? anyBikeTransit : bikeTrains
         // Trips that miss the fixed points are never recommended while others exist.
         let options = options.contains(where: \.passesWaypoints) ? options.filter(\.passesWaypoints) : options
         let bikeish = options.filter(preferredBike) + bikeTransit
