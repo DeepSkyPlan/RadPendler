@@ -1,20 +1,20 @@
 # Changelog
 
-## 0.12.0 (Build 18, noch nicht hochgeladen)
+## 0.12.0 (Build 18, TestFlight 2026-09-22)
 - **Bundesweite Fahrpläne über Transitous.** Neben dem VBB kennt die App jetzt Transitous, die von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz (und darüber hinaus). Neue Einstellung **Fahrplanquelle**: „Automatisch" fragt den VBB, solange Start *und* Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger je Zug, ob Räder mitdürfen — und Transitous für alles andere. „VBB" und „Transitous" lassen sich auch fest wählen.
 - **Rad + Bahn über beliebige Entfernungen**: Transitous plant intermodal, also Rad zum Bahnhof, Zug, Rad weiter — in *einer* Anfrage. Die App muss sich die Bahnhöfe nicht mehr selbst suchen (beim VBB tut sie das weiter, mit 16 Abfragen je Durchlauf). Probe Berlin → Hamburg: Rad, S5, Umstieg, ICE, Rad.
 - Fahrradmitnahme aus GTFS wird **nie als Nein gelesen**: die meisten Datensätze lassen `bikes_allowed` auf der Voreinstellung stehen. Ein „nein" kommt weiter nur aus deiner Linienliste; alles andere ist „ungeklärt" und wird als solches gezeigt.
 - Gleisangaben werden auch aus dem Klartext gelesen („S-Bahnsteig Gleis 4"), wenn der Datensatz kein eigenes Feld dafür hat.
 - Attribution, wie die Nutzungsbedingungen es verlangen: Link auf die Quellen von Transitous im Menü und in den Einstellungen, und jede Anfrage trägt einen `User-Agent` mit Name, Version und Kontakt.
 
-## 0.11.0 (Build 17, noch nicht hochgeladen)
+## 0.11.0 (in Build 18 ausgeliefert)
 - **Zuhause und Arbeit** sind jetzt richtige Adressen in den Einstellungen, jede über die Adresssuche wählbar. Beide bekommen überall ein Zeichen — in der Kopfzeile der Hauptseite, in der Adresssuche und in der Liste der benutzten Adressen — und stehen in der Suche ganz oben.
 - **Fahrradmitnahme pro Linie**: eine neue Liste in den Einstellungen sammelt die Linien, die in gefundenen Verbindungen vorkommen. Was die Auskunft selbst zusichert (VBB-Vermerk `FK`), steht schon auf „Rad ja"; alles andere entscheidest du — ja, nein oder offen. Linien lassen sich auch von Hand eintragen. **Offene Linien werden nicht mehr verschwiegen**: die Verbindung wird vorgeschlagen und trägt den Hinweis „Mitnahme ungeklärt", bis du entschieden hast. Ein „Rad nein" nimmt die Linie aus den Rad + Bahn-Vorschlägen heraus.
 - Das Scrollen in den Einstellungen ruckelte: der iCloud-Abgleich schrieb bei **jeder** Änderung an den Systemeinstellungen den ganzen Satz neu und flusht ihn auf Platte. Jetzt wird nur geschrieben, was sich wirklich geändert hat, und das außerhalb des Hauptthreads.
 - Das Menü ist ein eigenes kleines Fenster statt eines iOS-Menüs: Version und Copyright klein auf getrennten Zeilen, die Quellen als „Datenquellen:" ebenso klein und kursiv.
 - **Das Projekt ist quelloffen** (MIT) — Voraussetzung für die kommende Anbindung von Transitous/MOTIS. Die Testdaten wurden dafür auf neutrale Adressen gebracht, die App selbst enthielt noch nie welche.
 
-## 0.10.1 (Build 17, in 0.11.0 aufgegangen)
+## 0.10.1 (in Build 18 ausgeliefert)
 - Das Burger-Menü ist jetzt ein eigenes kleines Fenster statt eines iOS-Menüs: Version und Copyright stehen klein und **auf getrennten Zeilen**, die Quellen heißen **„Datenquellen:"** und stehen ebenso klein und **kursiv** darunter. Ein iOS-Menü zeichnet nur einfachen Text in einer Größe — deshalb der Wechsel.
 
 ## 0.10.0 (Build 16, TestFlight 2026-09-21)
