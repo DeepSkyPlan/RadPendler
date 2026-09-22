@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RadPendler — Rad, Rad + Bahn, Auto und ÖPNV nebeneinander</title>
+<meta name="description" content="Vier Wege zur Arbeit auf einer Seite: Rad, Rad + Bahn, Auto, Bus &amp; Bahn — mit Ampeln auf der Strecke, Regen je Streckenpunkt und einem Countdown bis zum Losgehen.">
+<style>
+  :root { --bg:#fff; --fg:#14231f; --dim:#5a6a66; --line:#e1e8e6; --panel:#f3f7f6; --link:#00857c; --accent:#00ADA3; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0b1513; --fg:#dff0ec; --dim:#8aa09a; --line:#1c2a27; --panel:#111f1c; --link:#3fd0c4; --accent:#3fd0c4; }
+  }
+  * { box-sizing: border-box; }
+  body { font: 16px/1.6 -apple-system, system-ui, sans-serif; max-width: 860px;
+         margin: 0 auto; padding: 40px 20px 64px; background: var(--bg); color: var(--fg); }
+  a { color: var(--link); }
+  h1 { font-size: 2rem; margin: 0 0 .2em; letter-spacing: -0.02em; }
+  h2 { font-size: 1.15rem; margin: 2.2em 0 .6em; }
+  .lede { font-size: 1.15rem; color: var(--dim); margin: 0 0 1.4em; }
+  .meta { color: var(--dim); font-size: .9rem; }
+  .shots { display: grid; gap: 14px; grid-template-columns: 1fr; margin: 1.6em 0; }
+  @media (min-width: 640px) { .shots { grid-template-columns: 1fr 1fr 1fr; } }
+  figure { margin: 0; }
+  figure img { width: 100%; max-width: 100%; border: 1px solid var(--line); border-radius: 10px; display: block; }
+  figcaption { color: var(--dim); font-size: .9rem; margin-top: .4em; }
+  ul { padding-left: 1.15em; }
+  li { margin: .35em 0; }
+  .cols { display: grid; gap: 0 32px; grid-template-columns: 1fr; }
+  @media (min-width: 640px) { .cols { grid-template-columns: 1fr 1fr; } }
+  .note { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+          padding: 14px 18px; margin: 1.6em 0; }
+  .modes { display: flex; flex-wrap: wrap; gap: 8px; margin: 1.2em 0 1.6em; padding: 0; list-style: none; }
+  .modes li { margin: 0; border: 1px solid var(--line); border-radius: 999px;
+              padding: 5px 14px; font-size: .95rem; background: var(--panel); }
+  footer { border-top: 1px solid var(--line); margin-top: 3em; padding-top: 1.2em;
+           color: var(--dim); font-size: .9rem; }
+  code { background: var(--panel); padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<h1>RadPendler</h1>
+<p class="lede">Vier Wege zur Arbeit nebeneinander — für iPhone, iPad und
+Apple&nbsp;Watch.</p>
+
+<ul class="modes">
+  <li>Fahrrad</li>
+  <li>Rad + Bahn</li>
+  <li>Auto</li>
+  <li>Bus &amp; Bahn</li>
+</ul>
+
+<p>RadPendler rechnet dieselbe Strecke auf vier Arten und stellt sie
+nebeneinander: vier Kästen, vier Fahrzeiten, ein Stern an dem, der heute
+gewinnt. Alles auf einer Seite, ohne Scrollen. Die App ist für einen echten
+Arbeitsweg gebaut und danach allgemein geworden — sie kennt keine eingebauten
+Adressen, rechnet die Radzeit aus der <em>rollenden</em> Geschwindigkeit plus
+einer Wartezeit je Ampelkreuzung, und sie sagt, was sie nicht weiß, statt zu
+raten.</p>
+
+<!-- Bilder: die Aufnahmen aus appstore/screenshots/iphone-6.5/ verkleinert
+     nach shots/ legen, dann diesen Block einkommentieren.
+<div class="shots">
+  <figure>
+    <img src="shots/hauptseite.jpg" alt="Die Hauptseite: Adressen, Karte mit allen vier Routen, vier Kästen mit Fahrzeiten, die gewählte Fahrt darunter.">
+    <figcaption>Vier Wege, eine Seite.</figcaption>
+  </figure>
+  <figure>
+    <img src="shots/rad.jpg" alt="Die Radroute auf der Karte, die Ampelkreuzungen als gelbe Punkte, 46 Ampeln in der Fahrtzeile.">
+    <figcaption>Ampeln — gezählt, nicht geschätzt.</figcaption>
+  </figure>
+  <figure>
+    <img src="shots/fahrt.jpg" alt="Die Detailseite einer Radfahrt mit Ampelzahl, Querungen, Metern an Hauptstraßen und den Straßennamen.">
+    <figcaption>Jede Fahrt im Zeitstrahl.</figcaption>
+  </figure>
+</div>
+-->
+
+<div class="cols">
+<div>
+<h2>Die vier Wege</h2>
+<ul>
+  <li><strong>Fahrrad</strong> in Varianten — schnellst, kürzest, optimal,
+      ruhigst. Aus mehreren BRouter-Profilen und aus Apple Karten, bewertet
+      nach Ampeln, gequerten Hauptstraßen und Metern neben Hauptstraßen</li>
+  <li><strong>Rad + Bahn</strong> — die App sucht sich die Bahnhöfe selbst,
+      radelt hin, fährt mit und radelt weiter</li>
+  <li><strong>Auto</strong> — schnellst, kürzest oder wenig Ampeln, aus den
+      Alternativrouten von Apple Karten, mit denselben Ampeldaten wie das Rad</li>
+  <li><strong>Bus &amp; Bahn</strong> — die Fahrplanverbindung mit Umstiegen,
+      Gleisen und Echtzeit, soweit die Auskunft sie hergibt</li>
+</ul>
+
+<h2>Ampeln, die mitzählen</h2>
+<p>Eine Radzeit ohne Ampeln ist eine Radzeit für ein leeres Land. RadPendler
+holt die Lichtsignalanlagen und die Hauptstraßen entlang der Strecke aus
+OpenStreetMap, zählt die Kreuzungen auf deiner Route und zeichnet sie als gelbe
+Punkte auf die Karte. Fahrzeit = Strecke ÷ Fahrgeschwindigkeit + Wartezeit je
+Ampel; beides ist einstellbar, weil beides von dir abhängt.</p>
+</div>
+
+<div>
+<h2>Regen, wo du fährst</h2>
+<p>Nicht „Regenwahrscheinlichkeit 40 %“, sondern Regen an den Punkten deiner
+Strecke zu den Minuten, an denen du dort bist — aus dem Nowcast des Deutschen
+Wetterdienstes und aus Open-Meteo. Die Radarbilder laufen über der Karte von
+jetzt bis zwei Stunden voraus, die Positionsmarke wandert mit. Ab wieviel Regen
+das Rad in die Bahn gehört, entscheidest du.</p>
+
+<h2>Fahrradmitnahme, von dir entschieden</h2>
+<p>Kein Fahrplan weiß zuverlässig, ob dein Rad mitdarf. Was der VBB zusichert,
+steht auf „Rad ja“. Alles andere ist <em>ungeklärt</em> — und wird trotzdem
+vorgeschlagen, mit dem Hinweis dazu, statt stillschweigend zu verschwinden. In
+den Einstellungen setzt du jede Linie auf ja, nein oder offen; ein Nein nimmt
+sie aus den Rad-+-Bahn-Vorschlägen heraus.</p>
+
+<h2>Countdown bis zum Losgehen</h2>
+<p>Oben rechts läuft die Zeit bis zum <em>Losgehen</em> — Abfahrt minus deiner
+Rüstzeit, nicht bis zur Abfahrt. Die Pille färbt sich mit: grün, gelb ab 30
+Minuten, orange ab 10, rot ab 5, dunkelrot sobald die Bahn weg ist. Die
+Warnungen kommen als Mitteilung, auch wenn die App zu ist.</p>
+</div>
+</div>
+
+<h2>Bundesweit</h2>
+<p>In Berlin und Brandenburg antwortet der VBB — dort ist er genauer und sagt
+als Einziger je Zug, ob Räder mitdürfen. Alles darüber hinaus beantwortet
+<a href="https://transitous.org/">Transitous</a>, die von Freiwilligen
+betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz, die Rad und Bahn
+in einem Zug plant. Automatisch, oder fest gewählt.</p>
+
+<h2>iPad und Apple Watch</h2>
+<p>Auf dem iPad steht alles nebeneinander: links Adressen, Zeitwahl, die vier
+Kästen, die Begründung der Empfehlung und der ganze Zeitstrahl — rechts die
+Karte über die volle Höhe. Auf der Uhr: der Countdown in derselben Ampelfarbe
+wie auf dem iPhone, die Fahrt mit allen Abschnitten und die vier Kategorien zum
+Umwählen. Die Uhr plant nie selbst — sie zeigt, was das iPhone zuletzt
+geschickt hat, und sagt dazu, wie alt das ist.</p>
+
+<div class="note">
+<strong>Alle Zeiten ohne Gewähr.</strong> Fahrpläne, Echtzeitdaten, Ampeln und
+Regen kommen von fremden Diensten und können falsch, veraltet oder gerade nicht
+erreichbar sein. RadPendler sagt an, wenn ihm etwas fehlt — ersetzt aber keine
+Fahrplanauskunft und keine Wetterwarnung.
+</div>
+
+<h2 id="support">Support</h2>
+<p>Fragen, Fehler und Vorschläge gehen an
+<a href="mailto:deepframe.support@gmail.com">deepframe.support@gmail.com</a>. Hilfreich
+ist: welches Gerät, welche Version der App (steht im Burger-Menü oben rechts
+und ganz unten in den Einstellungen), welche Strecke, und was die App gezeigt
+hat statt dessen, was du erwartet hast. Eine Aufnahme des Bildschirms erklärt
+meistens mehr als ein Absatz.</p>
+<p>Eine Anleitung steckt in der App selbst: Burger-Menü → <em>Anleitung</em>.</p>
+<p>Die App startet ohne Adressen — Start und Ziel werden oben in der Kopfzeile
+gewählt. Was danach gespeichert wird und was nicht, steht in der
+<a href="https://deepskyplan.github.io/radpendler-privacy/">Datenschutzerklärung</a>.</p>
+
+<h2>Datenschutz, in einem Satz</h2>
+<p>Kein Konto, keine Analytik, keine Werbung, kein Server dieses Projekts.
+Deine Adressen bleiben auf deinen Geräten und in deiner eigenen iCloud; an die
+Routing- und Fahrplandienste gehen die Koordinaten, weil sich eine Route sonst
+nicht berechnen lässt. Die
+<a href="https://deepskyplan.github.io/radpendler-privacy/">vollständige
+Erklärung</a> sagt, welche Dienste das sind und was sie jeweils zu sehen
+bekommen.</p>
+
+<footer>
+<p>Gebaut für einen Arbeitsweg, der mit dem Rad genauso gut geht wie mit der
+Bahn — je nach Wetter. Quelloffen unter der MIT-Lizenz.</p>
+<p>Fahrplan und Echtzeit: VBB Verkehrsverbund Berlin-Brandenburg sowie
+<a href="https://transitous.org/sources/">Transitous</a> auf dem
+DELFI-Datensatz. Karten, Adresssuche und Autorouten: Apple Karten. Radrouten:
+<a href="https://brouter.de/">BRouter</a>. Ampeln und Straßen: ©
+<a href="https://www.openstreetmap.org/copyright">OpenStreetMap-Mitwirkende</a>,
+ODbL 1.0, abgefragt über die Overpass API. Regenradar: Deutscher Wetterdienst,
+Datenlizenz Deutschland – Namensnennung 2.0. Regen entlang der Strecke:
+Open-Meteo.com, CC BY 4.0, auf Basis von DWD ICON-D2. RadPendler steht mit
+keinem dieser Anbieter in Verbindung.</p>
+<p class="meta">© 2026 AK ·
+<a href="https://deepskyplan.github.io/radpendler-privacy/">Datenschutz</a></p>
+</footer>
+
+</body>
+</html>

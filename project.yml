@@ -107,6 +107,22 @@ targets:
         GENERATE_INFOPLIST_FILE: "YES"
         DEVELOPMENT_TEAM: "5PX3V6L522"
 
+  # Only there to drive the App Store screenshots: it taps its way through the
+  # app and keeps every frame. Its own scheme, because it needs the network and
+  # takes minutes — `./dev test` must stay fast.
+  RadPendlerUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: RadPendlerUITests
+    dependencies:
+      - target: RadPendler
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.keese.radpendler.uitests
+        GENERATE_INFOPLIST_FILE: "YES"
+        DEVELOPMENT_TEAM: "5PX3V6L522"
+
 schemes:
   RadPendler:
     build:
@@ -118,3 +134,12 @@ schemes:
     test:
       targets:
         - RadPendlerTests
+
+  RadPendlerShots:
+    build:
+      targets:
+        RadPendler: all
+        RadPendlerUITests: [test]
+    test:
+      targets:
+        - RadPendlerUITests
