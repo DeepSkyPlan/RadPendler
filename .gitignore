@@ -5,3 +5,7 @@ DerivedData/
 __pycache__/
 .claude/settings.local.json
 shots/
+
+# Zugangsdaten gehören nie ins Repository — das hier ist öffentlich.
+Secrets.xcconfig
+*.p8
