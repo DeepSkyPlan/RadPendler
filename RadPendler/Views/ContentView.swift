@@ -87,6 +87,9 @@ struct ContentView: View {
                 }
             }
             .task {
+                // What the wrist picks is what the phone shows — the watch is
+                // a second screen onto one plan, not a second plan.
+                WatchLink.shared.onChoice = { [model] choice in model.apply(choice) }
                 model.applyDefaultWhen(settings: settings)
                 refresh()
             }
@@ -152,7 +155,10 @@ struct ContentView: View {
                     when: $model.when, prepMinutes: settings.prepMinutes,
                     presets: settings.departurePresets,
                     role: { settings.role(of: $0) },
-                    onEdit: { editing = $0 },
+                    // Tapping a field stops whatever is being calculated: a
+                    // long trip holds the network and the map for seconds, and
+                    // the plan one is about to replace is worth nothing.
+                    onEdit: { model.cancel(); editing = $0 },
                     onSwap: { settings.swapDirection(); model.applyDefaultWhen(settings: settings); refresh() },
                     onWhenChange: refresh)
     }
@@ -219,28 +225,12 @@ struct ContentView: View {
                     Text("RadPendler \(Self.version)")
                     Text("© 2026 AK")
                     Text("inspired by Oleg")
-                    Text("Datenquellen: VBB · Apple Karten · BRouter/OSM · DWD · Open-Meteo")
+                    // Names only. The links this text used to carry live in
+                    // the settings, where there is room for them to look like
+                    // links instead of like grey lines in a footer.
+                    Text("Datenquellen: VBB · Transitous/MOTIS · Apple Karten · BRouter und OpenStreetMap · DWD · Open-Meteo")
                         .font(Self.sourceFont)
                         .padding(.top, 5)
-                    // Transitous asks for a visible link to their sources
-                    // page, so it has to read as one: accent colour, not the
-                    // grey of the lines around it.
-                    Link(destination: URL(string: "https://transitous.org/sources/")!) {
-                        HStack(spacing: 3) {
-                            Text("transitous.org/sources").underline()
-                            Image(systemName: "arrow.up.right")
-                        }
-                        .font(Self.sourceFont)
-                        .foregroundStyle(Theme.accent)
-                    }
-                    Link(destination: URL(string: "https://www.openstreetmap.org/copyright")!) {
-                        HStack(spacing: 3) {
-                            Text("openstreetmap.org/copyright").underline()
-                            Image(systemName: "arrow.up.right")
-                        }
-                        .font(Self.sourceFont)
-                        .foregroundStyle(Theme.accent)
-                    }
                 }
                 .font(.system(.caption2, design: .rounded))
                 .foregroundStyle(.secondary)

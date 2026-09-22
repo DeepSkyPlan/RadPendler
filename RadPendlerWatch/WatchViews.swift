@@ -16,13 +16,17 @@ extension Color {
 /// its own choice, and "Vorschlag des iPhones" gives it back.
 struct WatchHome: View {
     @Environment(WatchModel.self) private var model
+    @State private var page = 0
 
     var body: some View {
         if let plan = model.snapshot, !plan.options.isEmpty {
-            TabView {
-                CountdownPage(plan: plan)
-                if let trip = model.selected { TripPage(plan: plan, trip: trip) }
-                NavigationStack { ModesPage(plan: plan) }
+            TabView(selection: $page) {
+                CountdownPage(plan: plan).tag(0)
+                if let trip = model.selected { TripPage(plan: plan, trip: trip).tag(1) }
+                // Choosing a way sends you back to the countdown: that is what
+                // one came for, and finding the way back past a pushed list is
+                // more turning of the crown than anybody wants.
+                NavigationStack { ModesPage(plan: plan, onPick: { page = 0 }) }.tag(2)
             }
             .tabViewStyle(.verticalPage)
         } else {
@@ -144,18 +148,23 @@ private struct TripPage: View {
 private struct ModesPage: View {
     @Environment(WatchModel.self) private var model
     var plan: TripSnapshot
+    /// Called once a way has been chosen, so the pages can go back.
+    var onPick: () -> Void
 
     var body: some View {
         List {
             ForEach(plan.modes, id: \.self) { mode in
                 NavigationLink {
-                    OptionsList(plan: plan, mode: mode)
+                    OptionsList(plan: plan, mode: mode, onPick: onPick)
                 } label: {
                     row(mode)
                 }
             }
             if model.chosenMode != nil {
-                Button("Vorschlag des iPhones") { model.followPhone() }
+                Button("Vorschlag des iPhones") {
+                    model.followPhone()
+                    onPick()
+                }
                     .font(.system(size: 12, design: .rounded))
             }
             TimelineView(.periodic(from: .now, by: 30)) { context in
@@ -208,6 +217,7 @@ private struct OptionsList: View {
     @Environment(\.dismiss) private var dismiss
     var plan: TripSnapshot
     var mode: String
+    var onPick: () -> Void
 
     var body: some View {
         List {
@@ -215,6 +225,7 @@ private struct OptionsList: View {
                 Button {
                     model.choose(mode: mode, index: index)
                     dismiss()
+                    onPick()
                 } label: {
                     HStack(spacing: 8) {
                         VStack(alignment: .leading, spacing: 0) {

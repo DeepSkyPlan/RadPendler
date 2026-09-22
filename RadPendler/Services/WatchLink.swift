@@ -11,6 +11,8 @@ final class WatchLink: NSObject, WCSessionDelegate {
 
     /// Held until the session is up, and sent again when the watch reconnects.
     private var latest: TripSnapshot?
+    /// Called when the wrist picked a different trip.
+    var onChoice: ((WatchChoice) -> Void)?
 
     func start() {
         guard WCSession.isSupported() else { return }
@@ -46,6 +48,22 @@ final class WatchLink: NSObject, WCSessionDelegate {
 
     func sessionWatchStateDidChange(_ session: WCSession) {
         flush()
+    }
+
+    // The watch sends its choice either way round: a message while the app is
+    // reachable, a queued transfer when it is not.
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        accept(message)
+    }
+
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
+        accept(userInfo)
+    }
+
+    private func accept(_ payload: [String: Any]) {
+        guard let data = payload["choice"] as? Data,
+              let choice = try? JSONDecoder().decode(WatchChoice.self, from: data) else { return }
+        DispatchQueue.main.async { [onChoice] in onChoice?(choice) }
     }
 }
 

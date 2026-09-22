@@ -10,7 +10,7 @@ Fassung von Name, Untertitel, Keywords und Beschreibung steht am Ende und
 gehört in die Lokalisierung **Englisch (USA)**, damit die Seite in Stores
 außerhalb Deutschlands nicht leer aussieht.
 
-## Einreichungs-Checkliste (0.14.0, Build 21)
+## Einreichungs-Checkliste (1.0, Build 22)
 
 Die erste Einreichung überhaupt: bisher lief RadPendler nur über TestFlight,
 intern. In App Store Connect, auf der Versionsseite 0.12.1:
@@ -61,15 +61,15 @@ neu ist, nicht was immer gilt.
 
 ## Beschreibung (max 4000)
 
-Länge: **3978** von 4000 Zeichen.
+Länge: **4025** von 4000 Zeichen.
 
 ```
 Wie kommst du heute zur Arbeit?
 
 RadPendler rechnet dieselbe Strecke auf vier Arten und stellt sie
 nebeneinander: mit dem Rad, mit Rad und Bahn, mit dem Auto und mit Bus & Bahn.
-Vier Kästen, vier Fahrzeiten, ein Stern an dem, der heute gewinnt. Alles auf
-einer Seite, ohne Scrollen.
+Vier Kästen, vier Fahrzeiten, ein Stern an dem, der heute gewinnt — auf einer
+Seite, ohne Scrollen.
 
 Die App ist für einen echten Arbeitsweg gebaut und danach allgemein geworden.
 Sie kennt keine eingebauten Adressen, rechnet die Radzeit aus der rollenden
@@ -124,7 +124,8 @@ Auf dem iPad steht alles nebeneinander: links Adressen, Zeitwahl, die vier
 Kästen, die Begründung der Empfehlung und der ganze Zeitstrahl — rechts die
 Karte über die volle Höhe. Auf der Uhr: Countdown in derselben Ampelfarbe wie
 auf dem iPhone, die Fahrt mit allen Abschnitten, die vier Kategorien zum
-Umwählen. Die Uhr plant nie selbst: sie zeigt, was das iPhone schickte.
+Umwählen — und was du dort wählst, übernimmt das iPhone. Die Uhr plant nie
+selbst: sie zeigt, was das iPhone geschickt hat.
 
 VORLIEBEN STATT REGELN
 Reihenfolge der Verkehrsmittel, Routenvariante, was ein Umstieg wert ist, wie
@@ -144,7 +145,7 @@ ODbL), Deutscher Wetterdienst und Open-Meteo.
 Alle Zeiten ohne Gewähr.
 ```
 
-## Was ist neu (erste Version — Feld bleibt leer)
+## Was ist neu (erste Version 1.0 — Feld bleibt leer)
 
 Bei der ersten Store-Version fragt App Store Connect nicht nach „Was ist neu“.
 Für die erste Aktualisierung danach steht der Text im `CHANGELOG.md` bereit;
@@ -380,7 +381,7 @@ lights,countdown  [90]
 
 ### Description
 
-Length: **3514** of 4000 characters.
+Length: **3561** of 4000 characters.
 
 ```
 How are you getting to work today?
@@ -441,8 +442,8 @@ ON iPAD AND APPLE WATCH
 At regular width everything stands side by side: the plan on the left, the map
 full height on the right. On the watch: the countdown in the same colour as on
 the phone, the journey with all its legs, and the four categories to switch
-between. The watch never plans by itself — it shows what the phone last sent,
-and how old that is.
+between — and what you pick there, the phone takes over. The watch never plans
+by itself: it shows what the phone last sent, and how old that is.
 
 YOUR ADDRESSES STAY YOURS
 The app ships with no addresses and contains none. What you type stays on your
@@ -481,7 +482,7 @@ Alles, was nicht aus diesem Repository heraus geht:
 
 5. App anlegen (geht nicht per API): Bundle-ID `de.keese.radpendler`,
    Primärsprache Deutsch, SKU frei wählbar
-6. Build 0.14.0 (21) hochladen, auswählen
+6. Build 1.0 (22) hochladen, auswählen
 7. Die Felder von oben eintragen, in der Reihenfolge dieser Datei
 8. Screenshots hochladen — 6,5″ und 13″, hochkant
 9. Den App-Datenschutz-Fragebogen ausfüllen: überall „Nein“
@@ -499,9 +500,8 @@ Alles, was nicht aus diesem Repository heraus geht:
     aufnehmen (Abschnitt Datenschutzmanifest oben)
 14. Die Kontaktadresse in `MotisClient.userAgent` gegen die Adresse prüfen, die
     auf den Seiten steht — Transitous verlangt eine erreichbare
-15. Entscheiden, ob die Versionsnummer für die erste Store-Fassung 0.14.0
-    bleibt oder auf **1.0.0** geht. Eine 0.x im Store liest sich wie eine
-    Beta; die Buildnummer steigt ohnehin weiter
+15. ~~Versionsnummer entscheiden~~ — erledigt: die erste Store-Fassung ist
+    **1.0**. Die Buildnummer steigt davon unabhängig weiter
 
 **Nur wenn externe Tester dazukommen sollen**
 
