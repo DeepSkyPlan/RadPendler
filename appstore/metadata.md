@@ -342,6 +342,22 @@ Overpass-Sperre und trug den Hinweis „Ampeln und Hauptstraßen unbekannt
 den Store. Beim nächsten Lauf, wenn Overpass wieder antwortet, nachholen und
 als `2-rad` einsortieren.
 
+### Apple Watch (46 mm) — 4 Bilder, 416 × 496
+
+App Store Connect hat für watchOS einen eigenen Satz. Die vier Aufnahmen aus
+`screenshots/watch-46/` in den Slot „Apple Watch Series 10 (46 mm)“:
+
+| Datei | Was darauf ist | Bildtext |
+|---|---|---|
+| `1-countdown.png` | Der Countdown in Gelb, Linie und Abfahrt → Ankunft | Wann losgehen — am Handgelenk |
+| `2-fahrt.png` | Die Fahrt mit allen Abschnitten, Zeiten und Kilometern | Jeder Abschnitt, jede Zeit |
+| `3-kategorien.png` | Die vier Kategorien mit bester Zeit und Zahl der Wege | Rad, Rad + Bahn, Auto, Bahn |
+| `4-wege.png` | Die Wege einer Kategorie zum Auswählen | Einen anderen Weg wählen |
+
+Die Uhr plant nichts selbst; sie zeigt den Plan des iPhones und zählt darauf
+herunter. Das gehört in den Bildtext, damit niemand eine eigenständige
+Uhren-App erwartet.
+
 ## Englische Fassung (Lokalisierung „Englisch (USA)“)
 
 ### Name (max 30)
