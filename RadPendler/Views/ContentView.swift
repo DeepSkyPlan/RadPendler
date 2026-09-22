@@ -212,14 +212,29 @@ struct ContentView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("RadPendler \(Self.version)")
                     Text("© 2026 AK")
+                    Text("inspired by Oleg")
                     Text("Datenquellen: VBB · Apple Karten · BRouter/OSM · DWD · Open-Meteo")
-                        .italic()
+                        .font(Self.sourceFont)
                         .padding(.top, 5)
-                    // Transitous asks for this link in a visible place, and
-                    // OpenStreetMap's attribution rides along with it.
-                    Link("Transitous · openstreetmap.org/copyright",
-                         destination: URL(string: "https://transitous.org/sources/")!)
-                        .italic()
+                    // Transitous asks for a visible link to their sources
+                    // page, so it has to read as one: accent colour, not the
+                    // grey of the lines around it.
+                    Link(destination: URL(string: "https://transitous.org/sources/")!) {
+                        HStack(spacing: 3) {
+                            Text("transitous.org/sources").underline()
+                            Image(systemName: "arrow.up.right")
+                        }
+                        .font(Self.sourceFont)
+                        .foregroundStyle(Theme.accent)
+                    }
+                    Link(destination: URL(string: "https://www.openstreetmap.org/copyright")!) {
+                        HStack(spacing: 3) {
+                            Text("openstreetmap.org/copyright").underline()
+                            Image(systemName: "arrow.up.right")
+                        }
+                        .font(Self.sourceFont)
+                        .foregroundStyle(Theme.accent)
+                    }
                 }
                 .font(.system(.caption2, design: .rounded))
                 .foregroundStyle(.secondary)
@@ -233,6 +248,11 @@ struct ContentView: View {
             .presentationCompactAdaptation(.popover)
         }
     }
+
+    /// Same size as the copyright lines above it, but slanted — and therefore
+    /// **not** rounded: SF Rounded has no italic face, and neither SwiftUI nor
+    /// the renderer synthesises one, so `.italic()` on it comes out upright.
+    private static let sourceFont = Font.system(.caption2).italic()
 
     private func menuRow(_ title: String, _ symbol: String, action: @escaping () -> Void) -> some View {
         Button {

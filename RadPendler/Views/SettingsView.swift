@@ -89,12 +89,15 @@ struct SettingsView: View {
                         ForEach(TimetableSource.allCases) { Text($0.title).tag($0) }
                     }
                     Link(destination: URL(string: "https://transitous.org/sources/")!) {
-                        Label("Datenquellen von Transitous", systemImage: "arrow.up.right.square")
+                        Label("transitous.org/sources", systemImage: "arrow.up.right.square")
+                    }
+                    Link(destination: URL(string: "https://www.openstreetmap.org/copyright")!) {
+                        Label("openstreetmap.org/copyright", systemImage: "arrow.up.right.square")
                     }
                 } header: {
                     Text("Fahrplanquelle")
                 } footer: {
-                    Text("„Automatisch“ fragt den VBB, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst.")
+                    Text("„Automatisch“ fragt den VBB, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link.")
                 }
                 Section {
                     NavigationLink {
