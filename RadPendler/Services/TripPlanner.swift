@@ -176,13 +176,19 @@ struct TripPlanner {
         let guess = req.arriveBy ?? req.earliestLeave
         let found = try await apple.routes(from: req.origin.coordinate, to: req.destination.coordinate,
                                            mode: .car, departure: guess)
+            // Two lines that differ by a hundred metres are one line.
+            .reduce(into: [StreetRoute]()) { out, r in
+                guard !out.contains(where: { abs($0.distance - r.distance) < 100
+                                          && abs($0.expectedTravelTime - r.expectedTravelTime) < 60 }) else { return }
+                out.append(r)
+            }
         let data = try? await roads.data(covering: found.flatMap(\.coordinates))
         let candidates = found.map { route in
             CarCandidate(route: route,
                          stats: data.map { RouteAnalyzer.analyze(route.coordinates, roads: $0) })
         }
         let parking = TimeInterval(req.settings.parkingMinutes * 60)
-        return CarCandidate.pick(candidates, order: req.settings.carVariantOrder).enumerated().map { index, entry in
+        return CarCandidate.pick(candidates, settings: req.settings, order: req.settings.carVariantOrder).enumerated().map { index, entry in
             let (c, variants) = entry
             let drive = c.route.expectedTravelTime + parking
             let leave = req.arriveBy.map { $0.addingTimeInterval(-drive) } ?? req.earliestLeave
@@ -555,21 +561,47 @@ struct CarCandidate {
 
     var signals: Int? { stats?.signals }
 
-    /// schnellst = least driving time, kürzest = fewest metres, wenig Ampeln =
-    /// fewest signalised junctions. A line winning several roles is listed once
-    /// with all its labels; when one line wins everything it is simply the
-    /// fastest, because three labels on a single route say nothing.
-    static func pick(_ all: [CarCandidate], order: [CarVariant] = CarVariant.defaultOrder) -> [(CarCandidate, [CarVariant])] {
-        guard let fastest = all.indices.min(by: { all[$0].route.expectedTravelTime < all[$1].route.expectedTravelTime })
-        else { return [] }
-        var roles: [Int: [CarVariant]] = [fastest: [.fastest]]
-        let shortest = all.indices.min { all[$0].route.distance < all[$1].route.distance }!
-        roles[shortest, default: []].append(.shortest)
-        if all.contains(where: { $0.signals != nil }) {
-            let quiet = all.indices.min { (all[$0].signals ?? .max) < (all[$1].signals ?? .max) }!
-            roles[quiet, default: []].append(.fewSignals)
+    /// Driving time with the waiting at the lights added, the way the bike
+    /// routes count it — an Apple estimate already includes traffic, but not
+    /// the difference between twelve junctions and forty.
+    func time(_ s: PlanSettings) -> TimeInterval {
+        route.expectedTravelTime + Double((signals ?? 0) * s.signalWaitSeconds) * 0.5
+    }
+
+    /// Mittelweg: time plus half the waiting, so a line that is two minutes
+    /// slower but crosses twenty fewer junctions can win it.
+    func balancedScore(_ s: PlanSettings) -> Double {
+        route.expectedTravelTime + Double((signals ?? 0) * s.signalWaitSeconds)
+    }
+
+    /// schnellst = least driving time, kürzest = fewest metres, optimal = the
+    /// best balance of time and lights, wenig Ampeln = fewest junctions.
+    ///
+    /// Every line Apple offered comes back, whether or not it won a role —
+    /// showing only the fastest one made the car look like it had no choice.
+    /// Roles are ordered the way the user put them.
+    static func pick(_ all: [CarCandidate], settings s: PlanSettings = PlanSettings(),
+                     order: [CarVariant] = CarVariant.defaultOrder) -> [(CarCandidate, [CarVariant])] {
+        guard !all.isEmpty else { return [] }
+        // One line wins everything by default; four labels on it say nothing.
+        guard all.count > 1 else { return [(all[0], [.fastest])] }
+        var roles: [Int: [CarVariant]] = [:]
+        if let i = all.indices.min(by: { all[$0].route.expectedTravelTime < all[$1].route.expectedTravelTime }) {
+            roles[i, default: []].append(.fastest)
         }
-        if roles.count == 1 { return [(all[fastest], [.fastest])] }
+        if let i = all.indices.min(by: { all[$0].route.distance < all[$1].route.distance }) {
+            roles[i, default: []].append(.shortest)
+        }
+        if all.contains(where: { $0.signals != nil }) {
+            if let i = all.indices.min(by: { $0 == $1 ? false : all[$0].balancedScore(s) < all[$1].balancedScore(s) }) {
+                roles[i, default: []].append(.balanced)
+            }
+            if let i = all.indices.min(by: { (all[$0].signals ?? .max) < (all[$1].signals ?? .max) }) {
+                roles[i, default: []].append(.fewSignals)
+            }
+        }
+        // A line without a role is still a line.
+        for i in all.indices where roles[i] == nil { roles[i] = [.alternative] }
         let rank = { (v: CarVariant) in order.firstIndex(of: v) ?? order.count }
         return roles
             .map { (all[$0.key], $0.value.sorted { rank($0) < rank($1) }) }

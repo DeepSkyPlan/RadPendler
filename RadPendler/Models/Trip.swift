@@ -99,13 +99,18 @@ enum BikeVariant: String, CaseIterable, Comparable {
 /// Apple returns two or three lines for a commute — the fastest is the
 /// default, the other roles only get a label when a different line wins them.
 enum CarVariant: String, CaseIterable, Comparable {
-    case fastest, shortest, fewSignals
+    case fastest, shortest, balanced, fewSignals
+    /// A line Apple offered that wins no role of its own. It is still worth
+    /// showing: the fastest route is not always the one you want to drive.
+    case alternative
 
     var title: String {
         switch self {
         case .fastest: "schnellst"
         case .shortest: "kürzest"
+        case .balanced: "optimal"
         case .fewSignals: "wenig Ampeln"
+        case .alternative: "Alternative"
         }
     }
 
@@ -113,7 +118,7 @@ enum CarVariant: String, CaseIterable, Comparable {
         allCases.firstIndex(of: a)! < allCases.firstIndex(of: b)!
     }
 
-    static let defaultOrder: [CarVariant] = [.fastest, .shortest, .fewSignals]
+    static let defaultOrder: [CarVariant] = [.balanced, .fastest, .shortest, .fewSignals, .alternative]
 }
 
 /// The chosen car line and what sets it apart from the others.

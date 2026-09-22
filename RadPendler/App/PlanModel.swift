@@ -77,6 +77,29 @@ final class PlanModel {
     /// a train or a bus in it, or any trip once an arrival time is wanted.
     /// Bike and car with "leave now" have nothing to count down to, and the box
     /// stays away instead of showing someone else's train.
+    /// Switched off by tapping the pill. Grey then, and no warnings — a plan
+    /// one is not going to take should not shout. Forgotten again as soon as a
+    /// different departure takes over.
+    private(set) var countdownStopped = false
+    private var stoppedFor: TripOption.ID?
+
+    /// What the countdown actually runs on: nothing while it is switched off.
+    var activeCountdown: TripOption? { countdownStopped ? nil : countdownOption }
+
+    /// Tap on the pill.
+    func toggleCountdown() {
+        countdownStopped.toggle()
+        stoppedFor = countdownStopped ? countdownOption?.id : nil
+        publishToWatch()
+    }
+
+    /// A new departure is a new question; the old "no thanks" does not carry.
+    private func forgetStopIfDepartureChanged() {
+        guard countdownStopped, stoppedFor != countdownOption?.id else { return }
+        countdownStopped = false
+        stoppedFor = nil
+    }
+
     var countdownOption: TripOption? {
         guard let trip = selected else { return nil }
         if when.isArrival { return trip }
@@ -112,6 +135,7 @@ final class PlanModel {
         let current = selected(for: mode)?.id
         let i = own.firstIndex { $0.id == current } ?? 0
         selection[mode] = own[(i + 1) % own.count].id
+        forgetStopIfDepartureChanged()
         publishToWatch()
     }
 
@@ -119,6 +143,7 @@ final class PlanModel {
     func selectFirst(_ mode: TravelMode) {
         guard let first = options(for: mode).first else { return }
         selection[mode] = first.id
+        forgetStopIfDepartureChanged()
         publishToWatch()
     }
 
@@ -130,7 +155,7 @@ final class PlanModel {
         WatchLink.shared.send(TripSnapshot(origin: places.from, destination: places.to,
                                            options: options,
                                            recommendedID: recommended?.id,
-                                           countdownID: countdownOption?.id,
+                                           countdownID: activeCountdown?.id,
                                            computedAt: lastRun ?? .now,
                                            arrivalSearch: when.isArrival,
                                            order: modeOrder))
@@ -168,6 +193,7 @@ final class PlanModel {
             }
             lastRun = .now
             isLoading = false
+            forgetStopIfDepartureChanged()
             // Whatever lines this plan used go into the list the user judges.
             settings.noteLines(r.options.flatMap(\.transitLegs).compactMap { leg in
                 leg.lineName.map { ($0, leg.bikeCarriage) }

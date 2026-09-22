@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.0 (Build 21, noch nicht hochgeladen)
+- **Der Countdown lässt sich abschalten.** Ein Tipp auf die Pille stellt ihn aus: grau, „aus", durchgestrichene Glocke — und die Mitteilungen werden mit abbestellt. Nochmal tippen schaltet ihn wieder an. Sobald eine **andere** Abfahrt gilt, gilt das Nein nicht mehr, denn eine neue Abfahrt ist eine neue Frage.
+- **Die Pille ist jetzt immer da**, auch bei Rad und Auto ohne feste Abfahrt — dort grau statt weg, damit die Titelzeile nicht springt.
+- **Das Auto zeigt alle Linien, die Apple anbietet**, nicht nur die schnellste. Neue Variante **„optimal"** wie beim Rad (Fahrzeit plus die Wartezeit an den Ampeln), dazu schnellst, kürzest und wenig Ampeln; eine Linie ohne eigene Rolle heißt „Alternative" und wird trotzdem gezeigt. Vorbelegt ist „optimal" zuerst. Linien, die sich um weniger als 100 m und eine Minute unterscheiden, gelten als dieselbe.
+- **„Mein Standort" steht jetzt im Suchfeld.** Öffnet man die Startadresse ohne gesetzten Start und mit erteilter Ortungserlaubnis, steht die aktuelle Adresse gleich im Feld — zum Übernehmen oder Überschreiben. Die Standortzeile bleibt oben stehen, auch während getippt wird.
+
 ## 0.13.0 (Build 20, noch nicht hochgeladen)
 - **„Mein Standort" als Startadresse.** Die Adresssuche für den Start beginnt jetzt mit einem Vorschlag: dort, wo du gerade bist. Steht schon eine Erlaubnis, wird die Adresse gleich beim Öffnen aufgelöst und steht mit Straße und PLZ in der Zeile — ein Tipp genügt. Ohne Erlaubnis fragt der erste Tipp danach; wird sie abgelehnt, verschwindet die Zeile und alles andere funktioniert weiter.
 - Der Standort wird **einmal** abgefragt, in eine Adresse übersetzt und danach vergessen: kein Mitschreiben, kein Hintergrundzugriff, keine Bewegungsverfolgung. Die Koordinate geht danach denselben Weg wie jede getippte Adresse — an die Routing- und Fahrplandienste, an sonst niemanden.
