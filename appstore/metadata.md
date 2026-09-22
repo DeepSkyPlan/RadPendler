@@ -61,7 +61,7 @@ neu ist, nicht was immer gilt.
 
 ## Beschreibung (max 4000)
 
-Länge: **4025** von 4000 Zeichen.
+Länge: **3988** von 4000 Zeichen.
 
 ```
 Wie kommst du heute zur Arbeit?
@@ -71,10 +71,10 @@ nebeneinander: mit dem Rad, mit Rad und Bahn, mit dem Auto und mit Bus & Bahn.
 Vier Kästen, vier Fahrzeiten, ein Stern an dem, der heute gewinnt — auf einer
 Seite, ohne Scrollen.
 
-Die App ist für einen echten Arbeitsweg gebaut und danach allgemein geworden.
-Sie kennt keine eingebauten Adressen, rechnet die Radzeit aus der rollenden
-Geschwindigkeit plus einer Wartezeit je Ampelkreuzung — und sagt, was sie nicht
-weiß, statt zu raten.
+Gebaut für einen echten Arbeitsweg und danach allgemein geworden. Die App
+kennt keine eingebauten Adressen, rechnet die Radzeit aus der rollenden
+Geschwindigkeit plus Wartezeit je Ampel — und sagt, was sie nicht weiß, statt
+zu raten.
 
 DIE VIER WEGE
 • Fahrrad in Varianten: schnellst, kürzest, optimal, ruhigst. Aus mehreren
@@ -136,7 +136,7 @@ DEINE ADRESSEN BLEIBEN DEINE
 Die App wird ohne Adressen ausgeliefert und enthält keine. Was du eingibst,
 bleibt auf deinen Geräten und in deiner eigenen iCloud; es geht an keinen
 Server dieses Projekts, weil es keinen gibt. Kein Konto, keine Anmeldung, keine
-Analytik, keine Werbung. RadPendler ist quelloffen (MIT).
+Analytik, keine Werbung. Quelloffen (MIT).
 
 Datenquellen: VBB, Transitous/MOTIS auf dem DELFI-Datensatz, Apple Karten,
 BRouter und Overpass auf OpenStreetMap-Daten (© OpenStreetMap-Mitwirkende,
