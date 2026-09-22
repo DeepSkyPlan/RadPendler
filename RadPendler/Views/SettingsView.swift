@@ -100,6 +100,23 @@ struct SettingsView: View {
                     Text("„Automatisch“ fragt den VBB, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link.")
                 }
                 Section {
+                    // Kontakt als Seite, nicht als Adresse: eine Adresse im
+                    // Programm ist eine Adresse, die jeder mitliest.
+                    Link(destination: URL(string: "https://deepskyplan.github.io/radpendler-app/#support")!) {
+                        Label("Hilfe und Rückmeldung", systemImage: "questionmark.circle")
+                    }
+                    Link(destination: URL(string: "https://deepskyplan.github.io/radpendler-privacy/")!) {
+                        Label("Datenschutz", systemImage: "hand.raised")
+                    }
+                    Link(destination: URL(string: "https://github.com/DeepSkyPlan/RadPendler")!) {
+                        Label("Quelltext auf GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+                    }
+                } header: {
+                    Text("Hilfe und Rechtliches")
+                } footer: {
+                    Text("Fragen, Fehler und Vorschläge gehen über die Support-Seite. Dort steht auch, was dabei hilft: Gerät, Version, Strecke und was die App gezeigt hat.")
+                }
+                Section {
                     NavigationLink {
                         BikeLinesView()
                     } label: {
