@@ -21,15 +21,16 @@ struct RadPendlerApp: App {
                 .task {
                     // Addresses and preferences travel through iCloud, so the
                     // iPad starts with what the iPhone already knows.
-                    CloudStore.shared.onPull = { settings.load() }
+                    CloudStore.shared.onPull = {
+                        settings.load()
+                        // The rides ride along in the same store: the numbers
+                        // of a ride, never its line.
+                        rides.reload()
+                    }
                     CloudStore.shared.start()
                     // A ride the app did not survive is still a ride; it is
                     // filed here, up to the last second it knew about.
                     rides.recoverInterrupted()
-                    // The rides themselves are too big for the key-value store
-                    // the settings travel in — they have their own private
-                    // CloudKit database.
-                    await rides.syncFromCloud()
                 }
         }
     }

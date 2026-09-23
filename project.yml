@@ -12,8 +12,8 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "22"
+    MARKETING_VERSION: "1.1"
+    CURRENT_PROJECT_VERSION: "23"
     SWIFT_VERSION: "5.0"
 
 targets:
@@ -39,11 +39,9 @@ targets:
     entitlements:
       path: RadPendler/RadPendler.entitlements
       properties:
+        # Auch die Kennzahlen der gefahrenen Fahrten reisen hierüber — nur die
+        # Zahlen, nie die Linien: der Speicher fasst 1 MB für die ganze App.
         com.apple.developer.ubiquity-kvstore-identifier: $(TeamIdentifierPrefix)$(CFBundleIdentifier)
-        # Die aufgezeichneten Fahrten passen nicht in den Schlüssel-Wert-Speicher
-        # (1 MB insgesamt); sie liegen in der privaten CloudKit-Datenbank.
-        com.apple.developer.icloud-services: [CloudKit]
-        com.apple.developer.icloud-container-identifiers: [iCloud.de.keese.radpendler]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: de.keese.radpendler

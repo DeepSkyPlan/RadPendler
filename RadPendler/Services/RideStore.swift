@@ -1,17 +1,18 @@
-import CloudKit
 import Foundation
 import Observation
 
-/// Where the recorded rides live: a short summary per ride in one file, the
-/// line of each ride in a file of its own, and a copy of both in the user's
-/// own private iCloud so the next phone starts with the history on it.
+/// Where the recorded rides live: a short summary per ride in the settings
+/// store — and therefore in iCloud, like everything else the app keeps — and
+/// the line of each ride in a file of its own on the device.
 ///
-/// The split is what keeps the list cheap. Three hundred summaries are
-/// seventy kilobytes; three hundred tracks are twenty megabytes, and the list
-/// never needs one of them.
+/// The split is what makes this fit at all. The iCloud key-value store holds
+/// **one megabyte in total** for the whole app; a summary is some two hundred
+/// bytes, a line is eighty kilobytes. So the numbers travel and the drawing
+/// stays where it was drawn: a ride recorded on the phone is in the list on the
+/// iPad with every figure it has, and only its map says "not on this device".
 ///
-/// Like `CloudStore`, the cloud half is optional: without an iCloud account
-/// every call is a quiet no-op and the rides stay on the device.
+/// Like `CloudStore`, the travelling half is optional: without an iCloud
+/// account everything simply stays on the one device.
 @MainActor
 @Observable
 final class RideStore {
@@ -19,19 +20,23 @@ final class RideStore {
 
     /// Newest first — the order the list shows them in.
     private(set) var rides: [Ride] = []
-    /// True while the first pull from iCloud is running.
-    private(set) var syncing = false
+
+    /// More than a decade of commuting, and still far inside the budget: a
+    /// thousand summaries are some two hundred kilobytes before compression.
+    /// Over the limit the oldest go, because the recent months are what the
+    /// list is read for.
+    nonisolated static let maxRides = 1000
 
     private let folder: URL
-    private let cloud: RideCloud?
+    private let defaults: UserDefaults
     private var tracks: [UUID: RideTrack] = [:]
 
-    init(folder: URL? = nil, cloud: RideCloud? = RideCloud()) {
+    init(folder: URL? = nil, defaults: UserDefaults = .standard) {
         self.folder = folder ?? Self.defaultFolder()
-        self.cloud = cloud
+        self.defaults = defaults
         try? FileManager.default.createDirectory(at: self.folder.appending(path: "tracks"),
                                                  withIntermediateDirectories: true)
-        load()
+        reload()
     }
 
     private static func defaultFolder() -> URL {
@@ -40,62 +45,86 @@ final class RideStore {
         return base.appending(path: "Rides")
     }
 
-    private var summaryFile: URL { folder.appending(path: "summaries.json") }
     private var interruptedFile: URL { folder.appending(path: "current.json") }
     private func trackFile(_ id: UUID) -> URL {
         folder.appending(path: "tracks").appending(path: "\(id.uuidString).json")
     }
 
-    // MARK: Local
+    // MARK: The list
 
-    private func load() {
-        guard let data = try? Data(contentsOf: summaryFile),
-              let list = try? JSONDecoder().decode([Ride].self, from: data) else { return }
-        rides = list.sorted { $0.started > $1.started }
+    /// Also the way back in after iCloud handed us another device's rides —
+    /// `CloudStore` writes the key and calls this.
+    func reload() {
+        rides = defaults.data(forKey: CloudStore.ridesKey).flatMap(Self.decode) ?? []
     }
 
-    private func writeSummaries() {
-        guard let data = try? JSONEncoder().encode(rides) else { return }
-        try? data.write(to: summaryFile, options: .atomic)
+    private func write() {
+        rides.sort { $0.started > $1.started }
+        if rides.count > Self.maxRides { rides = Array(rides.prefix(Self.maxRides)) }
+        guard let data = Self.encode(rides) else { return }
+        defaults.set(data, forKey: CloudStore.ridesKey)
     }
 
     func add(_ ride: Ride, track: RideTrack) {
         rides.removeAll { $0.id == ride.id }
         rides.append(ride)
-        rides.sort { $0.started > $1.started }
         tracks[ride.id] = track
         if let data = try? JSONEncoder().encode(track) {
             try? data.write(to: trackFile(ride.id), options: .atomic)
         }
-        writeSummaries()
-        push(ride, track)
+        write()
     }
 
     func delete(_ ride: Ride) {
         rides.removeAll { $0.id == ride.id }
         tracks[ride.id] = nil
         try? FileManager.default.removeItem(at: trackFile(ride.id))
-        writeSummaries()
-        if let cloud { Task { await cloud.delete(ride.id) } }
+        write()
     }
 
-    /// The line of one ride — from memory, from disk, or from iCloud, in that
-    /// order. nil means it was recorded on another device and that device's
-    /// copy has not arrived (or there is no iCloud); the detail view says so
-    /// instead of drawing an empty map.
-    func track(for ride: Ride) async -> RideTrack? {
+    /// The line of one ride, from memory or from disk. nil means it was
+    /// recorded on another device: the numbers travelled, the drawing did not,
+    /// and the detail view says so instead of showing an empty map.
+    func track(for ride: Ride) -> RideTrack? {
         if let t = tracks[ride.id] { return t }
-        if let data = try? Data(contentsOf: trackFile(ride.id)),
-           let t = try? JSONDecoder().decode(RideTrack.self, from: data) {
-            tracks[ride.id] = t
-            return t
-        }
-        guard let cloud, let t = await cloud.track(ride.id) else { return nil }
+        guard let data = try? Data(contentsOf: trackFile(ride.id)),
+              let t = try? JSONDecoder().decode(RideTrack.self, from: data) else { return nil }
         tracks[ride.id] = t
-        if let data = try? JSONEncoder().encode(t) {
-            try? data.write(to: trackFile(ride.id), options: .atomic)
-        }
         return t
+    }
+
+    // MARK: Packing
+
+    /// Compressed, because this goes into a store with a one-megabyte ceiling
+    /// that the settings share. Uncompressed JSON is the fallback, so a value
+    /// written by a version that could not compress still reads.
+    nonisolated static func encode(_ rides: [Ride]) -> Data? {
+        guard let json = try? JSONEncoder().encode(rides) else { return nil }
+        return (try? (json as NSData).compressed(using: .zlib)) as Data? ?? json
+    }
+
+    nonisolated static func decode(_ data: Data) -> [Ride]? {
+        if let raw = try? (data as NSData).decompressed(using: .zlib) as Data,
+           let list = try? JSONDecoder().decode([Ride].self, from: raw) {
+            return list.sorted { $0.started > $1.started }
+        }
+        return (try? JSONDecoder().decode([Ride].self, from: data))?.sorted { $0.started > $1.started }
+    }
+
+    /// Two devices' lists into one. A ride is the same ride wherever it is
+    /// read, so its id decides and nothing is ever counted twice; a device
+    /// that has not pulled yet must not be able to shorten the list it has
+    /// not seen. Deleting therefore needs both devices to be reached — the
+    /// price of a merge, and cheaper than a ride that vanishes.
+    nonisolated static func merge(_ mine: [Ride], _ theirs: [Ride]) -> [Ride] {
+        var out = mine
+        var known = Set(mine.map(\.id))
+        for ride in theirs where !known.contains(ride.id) {
+            known.insert(ride.id)
+            out.append(ride)
+        }
+        out.sort { $0.started > $1.started }
+        return out.count > maxRides ? Array(out.prefix(maxRides)) : out
     }
 
     // MARK: A ride the app did not survive
@@ -129,192 +158,5 @@ final class RideStore {
     private struct Interrupted: Codable {
         var ride: Data
         var track: Data
-    }
-
-    // MARK: Cloud
-
-    private func push(_ ride: Ride, _ track: RideTrack) {
-        guard let cloud else { return }
-        Task { await cloud.push(ride, track) }
-    }
-
-    /// Everything the private database has, merged into what is here. A ride
-    /// is the same ride on every device, so its id decides; nothing is ever
-    /// duplicated and nothing local is removed by a cloud that has not caught up.
-    func syncFromCloud() async {
-        guard let cloud else { return }
-        syncing = true
-        defer { syncing = false }
-        // What did not get out last time goes first: a ride nobody can see on
-        // the other phone is the one failure worth retrying before reading.
-        for id in await cloud.pendingIDs() {
-            guard let ride = rides.first(where: { $0.id == id }), let track = await track(for: ride) else {
-                await cloud.forget(id)
-                continue
-            }
-            await cloud.push(ride, track)
-        }
-        guard let incoming = await cloud.fetchSummaries() else { return }
-        var known = Set(rides.map(\.id))
-        var added = false
-        for ride in incoming where !known.contains(ride.id) {
-            known.insert(ride.id)
-            rides.append(ride)
-            added = true
-        }
-        if added {
-            rides.sort { $0.started > $1.started }
-            writeSummaries()
-        }
-    }
-}
-
-/// The private-database half. An actor because it is all network and none of
-/// it belongs on the main thread; every error is swallowed on purpose — a ride
-/// that did not reach iCloud is still a ride, and it is tried again next time.
-actor RideCloud {
-    static let containerID = "iCloud.de.keese.radpendler"
-    static let recordType = "Ride"
-    private static let pendingKey = "ridesPendingPush"
-
-    private let database: CKDatabase
-
-    init(container: CKContainer = CKContainer(identifier: RideCloud.containerID)) {
-        database = container.privateCloudDatabase
-    }
-
-    func push(_ ride: Ride, _ track: RideTrack) async {
-        do {
-            _ = try await database.save(Self.record(ride, track))
-            unmarkPending(ride.id)
-        } catch {
-            markPending(ride.id)
-        }
-    }
-
-    func delete(_ id: UUID) async {
-        _ = try? await database.deleteRecord(withID: CKRecord.ID(recordName: id.uuidString))
-        unmarkPending(id)
-    }
-
-    /// Summaries only: the line of every ride would be megabytes for a list
-    /// that shows dates and averages. Paged, because a year of commuting is
-    /// more rides than one answer carries.
-    func fetchSummaries() async -> [Ride]? {
-        let query = CKQuery(recordType: Self.recordType, predicate: NSPredicate(value: true))
-        var out: [Ride] = []
-        var cursor: CKQueryOperation.Cursor?
-        var pages = 0
-        repeat {
-            do {
-                let page: (matchResults: [(CKRecord.ID, Result<CKRecord, Error>)],
-                           queryCursor: CKQueryOperation.Cursor?)
-                if let cursor {
-                    page = try await database.records(continuingMatchFrom: cursor,
-                                                      desiredKeys: Self.summaryKeys, resultsLimit: 200)
-                } else {
-                    page = try await database.records(matching: query,
-                                                      desiredKeys: Self.summaryKeys, resultsLimit: 200)
-                }
-                for (_, result) in page.matchResults {
-                    if let record = try? result.get(), let ride = Self.ride(record) { out.append(ride) }
-                }
-                cursor = page.queryCursor
-            } catch {
-                // Nothing there yet reads exactly like a failure; either way
-                // the local list stands and the next start tries again.
-                return out.isEmpty ? nil : out
-            }
-            pages += 1
-        } while cursor != nil && pages < 50
-        return out
-    }
-
-    func track(_ id: UUID) async -> RideTrack? {
-        guard let record = try? await database.record(for: CKRecord.ID(recordName: id.uuidString)),
-              let data = record["track"] as? Data else { return nil }
-        return Self.decodeTrack(data)
-    }
-
-    /// Rides whose push failed once. The store hands the pairs back in,
-    /// because the actor keeps no copy of anything.
-    func pendingIDs() -> [UUID] { pending() }
-
-    func forget(_ id: UUID) { unmarkPending(id) }
-
-    // MARK: Record ↔ ride
-
-    private static let summaryKeys = ["started", "ended", "origin", "destination", "mode", "meters",
-                                      "movingSeconds", "maxKmh", "signalStops", "otherStops",
-                                      "signalWaitTotal", "plannedSeconds", "pointCount"]
-
-    static func record(_ ride: Ride, _ track: RideTrack) -> CKRecord {
-        let r = CKRecord(recordType: recordType, recordID: CKRecord.ID(recordName: ride.id.uuidString))
-        r["started"] = ride.started as NSDate
-        r["ended"] = ride.ended as NSDate
-        r["origin"] = ride.origin as NSString
-        r["destination"] = ride.destination as NSString
-        r["mode"] = ride.mode as NSString
-        r["meters"] = ride.meters as NSNumber
-        r["movingSeconds"] = ride.movingSeconds as NSNumber
-        r["maxKmh"] = ride.maxKmh as NSNumber
-        r["signalStops"] = ride.signalStops as NSNumber
-        r["otherStops"] = ride.otherStops as NSNumber
-        r["signalWaitTotal"] = ride.signalWaitTotal as NSNumber
-        r["pointCount"] = ride.pointCount as NSNumber
-        if let planned = ride.plannedSeconds { r["plannedSeconds"] = planned as NSNumber }
-        if let data = encodeTrack(track) { r["track"] = data as NSData }
-        return r
-    }
-
-    static func ride(_ r: CKRecord) -> Ride? {
-        guard let id = UUID(uuidString: r.recordID.recordName),
-              let started = r["started"] as? Date, let ended = r["ended"] as? Date else { return nil }
-        return Ride(id: id, started: started, ended: ended,
-                    origin: r["origin"] as? String ?? "", destination: r["destination"] as? String ?? "",
-                    mode: r["mode"] as? String ?? TravelMode.bike.rawValue,
-                    meters: r["meters"] as? Double ?? 0,
-                    movingSeconds: r["movingSeconds"] as? Double ?? 0,
-                    maxKmh: r["maxKmh"] as? Double ?? 0,
-                    signalStops: r["signalStops"] as? Int ?? 0,
-                    otherStops: r["otherStops"] as? Int ?? 0,
-                    signalWaitTotal: r["signalWaitTotal"] as? Double ?? 0,
-                    plannedSeconds: r["plannedSeconds"] as? Double,
-                    pointCount: r["pointCount"] as? Int ?? 0)
-    }
-
-    /// The line goes in compressed. A twenty-minute commute is some eighty
-    /// kilobytes of JSON and a fifth of that zipped, which keeps a ride inside
-    /// what a single record field may hold however long the commute gets.
-    static func encodeTrack(_ track: RideTrack) -> Data? {
-        guard let json = try? JSONEncoder().encode(track) else { return nil }
-        return (try? (json as NSData).compressed(using: .zlib)) as Data? ?? json
-    }
-
-    static func decodeTrack(_ data: Data) -> RideTrack? {
-        if let raw = try? (data as NSData).decompressed(using: .zlib) as Data,
-           let track = try? JSONDecoder().decode(RideTrack.self, from: raw) {
-            return track
-        }
-        return try? JSONDecoder().decode(RideTrack.self, from: data)
-    }
-
-    // MARK: The retry list
-
-    private func pending() -> [UUID] {
-        (UserDefaults.standard.array(forKey: Self.pendingKey) as? [String] ?? []).compactMap(UUID.init)
-    }
-
-    private func markPending(_ id: UUID) {
-        var list = UserDefaults.standard.array(forKey: Self.pendingKey) as? [String] ?? []
-        guard !list.contains(id.uuidString) else { return }
-        list.append(id.uuidString)
-        UserDefaults.standard.set(list, forKey: Self.pendingKey)
-    }
-
-    private func unmarkPending(_ id: UUID) {
-        let list = (UserDefaults.standard.array(forKey: Self.pendingKey) as? [String] ?? [])
-            .filter { $0 != id.uuidString }
-        UserDefaults.standard.set(list, forKey: Self.pendingKey)
     }
 }

@@ -24,7 +24,7 @@
 <p style="margin-bottom:1.2em"><a href="https://deepskyplan.github.io/radpendler-app/">← RadPendler</a></p>
 
 <h1>Datenschutzerklärung — RadPendler</h1>
-<p class="date">Stand: 22. September 2026</p>
+<p class="date">Stand: 23. September 2026</p>
 
 <p>RadPendler ist ein Pendel-Planer für iPhone, iPad und Apple Watch. Die App
 ist so gebaut, dass sie ohne die Erhebung personenbezogener Daten auskommt: es
@@ -52,6 +52,27 @@ einen Gerät. Der aktuelle Plan geht zusätzlich direkt an deine Apple Watch
 sondern nur Zeiten, Linien und Farben.</p>
 <p>Löschst du die App, sind diese Daten auf dem Gerät weg. Was in deiner iCloud
 liegt, löschst du über die iCloud-Einstellungen deines Apple-Kontos.</p>
+
+<h2>Aufgezeichnete Fahrten</h2>
+<p>Seit Version 1.1 kann RadPendler eine Fahrt aufzeichnen. Das passiert
+<strong>nur, wenn du es startest</strong>, und nur bis du sie beendest. Solange
+eine Aufzeichnung läuft, schreibt die App den <strong>gefahrenen Weg</strong>
+mit: Koordinaten mit Zeitstempel und Geschwindigkeit, dazu die Stellen, an
+denen du gestanden hast, und wie lange. Daraus entstehen die Zahlen, die du
+hinterher siehst — Strecke, Durchschnitt, Ampelhalts, Wartezeiten.</p>
+<p>Diese Aufzeichnungen liegen im privaten Speicher der App. Ist ein
+iCloud-Konto angemeldet, gehen die <strong>Kennzahlen</strong> einer Fahrt —
+Datum, Dauer, Strecke, Durchschnitt, Anzahl der Halte — zusätzlich über den
+iCloud-Schlüssel-Wert-Speicher auf deine anderen Geräte, damit dieselbe Liste
+überall steht. Der <strong>gefahrene Weg selbst bleibt auf dem Gerät</strong>,
+auf dem er aufgezeichnet wurde; er verlässt es nicht. Auch der
+Schlüssel-Wert-Speicher ist <em>deine</em> iCloud: wir haben keinen Zugriff
+darauf, und dieses Projekt betreibt keinen Server, auf dem irgendetwas davon
+landen könnte. Eine Fahrt löschst du in der Liste (nach links wischen) — auf
+dem Gerät, auf dem du es tust.</p>
+<p>Während einer Aufzeichnung gehen <strong>keine</strong> Positionsdaten an
+die unten genannten Routing- und Fahrplandienste. Die Aufzeichnung ist eine
+reine Messung auf dem Gerät.</p>
 
 <h2>Was das Gerät an Dritte sendet — und warum</h2>
 <p>Eine Route lässt sich nicht berechnen, ohne zu sagen, wo sie anfängt und wo
@@ -116,11 +137,23 @@ aufzuzählen, was auf dem Gerät bleibt, und die Lücke sprechen zu lassen.</p>
 was sie zuletzt wusste, und sagt dazu, wie alt das ist.</p>
 
 <h2>Berechtigungen</h2>
-<p><strong>Standort (Beim Verwenden der App)</strong> — freiwillig, und nur
-dafür, den Start auf deine aktuelle Position zu legen. Lehnst du ab,
-funktioniert die App unverändert weiter; Start und Ziel wählst du dann von
-Hand. Die Position wird nicht an uns übertragen — sie geht, wie jede andere
-Startkoordinate, nur an die oben genannten Routing- und Fahrplandienste.</p>
+<p><strong>Standort (Beim Verwenden der App)</strong> — freiwillig, und für
+zwei Dinge. Erstens: „Mein Standort“ als Startadresse. Dafür wird die Position
+<em>einmal</em> abgefragt, in eine Adresse übersetzt und nicht gespeichert.
+Zweitens: das Aufzeichnen einer Fahrt, wenn du eine startest.</p>
+<p>Weil eine Pendelfahrt nicht aufzuzeichnen ist, solange man das Telefon in
+der Hand halten und den Bildschirm anlassen muss, läuft die Aufzeichnung auch
+weiter, wenn der Bildschirm gesperrt ist und das Telefon in der Tasche steckt.
+iOS zeigt dafür die ganze Zeit die <strong>blaue Leiste</strong> am oberen
+Bildschirmrand. Sobald du „Fahrt beenden“ antippst, hört die Ortung auf und die
+App schaltet die Hintergrundnutzung selbst wieder ab. <strong>Außerhalb einer
+laufenden Aufzeichnung verfolgt RadPendler nichts</strong> — es gibt kein
+Mitschreiben im Hintergrund, keine Bewegungserkennung und keine
+Standortverläufe, die du nicht selbst gestartet hast.</p>
+<p>Lehnst du die Ortung ab, funktioniert alles andere unverändert weiter; Start
+und Ziel wählst du dann von Hand, und aufzeichnen lässt sich nichts. Die
+Position wird nicht an uns übertragen — als Startkoordinate geht sie an die
+oben genannten Routing- und Fahrplandienste, als Aufzeichnung an niemanden.</p>
 <p><strong>Mitteilungen</strong> — freiwillig, für die Warnungen vor dem
 Losgehen. Es sind <em>lokale</em> Mitteilungen: sie werden auf dem Gerät
 erzeugt und ausgelöst. Es gibt keinen Push-Dienst und kein Gerätetoken, das
