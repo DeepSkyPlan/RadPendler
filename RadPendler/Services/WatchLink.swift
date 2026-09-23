@@ -11,6 +11,11 @@ final class WatchLink: NSObject, WCSessionDelegate {
 
     /// Held until the session is up, and sent again when the watch reconnects.
     private var latest: TripSnapshot?
+    /// The ride under way, on the same terms.
+    private var latestRide: RideLive?
+    /// When the ride last went into the application context, which is the
+    /// slow channel and must not carry one message per second.
+    private var rideInContext = Date.distantPast
     /// Called when the wrist picked a different trip.
     var onChoice: ((WatchChoice) -> Void)?
 
@@ -25,12 +30,35 @@ final class WatchLink: NSObject, WCSessionDelegate {
         flush()
     }
 
-    private func flush() {
-        guard WCSession.isSupported(), let snapshot = latest else { return }
+    /// The numbers of a ride in progress. Once a second while riding, which is
+    /// why it goes as a message: the application context is meant for state
+    /// that changes now and then, not for a running clock. The context gets a
+    /// copy every fifteen seconds all the same, so a watch that was asleep or
+    /// out of range finds the ride when it wakes up — and always right away
+    /// when the ride ends, because that last picture is the one that stays.
+    func sendLive(_ live: RideLive?) {
+        latestRide = live
+        guard WCSession.isSupported(), let live, let data = try? JSONEncoder().encode(live) else { return }
         let session = WCSession.default
-        guard session.activationState == .activated, session.isPaired, session.isWatchAppInstalled,
-              let data = try? JSONEncoder().encode(snapshot) else { return }
-        try? session.updateApplicationContext(["plan": data])
+        guard session.activationState == .activated, session.isPaired, session.isWatchAppInstalled else { return }
+        if session.isReachable {
+            session.sendMessage(["ride": data], replyHandler: nil, errorHandler: nil)
+        }
+        if !live.running || Date.now.timeIntervalSince(rideInContext) >= 15 {
+            rideInContext = .now
+            flush()
+        }
+    }
+
+    private func flush() {
+        guard WCSession.isSupported() else { return }
+        let session = WCSession.default
+        guard session.activationState == .activated, session.isPaired, session.isWatchAppInstalled else { return }
+        var context: [String: Any] = [:]
+        if let latest, let data = try? JSONEncoder().encode(latest) { context["plan"] = data }
+        if let latestRide, let data = try? JSONEncoder().encode(latestRide) { context["ride"] = data }
+        guard !context.isEmpty else { return }
+        try? session.updateApplicationContext(context)
     }
 
     // MARK: WCSessionDelegate

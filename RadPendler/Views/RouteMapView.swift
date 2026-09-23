@@ -10,6 +10,19 @@ struct RouteMapView: UIViewRepresentable {
     var radarTime: Date?
     /// Fixed points from the settings, drawn as flags.
     var waypoints: [Place] = []
+    /// The way actually ridden, coloured by speed. Grows point by point while
+    /// a ride is being recorded and stands still afterwards.
+    var track: [RidePoint] = []
+    /// Where the ride stood still, and whether that was a red light.
+    var trackStops: [RideStop] = []
+    /// Where the rider is now; drawn as a heading arrow, not as a pin.
+    var rider: CLLocationCoordinate2D? = nil
+    /// Degrees from north, negative when unknown.
+    var course: CLLocationDirection = -1
+    /// Keep the map on the rider instead of on the whole route.
+    var following = false
+    /// The user dragged the map: following has to give way to the hand.
+    var onPan: (() -> Void)? = nil
     /// Tap on an option's label on the map.
     var onSelect: ((TripOption.ID) -> Void)? = nil
 
@@ -21,10 +34,19 @@ struct RouteMapView: UIViewRepresentable {
         map.register(MKMarkerAnnotationView.self, forAnnotationViewWithReuseIdentifier: "pin")
         map.register(OptionLabelView.self, forAnnotationViewWithReuseIdentifier: "label")
         map.register(SignalDotView.self, forAnnotationViewWithReuseIdentifier: "signal")
+        map.register(StopDotView.self, forAnnotationViewWithReuseIdentifier: "stop")
+        map.register(RiderView.self, forAnnotationViewWithReuseIdentifier: "rider")
         let press = UILongPressGestureRecognizer(target: context.coordinator,
                                                  action: #selector(Coordinator.handleLongPress(_:)))
         press.minimumPressDuration = 0.45
         map.addGestureRecognizer(press)
+        // Rides alongside MapKit's own recognisers instead of replacing them:
+        // it only has to notice that a hand was on the map, so the camera can
+        // stop fighting it.
+        let pan = UIPanGestureRecognizer(target: context.coordinator,
+                                         action: #selector(Coordinator.handlePan(_:)))
+        pan.delegate = context.coordinator
+        map.addGestureRecognizer(pan)
         return map
     }
 
@@ -49,6 +71,89 @@ struct RouteMapView: UIViewRepresentable {
 
     /// A junction with traffic lights on the chosen bike route.
     final class SignalDot: MKPointAnnotation {}
+
+    /// A stretch of the recorded ride, in the colour of the speed it was
+    /// ridden at. One polyline per run of equal colour: MapKit draws a
+    /// polyline in exactly one colour, so a line that changes colour is
+    /// several lines.
+    final class TrackLine: MKPolyline {
+        var step = 0
+    }
+
+    /// Where the ride stood still. Yellow at a lit junction, grey elsewhere —
+    /// the difference the whole counting is about.
+    final class StopDot: MKPointAnnotation {
+        var atSignal = false
+        var seconds: TimeInterval = 0
+    }
+
+    final class StopDotView: MKAnnotationView {
+        private let label = UILabel()
+
+        override init(annotation: MKAnnotation?, reuseIdentifier: String?) {
+            super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
+            frame = CGRect(x: 0, y: 0, width: 26, height: 16)
+            label.frame = bounds
+            label.textAlignment = .center
+            label.font = .monospacedDigitSystemFont(ofSize: 9, weight: .bold)
+            label.textColor = .black
+            addSubview(label)
+            layer.cornerRadius = 8
+            layer.borderWidth = 1.5
+            layer.borderColor = UIColor.white.cgColor
+            collisionMode = .circle
+            canShowCallout = false
+        }
+
+        required init?(coder: NSCoder) { fatalError() }
+
+        func configure(_ dot: StopDot) {
+            backgroundColor = dot.atSignal ? UIColor(red: 0.98, green: 0.78, blue: 0.11, alpha: 1)
+                                           : UIColor.systemGray3
+            label.text = "\(Int(dot.seconds.rounded()))s"
+            displayPriority = dot.atSignal ? .defaultHigh : .defaultLow
+        }
+    }
+
+    /// Where the rider is, pointing the way they are going.
+    final class Rider: MKPointAnnotation {
+        var course: CLLocationDirection = -1
+    }
+
+    final class RiderView: MKAnnotationView {
+        private let arrow = UIImageView()
+
+        override init(annotation: MKAnnotation?, reuseIdentifier: String?) {
+            super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
+            frame = CGRect(x: 0, y: 0, width: 30, height: 30)
+            backgroundColor = UIColor(red: 0.00, green: 0.62, blue: 0.51, alpha: 1)
+            layer.cornerRadius = 15
+            layer.borderWidth = 3
+            layer.borderColor = UIColor.white.cgColor
+            layer.shadowColor = UIColor.black.cgColor
+            layer.shadowOpacity = 0.3
+            layer.shadowRadius = 3
+            layer.shadowOffset = .zero
+            arrow.frame = bounds.insetBy(dx: 6, dy: 6)
+            arrow.contentMode = .scaleAspectFit
+            arrow.tintColor = .white
+            arrow.image = UIImage(systemName: "location.north.fill")
+            addSubview(arrow)
+            displayPriority = .required
+            zPriority = .max
+            collisionMode = .circle
+            canShowCallout = false
+        }
+
+        required init?(coder: NSCoder) { fatalError() }
+
+        /// Without a course the arrow would point north and lie about it; a
+        /// dot says the same thing without the lie.
+        func configure(_ r: Rider) {
+            arrow.isHidden = r.course < 0
+            arrow.transform = CGAffineTransform(rotationAngle: r.course * .pi / 180)
+        }
+    }
 
     final class SignalDotView: MKAnnotationView {
         override init(annotation: MKAnnotation?, reuseIdentifier: String?) {
@@ -118,8 +223,9 @@ struct RouteMapView: UIViewRepresentable {
         }
     }
 
-    final class Coordinator: NSObject, MKMapViewDelegate {
+    final class Coordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDelegate {
         var onSelect: ((TripOption.ID) -> Void)?
+        var onPan: (() -> Void)?
         /// The rectangle that holds every drawn route — where a long press goes back to.
         private var fitRect: MKMapRect?
 
@@ -131,6 +237,16 @@ struct RouteMapView: UIViewRepresentable {
             map.setVisibleMapRect(fitRect, edgePadding: Self.fitInsets, animated: true)
         }
 
+        /// A hand on the map outranks the camera. Only the start of the drag
+        /// counts — reporting every movement would send one message per frame.
+        @objc func handlePan(_ g: UIPanGestureRecognizer) {
+            guard g.state == .began else { return }
+            onPan?()
+        }
+
+        func gestureRecognizer(_ g: UIGestureRecognizer,
+                               shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
+
         static let fitInsets = UIEdgeInsets(top: 50, left: 30, bottom: 110, right: 30)
         private var routeKey = ""
         private var planKey = ""
@@ -138,9 +254,16 @@ struct RouteMapView: UIViewRepresentable {
         private var renderers: [Date: MKTileOverlayRenderer] = [:]
         private var shownRadar: Date?
         private var rider: Pin?
+        /// How many points of the ride are already drawn. The line only ever
+        /// grows, so a redraw is a few new segments — not a thousand polylines
+        /// torn down and rebuilt once a second.
+        private var drawnTrack = 0
+        private var stopKey = 0
+        private var live: Rider?
 
         func update(_ map: MKMapView, _ view: RouteMapView) {
             onSelect = view.onSelect
+            onPan = view.onPan
             // New plan → redraw and fit; new selection only → redraw.
             let plan = view.options.map { $0.id.uuidString }.joined()
             let key = plan + (view.selectedID?.uuidString ?? "")
@@ -154,6 +277,129 @@ struct RouteMapView: UIViewRepresentable {
             }
             updateRadar(map, view)
             updateRider(map, view)
+            updateTrack(map, view)
+            updateLive(map, view)
+        }
+
+        // MARK: The ride being recorded
+
+        /// The ridden line in the colours of the speeds it was ridden at. A
+        /// segment belongs to the step of the speed at its *end*: that is the
+        /// speed that was reached over it.
+        private func updateTrack(_ map: MKMapView, _ view: RouteMapView) {
+            guard view.track.count >= 2 else {
+                if drawnTrack > 0 {
+                    map.removeOverlays(map.overlays.filter { $0 is TrackLine })
+                    drawnTrack = 0
+                }
+                return
+            }
+            // A different ride (the detail map, or a new recording) — start over.
+            if view.track.count < drawnTrack {
+                map.removeOverlays(map.overlays.filter { $0 is TrackLine })
+                drawnTrack = 0
+            }
+            let first = drawnTrack == 0
+            let from = Swift.max(drawnTrack - 1, 0)
+            var added: [TrackLine] = []
+            for line in Self.lines(of: view.track, from: from) {
+                map.addOverlay(line, level: .aboveRoads)
+                added.append(line)
+            }
+            drawnTrack = view.track.count
+            updateStops(map, view)
+            // A finished ride is shown on its own, without a plan under it —
+            // then there is no route rectangle to open on and the track is
+            // the only thing that says where in the world this happened.
+            guard first, !view.following, view.options.isEmpty,
+                  let start = added.first?.boundingMapRect else { return }
+            fitTrack(map, added.dropFirst().reduce(start) { $0.union($1.boundingMapRect) })
+        }
+
+        /// Insets for a bare track: no radar bar underneath, only the colour
+        /// scale in the corner.
+        static let trackInsets = UIEdgeInsets(top: 24, left: 24, bottom: 44, right: 24)
+
+        /// Before the first layout the map has no size and a fit is thrown
+        /// away — the same trap `zoomToRoutes` sits in, and the same way out.
+        /// Bounded, so a view that never gets a size does not keep a runloop
+        /// hop alive forever.
+        private func fitTrack(_ map: MKMapView, _ rect: MKMapRect, tries: Int = 20) {
+            fitRect = rect
+            guard map.bounds.width > 0 else {
+                guard tries > 0 else { return }
+                DispatchQueue.main.async { [weak self, weak map] in
+                    guard let self, let map else { return }
+                    self.fitTrack(map, rect, tries: tries - 1)
+                }
+                return
+            }
+            map.setVisibleMapRect(rect, edgePadding: Self.trackInsets, animated: false)
+        }
+
+        /// One polyline per run of equal colour, built from `from` onwards.
+        /// Runs overlap by a point so the line has no gaps at a colour change.
+        static func lines(of track: [RidePoint], from: Int) -> [TrackLine] {
+            guard track.count >= 2, from < track.count - 1 else { return [] }
+            var out: [TrackLine] = []
+            var run: [CLLocationCoordinate2D] = [track[from].coordinate]
+            var step = RideColors.index(track[from + 1].kmh)
+            for i in (from + 1)..<track.count {
+                let next = RideColors.index(track[i].kmh)
+                if next != step, run.count >= 2 {
+                    out.append(line(run, step))
+                    run = [run[run.count - 1]]
+                    step = next
+                }
+                run.append(track[i].coordinate)
+            }
+            if run.count >= 2 { out.append(line(run, step)) }
+            return out
+        }
+
+        private static func line(_ coords: [CLLocationCoordinate2D], _ step: Int) -> TrackLine {
+            let l = TrackLine(coordinates: coords, count: coords.count)
+            l.step = step
+            return l
+        }
+
+        private func updateStops(_ map: MKMapView, _ view: RouteMapView) {
+            // Count alone would miss a different ride with the same number of
+            // stops, which is exactly what two commutes of the same route are.
+            let key = view.trackStops.count &+ Int(view.trackStops.first?.start.timeIntervalSince1970 ?? 0)
+            guard key != stopKey else { return }
+            stopKey = key
+            map.removeAnnotations(map.annotations.filter { $0 is StopDot })
+            map.addAnnotations(view.trackStops.map { stop in
+                let d = StopDot()
+                d.coordinate = stop.coordinate
+                d.atSignal = stop.atSignal
+                d.seconds = stop.seconds
+                d.title = stop.atSignal ? "Ampel" : "Halt"
+                return d
+            })
+        }
+
+        /// The rider's own position, and the camera that follows it. Following
+        /// keeps a fixed scale and turns with the course, because on a bike one
+        /// reads the map as "what is in front of me", not as "where is north".
+        private func updateLive(_ map: MKMapView, _ view: RouteMapView) {
+            guard let here = view.rider else {
+                if let live { map.removeAnnotation(live); self.live = nil }
+                return
+            }
+            if live == nil {
+                let r = Rider()
+                live = r
+                map.addAnnotation(r)
+            }
+            live?.coordinate = here
+            live?.course = view.course
+            if let live, let v = map.view(for: live) as? RiderView { v.configure(live) }
+            guard view.following else { return }
+            let camera = MKMapCamera(lookingAtCenter: here, fromDistance: 700,
+                                     pitch: 0, heading: view.course >= 0 ? view.course : map.camera.heading)
+            map.setCamera(camera, animated: true)
         }
 
         private func drawRoutes(_ map: MKMapView, _ view: RouteMapView) {
@@ -345,6 +591,14 @@ struct RouteMapView: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+            if let track = overlay as? TrackLine {
+                let r = MKPolylineRenderer(polyline: track)
+                r.strokeColor = RideColors.steps[track.step].color
+                r.lineWidth = 7
+                r.lineCap = .round
+                r.lineJoin = .round
+                return r
+            }
             if let line = overlay as? LegLine {
                 let r = MKPolylineRenderer(polyline: line)
                 // Other options grey underneath, the chosen one in colour on top.
@@ -366,6 +620,16 @@ struct RouteMapView: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            if let rider = annotation as? Rider {
+                let v = mapView.dequeueReusableAnnotationView(withIdentifier: "rider", for: rider) as! RiderView
+                v.configure(rider)
+                return v
+            }
+            if let stop = annotation as? StopDot {
+                let v = mapView.dequeueReusableAnnotationView(withIdentifier: "stop", for: stop) as! StopDotView
+                v.configure(stop)
+                return v
+            }
             if annotation is SignalDot {
                 return mapView.dequeueReusableAnnotationView(withIdentifier: "signal", for: annotation)
             }

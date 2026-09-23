@@ -19,7 +19,19 @@ struct WatchHome: View {
     @State private var page = 0
 
     var body: some View {
-        if let plan = model.snapshot, !plan.options.isEmpty {
+        if let live = model.live {
+            // While a ride is being recorded there is only one question worth
+            // a wrist, and it is not the next connection. The plan stays one
+            // swipe down for as long as there is one.
+            TabView(selection: $page) {
+                RidePage(live: live).tag(0)
+                if let plan = model.snapshot, !plan.options.isEmpty {
+                    CountdownPage(plan: plan).tag(1)
+                    if let trip = model.selected { TripPage(plan: plan, trip: trip).tag(2) }
+                }
+            }
+            .tabViewStyle(.verticalPage)
+        } else if let plan = model.snapshot, !plan.options.isEmpty {
             TabView(selection: $page) {
                 CountdownPage(plan: plan).tag(0)
                 if let trip = model.selected { TripPage(plan: plan, trip: trip).tag(1) }
@@ -34,6 +46,131 @@ struct WatchHome: View {
                                    systemImage: "iphone.slash",
                                    description: Text("RadPendler auf dem iPhone öffnen — der Plan kommt von dort."))
         }
+    }
+}
+
+/// The ride under way, as the wrist wants it: the clock, how fast on average,
+/// and what the red lights cost so far. After the ride the same page stands
+/// still as the summary.
+///
+/// Nothing here is computed on the watch. The phone measures, the watch reads
+/// — which is why the numbers carry their age when the two lose contact.
+struct RidePage: View {
+    @Environment(WatchModel.self) private var model
+    var live: RideLive
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            ScrollView {
+                VStack(spacing: 6) {
+                    head
+                    clock(now: context.date)
+                    HStack(spacing: 6) {
+                        tile("Ø", value: Fmt.kmh(live.averageKmh), tint: Color(hex: live.colorHex))
+                        tile("jetzt", value: live.running ? Fmt.kmh(live.currentKmh) : Fmt.km(live.meters),
+                             tint: .primary)
+                    }
+                    signals
+                    facts(now: context.date)
+                }
+                .padding(.horizontal, 4)
+            }
+            .onChange(of: context.date) { model.expireSummary(now: context.date) }
+        }
+    }
+
+    private var head: some View {
+        HStack(spacing: 5) {
+            Image(systemName: live.symbol)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color(hex: live.colorHex))
+            Text("\(live.origin) → \(live.destination)")
+                .font(.system(size: 11, design: .rounded))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Running while the ride runs, stopped at its length once it is over.
+    private func clock(now: Date) -> some View {
+        let seconds = live.running ? max(0, now.timeIntervalSince(live.started)) : live.seconds
+        return VStack(spacing: -2) {
+            Text(Fmt.clock(seconds))
+                .font(.system(size: 38, weight: .heavy, design: .rounded))
+                .monospacedDigit()
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+            Text(live.running ? "unterwegs · \(Fmt.km(live.meters))" : "angekommen · \(Fmt.km(live.meters))")
+                .font(.system(size: 11, design: .rounded))
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    /// The one line the whole feature is about: how often one stood at a red
+    /// light and how long it cost altogether.
+    private var signals: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "light.beacon.max")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.yellow)
+            VStack(alignment: .leading, spacing: 0) {
+                Text("\(live.signalStops) Ampelhalt\(live.signalStops == 1 ? "" : "s")")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                Text(live.signalStops == 0 ? "keine Wartezeit"
+                     : "\(Fmt.clock(live.signalWaitTotal)) · Ø \(Fmt.clock(live.signalWaitAverage))")
+                    .font(.system(size: 11, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 8).padding(.vertical, 6)
+        .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func facts(now: Date) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            row("rollend", Fmt.kmh(live.movingKmh))
+            row("gestanden", Fmt.clock(live.standingSeconds))
+            if live.otherStops > 0 { row("andere Halte", "\(live.otherStops)") }
+            // The numbers come from the phone; when it is out of range they
+            // stop being current, and saying so is the whole difference
+            // between an old number and a wrong one.
+            if now.timeIntervalSince(live.at) > 20 {
+                Text("Stand \(Fmt.age(now.timeIntervalSince(live.at)))")
+                    .font(.system(size: 10, design: .rounded))
+                    .foregroundStyle(.orange)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 2)
+    }
+
+    private func row(_ title: String, _ value: String) -> some View {
+        HStack {
+            Text(title).font(.system(size: 11, design: .rounded)).foregroundStyle(.secondary)
+            Spacer(minLength: 4)
+            Text(value).font(.system(size: 12, weight: .semibold, design: .rounded)).monospacedDigit()
+        }
+    }
+
+    private func tile(_ title: String, value: String, tint: Color) -> some View {
+        VStack(spacing: -1) {
+            Text(title).font(.system(size: 10, design: .rounded)).foregroundStyle(.secondary)
+            Text(value)
+                .font(.system(size: 17, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+                .foregroundStyle(tint)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 5)
+        .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
     }
 }
 

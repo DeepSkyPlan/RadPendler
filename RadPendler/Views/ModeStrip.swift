@@ -135,8 +135,17 @@ struct ModeStrip: View {
 struct SelectedTripBar: View {
     var model: PlanModel
     var option: TripOption
+    /// Starts recording this trip; nil leaves the button away.
+    var onRecord: (() -> Void)? = nil
 
     var body: some View {
+        HStack(spacing: 8) {
+            bar
+            if let onRecord { RecordButton(tint: option.mode.color, action: onRecord) }
+        }
+    }
+
+    private var bar: some View {
         NavigationLink {
             TripDetailView(option: option, reason: recommendationReason)
         } label: {
@@ -214,5 +223,29 @@ struct SelectedTripBar: View {
             return Note(text: "Fehler", symbol: "exclamationmark.triangle", tint: .orange)
         }
         return nil
+    }
+}
+
+/// "Jetzt losfahren und mitschreiben." Sits beside the chosen trip and costs
+/// the page no height — the main screen still has to fit without scrolling.
+struct RecordButton: View {
+    var tint: Color
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 1) {
+                Image(systemName: "record.circle")
+                    .font(.system(size: 19, weight: .semibold))
+                Text("Fahrt")
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+            }
+            .foregroundStyle(.white)
+            .frame(width: 52, height: 56)
+            .background(Theme.gradient(tint), in: RoundedRectangle(cornerRadius: Theme.innerCorner,
+                                                                   style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Fahrt aufzeichnen")
     }
 }

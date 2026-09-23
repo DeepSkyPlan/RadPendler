@@ -1,4 +1,4 @@
-# RadPendler — Übergabe (Stand 22.09.2026, 0.12.0 / Build 18)
+# RadPendler — Übergabe (Stand 23.09.2026, 1.0 / Build 22 + Aufzeichnung)
 
 Multimodaler Pendel-Planer für iPhone, iPad und Apple Watch: Büro ↔ Zuhause mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln,
 Regen und Countdown.
@@ -39,11 +39,21 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
 
 ## Aufbau
 
-- `Models/` — `Place` (mit `postalCode`/`locality`, `areaLine`, `withArea`) und `PlaceUse`
+- `Models/` — `Ride` (eine gefahrene Fahrt: nur Gemessenes gespeichert, alles Ableitbare
+  gerechnet; `RideTrack` mit Linie und Halten **getrennt** davon, damit eine Liste von
+  dreihundert Fahrten nicht dreihundert Linien in den Speicher zieht; `Ride.grouped`
+  macht Jahre und Monate daraus), `Place` (mit `postalCode`/`locality`, `areaLine`, `withArea`) und `PlaceUse`
   (benutzte Adressen mit Zähler; `ranked`, `matching`, `recording` als reine Funktionen auf
   `[PlaceUse]`), `AppSettings` (+ `PlanSettings` als Wertkopie, `DeparturePreset`), `Trip`
   (`TripOption`, `Leg`, `TravelMode`, `BikeVariant`, `CarVariant`, `TransitProduct`).
-- `Services/` — `Location` (ein einzelner Fix auf Tippen, danach nichts mehr;
+- `Services/` — `RideMeter` (die ganze Messlogik als **reine Struktur** ohne
+  `CLLocationManager`: Strecke, Halte, Ampelzuordnung, Linie — ein Test füttert sie mit
+  erfundenen Fixes, siehe `RideTests`), `RideTracker` (der Manager drumherum; schaltet
+  `allowsBackgroundLocationUpdates` **nur** zwischen Start und Ende einer Fahrt ein und
+  danach wieder aus, schickt die Zahlen im Sekundentakt an die Uhr und sichert alle 30 s
+  einen Zwischenstand), `RideStore` (+ `RideCloud`: Zusammenfassungen in einer Datei,
+  Linien je eine, dazu die private CloudKit-Datenbank),
+  `Location` (ein einzelner Fix auf Tippen, danach nichts mehr;
   `place(from:at:)` ist absichtlich `nonisolated`, damit es ohne Gerät testbar ist),
   `Motis` (Transitous/MOTIS 2: `MotisClient` + `MotisParser`, inkl.
   Polylinien-Dekoder), `CloudStore` (iCloud-Schlüssel-Wert-Abgleich der Einstellungen; hört auf
@@ -55,8 +65,9 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
 - `App/PlanModel.swift` — Zustand: `when` (departNow / departAt / arriveAt), Auswahl je Modus,
   `countdownOption`, `applyDefaultWhen`, `publishToWatch`.
 - `Shared/` — in **beiden** Zielen: `Countdown` (Farbrampe und Text, damit Uhr und Telefon
-  dieselbe Minute gleich färben) und `TripSnapshot` (der Plan, wie ihn die Uhr sieht:
-  keine Koordinaten, keine Routen, Farben als Hex).
+  dieselbe Minute gleich färben), `TripSnapshot` (der Plan, wie ihn die Uhr sieht:
+  keine Koordinaten, keine Routen, Farben als Hex) und `RideLive` (die laufende Fahrt,
+  ebenso klein: nur Zahlen, klein genug für eine Nachricht je Sekunde).
 - `RadPendlerWatch/` — `WatchApp`, `WatchModel` (+ `PhoneLink`: WCSession-Empfang und
   Zwischenspeicher auf Platte), `WatchViews` (Countdown, Fahrt, Kategorien + Wege).
 - `Views/` — `ContentView` (eine Seite **ohne ScrollView**, ab regulärer Breite zweispaltig: Kopfzeile, Karte, Boxenreihe,
@@ -66,7 +77,10 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   `RouteMapView` (MKMapView-Wrapper mit Radar, Schildern, Ampelpunkten, Long-Press),
   `TripDetailView` (Zeitstrahl), `SettingsView`, `Theme` (Design-Bausteine, `CountdownBox`,
   `TrafficLightIcon`, `AppMark`), `Style` (Farben, `LegChainView`, `Fmt`),
-  `Mark` (die Geometrie des App-Zeichens in einem 100 × 100-Feld, y nach unten).
+  `Mark` (die Geometrie des App-Zeichens in einem 100 × 100-Feld, y nach unten),
+  `RideTrackingView` (+ `RideSummarySheet`) und `RidesView` (Liste, Detail, `RideFacts`,
+  `RideMapCard`), `RideStyle` (`RideColors` — die fünf Tempostufen der gefahrenen Linie,
+  und `SpeedLegend`, die Skala dazu).
 - App-Zeichen: Form und Farben stehen **nur** in `Views/Mark.swift`. Neu rendern mit
   `swiftc -O -parse-as-library tools/make_icon.swift RadPendler/Views/Mark.swift -o /tmp/mkicon`
   und `/tmp/mkicon RadPendler/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png`.
@@ -127,10 +141,21 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
 - **Das Repo ist öffentlich** (MIT). Keine Adresse, keine echte Koordinate des Nutzers und
   kein Schlüssel darf hineingeraten — auch nicht in Testdaten, Changelog oder Übergabe.
   Die Fixtures tragen neutrale Adressen und eine versetzte Geometrie.
-- **Ortung nur auf Tippen, nie im Hintergrund.** `requestLocation()` liefert einen
-  einzelnen Fix; es gibt kein `startUpdatingLocation`, kein
-  `allowsBackgroundLocationUpdates`, keine Bewegungsverfolgung. Wer das ändert, ändert
-  auch den App-Datenschutz-Fragebogen und die Datenschutzerklärung.
+- **Ortung: ein Fix auf Tippen, laufend nur während einer Aufzeichnung** (Nutzer,
+  23.09.2026 — vorher galt „nie im Hintergrund"). `LocationService` ist unverändert ein
+  einzelner `requestLocation()` für „Mein Standort". Die Aufzeichnung läuft in
+  `RideTracker` und **nur** dort: `startUpdatingLocation` und
+  `allowsBackgroundLocationUpdates` gehen in `begin` an und in `stop` wieder aus,
+  `UIBackgroundModes: location` steht deshalb in `RadPendlerInfo.plist`. Wer daran etwas
+  ändert, ändert auch den App-Datenschutz-Fragebogen und die Datenschutzerklärung —
+  **beide sind für diesen Stand noch nicht nachgezogen.**
+- **Die Ampelzuordnung friert beim Start der Fahrt ein.** `RideTracker.start` bekommt die
+  Kreuzungen der *geplanten* Route mit; eine Neuplanung unterwegs darf nicht nachträglich
+  entscheiden, ob ein Halt vor drei Kilometern eine Ampel war.
+- **Fahrten reisen über CloudKit, nicht über den Schlüssel-Wert-Speicher.** Der fasst 1 MB
+  insgesamt; eine Fahrt mit Linie ist komprimiert rund 20 kB. Container
+  `iCloud.de.keese.radpendler`, Datensatztyp `Ride`, die Linie zlib-komprimiert im Feld
+  `track`. Ohne iCloud-Konto bleibt alles lokal, wie bei `CloudStore` auch.
 - **Keine Adressen im Programm** — die App startet leer. Adressen und Einstellungen liegen
   auf dem Gerät und in der **privaten iCloud des Nutzers** (Schlüssel-Wert-Speicher,
   Entitlement `com.apple.developer.ubiquity-kvstore-identifier`); sie gehen an keinen
@@ -142,6 +167,17 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
 - Blockreihenfolge: Fahrrad, Rad + Bahn, Auto, Bahn & Bus.
 
 ## Offen / Ideen
+
+- **Der CloudKit-Container muss im Entwicklerkonto existieren.** Xcode legt ihn bei
+  automatischer Signierung beim ersten Bauen auf ein Gerät an; ein `archive` von der
+  Kommandozeile kann daran scheitern, bevor es je ein Gerät gesehen hat. Im Simulator
+  werden die iCloud-Rechte ohne Profil ohnehin weggelassen — dort synchronisiert nichts,
+  und das ist kein Fehler. Vor der Produktivumgebung im CloudKit-Dashboard prüfen, ob
+  `Ride` abfragbar indiziert ist (`recordName`), sonst liefert `fetchSummaries` nichts.
+- `UIBackgroundModes` gibt es **nicht** als `INFOPLIST_KEY_*`. Deshalb die Teil-Datei
+  `RadPendlerInfo.plist` neben `GENERATE_INFOPLIST_FILE: YES`; Xcode mischt beides. Sie
+  enthält genau diesen einen Schlüssel und darf nicht in einen Quell- oder
+  Ressourcenpfad wandern.
 
 - Mitteilungen laufen als `UNTimeIntervalNotificationTrigger` und werden bei jeder Planänderung
   neu gesetzt (`Alarm.schedule`, Schlüssel `ContentView.alarmKey`). Im Hintergrund plant die App

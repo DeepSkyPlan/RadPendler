@@ -40,6 +40,10 @@ targets:
       path: RadPendler/RadPendler.entitlements
       properties:
         com.apple.developer.ubiquity-kvstore-identifier: $(TeamIdentifierPrefix)$(CFBundleIdentifier)
+        # Die aufgezeichneten Fahrten passen nicht in den Schlüssel-Wert-Speicher
+        # (1 MB insgesamt); sie liegen in der privaten CloudKit-Datenbank.
+        com.apple.developer.icloud-services: [CloudKit]
+        com.apple.developer.icloud-container-identifiers: [iCloud.de.keese.radpendler]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: de.keese.radpendler
@@ -51,7 +55,13 @@ targets:
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         # One fix on demand, never a trail: the app asks only when "Mein
         # Standort" is tapped and forgets the manager afterwards.
-        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Damit „Mein Standort“ als Startadresse eingesetzt werden kann. Der Standort wird einmal abgefragt, in eine Adresse übersetzt und nicht gespeichert; die App folgt niemandem."
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Für „Mein Standort“ als Startadresse — einmal abgefragt, in eine Adresse übersetzt, nicht gespeichert. Und, wenn du eine Fahrt aufzeichnest, für die Strecke, die Geschwindigkeit und die Ampelhalts dieser Fahrt: nur zwischen „Fahrt aufzeichnen“ und „Fahrt beenden“, und nur in deine eigene iCloud."
+        # UIBackgroundModes gibt es nicht als INFOPLIST_KEY_*; die Teil-Datei
+        # wird von Xcode mit den erzeugten Schlüsseln zusammengeführt. Sie
+        # enthält genau einen Eintrag: den Hintergrundmodus für die
+        # Aufzeichnung einer Fahrt (nur zwischen Start und Ende aktiv,
+        # RideTracker schaltet ihn selbst wieder ab).
+        INFOPLIST_FILE: RadPendlerInfo.plist
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         # iPad turns every way up; the layout follows the size class, not the device.
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"

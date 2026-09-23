@@ -33,6 +33,14 @@ eingecheckt — die Struktur steht in `project.yml` (XcodeGen).
   zwischen Rad und Bahn, nicht als Wetterbericht.
 - **Countdown** bis zum Losgehen, als Ampel gefärbt, mit Mitteilungen auch bei
   geschlossener App — und auf der Uhr.
+- **Fahrt aufzeichnen**: die Karte geht auf ganze Seite und folgt dem Rad, der
+  gefahrene Weg färbt sich nach Geschwindigkeit, Halte werden gezählt — und die
+  an einer Ampelkreuzung der geplanten Route getrennt von allen anderen, mit
+  ihrer Wartezeit. Danach stehen Strecke, Schnitt, Spitze, Stand- und Rollzeit
+  in einer Liste, nach Jahren und Monaten. Die Uhr zeigt dieselben Zahlen
+  während der Fahrt.
+- **Querformat**: gedreht wird zweispaltig — Bedienung links, Karte rechts über
+  die ganze Höhe, wie auf dem iPad.
 - **Vorlieben statt Regeln**: in welcher Reihenfolge die Verkehrsmittel gelten,
   welche Routenvariante vorgeschlagen wird und ab wieviel Regen das Rad in die
   Bahn gehört, steht in den Einstellungen.
@@ -48,17 +56,23 @@ eingecheckt — die Struktur steht in `project.yml` (XcodeGen).
 - **DWD GeoServer WMS** `dwd:Niederschlagsradar` — Regenradar und 2-h-Nowcast.
 - **Open-Meteo** `minutely_15` — Regen je Streckenpunkt.
 
-- **„Mein Standort"** als Startadresse: einmal abgefragt, in eine Adresse
-  übersetzt, danach vergessen — die App folgt niemandem.
+- **CoreLocation** — „Mein Standort" als Startadresse (ein einzelner Fix auf
+  Tippen) und, während einer Aufzeichnung, die gefahrene Strecke.
+- **CloudKit**, private Datenbank — die aufgezeichneten Fahrten zwischen den
+  Geräten des Nutzers.
 
 ## Privates
 
-Die App wird **ohne Adressen** ausgeliefert und enthält keine. Der Standort
-wird nur auf Tippen abgefragt, einmal, und nur um daraus eine Startadresse zu
-machen; danach wird der Manager wieder vergessen. Was der Nutzer
-eingibt, bleibt auf seinen Geräten und in seiner eigenen iCloud
-(Schlüssel-Wert-Speicher); es geht an keinen Server dieses Projekts, weil es
-keinen gibt. Die Testdaten unter `RadPendlerTests/Fixtures` sind echte Antworten
+Die App wird **ohne Adressen** ausgeliefert und enthält keine. Für die
+Startadresse wird der Standort einmal auf Tippen abgefragt und der Manager
+danach wieder vergessen. Laufend geortet wird **ausschließlich** zwischen
+„Fahrt" und „Fahrt beenden" — dann allerdings auch mit dem Telefon in der
+Tasche, anders ist eine Pendelfahrt nicht aufzuzeichnen; iOS zeigt solange die
+blaue Leiste, und die App schaltet den Hintergrundmodus danach selbst wieder ab.
+Was der Nutzer eingibt und was aufgezeichnet wird, bleibt auf seinen Geräten und
+in seiner eigenen iCloud (Einstellungen im Schlüssel-Wert-Speicher, Fahrten in
+der privaten CloudKit-Datenbank); es geht an keinen Server dieses Projekts, weil
+es keinen gibt. Die Testdaten unter `RadPendlerTests/Fixtures` sind echte Antworten
 der Dienste, aber auf neutrale Adressen und eine versetzte Geometrie gebracht.
 
 ## Lizenz
