@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.2 (Build 24) — nach der ersten Testfahrt
+Zehn Punkte aus der Praxis, nicht aus dem Simulator.
+
+- **Der Pfeil zeigt immer in Fahrtrichtung.** Vorher zeigte er doppelt daneben: die Karte dreht sich beim Folgen selbst in den Kurs, und der Pfeil drehte noch einmal denselben Winkel obendrauf. Jetzt ist es der Kurs **minus** der Blickrichtung der Karte. Meldet der Empfänger im Stand keinen Kurs — das tut er nie —, bleibt der letzte stehen; gab es noch nie einen, kommt er aus der gefahrenen Linie.
+- **Nach Zoomen oder Schieben kommt die Karte von selbst zurück**, 30 Sekunden nach der letzten Berührung. Der Knopf oben links schaltet das Folgen weiterhin von Hand um.
+- **Ausrichtung festhalten.** Ein Knopf auf der Fahrtansicht schaltet automatisch › hochkant › querformat; dieselbe Einstellung steht unter *Fahrt aufzeichnen*. Am Lenker ist eine Karte, die sich in der Kurve selbst dreht, keine Hilfe.
+- **Abbiegehinweise.** Ganz oben ein rotes Band mit großem Pfeil: was kommt und in wie vielen Metern. Die Kurven rechnet die App aus der gezeichneten Linie selbst aus — kein zusätzlicher Dienst, keine Straßennamen, keine Ansage. Die Route dafür wird **beim Start der Fahrt festgehalten**, damit eine Neuplanung unterwegs den Pfeil nicht auf eine Straße zeigen lässt, auf der man nicht ist.
+- **Ein Stillstand ab 30 Sekunden ist eine Ampel**, auch wenn keine Karte dort eine kennt. Die Schwelle steht in den Einstellungen.
+- **Die aktuelle Geschwindigkeit ist jetzt die große Zahl** auf der Fahrtansicht — in der Farbe, in der die Linie gerade gezeichnet wird. Schnitt und Strecke stehen klein daneben.
+- **Die App merkt sich, wo du stehst.** Jede gezählte Ampel wird als Ort behalten, mit Anzahl und Wartezeit, und ab der nächsten Fahrt mitgerechnet: beim Erkennen eines Halts **und** in der Ampelzahl einer Radroute, also in ihrer Fahrzeit. Zwei Geräte führen ihre Listen zusammen. In den Einstellungen stehen sie mit Zähler und lassen sich vergessen.
+- **Doppeltipp auf die Adressbox setzt die Pendelstrecke ein**: aktueller Standort als Start, Zuhause oder Arbeit als Ziel. Was von beidem, entscheidet der Ort — am Zuhause geht es zur Arbeit, an der Arbeit nach Hause —, und wenn keines in der Nähe ist, die Uhr.
+- **Ampeln und Halte sind auf der Karte einer gefahrenen Fahrt deutlich markiert**: gelb mit Ampelzeichen und Wartezeit, alles andere klein und grau.
+- **Neue Radvariante „verkehrsarm"** neben „ruhigst". Die beiden sind nicht dasselbe: „ruhigst" zählt auch Ampeln und Querungen, „verkehrsarm" fragt nur, wo die Autos sind — die wenigsten Meter neben einer Hauptstraße. Dazu fährt die App jetzt zusätzlich BRouters `fastbike-lowtraffic`-Profil ab.
+
 ## 1.1 (Build 23, TestFlight 2026-09-23)
 - **Querformat.** Gedreht steht die App zweispaltig wie auf dem iPad: Kopfzeile, Boxen und Fahrtzeile links in einer 360 Punkte breiten Spalte, die Karte rechts über die ganze Höhe. Die Detailspalte des iPads kommt mit: sie füllt, was sonst ein leeres Drittel der Spalte wäre, und scrollt, wo sie nicht passt.
 - **Fahrt aufzeichnen.** Der Knopf rechts neben der gewählten Fahrt startet die Aufzeichnung; die Karte nimmt die ganze Seite, folgt dir und zeichnet den gefahrenen Weg **nach Geschwindigkeit eingefärbt** (fünf Stufen, rot unter 8 bis grün über 26 km/h, mit Skala in der Ecke). Uhr, Ø-Tempo, aktuelles Tempo und Strecke stehen darunter. Ein Wisch über die Karte löst das Folgen, der Knopf oben links schaltet es wieder ein.

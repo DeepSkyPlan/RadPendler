@@ -91,6 +91,25 @@ final class AppSettings {
     /// Average wait per traffic light on the bike (half of them are green).
     var signalWaitSeconds: Int = 20 { didSet { defaults.set(signalWaitSeconds, forKey: "signalWaitSeconds") } }
 
+    /// A standstill this long counts as a red light even where no map knows
+    /// one. Nobody waits half a minute in the middle of a street for fun, and
+    /// OpenStreetMap does not know every light — least of all the crossings
+    /// that only behave like one.
+    var signalStopSeconds: Int = 30 { didSet { defaults.set(signalStopSeconds, forKey: "signalStopSeconds") } }
+
+    /// Junctions where the rider actually waited. Learned from the recorded
+    /// rides and used from the next one on — for recognising a red light, and
+    /// for the bike times, where every junction costs `signalWaitSeconds`.
+    var learnedSignals: [LearnedSignal] = [] {
+        didSet { defaults.set(try? JSONEncoder().encode(learnedSignals), forKey: "learnedSignals") }
+    }
+
+    /// Whether the screen may turn. On a handlebar an automatic rotation is a
+    /// nuisance, not a feature.
+    var orientation: OrientationLock = .auto {
+        didSet { defaults.set(orientation.rawValue, forKey: "orientationLock") }
+    }
+
     /// 29 km/h rolling + 20 s per signalised junction reproduces the user's
     /// measured ~21 km/h door-to-door on the Berlin commute it was built for.
     static let defaultBikeSpeedKmh = 29.0
@@ -140,6 +159,22 @@ final class AppSettings {
                                       fallback: CarVariant.defaultOrder)
         rainSwitchLevel = (defaults.object(forKey: "rainSwitchLevel") as? Int)
             .flatMap(RainLevel.init(rawValue:)) ?? rainSwitchLevel
+        signalStopSeconds = defaults.object(forKey: "signalStopSeconds") as? Int ?? signalStopSeconds
+        learnedSignals = defaults.data(forKey: "learnedSignals")
+            .flatMap { try? JSONDecoder().decode([LearnedSignal].self, from: $0) } ?? learnedSignals
+        orientation = (defaults.string(forKey: "orientationLock"))
+            .flatMap(OrientationLock.init(rawValue:)) ?? orientation
+    }
+
+    /// One wait, remembered. Called for every stop a finished ride counted as
+    /// a red light — including the ones no map knew about.
+    func learn(_ stops: [RideStop]) {
+        var list = learnedSignals
+        for stop in stops where stop.atSignal {
+            list = LearnedSignal.recording(list, at: stop.coordinate, waited: stop.seconds)
+        }
+        guard list != learnedSignals else { return }
+        learnedSignals = list
     }
 
     /// Back to what the app ships with — one button beats four drags.
@@ -196,6 +231,26 @@ final class AppSettings {
 
     func place(for role: PlaceRole) -> Place? { role == .home ? homePlace : workPlace }
 
+    /// The commute, in one gesture: where one is standing decides where one is
+    /// going. Standing at home means going to work, standing at work means
+    /// going home, and anywhere else the clock decides — before the morning
+    /// window closes it is still the way in.
+    ///
+    /// A pure function, because "which way round is the commute" is exactly
+    /// the kind of rule that is wrong at 18:59 and nobody notices.
+    static func commuteDestination(from here: CLLocationCoordinate2D?, home: Place?, work: Place?,
+                                   now: Date = .now, workArrivalMinutes: Int = 9 * 60,
+                                   calendar: Calendar = .current) -> Place? {
+        if let here {
+            if let home, here.distance(to: home.coordinate) < 400 { return work ?? home }
+            if let work, here.distance(to: work.coordinate) < 400 { return home ?? work }
+        }
+        let minutes = calendar.component(.hour, from: now) * 60 + calendar.component(.minute, from: now)
+        // Four hours past the time one wants to be at work, the morning is over.
+        let morning = minutes < workArrivalMinutes + 4 * 60
+        return (morning ? work : home) ?? (morning ? home : work)
+    }
+
     func setPlace(_ place: Place?, for role: PlaceRole) {
         if role == .home { homePlace = place } else { workPlace = place }
     }
@@ -214,7 +269,8 @@ final class AppSettings {
                      departureBufferMinutes: departureBufferMinutes, arrivalBufferMinutes: arrivalBufferMinutes,
                      modeOrder: modeOrder, bikeVariantOrder: bikeVariantOrder,
                      carVariantOrder: carVariantOrder, rainSwitchLevel: rainSwitchLevel,
-                     bikeLineStatus: bikeLines.status, timetableSource: timetableSource)
+                     bikeLineStatus: bikeLines.status, timetableSource: timetableSource,
+                     learnedSignals: learnedSignals)
     }
 
     private func save(_ place: Place?, _ key: String) {
@@ -249,6 +305,10 @@ struct PlanSettings: Equatable {
     /// is shown with a warning rather than hidden.
     var bikeLineStatus: [String: Bool] = [:]
     var timetableSource: TimetableSource = .automatic
+    /// Junctions this rider has waited at. They join the ones OpenStreetMap
+    /// knows before a route is judged — a light the map does not have still
+    /// costs `signalWaitSeconds`.
+    var learnedSignals: [LearnedSignal] = []
     /// Beyond this, the whole way by bike is a curiosity rather than a plan:
     /// its box moves to the end of the row and the OpenStreetMap corridor gets
     /// too big to ask Overpass for.
@@ -375,5 +435,36 @@ enum TimetableSource: String, CaseIterable, Identifiable {
     func resolved(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D) -> TimetableSource {
         guard self == .automatic else { return self }
         return Self.covers(from) && Self.covers(to) ? .vbb : .transitous
+    }
+}
+
+
+/// Whether the screen may turn with the phone, or has to stay as it is.
+enum OrientationLock: String, CaseIterable, Codable {
+    case auto, portrait, landscape
+
+    var title: String {
+        switch self {
+        case .auto: "Automatisch"
+        case .portrait: "Hochkant"
+        case .landscape: "Querformat"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .auto: "rotate.right"
+        case .portrait: "iphone"
+        case .landscape: "iphone.landscape"
+        }
+    }
+
+    /// Tap order of the button on the ride screen.
+    var next: OrientationLock {
+        switch self {
+        case .auto: .portrait
+        case .portrait: .landscape
+        case .landscape: .auto
+        }
     }
 }

@@ -18,6 +18,8 @@ struct ContentView: View {
     @State private var showMenu = false
     @State private var showRides = false
     @State private var editing: PlaceField?
+    /// Only for the double tap on the address box; a single fix, then forgotten.
+    @State private var locator = LocationService()
 
     enum PlaceField: Identifiable {
         case origin, destination
@@ -123,7 +125,12 @@ struct ContentView: View {
             // A ride under way is the whole screen: everything the planning
             // page offers is about a trip that has not started yet.
             RideTrackingView(options: model.options, selectedID: model.selected?.id,
-                             onStop: { tracker.stop() })
+                             onStop: {
+                                 tracker.stop()
+                                 // Where this ride stood is what the next one
+                                 // knows: the junctions no map has.
+                                 settings.learn(tracker.meter.stops)
+                             })
         } else if isTwoColumn {
             HStack(alignment: .top, spacing: 0) {
                 VStack(spacing: isWide ? 14 : 8) {
@@ -179,6 +186,7 @@ struct ContentView: View {
                     // long trip holds the network and the map for seconds, and
                     // the plan one is about to replace is worth nothing.
                     onEdit: { model.cancel(); editing = $0 },
+                    onQuickCommute: quickCommute,
                     onSwap: { settings.swapDirection(); model.applyDefaultWhen(settings: settings); refresh() },
                     onWhenChange: refresh)
     }
@@ -214,16 +222,47 @@ struct ContentView: View {
         }
     }
 
+    /// Double tap on the address box: the commute, without typing. Where one
+    /// is standing decides which way round it is — at home it is the way in, at
+    /// work the way back, and anywhere else the clock decides.
+    ///
+    /// The location is fetched the same way „Mein Standort" fetches it: once,
+    /// on this tap, and forgotten again.
+    private func quickCommute() {
+        model.cancel()
+        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        Task {
+            let fix = try? await locator.current()
+            if let fix {
+                settings.origin = await locator.place(for: fix)
+            }
+            if let destination = AppSettings.commuteDestination(from: fix?.coordinate,
+                                                                home: settings.homePlace,
+                                                                work: settings.workPlace,
+                                                                workArrivalMinutes: settings.workArrivalMinutes) {
+                settings.destination = destination
+            }
+            model.applyDefaultWhen(settings: settings)
+            refresh()
+        }
+    }
+
     /// Starts recording the trip that is on screen. The lit junctions of *this*
     /// route come along — they decide later which standstill was a red light,
     /// and a replan half way must not be able to change that answer.
     private func record(_ option: TripOption) {
-        let signals = option.bikeRoute?.stats?.signalPoints ?? option.carRoute?.signalPoints ?? []
+        let planned = option.bikeRoute?.stats?.signalPoints ?? option.carRoute?.signalPoints ?? []
+        // What OpenStreetMap knows, plus what this rider has learned. The
+        // learned ones are the point: the crossing that is only a light in
+        // practice is exactly the one no map has.
+        let signals = planned + settings.learnedSignals.map(\.coordinate)
         tracker.start(subject: RideTracker.Subject(origin: settings.origin?.shortName ?? "Start",
                                                    destination: settings.destination?.shortName ?? "Ziel",
                                                    mode: option.mode.rawValue,
                                                    plannedSeconds: option.duration),
-                      signals: signals)
+                      signals: signals,
+                      route: RideTrackingView.route(of: model.options, selected: option.id),
+                      signalSeconds: TimeInterval(settings.signalStopSeconds))
     }
 
     @ViewBuilder private var rainNote: some View {
@@ -343,6 +382,8 @@ private struct RouteHeader: View {
     /// Whether this address is the user's home or work, for the little mark.
     var role: (Place?) -> PlaceRole?
     var onEdit: (ContentView.PlaceField) -> Void
+    /// Double tap anywhere on the box: the commute, without typing.
+    var onQuickCommute: () -> Void
     var onSwap: () -> Void
     var onWhenChange: () -> Void
 
@@ -377,6 +418,10 @@ private struct RouteHeader: View {
         }
         .padding(14)
         .card()
+        // The empty parts of the box answer to the double tap as well, so it
+        // does not matter where exactly it lands.
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2, perform: onQuickCommute)
         .padding(.horizontal, Theme.gutter)
     }
 
@@ -395,8 +440,12 @@ private struct RouteHeader: View {
 
     /// Street big, postal code and town small beside it — in Berlin a street
     /// name alone is not an address.
+    /// Not a `Button`: a button would swallow the first of the two taps, and
+    /// the shortcut has to work on the address rows as well as beside them.
+    /// `exclusively(before:)` gives the double tap the first refusal and lets
+    /// the single tap through when it does not come.
     private func field(_ place: Place?, placeholder: String, field: ContentView.PlaceField) -> some View {
-        Button { onEdit(field) } label: {
+        Group {
             HStack(alignment: .firstTextBaseline, spacing: 5) {
                 if let role = role(place) { RoleBadge(role: role, compact: true) }
                 Text(place?.shortName ?? placeholder)
@@ -414,8 +463,13 @@ private struct RouteHeader: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .gesture(TapGesture(count: 2).onEnded(onQuickCommute)
+            .exclusively(before: TapGesture().onEnded { onEdit(field) }))
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
         .accessibilityLabel((field == .origin ? "Start: " : "Ziel: ") + (place?.name ?? "nicht gesetzt"))
+        .accessibilityAction { onEdit(field) }
+        .accessibilityAction(named: "Pendelstrecke einsetzen", onQuickCommute)
     }
 }
 

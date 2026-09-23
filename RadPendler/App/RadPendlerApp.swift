@@ -2,6 +2,8 @@ import SwiftUI
 
 @main
 struct RadPendlerApp: App {
+    // Only there so UIKit has someone to ask which way up the app may be.
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var settings = AppSettings()
     @State private var rides = RideStore.shared
     @State private var tracker = RideTracker()
@@ -31,6 +33,8 @@ struct RadPendlerApp: App {
                     // A ride the app did not survive is still a ride; it is
                     // filed here, up to the last second it knew about.
                     rides.recoverInterrupted()
+                    // Whatever the user last chose, from this device or another.
+                    settings.orientation.apply()
                 }
         }
     }

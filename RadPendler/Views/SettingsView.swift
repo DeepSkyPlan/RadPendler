@@ -85,6 +85,32 @@ struct SettingsView: View {
                     Text("Fahrgeschwindigkeit = Tempo beim Rollen, ohne Halte. Die Fahrzeit ist Strecke ÷ Fahrgeschwindigkeit plus die Wartezeit je Ampelkreuzung (inkl. Anfahren); daraus ergibt sich der angezeigte Schnitt „Ø … km/h“. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung auf der Strecke addiert. Für die ganze Strecke gibt es bis zu drei Routen: kürzest, Mittelweg und ruhigst (wenig Ampeln, wenig Hauptstraßen). Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet.")
                 }
                 Section {
+                    Picker("Ausrichtung", selection: $settings.orientation) {
+                        ForEach(OrientationLock.allCases, id: \.self) { o in
+                            Label(o.title, systemImage: o.symbol).tag(o)
+                        }
+                    }
+                    .onChange(of: settings.orientation) { settings.orientation.apply() }
+                    Stepper("Ampelhalt ab \(settings.signalStopSeconds) s",
+                            value: $settings.signalStopSeconds, in: 10...120, step: 5)
+                    HStack {
+                        Label("Gelernte Ampeln", systemImage: "light.beacon.max")
+                        Spacer()
+                        Text("\(settings.learnedSignals.count)")
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    if !settings.learnedSignals.isEmpty {
+                        Button("Gelernte Ampeln vergessen", role: .destructive) {
+                            settings.learnedSignals = []
+                        }
+                    }
+                } header: {
+                    Text("Fahrt aufzeichnen")
+                } footer: {
+                    Text("„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — Wer länger als die eingestellte Zeit steht, stand an einer Ampel, auch wenn keine Karte dort eine kennt. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein: in der Zahl der Ampeln einer Radroute und damit in ihrer Fahrzeit. Sie bleiben auf deinen Geräten.")
+                }
+                Section {
                     Picker("Fahrplan", selection: $settings.timetableSource) {
                         ForEach(TimetableSource.allCases) { Text($0.title).tag($0) }
                     }

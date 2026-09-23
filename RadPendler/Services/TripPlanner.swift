@@ -108,6 +108,10 @@ struct TripPlanner {
         let requests: [(String, BRouterClient.Profile?, Int)] = [
             ("Apple", nil, 0), ("trekking", .trekking, 0), ("fastbike", .fastbike, 0),
             ("safety", .safety, 0), ("safety", .safety, 1), ("safety", .safety, 2),
+            // Pays a detour to stay off roads with cars on them — often the
+            // way one actually rides home, and not the same as "ruhigst",
+            // which also counts lights and crossings.
+            ("verkehrsarm", .lowTraffic, 0),
         ]
         let found = await withTaskGroup(of: (Int, String, StreetRoute?).self) { group in
             for (i, (name, profile, alt)) in requests.enumerated() {
@@ -126,7 +130,7 @@ struct TripPlanner {
         }
         guard !found.isEmpty else { throw PlannerError.noBikeRoute }
 
-        let data = try? await roads.data(covering: found.flatMap { $0.1.coordinates })
+        let data = Self.withLearned(try? await roads.data(covering: found.flatMap { $0.1.coordinates }), req.settings)
         // 63 ms per route, six routes: serially that is 378 ms of the plan for
         // nothing. They do not depend on each other.
         let candidates = await withTaskGroup(of: (Int, BikeCandidate).self) { group in
@@ -166,6 +170,15 @@ struct TripPlanner {
     /// straight run through town.
     /// Why a route has no traffic-light count: too long to ask Overpass for,
     /// or Overpass simply did not answer.
+    /// OpenStreetMap's lit junctions plus the ones this rider has been stopped
+    /// at. `RouteAnalyzer` merges signal nodes within 60 m, so a learned light
+    /// sitting on top of a mapped one does not count twice.
+    static func withLearned(_ data: RoadData?, _ settings: PlanSettings) -> RoadData? {
+        guard var data, !settings.learnedSignals.isEmpty else { return data }
+        data.signals += settings.learnedSignals.map(\.coordinate)
+        return data
+    }
+
     static func noRoadDataNote(km: Double, settings: PlanSettings) -> String {
         km > settings.longTripKm
             ? "Ampeln und Hauptstraßen auf dieser Länge nicht gezählt"
@@ -182,7 +195,7 @@ struct TripPlanner {
                                           && abs($0.expectedTravelTime - r.expectedTravelTime) < 60 }) else { return }
                 out.append(r)
             }
-        let data = try? await roads.data(covering: found.flatMap(\.coordinates))
+        let data = Self.withLearned(try? await roads.data(covering: found.flatMap(\.coordinates)), req.settings)
         let candidates = found.map { route in
             CarCandidate(route: route,
                          stats: data.map { RouteAnalyzer.analyze(route.coordinates, roads: $0) })
@@ -626,22 +639,30 @@ struct BikeCandidate {
     }
 
     /// schnellst = least riding time (traffic lights included), ruhigst =
-    /// least disturbance, optimal = best balance of the two. A route winning
-    /// several roles is listed once with all its labels. Without OpenStreetMap
-    /// data only the time can be judged; BRouter's "safety" route then stands
-    /// in for "ruhigst".
+    /// least disturbance, verkehrsarm = fewest metres beside a main road,
+    /// optimal = best balance of time and disturbance. A route winning several
+    /// roles is listed once with all its labels. Without OpenStreetMap data
+    /// only the time can be judged; BRouter's "safety" route then stands in
+    /// for "ruhigst" and its low-traffic profile for "verkehrsarm".
+    ///
+    /// "ruhigst" and "verkehrsarm" are not the same question: the first counts
+    /// lights and crossings too, the second only asks where the cars are.
     ///
     /// The list comes back in the order the user put the variants in, so the
     /// first route is the one the app suggests and the first the boxes show.
     static func pick(_ all: [BikeCandidate], settings s: PlanSettings) -> [(BikeCandidate, [BikeVariant])] {
         guard let fastest = all.indices.min(by: { all[$0].time(s) < all[$1].time(s) }) else { return [] }
-        let quiet: Int, balanced: Int
+        let quiet: Int, balanced: Int, lowTraffic: Int
         if all.contains(where: { $0.stats != nil }) {
             quiet = all.indices.min { (all[$0].stats?.disturbance ?? .infinity) < (all[$1].stats?.disturbance ?? .infinity) }!
             balanced = all.indices.min { all[$0].balancedScore(s) < all[$1].balancedScore(s) }!
+            lowTraffic = all.indices.min {
+                (all[$0].stats?.mainRoadMeters ?? .infinity) < (all[$1].stats?.mainRoadMeters ?? .infinity)
+            }!
         } else {
             quiet = all.firstIndex { $0.source == "safety" } ?? fastest
             balanced = all.firstIndex { $0.source == "trekking" } ?? fastest
+            lowTraffic = all.firstIndex { $0.source == "verkehrsarm" } ?? quiet
         }
         let shortest = all.indices.min { all[$0].route.distance < all[$1].route.distance }!
         var roles: [Int: [BikeVariant]] = [:]
@@ -649,6 +670,7 @@ struct BikeCandidate {
         roles[shortest, default: []].append(.shortest)
         roles[balanced, default: []].append(.balanced)
         roles[quiet, default: []].append(.quiet)
+        roles[lowTraffic, default: []].append(.lowTraffic)
         let order = s.bikeVariantOrder
         let rank = { (v: BikeVariant) in order.firstIndex(of: v) ?? order.count }
         return roles

@@ -69,9 +69,41 @@ final class BikeRouteTests: XCTestCase {
         // optimal › schnellst › ruhigst › kürzest — so trekking (optimal and
         // schnellst) leads, then safety (ruhigst), then fastbike (kürzest).
         XCTAssertEqual(picked.map(\.0.source), ["trekking", "safety", "fastbike"])
-        XCTAssertEqual(picked.map(\.1), [[.balanced, .fastest], [.quiet], [.shortest]])
+        // safety has both the least disturbance and the fewest metres beside a
+        // main road, so it carries both labels — one route, listed once.
+        XCTAssertEqual(picked.map(\.1), [[.balanced, .fastest], [.quiet, .lowTraffic], [.shortest]])
         // Signal waits are part of the riding time: 45 × 20 s = 15 min.
         XCTAssertEqual(middle.time(s), s.bikeTime(19_700) + 900, accuracy: 1)
+    }
+
+    /// „ruhigst" und „verkehrsarm" sind nicht dieselbe Frage: die erste zählt
+    /// auch Ampeln und Querungen, die zweite fragt nur, wo die Autos sind. Eine
+    /// Strecke durch lauter kleine Straßen mit vielen Ampeln gewinnt die eine
+    /// und verliert die andere.
+    func testQuietAndLowTrafficCanBeDifferentRoutes() {
+        let s = PlanSettings()
+        let lights = candidate("verkehrsarm", km: 21, signals: 60, crossings: 20, mainKm: 1.0)
+        let calm = candidate("safety", km: 21, signals: 20, crossings: 4, mainKm: 6.0)
+        let quick = candidate("fastbike", km: 19, signals: 25, crossings: 10, mainKm: 12.0)
+        let picked = BikeCandidate.pick([lights, calm, quick], settings: s)
+        let roles = Dictionary(uniqueKeysWithValues: picked.map { ($0.0.source, $0.1) })
+        XCTAssertEqual(roles["verkehrsarm"], [.lowTraffic], "die wenigsten Meter neben Hauptstraßen")
+        XCTAssertTrue(roles["safety"]?.contains(.quiet) ?? false, "die geringste Störung insgesamt")
+        XCTAssertFalse(roles["safety"]?.contains(.lowTraffic) ?? true)
+    }
+
+    /// Ohne OpenStreetMap-Daten lässt sich nur die Zeit beurteilen — dann
+    /// vertritt BRouters eigenes Profil die Rolle.
+    func testWithoutRoadDataTheProfileNamesTheVariant() {
+        let plain = { (name: String, km: Double) in
+            BikeCandidate(source: name, route: StreetRoute(distance: km * 1000, expectedTravelTime: 0,
+                                                           coordinates: [], signals: 0), stats: nil)
+        }
+        let picked = BikeCandidate.pick([plain("trekking", 20), plain("safety", 21),
+                                         plain("verkehrsarm", 22)], settings: PlanSettings())
+        let roles = Dictionary(uniqueKeysWithValues: picked.map { ($0.0.source, $0.1) })
+        XCTAssertTrue(roles["safety"]?.contains(.quiet) ?? false)
+        XCTAssertTrue(roles["verkehrsarm"]?.contains(.lowTraffic) ?? false)
     }
 
     func testOneRouteWinningEverythingIsListedOnce() {
