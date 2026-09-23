@@ -31,8 +31,15 @@ intern. In App Store Connect, auf der Versionsseite 0.12.1:
 7. **Datenschutz-URL** — https://deepskyplan.github.io/radpendler-privacy/
    (beide Seiten liegen fertig unter `appstore/pages/`; die Repositories dafür
    gibt es noch nicht — siehe Checkliste am Ende)
-8. **App-Datenschutz** — „Nein“ auf jede Erhebungskategorie. Die Begründung
-   steht im Abschnitt Datenschutz
+8. **App-Datenschutz** — bis 1.0 „Nein“ auf jede Erhebungskategorie. **Seit 1.1
+   stimmt das nicht mehr ungeprüft**: die App zeichnet auf Wunsch eine Fahrt auf
+   und ortet dabei auch im Hintergrund. Die Aufzeichnung verlässt zwar das Gerät
+   nicht (die Kennzahlen gehen nur in die eigene iCloud des Nutzers, die Linien
+   gar nicht), aber Start- und Zielkoordinaten gehen seit jeher an die Routing-
+   und Fahrplandienste. Vor der Store-Einreichung ist deshalb **Standort →
+   Genauer Standort → App-Funktionalität, nicht mit der Identität verknüpft,
+   kein Tracking** zu setzen. Die Begründung steht im Abschnitt Datenschutz, die
+   ausführliche Fassung auf der Datenschutzseite
 9. **Alterseinstufung 4+**, Kategorie Navigation / Reisen, Copyright wie unten
 10. **Preis: kostenlos**, Verfügbarkeit: alle Länder — die App funktioniert
     außerhalb Deutschlands nur eingeschränkt (Fahrpläne über Transitous gehen
