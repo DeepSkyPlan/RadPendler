@@ -10,22 +10,48 @@ import WatchConnectivity
 @Observable
 final class WatchModel {
     private(set) var snapshot: TripSnapshot?
+    /// The ride the phone is recording, or the summary of the one it just
+    /// finished. The watch records nothing itself — it has no track, no
+    /// junctions and no business starting a second recording of the same ride.
+    private(set) var live: RideLive?
     /// What the wrist picked: a category and which of its options. Kept as
     /// mode plus position, never as an id — every new plan brings new ids, and
     /// "the second bike route" survives a replan where an id does not.
     private(set) var chosenMode: String?
     private(set) var chosenIndex = 0
 
+    /// A finished ride stays on the wrist for an hour: long enough to look at
+    /// after arriving, short enough not to be there next morning.
+    static let summaryLifetime: TimeInterval = 3600
+
     private let link = PhoneLink()
 
     init() {
         snapshot = PhoneLink.cached()
+        live = Self.fresh(PhoneLink.cachedRide())
         chosenMode = UserDefaults.standard.string(forKey: "chosenMode")
         chosenIndex = UserDefaults.standard.integer(forKey: "chosenIndex")
         link.onPlan = { [weak self] plan in
             Task { @MainActor in self?.snapshot = plan }
         }
+        link.onRide = { [weak self] ride in
+            Task { @MainActor in self?.live = Self.fresh(ride) }
+        }
         link.start()
+    }
+
+    /// A ride worth a page: one that is running, or one that ended within the
+    /// hour. Anything older is history, and history lives on the phone.
+    static func fresh(_ ride: RideLive?, now: Date = .now) -> RideLive? {
+        guard let ride else { return nil }
+        if ride.running { return ride }
+        return now.timeIntervalSince(ride.at) < summaryLifetime ? ride : nil
+    }
+
+    /// Sweeps away a summary that has sat there long enough; called by the view
+    /// as it redraws, so the page goes away on its own.
+    func expireSummary(now: Date = .now) {
+        if live != nil, Self.fresh(live, now: now) == nil { live = nil }
     }
 
     /// The trip everything on the watch is about: what the wrist picked, or —
@@ -65,7 +91,9 @@ final class WatchModel {
 /// The receiving half of `WatchLink` on the phone.
 final class PhoneLink: NSObject, WCSessionDelegate {
     var onPlan: ((TripSnapshot) -> Void)?
+    var onRide: ((RideLive) -> Void)?
     private static let key = "lastPlan"
+    private static let rideKey = "lastRide"
 
     func start() {
         guard WCSession.isSupported() else { return }
@@ -91,11 +119,24 @@ final class PhoneLink: NSObject, WCSessionDelegate {
         UserDefaults.standard.data(forKey: key).flatMap { try? JSONDecoder().decode(TripSnapshot.self, from: $0) }
     }
 
-    private func accept(_ context: [String: Any]) {
-        guard let data = context["plan"] as? Data,
-              let plan = try? JSONDecoder().decode(TripSnapshot.self, from: data) else { return }
-        UserDefaults.standard.set(data, forKey: Self.key)
-        onPlan?(plan)
+    static func cachedRide() -> RideLive? {
+        UserDefaults.standard.data(forKey: rideKey).flatMap { try? JSONDecoder().decode(RideLive.self, from: $0) }
+    }
+
+    /// Both channels end here: the plan arrives in the application context,
+    /// the running ride as a message once a second and in the context every
+    /// now and then.
+    private func accept(_ payload: [String: Any]) {
+        if let data = payload["plan"] as? Data,
+           let plan = try? JSONDecoder().decode(TripSnapshot.self, from: data) {
+            UserDefaults.standard.set(data, forKey: Self.key)
+            onPlan?(plan)
+        }
+        if let data = payload["ride"] as? Data,
+           let ride = try? JSONDecoder().decode(RideLive.self, from: data) {
+            UserDefaults.standard.set(data, forKey: Self.rideKey)
+            onRide?(ride)
+        }
     }
 
     // MARK: WCSessionDelegate
@@ -107,5 +148,10 @@ final class PhoneLink: NSObject, WCSessionDelegate {
 
     func session(_ session: WCSession, didReceiveApplicationContext context: [String: Any]) {
         accept(context)
+    }
+
+    /// The running ride, once a second, while the watch is reachable.
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        accept(message)
     }
 }

@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0 — Querformat und Aufzeichnung (noch nicht ausgeliefert)
+Version bleibt 1.0 (Wunsch des Nutzers); die Buildnummer steigt erst beim nächsten Upload.
+
+- **Querformat.** Gedreht steht die App zweispaltig wie auf dem iPad: Kopfzeile, Boxen und Fahrtzeile links in einer 340 Punkte breiten Spalte, die Karte rechts über die ganze Höhe. Die Detailspalte des iPads bleibt weg — in 390 Punkten Höhe ist kein Platz dafür, und gedreht wird wegen der Karte.
+- **Fahrt aufzeichnen.** Der Knopf rechts neben der gewählten Fahrt startet die Aufzeichnung; die Karte nimmt die ganze Seite, folgt dir und zeichnet den gefahrenen Weg **nach Geschwindigkeit eingefärbt** (fünf Stufen, rot unter 8 bis grün über 26 km/h, mit Skala in der Ecke). Uhr, Ø-Tempo, aktuelles Tempo und Strecke stehen darunter. Ein Wisch über die Karte löst das Folgen, der Knopf oben links schaltet es wieder ein.
+- **Ampelhalts werden gezählt.** Stillstand ab fünf Sekunden ist ein Halt; liegt er im Umkreis von 45 m um eine Ampelkreuzung der **geplanten** Route, ist es ein Ampelhalt mit Wartezeit, sonst ein gewöhnlicher Halt. Die Kreuzungen werden beim Start der Fahrt festgehalten — eine Neuplanung unterwegs kann die Antwort nachträglich nicht mehr ändern.
+- Gemessen wird mit Hysterese (unter 1,0 m/s steht man, erst über 1,8 m/s fährt man wieder), damit langsames Rollen nicht jeden Pedaltritt zu einem Halt macht. Strecke wächst **nur in Bewegung**, sonst wandert man im Stand die Straße hinunter; Sprünge des Empfängers, Fixes über 50 m Ungenauigkeit und Lücken über 30 s zählen nicht als gefahrener Weg.
+- **Menü → Fahrten.** Alle Aufzeichnungen, nach Jahren und Monaten gruppiert, neueste zuerst; die Monatsüberschrift trägt Kilometer, Schnitt und Ampelhalts des Monats. Eine Fahrt zeigt die gefahrene Linie, jede gemessene Zahl und die längsten Halte — dazu, ob sie schneller oder langsamer war als der Plan versprochen hat.
+- **Fahrten liegen in der privaten iCloud** (CloudKit, Container `iCloud.de.keese.radpendler`), nicht im Schlüssel-Wert-Speicher der Einstellungen: der fasst 1 MB insgesamt und wäre nach ein paar Dutzend Fahrten voll. Die Linie reist zlib-komprimiert im Datensatz. Ohne iCloud-Konto bleibt alles auf dem Gerät, wie bei den Einstellungen auch.
+- **Auf der Uhr** gibt es während der Fahrt eine eigene erste Seite: laufende Uhr, Ø- und aktuelles Tempo, Ampelhalts mit Gesamt- und Durchschnittswartezeit, Rollzeit und Standzeit. Nach der Ankunft bleibt dieselbe Seite eine Stunde lang als Zusammenfassung stehen. Die Uhr rechnet weiterhin **nichts** selbst; verliert sie den Kontakt, schreibt sie das Alter der Zahlen dazu.
+- Eine Fahrt, die die App nicht überlebt (Absturz, vom System beendet), wird alle 30 Sekunden mitgeschrieben und beim nächsten Start als das abgelegt, was sie war.
+- **Ortung im Hintergrund** — neu und ausdrücklich erlaubt (Nutzer, 23.09.2026). Sie läuft **ausschließlich** zwischen „Fahrt“ und „Fahrt beenden“, iOS zeigt solange die blaue Leiste, danach schaltet die App den Modus selbst wieder ab. Alles andere bleibt wie es war: „Mein Standort“ ist weiterhin ein einzelner Fix auf Tippen. **Datenschutz-Fragebogen und Datenschutzerklärung müssen vor dem nächsten Upload nachgezogen werden.**
+
 ## 1.0 (Build 22, TestFlight 2026-09-22)
 - **Version 1.0.** Eine 0.x im Store liest sich wie eine Beta.
 - **Ein Tipp auf Start oder Ziel bricht die laufende Berechnung ab.** Bei einer weiten Strecke wartete man vorher Sekunden auf einen Plan, den man gerade wegwerfen wollte. Die Abbrüche laufen bis in die Netzverbindungen durch.

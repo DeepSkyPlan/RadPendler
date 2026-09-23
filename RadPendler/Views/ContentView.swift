@@ -9,11 +9,14 @@ import SwiftUI
 /// iPad app rather than a phone screen blown up.
 struct ContentView: View {
     @Environment(AppSettings.self) private var settings
+    @Environment(RideTracker.self) private var tracker
     @Environment(\.horizontalSizeClass) private var widthClass
+    @Environment(\.verticalSizeClass) private var heightClass
     @State private var model = PlanModel()
     @State private var showSettings = false
     @State private var showHelp = false
     @State private var showMenu = false
+    @State private var showRides = false
     @State private var editing: PlaceField?
 
     enum PlaceField: Identifiable {
@@ -23,6 +26,11 @@ struct ContentView: View {
 
     /// iPad and every other regular width: two columns instead of one.
     private var isWide: Bool { widthClass == .regular }
+    /// A phone on its side. Same two columns as the iPad, but narrower and
+    /// without the detail — in 390 points of height nothing else fits, and the
+    /// map is what one turned the phone for.
+    private var isLandscapePhone: Bool { heightClass == .compact && widthClass == .compact }
+    private var isTwoColumn: Bool { isWide || isLandscapePhone }
 
     var body: some View {
         NavigationStack {
@@ -75,6 +83,11 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showSettings, onDismiss: refresh) { SettingsView() }
             .sheet(isPresented: $showHelp) { HelpView() }
+            .sheet(isPresented: $showRides) { RidesView() }
+            // Right after arriving is the one moment the numbers get read.
+            .sheet(item: Binding(get: { tracker.finished }, set: { if $0 == nil { tracker.clearFinished() } })) { ride in
+                RideSummarySheet(ride: ride)
+            }
             .sheet(item: $editing, onDismiss: {
                 model.applyDefaultWhen(settings: settings)
                 refresh()
@@ -106,16 +119,23 @@ struct ContentView: View {
                 Spacer(minLength: 0)
             }
             .padding(.vertical, 6)
-        } else if isWide {
+        } else if tracker.isRecording {
+            // A ride under way is the whole screen: everything the planning
+            // page offers is about a trip that has not started yet.
+            RideTrackingView(options: model.options, selectedID: model.selected?.id,
+                             onStop: { tracker.stop() })
+        } else if isTwoColumn {
             HStack(alignment: .top, spacing: 0) {
-                VStack(spacing: 14) {
+                VStack(spacing: isWide ? 14 : 8) {
                     header
                     modes
                     tripBar
                     rainNote
                     // The column is taller than the controls need, so the
                     // whole detail goes in: why this trip, what kind of route
-                    // it is, and every leg. On an iPad nothing is behind a tap.
+                    // it is, and every leg. On an iPad nothing is behind a tap;
+                    // on a phone held sideways it fills what would otherwise be
+                    // an empty third of the column, and scrolls where it cannot.
                     if let option = model.selected {
                         ScrollView {
                             VStack(spacing: 12) {
@@ -134,10 +154,10 @@ struct ContentView: View {
                     }
                     Spacer(minLength: 0)
                 }
-                .frame(width: 400)
+                .frame(width: isWide ? 400 : 360)
                 map.padding(.trailing, Theme.gutter)
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, isWide ? 8 : 4)
         } else {
             VStack(spacing: 10) {
                 header
@@ -189,8 +209,21 @@ struct ContentView: View {
 
     @ViewBuilder private var tripBar: some View {
         if let option = model.selected {
-            SelectedTripBar(model: model, option: option).padding(.horizontal, Theme.gutter)
+            SelectedTripBar(model: model, option: option, onRecord: { record(option) })
+                .padding(.horizontal, Theme.gutter)
         }
+    }
+
+    /// Starts recording the trip that is on screen. The lit junctions of *this*
+    /// route come along — they decide later which standstill was a red light,
+    /// and a replan half way must not be able to change that answer.
+    private func record(_ option: TripOption) {
+        let signals = option.bikeRoute?.stats?.signalPoints ?? option.carRoute?.signalPoints ?? []
+        tracker.start(subject: RideTracker.Subject(origin: settings.origin?.shortName ?? "Start",
+                                                   destination: settings.destination?.shortName ?? "Ziel",
+                                                   mode: option.mode.rawValue,
+                                                   plannedSeconds: option.duration),
+                      signals: signals)
     }
 
     @ViewBuilder private var rainNote: some View {
@@ -217,6 +250,8 @@ struct ContentView: View {
         .accessibilityLabel("Menü")
         .popover(isPresented: $showMenu) {
             VStack(alignment: .leading, spacing: 0) {
+                menuRow("Fahrten", "list.bullet.rectangle") { showRides = true }
+                Divider().padding(.leading, 44)
                 menuRow("Einstellungen", "gearshape") { showSettings = true }
                 Divider().padding(.leading, 44)
                 menuRow("Anleitung", "questionmark.circle") { showHelp = true }

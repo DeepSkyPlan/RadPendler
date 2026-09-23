@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Alles Übrige erzeugt Xcode aus den INFOPLIST_KEY_*-Einstellungen in
+	     project.yml und mischt es hier hinein. Hier steht nur, was es als
+	     Einstellung nicht gibt: der Hintergrundmodus für die Aufzeichnung
+	     einer Fahrt. Er ist nur zwischen „Fahrt aufzeichnen" und „Fahrt
+	     beenden" aktiv — siehe RideTracker. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
+</dict>
+</plist>

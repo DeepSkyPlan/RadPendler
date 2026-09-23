@@ -45,6 +45,18 @@ struct HelpView: View {
                         "Er zählt bis zum Losgehen — Abfahrt minus Rüstzeit —, unter 10 Minuten sekundengenau.",
                         "Die Warnungen (Einstellungen → Countdown) kommen als Mitteilung aufs Sperrbild, auch wenn die App zu ist; bei offener App zusätzlich als Ton.",
                     ])
+                    section("Fahrt aufzeichnen", "record.circle", [
+                        "Der grüne Knopf rechts neben der gewählten Fahrt zeichnet auf, was du wirklich fährst: Strecke, Geschwindigkeit, Ampelhalts.",
+                        "Die Karte geht auf ganze Seite und folgt dir; die gefahrene Linie färbt sich nach Tempo — rot unter 8, grün über 26 km/h. Ein Wisch über die Karte löst das Folgen, der Knopf oben links schaltet es wieder ein.",
+                        "Ein Halt zählt ab fünf Sekunden Stillstand. Liegt er an einer Ampelkreuzung der geplanten Route, zählt er als Ampelhalt mit Wartezeit; sonst als gewöhnlicher Halt.",
+                        "Die Uhr zeigt dieselben Zahlen, solange das iPhone in Reichweite ist — sie rechnet nichts selbst.",
+                        "Die Ortung läuft nur zwischen „Fahrt“ und „Fahrt beenden“, auch in der Tasche (iOS zeigt dabei die blaue Leiste). Danach hört sie auf.",
+                    ])
+                    section("Gefahrene Fahrten", "list.bullet.rectangle", [
+                        "Menü → Fahrten: alle Aufzeichnungen, nach Jahren und Monaten. Die Überschrift eines Monats zeigt Kilometer, Schnitt und Ampelhalts dieses Monats.",
+                        "Eine Fahrt antippen zeigt die gefahrene Linie, jede Zahl dazu und die längsten Halte.",
+                        "Die Fahrten liegen in deiner eigenen privaten iCloud und stehen dadurch auf allen deinen Geräten. Nach links wischen löscht eine — überall.",
+                    ])
                     section("Aktualisieren", "arrow.down", [
                         "Seite nach unten ziehen und loslassen. Einen Knopf dafür gibt es nicht mehr.",
                         "Das plant alles neu — auch die Warnungen werden auf den neuen Fahrplan gesetzt. Findet die Suche nichts, bleiben die alten Warnungen scharf.",
