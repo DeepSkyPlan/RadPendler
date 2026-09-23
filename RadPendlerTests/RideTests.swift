@@ -275,14 +275,70 @@ final class RideTests: XCTestCase {
     // MARK: Colours
 
     func testTheLineIsCutWhereTheColourChanges() {
-        let points = [3.0, 3.0, 25.0, 25.0, 25.0, 4.0].enumerated().map { i, kmh in
+        // Long enough runs that the smoothing window sits inside them.
+        let speeds = Array(repeating: 3.0, count: 8) + Array(repeating: 25.0, count: 8)
+            + Array(repeating: 4.0, count: 8)
+        let points = speeds.enumerated().map { i, kmh in
             RidePoint(lat: 52.5 + Double(i) / 10_000, lon: 13.4,
                       t: start.addingTimeInterval(Double(i)), v: kmh / 3.6)
         }
         let lines = RouteMapView.Coordinator.lines(of: points, from: 0)
-        XCTAssertEqual(lines.map(\.step), [RideColors.index(3), RideColors.index(25), RideColors.index(4)])
+        XCTAssertEqual(lines.first?.step, RideColors.index(3))
+        XCTAssertEqual(lines.last?.step, RideColors.index(4))
+        XCTAssertTrue(lines.contains { $0.step == RideColors.index(25) })
+        // Ein Sprung von 3 auf 25 km/h *führt* durch 8–14 und 14–20: ein paar
+        // Übergangsstücke sind richtig. Zwanzig wären es nicht.
+        XCTAssertLessThanOrEqual(lines.count, 8)
         // The runs overlap by a point, so the line has no holes at a change.
         XCTAssertEqual(lines.reduce(0) { $0 + $1.pointCount } - (lines.count - 1), points.count)
+    }
+
+    /// The receiver reports 19,8 and 20,1 km/h in consecutive seconds. Without
+    /// smoothing that is a new overlay every second or two, and a map that
+    /// stutters under the thumb for reasons nobody can see.
+    func testJitterAroundAColourBoundaryDoesNotShredTheLine() {
+        let speeds = (0..<40).map { $0 % 2 == 0 ? 19.6 : 20.4 }
+        let points = speeds.enumerated().map { i, kmh in
+            RidePoint(lat: 52.5 + Double(i) / 10_000, lon: 13.4,
+                      t: start.addingTimeInterval(Double(i)), v: kmh / 3.6)
+        }
+        let lines = RouteMapView.Coordinator.lines(of: points, from: 0)
+        XCTAssertEqual(lines.count, 1, "eine Linie, nicht zwanzig")
+    }
+
+    /// The bug that made the whole app feel busy: the radar dropped nineteen
+    /// tile overlays and hung them straight back on, every single redraw.
+    /// Der Countdown tickt nur dort im Sekundentakt, wo Sekunden zu sehen sind.
+    func testTheCountdownOnlyTicksPerSecondWhereItShows() {
+        XCTAssertEqual(CountdownSchedule.step(left: 30), CountdownSchedule.fine)
+        XCTAssertEqual(CountdownSchedule.step(left: 599), CountdownSchedule.fine)
+        XCTAssertEqual(CountdownSchedule.step(left: -120), CountdownSchedule.fine, "auch überfällig")
+        XCTAssertEqual(CountdownSchedule.step(left: 1800), CountdownSchedule.coarse)
+        XCTAssertEqual(CountdownSchedule.step(left: nil), CountdownSchedule.coarse, "ohne Abfahrt gar nichts")
+    }
+
+    func testTheRadarSettlesInsteadOfChurning() {
+        let frames = (0..<22).map { start.addingTimeInterval(Double($0) * 300) }
+        let wanted = RouteMapView.Coordinator.window(around: frames[10], in: frames)
+        XCTAssertEqual(wanted.count, 3)
+
+        // Erster Durchlauf: die drei kommen dazu.
+        var mounted = Set<Date>()
+        var plan = RouteMapView.Coordinator.radarPlan(mounted: mounted, wanted: wanted)
+        XCTAssertEqual(plan.add, wanted)
+        XCTAssertTrue(plan.drop.isEmpty)
+        mounted.formUnion(plan.add)
+
+        // Zweiter Durchlauf, nichts geändert: **nichts** passiert.
+        plan = RouteMapView.Coordinator.radarPlan(mounted: mounted, wanted: wanted)
+        XCTAssertTrue(plan.add.isEmpty, "was hängt, bleibt hängen")
+        XCTAssertTrue(plan.drop.isEmpty, "und wird nicht abgerissen")
+
+        // Eine Minute weiter: genau einer geht, genau einer kommt.
+        let next = RouteMapView.Coordinator.window(around: frames[11], in: frames)
+        plan = RouteMapView.Coordinator.radarPlan(mounted: mounted, wanted: next)
+        XCTAssertEqual(plan.add.count, 1)
+        XCTAssertEqual(plan.drop.count, 1)
     }
 
     func testEverySpeedFindsAColour() {

@@ -1,7 +1,19 @@
 # Changelog
 
 ## 1.2 (Build 24) — nach der ersten Testfahrt
-Zehn Punkte aus der Praxis, nicht aus dem Simulator.
+Punkte aus der Praxis, nicht aus dem Simulator.
+
+**Der Grund, warum die App geruckelt und Strom gezogen hat, war ein Buchhaltungsfehler beim Regenradar.** Es hängte nach jedem Neuzeichnen alle 22 Kachelebenen wieder an die Karte, nachdem es 19 davon gerade abgeräumt hatte — hunderte Kachelanfragen pro Sekunde, für Bilder, die niemand ansah. Das erklärt beides auf einmal: das Stocken beim Schieben der Karte *und* dass sogar das Einstellen der Uhrzeit hakte, auf einem Bildschirm, hinter dem nur die Karte lag. Ein Test hält jetzt fest, dass die Buchhaltung zur Ruhe kommt: zweimal hintereinander gefragt, passiert nichts mehr.
+
+- **Weniger Aktualisierungen, weniger Strom.** Radarkacheln der Nachbarminuten werden nur noch beim Abspielen vorgehalten, nicht im Stehen. Der Countdown tickt im Sekundentakt nur unter zehn Minuten, wo Sekunden zu sehen sind — darüber alle 20 Sekunden. Die Fahrtansicht lässt nur noch Uhr und Tempo sekündlich laufen statt der ganzen Seite samt Karte. Die Ortung läuft auf `Best` statt `BestForNavigation` (letzteres ist für Abbiegenavigation gedacht und der teuerste Modus, den es gibt). An die Uhr gehen die Zahlen alle zwei statt jede Sekunde.
+- **Neu: „Bildschirm anlassen"**, voreingestellt **aus**. Bisher blieb der Bildschirm die ganze Fahrt an — am Lenker richtig, in der Tasche der größte Stromfresser überhaupt. Aufgezeichnet wird auch mit dunklem Bildschirm.
+- **Die gefahrene Linie wird geglättet eingefärbt.** Bei konstant 20 km/h meldet der Empfänger abwechselnd 19,8 und 20,1 — daraus wurden hunderte Zwei-Punkt-Linien, jede eine eigene Ebene, die MapKit unter dem Daumen zeichnen musste. Jetzt erst, wenn das Tempo deutlich in der nächsten Stufe liegt.
+- **Der Abbiegehinweis wird je Ortung berechnet, nicht je Bild.** Vorher lief bei jedem Neuzeichnen eine Suche über die ganze Route samt neuer Längentabelle.
+
+### Analysebalken: worauf gefahren wird
+- **Neu: ein Balken je Radroute und je gefahrener Fahrt**, der zeigt, wie viele Kilometer auf **Hauptstraße, Nebenstraße, Radweg, Weg, Fußweg** liegen. Die Angaben kommen aus BRouters eigenen Segmentdaten, die mit jeder Route ohnehin mitgeliefert werden — keine neue Quelle, kein Schlüssel, keine zusätzliche Anfrage.
+- Ein Fußweg mit `bicycle=designated` zählt als Radweg, und eine Hauptstraße mit eigenem Radweg daneben auch — unter dem Rad ist das ein Radweg. Eine Radspur auf der Fahrbahn nicht.
+- Bei einer gefahrenen Fahrt wird die tatsächlich gefahrene Strecke der geplanten Linie zugeordnet. Was mehr als 60 m daneben liegt, heißt „sonstiges" — so sieht ein Umweg aus, und so soll er aussehen.
 
 - **Der Pfeil zeigt immer in Fahrtrichtung.** Vorher zeigte er doppelt daneben: die Karte dreht sich beim Folgen selbst in den Kurs, und der Pfeil drehte noch einmal denselben Winkel obendrauf. Jetzt ist es der Kurs **minus** der Blickrichtung der Karte. Meldet der Empfänger im Stand keinen Kurs — das tut er nie —, bleibt der letzte stehen; gab es noch nie einen, kommt er aus der gefahrenen Linie.
 - **Nach Zoomen oder Schieben kommt die Karte von selbst zurück**, 30 Sekunden nach der letzten Berührung. Der Knopf oben links schaltet das Folgen weiterhin von Hand um.
@@ -12,7 +24,8 @@ Zehn Punkte aus der Praxis, nicht aus dem Simulator.
 - **Die App merkt sich, wo du stehst.** Jede gezählte Ampel wird als Ort behalten, mit Anzahl und Wartezeit, und ab der nächsten Fahrt mitgerechnet: beim Erkennen eines Halts **und** in der Ampelzahl einer Radroute, also in ihrer Fahrzeit. Zwei Geräte führen ihre Listen zusammen. In den Einstellungen stehen sie mit Zähler und lassen sich vergessen.
 - **Doppeltipp auf die Adressbox setzt die Pendelstrecke ein**: aktueller Standort als Start, Zuhause oder Arbeit als Ziel. Was von beidem, entscheidet der Ort — am Zuhause geht es zur Arbeit, an der Arbeit nach Hause —, und wenn keines in der Nähe ist, die Uhr.
 - **Ampeln und Halte sind auf der Karte einer gefahrenen Fahrt deutlich markiert**: gelb mit Ampelzeichen und Wartezeit, alles andere klein und grau.
-- **Neue Radvariante „verkehrsarm"** neben „ruhigst". Die beiden sind nicht dasselbe: „ruhigst" zählt auch Ampeln und Querungen, „verkehrsarm" fragt nur, wo die Autos sind — die wenigsten Meter neben einer Hauptstraße. Dazu fährt die App jetzt zusätzlich BRouters `fastbike-lowtraffic`-Profil ab.
+- **Neue Radvariante „verkehrsarm"** neben „ruhigst", und die beiden fragen jetzt wirklich Verschiedenes: „ruhigst" die geringste Störung insgesamt, „verkehrsarm" die **wenigsten Stellen, an denen der Verkehr zum Anhalten zwingt** — Ampeln und gequerte Hauptstraßen —, mit den Metern neben Hauptstraßen nur als Gleichstandsregel. Damit auch etwas zur Auswahl steht, fragt die App jetzt zwei `fastbike-lowtraffic`-Varianten **und** BRouters `shortest`-Profil zusätzlich ab; vorher war „kürzest" immer eine der Strecken, die schon etwas anderes gewonnen hatte.
+- **Ampeln sind schon während der Fahrt auf der Karte** zu sehen, nicht erst hinterher: die der geplanten Route und die selbst gelernten.
 
 ## 1.1 (Build 23, TestFlight 2026-09-23)
 - **Querformat.** Gedreht steht die App zweispaltig wie auf dem iPad: Kopfzeile, Boxen und Fahrtzeile links in einer 360 Punkte breiten Spalte, die Karte rechts über die ganze Höhe. Die Detailspalte des iPads kommt mit: sie füllt, was sonst ein leeres Drittel der Spalte wäre, und scrollt, wo sie nicht passt.

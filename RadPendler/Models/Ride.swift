@@ -62,6 +62,9 @@ struct Ride: Codable, Identifiable, Equatable {
     /// actually interesting: was the app right? nil when nothing was planned.
     var plannedSeconds: TimeInterval?
     var pointCount: Int = 0
+    /// Metres per kind of road, attributed to the route that was planned.
+    /// nil where nobody classified the route — Apple's lines carry no tags.
+    var mix: RoadMix?
 
     var seconds: TimeInterval { max(0, ended.timeIntervalSince(started)) }
     /// Door to door, standing time included.

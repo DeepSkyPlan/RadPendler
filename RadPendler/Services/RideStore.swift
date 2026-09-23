@@ -85,12 +85,19 @@ final class RideStore {
     /// The line of one ride, from memory or from disk. nil means it was
     /// recorded on another device: the numbers travelled, the drawing did not,
     /// and the detail view says so instead of showing an empty map.
-    func track(for ride: Ride) -> RideTrack? {
+    /// Reading and decoding happen off the main actor: a long ride is some
+    /// eighty kilobytes of JSON, and decoding it while a list is scrolling is
+    /// a stutter with a cause nobody can see.
+    func track(for ride: Ride) async -> RideTrack? {
         if let t = tracks[ride.id] { return t }
-        guard let data = try? Data(contentsOf: trackFile(ride.id)),
-              let t = try? JSONDecoder().decode(RideTrack.self, from: data) else { return nil }
-        tracks[ride.id] = t
-        return t
+        let url = trackFile(ride.id)
+        let decoded = await Task.detached(priority: .userInitiated) { () -> RideTrack? in
+            guard let data = try? Data(contentsOf: url) else { return nil }
+            return try? JSONDecoder().decode(RideTrack.self, from: data)
+        }.value
+        guard let decoded else { return nil }
+        tracks[ride.id] = decoded
+        return decoded
     }
 
     // MARK: Packing

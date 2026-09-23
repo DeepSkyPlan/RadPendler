@@ -9,6 +9,12 @@ struct StreetRoute {
     var coordinates: [CLLocationCoordinate2D]
     /// Signalised junctions on the route, once known from OpenStreetMap.
     var signals = 0
+    /// Metres per road class, where the router said — BRouter does, Apple
+    /// does not. Empty means nobody told us, not that the route is all main road.
+    var mix = RoadMix()
+    /// The same knowledge with positions, so a recorded ride can be attributed
+    /// to it afterwards.
+    var roadPoints: [RoadPoint] = []
 }
 
 enum StreetMode: Hashable {

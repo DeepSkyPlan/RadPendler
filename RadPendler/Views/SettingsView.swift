@@ -91,6 +91,7 @@ struct SettingsView: View {
                         }
                     }
                     .onChange(of: settings.orientation) { settings.orientation.apply() }
+                    Toggle("Bildschirm anlassen", isOn: $settings.keepScreenAwake)
                     Stepper("Ampelhalt ab \(settings.signalStopSeconds) s",
                             value: $settings.signalStopSeconds, in: 10...120, step: 5)
                     HStack {
@@ -108,7 +109,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Fahrt aufzeichnen")
                 } footer: {
-                    Text("„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — Wer länger als die eingestellte Zeit steht, stand an einer Ampel, auch wenn keine Karte dort eine kennt. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein: in der Zahl der Ampeln einer Radroute und damit in ihrer Fahrzeit. Sie bleiben auf deinen Geräten.")
+                    Text("„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — „Bildschirm anlassen“ hält ihn die ganze Fahrt über wach: am Lenker richtig, in der Tasche der größte Stromfresser, den die App hat. Aufgezeichnet wird auch mit dunklem Bildschirm. — Wer länger als die eingestellte Zeit steht, stand an einer Ampel, auch wenn keine Karte dort eine kennt. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein: in der Zahl der Ampeln einer Radroute und damit in ihrer Fahrzeit. Sie bleiben auf deinen Geräten.")
                 }
                 Section {
                     Picker("Fahrplan", selection: $settings.timetableSource) {

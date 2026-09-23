@@ -76,20 +76,25 @@ final class BikeRouteTests: XCTestCase {
         XCTAssertEqual(middle.time(s), s.bikeTime(19_700) + 900, accuracy: 1)
     }
 
-    /// „ruhigst" und „verkehrsarm" sind nicht dieselbe Frage: die erste zählt
-    /// auch Ampeln und Querungen, die zweite fragt nur, wo die Autos sind. Eine
-    /// Strecke durch lauter kleine Straßen mit vielen Ampeln gewinnt die eine
-    /// und verliert die andere.
-    func testQuietAndLowTrafficCanBeDifferentRoutes() {
+    /// „ruhigst" und „verkehrsarm" fragen verschiedene Dinge: die eine, wo man
+    /// am wenigsten *neben* Autos fährt, die andere, wo man ihretwegen am
+    /// seltensten *anhalten* muss. Eine Strecke am Kanal entlang mit wenigen
+    /// Kreuzungen gewinnt die zweite und verliert die erste.
+    func testQuietAndLowTrafficAskDifferentQuestions() {
         let s = PlanSettings()
-        let lights = candidate("verkehrsarm", km: 21, signals: 60, crossings: 20, mainKm: 1.0)
-        let calm = candidate("safety", km: 21, signals: 20, crossings: 4, mainKm: 6.0)
-        let quick = candidate("fastbike", km: 19, signals: 25, crossings: 10, mainKm: 12.0)
-        let picked = BikeCandidate.pick([lights, calm, quick], settings: s)
+        // Wenig Halte, aber lange neben der Hauptstraße.
+        let fewStops = candidate("verkehrsarm", km: 21, signals: 5, crossings: 2, mainKm: 12.0)
+        // Abseits der Autos, dafür durch lauter kleine Kreuzungen.
+        let calm = candidate("safety", km: 21, signals: 40, crossings: 15, mainKm: 2.0)
+        let quick = candidate("fastbike", km: 19, signals: 25, crossings: 10, mainKm: 8.0)
+        let picked = BikeCandidate.pick([fewStops, calm, quick], settings: s)
         let roles = Dictionary(uniqueKeysWithValues: picked.map { ($0.0.source, $0.1) })
-        XCTAssertEqual(roles["verkehrsarm"], [.lowTraffic], "die wenigsten Meter neben Hauptstraßen")
+        XCTAssertTrue(roles["verkehrsarm"]?.contains(.lowTraffic) ?? false,
+                      "die wenigsten Stellen, an denen der Verkehr zum Halten zwingt")
         XCTAssertTrue(roles["safety"]?.contains(.quiet) ?? false, "die geringste Störung insgesamt")
-        XCTAssertFalse(roles["safety"]?.contains(.lowTraffic) ?? true)
+        XCTAssertFalse(roles["safety"]?.contains(.lowTraffic) ?? true, "und eben nicht dasselbe")
+        XCTAssertEqual(fewStops.stats?.stops, 7)
+        XCTAssertEqual(calm.stats?.stops, 55)
     }
 
     /// Ohne OpenStreetMap-Daten lässt sich nur die Zeit beurteilen — dann

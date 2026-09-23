@@ -109,19 +109,36 @@ enum TurnGuide {
     /// rider three metres beside the line is still on it. Being far off the
     /// route is not an error either — the guide simply keeps pointing at the
     /// next turn of the route that was planned.
+    ///
+    /// `cum` and `from` are why this is cheap enough to run on every fix. The
+    /// cumulative lengths are computed once when the route is frozen, and the
+    /// search starts where the last one ended: a ride does not go backwards,
+    /// and scanning ten thousand points once a second is how a map starts to
+    /// stutter under one's thumb.
     static func next(after position: CLLocationCoordinate2D, on route: [CLLocationCoordinate2D],
-                     steps: [Step]) -> (step: Step, meters: Double)? {
+                     steps: [Step], cum: [Double]? = nil,
+                     from: Int = 0) -> (step: Step, meters: Double, index: Int)? {
         guard !steps.isEmpty, route.count > 1 else { return nil }
-        let cum = cumulative(route)
-        var bestIndex = 0
+        let lengths = cum ?? cumulative(route)
+        guard lengths.count == route.count else { return nil }
+        // Look forward from where we were, and only far enough to find the
+        // nearest point again — plus a window backwards, in case the last
+        // match was a lucky outlier or the rider turned round.
+        let lo = Swift.max(0, from - 20)
+        var bestIndex = lo
         var bestDistance = Double.infinity
-        for (i, c) in route.enumerated() {
-            let d = c.distance(to: position)
+        var i = lo
+        while i < route.count {
+            let d = route[i].distance(to: position)
             if d < bestDistance { bestDistance = d; bestIndex = i }
+            // Once we are clearly moving away again, stop: the route ahead is
+            // long, and the nearest point is behind us.
+            if d > bestDistance + 500, i > bestIndex + 50 { break }
+            i += 1
         }
-        let travelled = cum[bestIndex]
+        let travelled = lengths[bestIndex]
         guard let step = steps.first(where: { $0.distance > travelled + 5 }) ?? steps.last else { return nil }
-        return (step, max(0, step.distance - travelled))
+        return (step, max(0, step.distance - travelled), bestIndex)
     }
 
     // MARK: Geometry

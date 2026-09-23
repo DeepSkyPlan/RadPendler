@@ -7,7 +7,7 @@ Das Projekt ist quelloffen (MIT); Adressen und Schlüssel gehören nicht hinein.
 ## Bauen, testen, ausliefern
 
 ```bash
-./dev test      # generiert das .xcodeproj bei Bedarf, dann 122 Tests im Simulator
+./dev test      # generiert das .xcodeproj bei Bedarf, dann 132 Tests im Simulator
 #               MOTIS_LIVE=1 schaltet zusätzlich den echten Transitous-Aufruf frei
 #               (aus Xcode heraus; xcodebuild reicht die Variable nicht durch)
 ./dev open      # Xcode mit demselben DerivedData wie die Kommandozeile
@@ -168,6 +168,24 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
 - **Der Pfeil der Fahrtansicht dreht sich um `Kurs − Blickrichtung der Karte`.** Beim
   Folgen dreht sich die Karte selbst in den Kurs; wer den Pfeil zusätzlich um den Kurs
   dreht, zeigt doppelt daneben. Erster Befund der ersten Testfahrt.
+- **Das Regenradar darf nur noch anhängen, was fehlt.** `Coordinator.radarPlan` ist die
+  ganze Buchhaltung, und sie muss zur Ruhe kommen: zweimal hintereinander mit gleichem
+  Stand gefragt, kommen zwei leere Mengen zurück. Bis 1.2 hängte die Schleife nach dem
+  Abräumen **alle** Bilder wieder an — hunderte Kachelanfragen je Sekunde. Das war die
+  Ursache für Ruckeln *und* Stromverbrauch, und es sah an keiner Stelle falsch aus.
+  `RideTests.testTheRadarSettlesInsteadOfChurning` hält es fest.
+- **Nichts Teures je Bild, alles Teure je Ereignis.** Der Abbiegehinweis wird in
+  `RideTracker.accept` berechnet und gespeichert, nicht in der View; die Längentabelle der
+  Route entsteht einmal beim Einfrieren; die Kamera bewegt sich nur, wenn sich etwas um
+  mehr als 3 m oder 4° geändert hat; die Fahrtansicht lässt nur Uhr und Tempo im
+  Sekundentakt laufen, nicht die Karte. Wer hier etwas hinzufügt, prüfe zuerst, wie oft
+  es läuft.
+- **Wegtypen kommen aus BRouters `messages`**, nicht aus einer zusätzlichen
+  Overpass-Abfrage: je Segment Länge und `WayTags`. Gelesen wird über die **Spaltennamen**
+  der Kopfzeile, weil BRouter deren Reihenfolge schon geändert hat. `RoadClass`,
+  `RoadMix` und `RoadPoint` stehen in `Models/RoadMix.swift`; Apples Linien tragen keine
+  Tags, dort bleibt die Mischung leer — und eine leere Mischung heißt „nicht bekannt",
+  nicht „alles Hauptstraße".
 - **`OrientationLock.apply()` fordert in `auto` bewusst *keine* Geometrieänderung an.**
   Ein `requestGeometryUpdate` mit „alle Richtungen" nagelt die App auf die Lage fest, in
   der sie gerade ist — das Gegenteil von automatisch.

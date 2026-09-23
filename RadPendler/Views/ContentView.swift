@@ -262,7 +262,9 @@ struct ContentView: View {
                                                    plannedSeconds: option.duration),
                       signals: signals,
                       route: RideTrackingView.route(of: model.options, selected: option.id),
-                      signalSeconds: TimeInterval(settings.signalStopSeconds))
+                      roadPoints: option.bikeRoute?.roadPoints ?? [],
+                      signalSeconds: TimeInterval(settings.signalStopSeconds),
+                      keepScreenAwake: settings.keepScreenAwake)
     }
 
     @ViewBuilder private var rainNote: some View {

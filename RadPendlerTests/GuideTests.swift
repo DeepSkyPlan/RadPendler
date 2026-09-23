@@ -69,6 +69,30 @@ final class GuideTests: XCTestCase {
         XCTAssertEqual(after?.step.turn, .arrive)
     }
 
+    /// Die Suche darf nicht bei jedem Fix die ganze Route abklappern — sonst
+    /// ruckelt die Karte. Mit vorberechneten Längen und einem Startindex muss
+    /// dasselbe herauskommen wie ohne.
+    func testTheCheapSearchFindsTheSameTurn() {
+        var route: [CLLocationCoordinate2D] = []
+        for m in stride(from: 0.0, through: 400, by: 5) { route.append(east(m)) }
+        let corner = east(400)
+        for m in stride(from: 5.0, through: 400, by: 5) { route.append(north(m, from: corner)) }
+        let steps = TurnGuide.steps(on: route)
+        let cum = TurnGuide.cumulative(route)
+        var index = 0
+        for m in stride(from: 0.0, through: 380, by: 20) {
+            guard let plain = TurnGuide.next(after: east(m), on: route, steps: steps),
+                  let cheap = TurnGuide.next(after: east(m), on: route, steps: steps,
+                                             cum: cum, from: index) else {
+                return XCTFail("kein Hinweis bei \(m) m")
+            }
+            XCTAssertEqual(cheap.step, plain.step)
+            XCTAssertEqual(cheap.meters, plain.meters, accuracy: 0.5)
+            XCTAssertGreaterThanOrEqual(cheap.index, index, "der Index läuft mit, nicht zurück")
+            index = cheap.index
+        }
+    }
+
     func testAShortRouteStillArrives() {
         XCTAssertEqual(TurnGuide.steps(on: []).count, 0)
         XCTAssertEqual(TurnGuide.steps(on: [base]).map(\.turn), [.arrive])
@@ -190,5 +214,112 @@ final class GuideTests: XCTestCase {
         XCTAssertTrue(order.contains(.lowTraffic))
         XCTAssertEqual(order.first, .balanced, "die bekannte Reihenfolge bleibt vorn")
         XCTAssertEqual(BRouterClient.Profile.lowTraffic.rawValue, "fastbike-lowtraffic")
+    }
+}
+
+/// Die Wegtypen kommen aus BRouters eigenen Segmentdaten — keine neue Quelle,
+/// kein Schlüssel. Falsch zugeordnet sehen sie trotzdem völlig plausibel aus.
+final class RoadMixTests: XCTestCase {
+    func testTagsBecomeClasses() {
+        XCTAssertEqual(RoadClass.from(wayTags: "highway=primary surface=asphalt"), .main)
+        XCTAssertEqual(RoadClass.from(wayTags: "highway=residential oneway=yes"), .side)
+        XCTAssertEqual(RoadClass.from(wayTags: "highway=cycleway"), .cycleway)
+        XCTAssertEqual(RoadClass.from(wayTags: "highway=path surface=ground"), .path)
+        XCTAssertEqual(RoadClass.from(wayTags: "highway=footway"), .footway)
+        XCTAssertEqual(RoadClass.from(wayTags: "railway=rail"), .other, "ohne highway keine Klasse")
+        XCTAssertEqual(RoadClass.from(wayTags: ""), .other)
+    }
+
+    /// Ein Fußweg mit `bicycle=designated` ist unter dem Rad ein Radweg, und
+    /// eine Hauptstraße mit eigenem Radweg daneben auch.
+    func testAWayThatRidesLikeABikePathCountsAsOne() {
+        XCTAssertEqual(RoadClass.from(wayTags: "highway=footway bicycle=designated"), .cycleway)
+        XCTAssertEqual(RoadClass.from(wayTags: "highway=residential bicycle=designated"), .cycleway)
+        XCTAssertEqual(RoadClass.from(wayTags: "highway=primary cycleway:right=track"), .cycleway)
+        // Eine Spur auf der Fahrbahn ist kein eigener Weg.
+        XCTAssertEqual(RoadClass.from(wayTags: "highway=primary cycleway:right=lane"), .main)
+    }
+
+    /// Die Spalten werden über ihre Namen gelesen: BRouter hat ihre Reihenfolge
+    /// zwischen Versionen schon geändert.
+    func testTheSegmentTableIsReadByColumnName() {
+        let messages = [
+            ["Longitude", "Latitude", "Elevation", "Distance", "WayTags"],
+            ["13396274", "52517532", "34", "100", "highway=primary surface=asphalt"],
+            ["13396297", "52517422", "34", "300", "highway=residential"],
+            ["13396305", "52517378", "34", "600", "highway=cycleway"],
+            ["13396310", "52517353", "34", "kaputt", "highway=cycleway"],
+        ]
+        let roads = BRouterClient.roads(messages)
+        XCTAssertEqual(roads.mix[.main], 100)
+        XCTAssertEqual(roads.mix[.side], 300)
+        XCTAssertEqual(roads.mix[.cycleway], 600)
+        XCTAssertEqual(roads.mix.total, 1000, "die kaputte Zeile zählt nicht mit")
+        XCTAssertEqual(roads.mix.share(.cycleway), 0.6, accuracy: 0.001)
+        XCTAssertEqual(roads.mix.headline, "60 % Radweg")
+        XCTAssertEqual(roads.mix.present, [.main, .side, .cycleway], "feste Reihenfolge")
+        // Die Koordinaten kommen als ganze Mikrograd. Die kaputte Zeile fällt
+        // ganz weg — halb gelesen ist schlechter als gar nicht.
+        XCTAssertEqual(roads.points.count, 3)
+        XCTAssertEqual(roads.points[0].lat, 52.517532, accuracy: 0.000001)
+        XCTAssertEqual(roads.points[0].cls, .main)
+        XCTAssertTrue(BRouterClient.roads(nil).mix.isEmpty)
+        XCTAssertTrue(BRouterClient.roads([["was", "anderes"]]).mix.isEmpty)
+    }
+
+    /// Eine leere Mischung ist „nicht bekannt", nicht „alles Hauptstraße".
+    func testAnEmptyMixSaysNothing() {
+        let empty = RoadMix()
+        XCTAssertTrue(empty.isEmpty)
+        XCTAssertEqual(empty.share(.main), 0)
+        XCTAssertNil(empty.headline)
+        XCTAssertEqual(empty.present, [])
+    }
+
+    /// Die gefahrene Strecke wird der geplanten Linie zugeordnet — und was
+    /// daneben liegt, heißt „sonstiges" und nicht einfach die letzte Klasse.
+    func testARideIsAttributedToTheRouteItWasPlannedOn() {
+        let base = CLLocationCoordinate2D(latitude: 52.5, longitude: 13.4)
+        func east(_ m: Double) -> CLLocationCoordinate2D {
+            CLLocationCoordinate2D(latitude: base.latitude,
+                                   longitude: base.longitude + m / (111_320 * cos(base.latitude * .pi / 180)))
+        }
+        // Erste 100 m Hauptstraße, dann Radweg.
+        var points: [RoadPoint] = []
+        for m in stride(from: 0.0, through: 100, by: 10) {
+            points.append(RoadPoint(lat: east(m).latitude, lon: east(m).longitude, cls: .main))
+        }
+        for m in stride(from: 110.0, through: 300, by: 10) {
+            points.append(RoadPoint(lat: east(m).latitude, lon: east(m).longitude, cls: .cycleway))
+        }
+        var m = RideMeter()
+        m.roadPoints = points
+        let start = Date(timeIntervalSince1970: 1_780_000_000)
+        for i in 0...30 {
+            m.add(RideMeter.Fix(coordinate: east(Double(i) * 10), time: start.addingTimeInterval(Double(i) * 2),
+                                speed: 5, accuracy: 5))
+        }
+        XCTAssertEqual(m.mix[.main], 100, accuracy: 15)
+        XCTAssertEqual(m.mix[.cycleway], 200, accuracy: 20)
+        XCTAssertEqual(m.mix.total, m.meters, accuracy: 1, "was gefahren wurde, ist auch zugeordnet")
+
+        // Ohne Klassifizierung bleibt die Mischung leer statt geraten.
+        var blind = RideMeter()
+        for i in 0...10 {
+            blind.add(RideMeter.Fix(coordinate: east(Double(i) * 10), time: start.addingTimeInterval(Double(i) * 2),
+                                    speed: 5, accuracy: 5))
+        }
+        XCTAssertTrue(blind.mix.isEmpty)
+    }
+
+    func testAWideDetourIsNotCountedAsTheRoute() {
+        let base = CLLocationCoordinate2D(latitude: 52.5, longitude: 13.4)
+        let points = (0...10).map { i -> RoadPoint in
+            RoadPoint(lat: base.latitude, lon: base.longitude + Double(i) * 0.0001, cls: .cycleway)
+        }
+        // Zweihundert Meter nördlich der geplanten Linie.
+        let away = CLLocationCoordinate2D(latitude: base.latitude + 0.002, longitude: base.longitude)
+        XCTAssertNil(RoadPoint.nearest(points, to: away, from: 0))
+        XCTAssertEqual(RoadPoint.nearest(points, to: base, from: 0)?.cls, .cycleway)
     }
 }

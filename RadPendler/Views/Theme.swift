@@ -210,7 +210,7 @@ struct CountdownBox: View {
     @State private var watched: TripOption.ID?
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
+        TimelineView(CountdownSchedule(target: option?.getReady)) { context in
             let left = option.map { $0.getReady.timeIntervalSince(context.date) }
             let gone = option.map { context.date > $0.leave } ?? false
             Group {
@@ -299,5 +299,39 @@ struct CountdownBox: View {
         let minutes = Int((left / 60).rounded(.up))
         guard left > 0, alerts.contains(minutes), fired.insert(minutes).inserted else { return }
         Alarm.beep()
+    }
+}
+
+
+/// Ticks once a second only where seconds are actually shown. Above ten
+/// minutes the pill counts in minutes, and waking the whole title bar once a
+/// second for a number that changes once a minute is work the battery pays
+/// for all morning. Without a departure at all there is nothing to count, and
+/// the slow rate does.
+struct CountdownSchedule: TimelineSchedule {
+    var target: Date?
+
+    static let fine: TimeInterval = 1
+    static let coarse: TimeInterval = 20
+    /// Below this much time left, `CountdownBox.text` shows seconds.
+    static let fineWindow: TimeInterval = 600
+
+    /// How long to wait before the next redraw, given what is left.
+    static func step(left: TimeInterval?) -> TimeInterval {
+        guard let left else { return coarse }
+        return abs(left) <= fineWindow + 5 ? fine : coarse
+    }
+
+    func entries(from start: Date, mode: TimelineScheduleMode) -> AnyIterator<Date> {
+        var next = start
+        var first = true
+        return AnyIterator {
+            if first {
+                first = false
+                return next
+            }
+            next = next.addingTimeInterval(Self.step(left: target?.timeIntervalSince(next)))
+            return next
+        }
     }
 }
