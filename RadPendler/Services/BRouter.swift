@@ -8,6 +8,9 @@ import Foundation
 struct BRouterClient {
     enum Profile: String {
         case trekking, safety, fastbike, shortest
+        /// BRouter's own low-traffic profile: it pays a detour to stay off
+        /// roads that carry cars, where "safety" only prefers what is safe.
+        case lowTraffic = "fastbike-lowtraffic"
     }
 
     var session: URLSession = .shared

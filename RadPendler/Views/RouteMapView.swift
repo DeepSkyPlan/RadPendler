@@ -23,6 +23,9 @@ struct RouteMapView: UIViewRepresentable {
     var following = false
     /// The user dragged the map: following has to give way to the hand.
     var onPan: (() -> Void)? = nil
+    /// Keeps MapKit's own controls — the compass above all — out from under
+    /// whatever the app floats over the top of the map.
+    var topInset: CGFloat = 0
     /// Tap on an option's label on the map.
     var onSelect: ((TripOption.ID) -> Void)? = nil
 
@@ -87,18 +90,30 @@ struct RouteMapView: UIViewRepresentable {
         var seconds: TimeInterval = 0
     }
 
+    /// A red light on a ridden route reads at a glance: yellow, a light, and
+    /// the seconds it cost. Everything else that stood still is grey and small
+    /// — the difference between the two is what the counting is about.
     final class StopDotView: MKAnnotationView {
+        private let icon = UIImageView()
         private let label = UILabel()
 
         override init(annotation: MKAnnotation?, reuseIdentifier: String?) {
             super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
-            frame = CGRect(x: 0, y: 0, width: 26, height: 16)
-            label.frame = bounds
-            label.textAlignment = .center
-            label.font = .monospacedDigitSystemFont(ofSize: 9, weight: .bold)
-            label.textColor = .black
-            addSubview(label)
-            layer.cornerRadius = 8
+            let stack = UIStackView(arrangedSubviews: [icon, label])
+            stack.spacing = 2
+            stack.alignment = .center
+            stack.isLayoutMarginsRelativeArrangement = true
+            stack.layoutMargins = UIEdgeInsets(top: 2, left: 4, bottom: 2, right: 5)
+            stack.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(stack)
+            NSLayoutConstraint.activate([
+                stack.leadingAnchor.constraint(equalTo: leadingAnchor), stack.trailingAnchor.constraint(equalTo: trailingAnchor),
+                stack.topAnchor.constraint(equalTo: topAnchor), stack.bottomAnchor.constraint(equalTo: bottomAnchor),
+            ])
+            icon.contentMode = .scaleAspectFit
+            icon.preferredSymbolConfiguration = .init(pointSize: 9, weight: .bold)
+            label.font = .monospacedDigitSystemFont(ofSize: 10, weight: .bold)
+            layer.cornerRadius = 9
             layer.borderWidth = 1.5
             layer.borderColor = UIColor.white.cgColor
             collisionMode = .circle
@@ -108,10 +123,24 @@ struct RouteMapView: UIViewRepresentable {
         required init?(coder: NSCoder) { fatalError() }
 
         func configure(_ dot: StopDot) {
-            backgroundColor = dot.atSignal ? UIColor(red: 0.98, green: 0.78, blue: 0.11, alpha: 1)
-                                           : UIColor.systemGray3
-            label.text = "\(Int(dot.seconds.rounded()))s"
-            displayPriority = dot.atSignal ? .defaultHigh : .defaultLow
+            let seconds = Int(dot.seconds.rounded())
+            if dot.atSignal {
+                backgroundColor = UIColor(red: 0.98, green: 0.78, blue: 0.11, alpha: 1)
+                icon.image = UIImage(systemName: "light.beacon.max.fill")
+                icon.tintColor = .black.withAlphaComponent(0.75)
+                label.textColor = .black
+                displayPriority = .required
+                zPriority = .defaultSelected
+            } else {
+                backgroundColor = .systemGray3
+                icon.image = UIImage(systemName: "pause.fill")
+                icon.tintColor = .white
+                label.textColor = .white
+                displayPriority = .defaultLow
+                zPriority = .defaultUnselected
+            }
+            label.text = seconds < 60 ? "\(seconds)s" : "\(seconds / 60):\(String(format: "%02d", seconds % 60))"
+            frame.size = systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
         }
     }
 
@@ -147,11 +176,17 @@ struct RouteMapView: UIViewRepresentable {
 
         required init?(coder: NSCoder) { fatalError() }
 
-        /// Without a course the arrow would point north and lie about it; a
-        /// dot says the same thing without the lie.
-        func configure(_ r: Rider) {
+        /// The arrow points where the ride is going — **on screen**, which is
+        /// not the same as "at the course". While the map follows the rider it
+        /// is itself turned to the course, and an arrow rotated by the course
+        /// on top of that points at twice the angle. So it is always the
+        /// course *minus the map's own heading*.
+        ///
+        /// Without any course at all the arrow would point north and lie about
+        /// it; then a plain dot says the same thing without the lie.
+        func configure(_ r: Rider, mapHeading: CLLocationDirection) {
             arrow.isHidden = r.course < 0
-            arrow.transform = CGAffineTransform(rotationAngle: r.course * .pi / 180)
+            arrow.transform = CGAffineTransform(rotationAngle: (r.course - mapHeading) * .pi / 180)
         }
     }
 
@@ -264,6 +299,9 @@ struct RouteMapView: UIViewRepresentable {
         func update(_ map: MKMapView, _ view: RouteMapView) {
             onSelect = view.onSelect
             onPan = view.onPan
+            if map.layoutMargins.top != view.topInset {
+                map.layoutMargins = UIEdgeInsets(top: view.topInset, left: 0, bottom: 0, right: 0)
+            }
             // New plan → redraw and fit; new selection only → redraw.
             let plan = view.options.map { $0.id.uuidString }.joined()
             let key = plan + (view.selectedID?.uuidString ?? "")
@@ -395,11 +433,16 @@ struct RouteMapView: UIViewRepresentable {
             }
             live?.coordinate = here
             live?.course = view.course
-            if let live, let v = map.view(for: live) as? RiderView { v.configure(live) }
-            guard view.following else { return }
-            let camera = MKMapCamera(lookingAtCenter: here, fromDistance: 700,
-                                     pitch: 0, heading: view.course >= 0 ? view.course : map.camera.heading)
-            map.setCamera(camera, animated: true)
+            if view.following {
+                let camera = MKMapCamera(lookingAtCenter: here, fromDistance: 700,
+                                         pitch: 0, heading: view.course >= 0 ? view.course : map.camera.heading)
+                map.setCamera(camera, animated: true)
+            }
+            // After the camera, not before: the arrow is drawn against the
+            // heading the map is about to have.
+            if let live, let v = map.view(for: live) as? RiderView {
+                v.configure(live, mapHeading: view.following && view.course >= 0 ? view.course : map.camera.heading)
+            }
         }
 
         private func drawRoutes(_ map: MKMapView, _ view: RouteMapView) {
@@ -622,7 +665,7 @@ struct RouteMapView: UIViewRepresentable {
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
             if let rider = annotation as? Rider {
                 let v = mapView.dequeueReusableAnnotationView(withIdentifier: "rider", for: rider) as! RiderView
-                v.configure(rider)
+                v.configure(rider, mapHeading: mapView.camera.heading)
                 return v
             }
             if let stop = annotation as? StopDot {

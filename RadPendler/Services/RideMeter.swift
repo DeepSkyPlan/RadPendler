@@ -51,9 +51,16 @@ struct RideMeter {
     /// has a line and the times stay attached to it.
     static let maxPointGap: TimeInterval = 2.0
 
-    /// Lit junctions of the planned route — what turns a standstill into a
-    /// traffic light. Empty means every stop is just a stop.
+    /// Lit junctions of the planned route, plus the ones this rider has been
+    /// stopped at before — what turns a standstill into a traffic light.
     var signals: [CLLocationCoordinate2D] = []
+
+    /// A standstill at least this long is a red light wherever it happens.
+    /// OpenStreetMap does not know every light, and it knows none of the
+    /// crossings that merely behave like one; half a minute standing on a
+    /// commute is not something one does for the view.
+    var signalSeconds: TimeInterval = RideMeter.defaultSignalSeconds
+    static let defaultSignalSeconds: TimeInterval = 30
 
     private(set) var points: [RidePoint] = []
     private(set) var stops: [RideStop] = []
@@ -162,7 +169,8 @@ struct RideMeter {
         let seconds = until.timeIntervalSince(since)
         if seconds >= Self.minStop, let at = standingAt {
             stops.append(RideStop(lat: at.latitude, lon: at.longitude, start: since,
-                                  seconds: seconds, atSignal: nearSignal(at)))
+                                  seconds: seconds,
+                                  atSignal: nearSignal(at) || seconds >= signalSeconds))
         }
         standingSince = nil
         standingAt = nil

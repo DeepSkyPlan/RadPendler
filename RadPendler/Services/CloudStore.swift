@@ -25,7 +25,8 @@ final class CloudStore {
                        "transferPenaltyMinutes", "signalWaitSeconds", "requireAllWaypoints",
                        "departureBufferMinutes", "arrivalBufferMinutes", "workArrivalMinutes",
                        "alertMinutes", "alertsOn",
-                       "modeOrder", "bikeVariantOrder", "carVariantOrder", "rainSwitchLevel"]
+                       "modeOrder", "bikeVariantOrder", "carVariantOrder", "rainSwitchLevel",
+                       "signalStopSeconds", "learnedSignals", "orientationLock"]
 
     /// The recorded rides — summaries only, never their lines. Not a setting,
     /// which is why it stands apart from `settingsKeys`: that list is checked
@@ -37,7 +38,7 @@ final class CloudStore {
 
     /// The keys that are merged instead of replaced: a device that has not
     /// pulled yet must not be able to shorten a list it has not seen.
-    private static let mergedKeys: Set<String> = ["placeHistory", ridesKey]
+    private static let mergedKeys: Set<String> = ["placeHistory", "learnedSignals", ridesKey]
 
     /// Called after values came in from another device.
     var onPull: (() -> Void)?
@@ -158,11 +159,16 @@ final class CloudStore {
     /// falls back to what came in.
     static func merged(_ key: String, local: Data?, cloud: Data) -> Data? {
         guard let local else { return nil }
+        let decoder = JSONDecoder()
         if key == Self.ridesKey {
             guard let mine = RideStore.decode(local), let theirs = RideStore.decode(cloud) else { return nil }
             return RideStore.encode(RideStore.merge(mine, theirs))
         }
-        let decoder = JSONDecoder()
+        if key == "learnedSignals" {
+            guard let mine = try? decoder.decode([LearnedSignal].self, from: local),
+                  let theirs = try? decoder.decode([LearnedSignal].self, from: cloud) else { return nil }
+            return try? JSONEncoder().encode(LearnedSignal.merging(mine, theirs))
+        }
         guard let mine = try? decoder.decode([PlaceUse].self, from: local),
               let theirs = try? decoder.decode([PlaceUse].self, from: cloud) else { return nil }
         return try? JSONEncoder().encode(mine.merging(theirs))

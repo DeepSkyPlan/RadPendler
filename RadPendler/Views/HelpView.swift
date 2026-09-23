@@ -12,6 +12,7 @@ struct HelpView: View {
                     header
                     section("Start und Ziel", "mappin.and.ellipse", [
                         "Oben auf die beiden Zeilen tippen und die Adresse suchen. Beide bleiben nur auf diesem Gerät.",
+                        "Ein Doppeltipp auf die Box setzt die Pendelstrecke ein: dein Standort als Start, Zuhause oder Arbeit als Ziel. Welches von beidem, entscheidet der Ort — und wenn keiner passt, die Uhrzeit.",
                         "Der Pfeil daneben dreht die Richtung um.",
                         "Ist das Ziel die Arbeitsadresse (Einstellungen → Arbeitsweg), startet die Suche mit „Ankunft“, sonst mit „Abfahrt jetzt“.",
                     ])
@@ -25,6 +26,7 @@ struct HelpView: View {
                         "Ein Tipp wählt die Box aus, der nächste Tipp schaltet zur nächsten Möglichkeit. Die Punkte unter der Zeit zeigen, wie viele es sind.",
                         "Lang drücken springt zurück auf die erste und damit beste Möglichkeit dieser Box.",
                         "Der gelbe Stern steht an dem, was die App empfiehlt.",
+                        "Beim Rad gibt es „verkehrsarm“ zusätzlich zu „ruhigst“: „ruhigst“ zählt auch Ampeln und Querungen, „verkehrsarm“ fragt nur, wo die Autos sind.",
                     ])
                     section("Die Zeile darunter", "chevron.right.circle", [
                         "Sie zeigt die gewählte Fahrt: Abfahrt → Ankunft, die Abschnitte, Kilometer, Ampeln und wann es losgeht.",
@@ -33,7 +35,8 @@ struct HelpView: View {
                     section("Karte", "map", [
                         "Die gewählte Fahrt liegt farbig oben, die anderen blass darunter. Ein Tipp auf ein Schild in der Karte wählt diese Fahrt.",
                         "Langes Drücken irgendwo auf der Karte holt die ganze Strecke wieder ins Bild.",
-                        "Gelbe Punkte sind vermutete Ampelkreuzungen der gewählten Radroute.",
+                        "Gelbe Punkte sind vermutete Ampelkreuzungen der gewählten Radroute — aus OpenStreetMap und aus dem, was deine eigenen Fahrten gelernt haben.",
+                        "Auf der Karte einer gefahrenen Fahrt sind die Ampeln gelb markiert und tragen ihre Wartezeit; andere Halte stehen klein und grau daneben.",
                     ])
                     section("Regenradar", "cloud.rain", [
                         "Der Schalter unten links auf der Karte zeigt das DWD-Radar. Rechts steht, welche Minute zu sehen ist — „jetzt 14:48“, „in 25 min 15:10“. Ein kleiner Kreisel daneben heißt: Bilder laden noch.",
@@ -47,8 +50,13 @@ struct HelpView: View {
                     ])
                     section("Fahrt aufzeichnen", "record.circle", [
                         "Der grüne Knopf rechts neben der gewählten Fahrt zeichnet auf, was du wirklich fährst: Strecke, Geschwindigkeit, Ampelhalts.",
+                        "Oben im roten Band steht, was als Nächstes kommt und in wie vielen Metern. Die Kurven rechnet die App aus der geplanten Linie — es sind Hinweise, keine Navigation, und sie sagt nichts an.",
+                        "Die große Zahl ist dein aktuelles Tempo, in der Farbe, in der die Linie gerade gezeichnet wird. Der Pfeil auf der Karte zeigt immer dahin, wo du hinfährst.",
+                        "Nach Zoomen oder Schieben kommt die Karte 30 Sekunden später von selbst zu dir zurück. Der Knopf oben links schaltet das Folgen von Hand.",
+                        "Der Knopf daneben hält die Ausrichtung fest — automatisch, hochkant, querformat. Am Lenker will man keine Karte, die sich in der Kurve dreht.",
                         "Die Karte geht auf ganze Seite und folgt dir; die gefahrene Linie färbt sich nach Tempo — rot unter 8, grün über 26 km/h. Ein Wisch über die Karte löst das Folgen, der Knopf oben links schaltet es wieder ein.",
-                        "Ein Halt zählt ab fünf Sekunden Stillstand. Liegt er an einer Ampelkreuzung der geplanten Route, zählt er als Ampelhalt mit Wartezeit; sonst als gewöhnlicher Halt.",
+                        "Ein Halt zählt ab fünf Sekunden Stillstand. Als Ampelhalt zählt er, wenn er an einer Ampelkreuzung der geplanten Route liegt — oder wenn er länger als 30 Sekunden dauert, denn so lange steht niemand ohne Grund. Die Schwelle steht in den Einstellungen.",
+                        "Solche Stellen merkt sich die App. Ab der nächsten Fahrt erkennt sie den Halt dort wieder, und die Ampel zählt auch beim Planen mit — sie macht die Radzeit auf dieser Strecke ehrlicher.",
                         "Die Uhr zeigt dieselben Zahlen, solange das iPhone in Reichweite ist — sie rechnet nichts selbst.",
                         "Die Ortung läuft nur zwischen „Fahrt“ und „Fahrt beenden“, auch in der Tasche (iOS zeigt dabei die blaue Leiste). Danach hört sie auf.",
                     ])

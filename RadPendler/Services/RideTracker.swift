@@ -33,6 +33,13 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     private(set) var here: CLLocationCoordinate2D?
     /// Degrees from north, for turning the camera with the rider.
     private(set) var course: CLLocationDirection = -1
+    /// The next turn on the frozen route, and how far it is — nil once there
+    /// is no route, no position, or nothing left to say.
+    var nextTurn: (step: TurnGuide.Step, meters: Double)? {
+        guard let here, !turns.isEmpty else { return nil }
+        return TurnGuide.next(after: here, on: plannedRoute, steps: turns)
+    }
+
     /// The finished ride, held until the summary sheet is dismissed.
     private(set) var finished: Ride?
 
@@ -61,11 +68,25 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// trip come along: they are what turns a standstill into a red light, and
     /// they must be the ones of the route that was planned, not of whatever is
     /// planned by the time the ride ends.
-    func start(subject: Subject, signals: [CLLocationCoordinate2D]) {
+    /// The way ahead, frozen at the start of the ride, and its corners.
+    /// Like the lit junctions, and for the same reason: a replan half way must
+    /// not be able to point the arrow at a road one is not on — and a plan that
+    /// quietly comes back empty must not take the guidance with it.
+    private(set) var plannedRoute: [CLLocationCoordinate2D] = []
+    private(set) var turns: [TurnGuide.Step] = []
+
+    func start(subject: Subject, signals: [CLLocationCoordinate2D],
+               route: [CLLocationCoordinate2D] = [],
+               signalSeconds: TimeInterval = RideMeter.defaultSignalSeconds) {
         guard !isRecording else { return }
+        self.signalSeconds = signalSeconds
+        plannedRoute = route
+        turns = TurnGuide.steps(on: route)
         switch manager.authorizationStatus {
         case .notDetermined:
             pending = (subject, signals)
+            // `plannedRoute` and `turns` are already set; they survive the
+            // permission sheet.
             manager.requestWhenInUseAuthorization()
             return
         case .denied, .restricted:
@@ -77,6 +98,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     }
 
     private var pending: (Subject, [CLLocationCoordinate2D])?
+    private var signalSeconds = RideMeter.defaultSignalSeconds
 
     private func begin(_ subject: Subject, _ signals: [CLLocationCoordinate2D]) {
         failure = nil
@@ -84,6 +106,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         self.subject = subject
         meter = RideMeter()
         meter.signals = signals
+        meter.signalSeconds = signalSeconds
         // Only now, and only for as long as the ride lasts.
         manager.allowsBackgroundLocationUpdates = true
         manager.showsBackgroundLocationIndicator = true
@@ -173,7 +196,16 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         guard isRecording else { return }
         for fix in fixes { meter.add(fix) }
         if let last = fixes.last { here = last.coordinate }
-        if let c = courses.last, c >= 0 { course = c }
+        // The receiver only reports a course while it is sure of one. Standing
+        // at a light it reports nothing, and an arrow that disappears or snaps
+        // north every time one stops is worse than a slightly stale one — so
+        // the last known course stands, and where there never was one, the
+        // line itself says which way the ride is going.
+        if let c = courses.last, c >= 0 {
+            course = c
+        } else if course < 0, let derived = Self.courseFromTrack(meter.points) {
+            course = derived
+        }
         pushToWatch()
         // The app can be killed in a pocket; what was ridden up to then is
         // still a ride, and the next start finds it and files it.
@@ -186,6 +218,20 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                                                    plannedSeconds: subject.plannedSeconds, end: now))
             }
         }
+    }
+
+    /// Bearing of the last stretch actually ridden, for the fixes that carry
+    /// no course of their own. `nonisolated` so a test can drive it without
+    /// a manager and without the main actor.
+    nonisolated static func courseFromTrack(_ points: [RidePoint]) -> CLLocationDirection? {
+        guard points.count >= 2 else { return nil }
+        let b = points[points.count - 1].coordinate, a = points[points.count - 2].coordinate
+        let dLon = (b.longitude - a.longitude) * .pi / 180
+        let lat1 = a.latitude * .pi / 180, lat2 = b.latitude * .pi / 180
+        let y = sin(dLon) * cos(lat2)
+        let x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
+        guard x != 0 || y != 0 else { return nil }
+        return (atan2(y, x) * 180 / .pi + 360).truncatingRemainder(dividingBy: 360)
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {

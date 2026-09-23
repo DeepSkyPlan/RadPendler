@@ -66,7 +66,9 @@ enum TransitProduct: Int, CaseIterable {
 
 /// Which of the bike route variants an option is; one route can be several.
 enum BikeVariant: String, CaseIterable, Comparable {
-    case fastest, shortest, balanced, quiet
+    // New cases go at the end: `Comparable` reads the position in `allCases`,
+    // and inserting one in the middle would silently reorder the old ones.
+    case fastest, shortest, balanced, quiet, lowTraffic
 
     var title: String {
         switch self {
@@ -74,6 +76,7 @@ enum BikeVariant: String, CaseIterable, Comparable {
         case .shortest: "kürzest"
         case .balanced: "optimal"
         case .quiet: "ruhigst"
+        case .lowTraffic: "verkehrsarm"
         }
     }
 
@@ -83,6 +86,7 @@ enum BikeVariant: String, CaseIterable, Comparable {
         case .shortest: "ruler"
         case .balanced: "checkmark.seal"
         case .quiet: "leaf"
+        case .lowTraffic: "road.lanes"
         }
     }
 
@@ -92,7 +96,7 @@ enum BikeVariant: String, CaseIterable, Comparable {
 
     /// Ships with "optimal" first: that is the one the app suggests. The user
     /// can put "ruhigst" or "kürzest" in front of it.
-    static let defaultOrder: [BikeVariant] = [.balanced, .fastest, .quiet, .shortest]
+    static let defaultOrder: [BikeVariant] = [.balanced, .fastest, .quiet, .lowTraffic, .shortest]
 }
 
 /// Which of the car alternatives an option is; one route can be several.
