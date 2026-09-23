@@ -33,13 +33,6 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     private(set) var here: CLLocationCoordinate2D?
     /// Degrees from north, for turning the camera with the rider.
     private(set) var course: CLLocationDirection = -1
-    /// The next turn on the frozen route, and how far it is — nil once there
-    /// is no route, no position, or nothing left to say.
-    var nextTurn: (step: TurnGuide.Step, meters: Double)? {
-        guard let here, !turns.isEmpty else { return nil }
-        return TurnGuide.next(after: here, on: plannedRoute, steps: turns)
-    }
-
     /// The finished ride, held until the summary sheet is dismissed.
     private(set) var finished: Ride?
 
@@ -55,7 +48,11 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         self.store = store
         super.init()
         manager.delegate = self
-        manager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+        // `Best`, not `BestForNavigation`: the latter keeps the receiver and
+        // its sensor fusion at full tilt for turn-by-turn guidance the app
+        // does not give, and it is the most expensive mode there is. On a bike
+        // the difference in the drawn line is not visible; in the battery it is.
+        manager.desiredAccuracy = kCLLocationAccuracyBest
         manager.activityType = .otherNavigation
         manager.distanceFilter = kCLDistanceFilterNone
         // A pause looks like an arrival to iOS and never resumes on its own.
@@ -74,14 +71,35 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// quietly comes back empty must not take the guidance with it.
     private(set) var plannedRoute: [CLLocationCoordinate2D] = []
     private(set) var turns: [TurnGuide.Step] = []
+    /// Cumulative lengths of `plannedRoute`, computed once. Without it every
+    /// redraw allocated an array as long as the route.
+    private var routeLengths: [Double] = []
+    /// Where on the route the rider was matched last, so the next search does
+    /// not start at the beginning again.
+    private var routeIndex = 0
+    /// The lit junctions this ride is being judged against — handed to the map
+    /// so they can be seen while riding, not only afterwards.
+    private(set) var signals: [CLLocationCoordinate2D] = []
+
+    /// The next turn, recomputed **per fix**, not per redraw. A view that
+    /// scans the whole route on every frame is how the map starts to stutter.
+    private(set) var nextTurn: (step: TurnGuide.Step, meters: Double)?
 
     func start(subject: Subject, signals: [CLLocationCoordinate2D],
                route: [CLLocationCoordinate2D] = [],
-               signalSeconds: TimeInterval = RideMeter.defaultSignalSeconds) {
+               roadPoints: [RoadPoint] = [],
+               signalSeconds: TimeInterval = RideMeter.defaultSignalSeconds,
+               keepScreenAwake: Bool = false) {
         guard !isRecording else { return }
         self.signalSeconds = signalSeconds
+        self.keepScreenAwake = keepScreenAwake
+        self.roadPoints = roadPoints
         plannedRoute = route
+        routeLengths = TurnGuide.cumulative(route)
+        routeIndex = 0
         turns = TurnGuide.steps(on: route)
+        nextTurn = nil
+        self.signals = signals
         switch manager.authorizationStatus {
         case .notDetermined:
             pending = (subject, signals)
@@ -99,6 +117,8 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
 
     private var pending: (Subject, [CLLocationCoordinate2D])?
     private var signalSeconds = RideMeter.defaultSignalSeconds
+    private var keepScreenAwake = false
+    private var roadPoints: [RoadPoint] = []
 
     private func begin(_ subject: Subject, _ signals: [CLLocationCoordinate2D]) {
         failure = nil
@@ -107,11 +127,12 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         meter = RideMeter()
         meter.signals = signals
         meter.signalSeconds = signalSeconds
+        meter.roadPoints = roadPoints
         // Only now, and only for as long as the ride lasts.
         manager.allowsBackgroundLocationUpdates = true
         manager.showsBackgroundLocationIndicator = true
         manager.startUpdatingLocation()
-        UIApplication.shared.isIdleTimerDisabled = true
+        UIApplication.shared.isIdleTimerDisabled = keepScreenAwake
         pushToWatch(force: true)
     }
 
@@ -160,9 +181,14 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                         signalWaitTotal: meter.signalWaitTotal)
     }
 
+    /// Twice a minute would be too slow to watch, once a second is a
+    /// Bluetooth message per second for numbers that change by a tenth. Two
+    /// seconds reads as live and costs half.
+    static let watchInterval: TimeInterval = 2
+
     private func pushToWatch(force: Bool = false) {
         let now = Date.now
-        guard force || now.timeIntervalSince(lastWatchPush) >= 1 else { return }
+        guard force || now.timeIntervalSince(lastWatchPush) >= Self.watchInterval else { return }
         lastWatchPush = now
         WatchLink.shared.sendLive(live(at: now))
     }
@@ -195,7 +221,15 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     private func accept(_ fixes: [RideMeter.Fix], _ courses: [CLLocationDirection]) {
         guard isRecording else { return }
         for fix in fixes { meter.add(fix) }
-        if let last = fixes.last { here = last.coordinate }
+        if let last = fixes.last {
+            here = last.coordinate
+            if !turns.isEmpty,
+               let n = TurnGuide.next(after: last.coordinate, on: plannedRoute, steps: turns,
+                                      cum: routeLengths, from: routeIndex) {
+                routeIndex = n.index
+                nextTurn = (n.step, n.meters)
+            }
+        }
         // The receiver only reports a course while it is sure of one. Standing
         // at a light it reports nothing, and an arrow that disappears or snaps
         // north every time one stops is worse than a slightly stale one — so

@@ -109,9 +109,14 @@ struct TripPlanner {
             ("Apple", nil, 0), ("trekking", .trekking, 0), ("fastbike", .fastbike, 0),
             ("safety", .safety, 0), ("safety", .safety, 1), ("safety", .safety, 2),
             // Pays a detour to stay off roads with cars on them — often the
-            // way one actually rides home, and not the same as "ruhigst",
-            // which also counts lights and crossings.
-            ("verkehrsarm", .lowTraffic, 0),
+            // way one actually rides home. Two of them, because one profile
+            // that happens to agree with "safety" leaves the box with fewer
+            // choices than it has room for.
+            ("verkehrsarm", .lowTraffic, 0), ("verkehrsarm", .lowTraffic, 1),
+            // The genuinely short line. Without it "kürzest" was whichever of
+            // the others happened to be shortest, which is usually one of the
+            // routes that already won something else.
+            ("shortest", .shortest, 0),
         ]
         let found = await withTaskGroup(of: (Int, String, StreetRoute?).self) { group in
             for (i, (name, profile, alt)) in requests.enumerated() {
@@ -155,7 +160,9 @@ struct TripPlanner {
                           distance: c.route.distance, coordinates: c.route.coordinates)
             var option = TripOption(mode: .bike, legs: [leg], prep: req.settings.prep,
                                     note: data == nil ? Self.noRoadDataNote(km: c.route.distance / 1000, settings: req.settings) : nil,
-                                    bikeRoute: BikeRouteInfo(variants: variants, stats: c.stats, source: c.source))
+                                    bikeRoute: BikeRouteInfo(variants: variants, stats: c.stats, source: c.source,
+                                                             mix: c.route.mix,
+                                                             roadPoints: c.route.roadPoints))
             // Only the route that matches the user's first choice is the one
             // the recommendation weighs; the others are alternatives.
             option.isPreferredVariant = index == 0
@@ -639,8 +646,9 @@ struct BikeCandidate {
     }
 
     /// schnellst = least riding time (traffic lights included), ruhigst =
-    /// least disturbance, verkehrsarm = fewest metres beside a main road,
-    /// optimal = best balance of time and disturbance. A route winning several
+    /// least disturbance, verkehrsarm = fewest places where traffic makes one
+    /// stop (lit junctions and main roads crossed), optimal = best balance of
+    /// time and disturbance. A route winning several
     /// roles is listed once with all its labels. Without OpenStreetMap data
     /// only the time can be judged; BRouter's "safety" route then stands in
     /// for "ruhigst" and its low-traffic profile for "verkehrsarm".
@@ -656,8 +664,13 @@ struct BikeCandidate {
         if all.contains(where: { $0.stats != nil }) {
             quiet = all.indices.min { (all[$0].stats?.disturbance ?? .infinity) < (all[$1].stats?.disturbance ?? .infinity) }!
             balanced = all.indices.min { all[$0].balancedScore(s) < all[$1].balancedScore(s) }!
-            lowTraffic = all.indices.min {
-                (all[$0].stats?.mainRoadMeters ?? .infinity) < (all[$1].stats?.mainRoadMeters ?? .infinity)
+            // Fewest places where traffic makes one stop; metres beside main
+            // roads only break the tie.
+            lowTraffic = all.indices.min { a, b in
+                let sa = all[a].stats, sb = all[b].stats
+                let na = sa?.stops ?? .max, nb = sb?.stops ?? .max
+                if na != nb { return na < nb }
+                return (sa?.mainRoadMeters ?? .infinity) < (sb?.mainRoadMeters ?? .infinity)
             }!
         } else {
             quiet = all.firstIndex { $0.source == "safety" } ?? fastest

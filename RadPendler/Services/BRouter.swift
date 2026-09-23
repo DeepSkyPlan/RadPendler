@@ -45,7 +45,36 @@ struct BRouterClient {
         let length = Double(props["track-length"] as? String ?? "") ?? 0
         let time = Double(props["total-time"] as? String ?? "") ?? 0
         guard points.count > 1 else { throw BRouterError.malformed }
-        return StreetRoute(distance: length, expectedTravelTime: time, coordinates: points)
+        let roads = Self.roads(props["messages"] as? [[String]])
+        return StreetRoute(distance: length, expectedTravelTime: time, coordinates: points,
+                           mix: roads.mix, roadPoints: roads.points)
+    }
+
+    /// BRouter's per-segment table: one row per stretch, with its length and
+    /// the OpenStreetMap tags of the way it runs on. The first row names the
+    /// columns, and the names are what is looked up — the order has changed
+    /// between BRouter versions before.
+    static func roads(_ messages: [[String]]?) -> (mix: RoadMix, points: [RoadPoint]) {
+        guard let messages, let header = messages.first,
+              let distanceColumn = header.firstIndex(of: "Distance"),
+              let tagColumn = header.firstIndex(of: "WayTags") else { return (RoadMix(), []) }
+        let lonColumn = header.firstIndex(of: "Longitude")
+        let latColumn = header.firstIndex(of: "Latitude")
+        var mix = RoadMix()
+        var points: [RoadPoint] = []
+        for row in messages.dropFirst() {
+            guard row.count > max(distanceColumn, tagColumn),
+                  let metres = Double(row[distanceColumn]) else { continue }
+            let cls = RoadClass.from(wayTags: row[tagColumn])
+            mix.add(metres, to: cls)
+            // The coordinates come as integer micro-degrees.
+            guard let lonColumn, let latColumn, row.count > max(lonColumn, latColumn),
+                  let lon = Double(row[lonColumn]), let lat = Double(row[latColumn]) else { continue }
+            let c = CLLocationCoordinate2D(latitude: lat / 1_000_000, longitude: lon / 1_000_000)
+            guard Geo.valid(c) else { continue }
+            points.append(RoadPoint(lat: c.latitude, lon: c.longitude, cls: cls))
+        }
+        return (mix, points)
     }
 
     enum BRouterError: LocalizedError {

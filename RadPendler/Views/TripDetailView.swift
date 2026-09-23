@@ -136,6 +136,9 @@ struct TripFacts: View {
             Label("Radroute: \(bike.title)", systemImage: "bicycle")
                 .display(.subheadline)
                 .foregroundStyle(LegKind.bike.color)
+            if !bike.mix.isEmpty {
+                RoadMixBar(mix: bike.mix)
+            }
             if let st = bike.stats {
                 HStack(spacing: 6) {
                     Chip(text: "\(st.signals) Ampeln", icon: AnyView(TrafficLightIcon()))

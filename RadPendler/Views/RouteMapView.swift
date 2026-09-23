@@ -8,6 +8,10 @@ struct RouteMapView: UIViewRepresentable {
     var radarFrames: [Date]
     /// Frame on screen; nil hides the radar.
     var radarTime: Date?
+    /// Only while the frames are being played does it pay to hold the
+    /// neighbours ready. Standing still on one minute, two extra tile layers
+    /// are two extra downloads of a picture nobody is going to look at.
+    var radarPreload = false
     /// Fixed points from the settings, drawn as flags.
     var waypoints: [Place] = []
     /// The way actually ridden, coloured by speed. Grows point by point while
@@ -15,6 +19,10 @@ struct RouteMapView: UIViewRepresentable {
     var track: [RidePoint] = []
     /// Where the ride stood still, and whether that was a red light.
     var trackStops: [RideStop] = []
+    /// Lit junctions to show while riding — the planned route's and the ones
+    /// this rider has learned. Afterwards one can see where one stood; ahead
+    /// of time one wants to see what is coming.
+    var signals: [CLLocationCoordinate2D] = []
     /// Where the rider is now; drawn as a heading arrow, not as a pin.
     var rider: CLLocationCoordinate2D? = nil
     /// Degrees from north, negative when unknown.
@@ -72,8 +80,12 @@ struct RouteMapView: UIViewRepresentable {
         var isRider = false
     }
 
-    /// A junction with traffic lights on the chosen bike route.
-    final class SignalDot: MKPointAnnotation {}
+    /// A junction with traffic lights. `fromPlan` says who owns it: the ones
+    /// belonging to the drawn plan are cleared whenever the plan is redrawn,
+    /// the ones handed over for a ride in progress outlive it.
+    final class SignalDot: MKPointAnnotation {
+        var fromPlan = true
+    }
 
     /// A stretch of the recorded ride, in the colour of the speed it was
     /// ridden at. One polyline per run of equal colour: MapKit draws a
@@ -294,6 +306,8 @@ struct RouteMapView: UIViewRepresentable {
         /// torn down and rebuilt once a second.
         private var drawnTrack = 0
         private var stopKey = 0
+        private var rideSignals = -1
+        private var lastCamera: (center: CLLocationCoordinate2D, heading: CLLocationDirection)?
         private var live: Rider?
 
         func update(_ map: MKMapView, _ view: RouteMapView) {
@@ -317,6 +331,24 @@ struct RouteMapView: UIViewRepresentable {
             updateRider(map, view)
             updateTrack(map, view)
             updateLive(map, view)
+            updateRideSignals(map, view)
+        }
+
+        /// The lit junctions of a ride in progress. Drawn once and left alone:
+        /// the list is frozen when the ride starts.
+        private func updateRideSignals(_ map: MKMapView, _ view: RouteMapView) {
+            guard view.signals.count != rideSignals else {
+                return
+            }
+            rideSignals = view.signals.count
+            map.removeAnnotations(map.annotations.filter { ($0 as? SignalDot)?.fromPlan == false })
+            map.addAnnotations(view.signals.map { c in
+                let d = SignalDot()
+                d.coordinate = c
+                d.fromPlan = false
+                d.title = "Ampel"
+                return d
+            })
         }
 
         // MARK: The ride being recorded
@@ -375,15 +407,50 @@ struct RouteMapView: UIViewRepresentable {
             map.setVisibleMapRect(rect, edgePadding: Self.trackInsets, animated: false)
         }
 
+        /// Colour step of a point, smoothed over its neighbours.
+        ///
+        /// Not the raw speed: a receiver reports 19,8 and 20,1 km/h in
+        /// consecutive seconds, and the unsmoothed line then becomes hundreds
+        /// of two-point polylines flickering between two greens. Every one of
+        /// them is an overlay MapKit has to draw while the thumb is moving,
+        /// which is precisely what made panning stutter.
+        static func smoothed(_ track: [RidePoint], at i: Int) -> Double {
+            let lo = Swift.max(0, i - 2), hi = Swift.min(track.count - 1, i + 2)
+            var sum = 0.0
+            for j in lo...hi { sum += track[j].kmh }
+            return sum / Double(hi - lo + 1)
+        }
+
+        /// How wide a speed has to be inside the next step before the colour
+        /// changes. Without it a ride at almost exactly twenty km/h becomes a
+        /// striped line, because the average still crosses the boundary every
+        /// few seconds.
+        static let colourMargin = 1.5
+
+        /// The colour step, with hysteresis: the colour changes only once the
+        /// smoothed speed is `colourMargin` clear of the boundary it just
+        /// crossed. Sitting *on* a boundary keeps whatever colour is running —
+        /// but a speed well inside another step always wins, so a steady
+        /// twenty-five is drawn as twenty-five and not as whatever came before.
+        static func step(of track: [RidePoint], at i: Int, current: Int?) -> Int {
+            let v = smoothed(track, at: i)
+            let raw = RideColors.index(v)
+            guard let current, raw != current else { return raw }
+            // The boundary between the two steps is the upper bound of the
+            // lower one.
+            let boundary = RideColors.steps[Swift.min(current, raw)].kmh
+            return abs(v - boundary) >= colourMargin ? raw : current
+        }
+
         /// One polyline per run of equal colour, built from `from` onwards.
         /// Runs overlap by a point so the line has no gaps at a colour change.
         static func lines(of track: [RidePoint], from: Int) -> [TrackLine] {
             guard track.count >= 2, from < track.count - 1 else { return [] }
             var out: [TrackLine] = []
             var run: [CLLocationCoordinate2D] = [track[from].coordinate]
-            var step = RideColors.index(track[from + 1].kmh)
+            var step = Self.step(of: track, at: from + 1, current: nil)
             for i in (from + 1)..<track.count {
-                let next = RideColors.index(track[i].kmh)
+                let next = Self.step(of: track, at: i, current: step)
                 if next != step, run.count >= 2 {
                     out.append(line(run, step))
                     run = [run[run.count - 1]]
@@ -434,9 +501,20 @@ struct RouteMapView: UIViewRepresentable {
             live?.coordinate = here
             live?.course = view.course
             if view.following {
-                let camera = MKMapCamera(lookingAtCenter: here, fromDistance: 700,
-                                         pitch: 0, heading: view.course >= 0 ? view.course : map.camera.heading)
-                map.setCamera(camera, animated: true)
+                let heading = view.course >= 0 ? view.course : map.camera.heading
+                // Only when something actually moved. A camera animation
+                // started every second, each one interrupting the last, is a
+                // map that never settles.
+                let moved = lastCamera.map {
+                    $0.center.distance(to: here) > 3 || abs($0.heading - heading) > 4
+                } ?? true
+                if moved {
+                    lastCamera = (here, heading)
+                    map.setCamera(MKMapCamera(lookingAtCenter: here, fromDistance: 700,
+                                              pitch: 0, heading: heading), animated: true)
+                }
+            } else {
+                lastCamera = nil
             }
             // After the camera, not before: the arrow is drawn against the
             // heading the map is about to have.
@@ -448,7 +526,9 @@ struct RouteMapView: UIViewRepresentable {
         private func drawRoutes(_ map: MKMapView, _ view: RouteMapView) {
             map.removeOverlays(map.overlays.filter { $0 is LegLine })
             map.removeAnnotations(map.annotations.compactMap { $0 as? Pin }.filter { !$0.isRider })
-            map.removeAnnotations(map.annotations.filter { $0 is OptionLabel || $0 is SignalDot })
+            map.removeAnnotations(map.annotations.filter {
+                $0 is OptionLabel || ($0 as? SignalDot)?.fromPlan == true
+            })
             let selected = view.options.first { $0.id == view.selectedID }
             // Unselected options faint underneath, the selected one on top.
             let ordered = view.options.filter { $0.id != selected?.id } + (selected.map { [$0] } ?? [])
@@ -577,13 +657,14 @@ struct RouteMapView: UIViewRepresentable {
                 shownRadar = nil
                 return
             }
-            let wanted = Self.window(around: time, in: view.radarFrames)
-            for (t, overlay) in radar where !wanted.contains(t) {
-                map.removeOverlay(overlay)
+            let wanted = view.radarPreload ? Self.window(around: time, in: view.radarFrames) : [time]
+            let plan = Self.radarPlan(mounted: Set(radar.keys), wanted: wanted)
+            for t in plan.drop {
+                if let overlay = radar[t] { map.removeOverlay(overlay) }
                 radar[t] = nil
                 renderers[t] = nil
             }
-            for t in view.radarFrames where radar[t] == nil {
+            for t in plan.add {
                 let o = RadarTileOverlay(time: t)
                 radar[t] = o
                 map.insertOverlay(o, at: 0, level: .aboveRoads)
@@ -592,6 +673,19 @@ struct RouteMapView: UIViewRepresentable {
                 shownRadar = time
                 for (t, r) in renderers { r.alpha = t == time ? 0.7 : 0 }
             }
+        }
+
+        /// Which radar overlays to take off the map and which to put on.
+        ///
+        /// It has to settle: called again with nothing changed it must return
+        /// two empty sets. The version before 1.2 mounted **every** frame
+        /// after dropping all but three, so each redraw tore nineteen tile
+        /// overlays off the map and hung them back on — hundreds of tile
+        /// requests a second, for pictures nobody was looking at. That is what
+        /// made the whole app feel busy: panning stuttered, and so did setting
+        /// the time on a screen that merely had the map behind it.
+        static func radarPlan(mounted: Set<Date>, wanted: Set<Date>) -> (drop: Set<Date>, add: Set<Date>) {
+            (drop: mounted.subtracting(wanted), add: wanted.subtracting(mounted))
         }
 
         /// The shown minute and one step either side.
@@ -699,12 +793,13 @@ struct RadarControls: View {
     var frames: [Date]
     @Binding var index: Int
     @Binding var visible: Bool
+    /// Lifted out of this view so the map knows whether to hold the
+    /// neighbouring frames ready.
+    @Binding var playing: Bool
     /// When the plan on screen was computed; nil leaves the second line away.
     var lastRun: Date? = nil
     var loading = false
     var onRefresh: (() -> Void)? = nil
-    @State private var playing = false
-
     var body: some View {
         VStack(spacing: 5) {
             controls
@@ -835,6 +930,7 @@ struct TripMapPanel: View {
     @State private var frames = RadarTileOverlay.frameTimes()
     @State private var index = 0
     @State private var radarOn = true
+    @State private var playing = false
 
     private var trip: TripOption? { options.first { $0.id == selectedID } }
 
@@ -842,8 +938,9 @@ struct TripMapPanel: View {
         ZStack(alignment: .bottom) {
             RouteMapView(options: options, selectedID: selectedID, radarFrames: radarOn ? frames : [],
                          radarTime: radarOn && frames.indices.contains(index) ? frames[index] : nil,
+                         radarPreload: playing,
                          waypoints: waypoints, onSelect: onSelect)
-            RadarControls(frames: frames, index: $index, visible: $radarOn,
+            RadarControls(frames: frames, index: $index, visible: $radarOn, playing: $playing,
                           lastRun: lastRun, loading: loading, onRefresh: onRefresh)
                 .padding(8)
         }

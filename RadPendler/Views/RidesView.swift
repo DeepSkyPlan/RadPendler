@@ -194,7 +194,7 @@ struct RideMapCard: View {
                 .strokeBorder(Color.primary.opacity(0.06))
         }
         .task {
-            track = store.track(for: ride)
+            track = await store.track(for: ride)
             searched = true
         }
     }
@@ -229,6 +229,15 @@ struct RideFacts: View {
                 fact("Ampelhalts", "\(ride.signalStops)", .yellow)
                 fact("Ampelwartezeit", Fmt.clock(ride.signalWaitTotal), .yellow)
                 fact("Ø je Ampel", ride.signalStops == 0 ? "–" : Fmt.clock(ride.signalWaitAverage), .yellow)
+            }
+            if let mix = ride.mix, !mix.isEmpty {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Worauf gefahren")
+                        .font(.system(size: 10, design: .rounded))
+                        .foregroundStyle(.secondary)
+                    RoadMixBar(mix: mix)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             if let off = ride.deviationSeconds {
                 // The one comparison that judges the app rather than the rider.
@@ -305,6 +314,6 @@ private struct StopList: View {
                 .card()
             }
         }
-        .task { stops = store.track(for: ride)?.stops ?? [] }
+        .task { stops = await store.track(for: ride)?.stops ?? [] }
     }
 }

@@ -26,6 +26,7 @@ struct HelpView: View {
                         "Ein Tipp wählt die Box aus, der nächste Tipp schaltet zur nächsten Möglichkeit. Die Punkte unter der Zeit zeigen, wie viele es sind.",
                         "Lang drücken springt zurück auf die erste und damit beste Möglichkeit dieser Box.",
                         "Der gelbe Stern steht an dem, was die App empfiehlt.",
+                        "Im Detail einer Radroute zeigt ein Balken, wie viele Kilometer auf Hauptstraße, Nebenstraße, Radweg, Weg und Fußweg liegen. Derselbe Balken steht bei jeder aufgezeichneten Fahrt — dort für die Strecke, die du wirklich gefahren bist.",
                         "Beim Rad gibt es „verkehrsarm“ zusätzlich zu „ruhigst“: „ruhigst“ zählt auch Ampeln und Querungen, „verkehrsarm“ fragt nur, wo die Autos sind.",
                     ])
                     section("Die Zeile darunter", "chevron.right.circle", [

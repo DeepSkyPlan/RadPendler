@@ -29,29 +29,30 @@ struct RideTrackingView: View {
 
     var body: some View {
         @Bindable var settings = settings
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            ZStack(alignment: .topLeading) {
-                map
-                if isLandscape {
-                    HStack(alignment: .top, spacing: 8) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            turnBanner
-                            controls(settings: $settings.orientation)
-                            Spacer(minLength: 0)
-                        }
-                        Spacer(minLength: 0)
-                        panel(now: context.date).frame(width: 260)
-                    }
-                    .padding(10)
-                } else {
-                    VStack(spacing: 8) {
+        // No timeline around the whole screen: the clock needs a tick a
+        // second, the map does not, and re-making the map view once a second
+        // is work for nothing while a thumb is on it.
+        ZStack(alignment: .topLeading) {
+            map
+            if isLandscape {
+                HStack(alignment: .top, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 8) {
                         turnBanner
                         controls(settings: $settings.orientation)
                         Spacer(minLength: 0)
-                        panel(now: context.date)
                     }
-                    .padding(10)
+                    Spacer(minLength: 0)
+                    panel.frame(width: 260)
                 }
+                .padding(10)
+            } else {
+                VStack(spacing: 8) {
+                    turnBanner
+                    controls(settings: $settings.orientation)
+                    Spacer(minLength: 0)
+                    panel
+                }
+                .padding(10)
             }
         }
         // Restarts whenever the map is dragged again, so thirty seconds means
@@ -81,6 +82,7 @@ struct RideTrackingView: View {
     private var map: some View {
         RouteMapView(options: options, selectedID: selectedID, radarFrames: [], radarTime: nil,
                      track: tracker.meter.points, trackStops: tracker.meter.stops,
+                     signals: tracker.signals,
                      rider: tracker.here, course: tracker.course, following: following,
                      onPan: {
                          following = false
@@ -147,11 +149,16 @@ struct RideTrackingView: View {
         .accessibilityLabel(following ? "Karte folgt dir" : "Karte folgt dir nicht, kommt in 30 Sekunden zurück")
     }
 
-    private func panel(now: Date) -> some View {
+    private var panel: some View {
         VStack(spacing: 8) {
             header
-            clock(now: now)
-            numbers(now: now)
+            // Only these two numbers run on a clock.
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                VStack(spacing: 8) {
+                    clock(now: context.date)
+                    numbers(now: context.date)
+                }
+            }
             signalRow
             stopButton
         }

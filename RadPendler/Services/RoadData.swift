@@ -263,6 +263,16 @@ struct BikeRouteStats: Equatable {
     /// beside a main road, a traffic light as 100 m.
     var disturbance: Double { mainRoadMeters + 300 * Double(crossings.count) + 100 * Double(signals) }
 
+    /// The places where traffic makes one stop: every lit junction and every
+    /// main road that has to be crossed.
+    ///
+    /// Deliberately **not** `disturbance`. That one is dominated by the metres
+    /// ridden beside main roads — thousands against a handful of junctions —
+    /// so "ruhigst" answers "where do I ride next to the fewest cars", and
+    /// this one answers "where do I have to stop for them least often". Those
+    /// are different routes, and the point of offering both is that they are.
+    var stops: Int { signals + crossings.count }
+
     static func == (a: BikeRouteStats, b: BikeRouteStats) -> Bool {
         a.signals == b.signals && a.crossings == b.crossings && a.mainRoadMeters == b.mainRoadMeters
     }

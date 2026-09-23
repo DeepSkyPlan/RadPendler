@@ -62,6 +62,13 @@ struct RideMeter {
     var signalSeconds: TimeInterval = RideMeter.defaultSignalSeconds
     static let defaultSignalSeconds: TimeInterval = 30
 
+    /// The planned route with the kind of road each stretch is. Empty means
+    /// nobody classified it, and then `mix` stays empty too — an empty bar is
+    /// an honest "not known", a full one would be a guess.
+    var roadPoints: [RoadPoint] = []
+    private(set) var mix = RoadMix()
+    private var roadIndex = 0
+
     private(set) var points: [RidePoint] = []
     private(set) var stops: [RideStop] = []
     private(set) var meters = 0.0
@@ -120,12 +127,26 @@ struct RideMeter {
             if currentSpeed >= Self.stopSpeed {
                 meters += step
                 movingSeconds += dt
+                attribute(step, at: fix.coordinate)
             }
             maxSpeed = Swift.max(maxSpeed, currentSpeed)
         }
         updateStops(fix, gap: gap)
         record(fix)
         lastFix = fix
+    }
+
+    /// Which kind of road these metres were ridden on. Off the planned line
+    /// by more than `RoadPoint.matchRadius`, the honest answer is "sonstiges";
+    /// that is also what a detour looks like, and it should.
+    private mutating func attribute(_ metres: Double, at c: CLLocationCoordinate2D) {
+        guard !roadPoints.isEmpty else { return }
+        guard let match = RoadPoint.nearest(roadPoints, to: c, from: roadIndex) else {
+            mix.add(metres, to: .other)
+            return
+        }
+        roadIndex = match.index
+        mix.add(metres, to: match.cls)
     }
 
     private mutating func begin(with fix: Fix) {
@@ -205,7 +226,7 @@ struct RideMeter {
                         meters: meters, movingSeconds: movingSeconds, maxKmh: maxSpeed * 3.6,
                         signalStops: signalStops, otherStops: otherStops,
                         signalWaitTotal: signalWaitTotal, plannedSeconds: plannedSeconds,
-                        pointCount: points.count)
+                        pointCount: points.count, mix: mix.isEmpty ? nil : mix)
         return (ride, RideTrack(id: id, points: points, stops: stops))
     }
 }

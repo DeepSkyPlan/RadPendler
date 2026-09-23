@@ -58,3 +58,83 @@ struct SpeedLegend: View {
         .accessibilityLabel("Farbskala der Geschwindigkeit, rot unter 8 bis grün über 26 km/h")
     }
 }
+
+extension RoadClass {
+    /// Loud to quiet: the main road keeps the warning colour the car mode
+    /// uses, the bike path the green the bike has everywhere else.
+    var color: Color {
+        switch self {
+        case .main: Color(red: 0.89, green: 0.25, blue: 0.21)
+        case .side: Color(red: 0.95, green: 0.65, blue: 0.13)
+        case .cycleway: Color(red: 0.09, green: 0.65, blue: 0.29)
+        case .path: Color(red: 0.42, green: 0.56, blue: 0.24)
+        case .footway: Color(red: 0.36, green: 0.52, blue: 0.72)
+        case .other: Color.secondary
+        }
+    }
+}
+
+/// How much of a route runs on what kind of road, as one bar and a legend.
+///
+/// The question it answers is the one a commuter actually asks about an
+/// alternative: *wie viel davon ist Hauptstraße?* A number of kilometres does
+/// not answer it; a bar does, at a glance, and the legend is there for the
+/// times one wants the kilometres after all.
+struct RoadMixBar: View {
+    var mix: RoadMix
+    /// Without the legend, for the places where a single line has to do.
+    var compact = false
+
+    private static let gap: CGFloat = 1.5
+
+    var body: some View {
+        if !mix.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                bar
+                if !compact { legend }
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(Text(spoken))
+        }
+    }
+
+    private var classes: [RoadClass] { mix.present }
+
+    private var bar: some View {
+        GeometryReader { geo in
+            let gaps = Self.gap * CGFloat(max(classes.count - 1, 0))
+            let usable = max(geo.size.width - gaps, 1)
+            HStack(spacing: Self.gap) {
+                ForEach(classes) { c in
+                    RoundedRectangle(cornerRadius: 2.5, style: .continuous)
+                        .fill(c.color)
+                        // A stretch of eighty metres in a twenty-kilometre
+                        // route is a hairline, but leaving it out would be a
+                        // lie about what the bar adds up to.
+                        .frame(width: max(2, usable * mix.share(c)))
+                }
+            }
+        }
+        .frame(height: compact ? 8 : 11)
+    }
+
+    private var legend: some View {
+        HStack(spacing: 5) {
+            ForEach(classes) { c in
+                HStack(spacing: 3) {
+                    Circle().fill(c.color).frame(width: 6, height: 6)
+                    Text("\(c.title) \(Fmt.km(mix[c]))")
+                        .font(.system(size: 10, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+    }
+
+    private var spoken: String {
+        classes.map { "\($0.title) \(Fmt.km(mix[$0]))" }.joined(separator: ", ")
+    }
+}
