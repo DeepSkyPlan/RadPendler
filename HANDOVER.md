@@ -1,4 +1,4 @@
-# RadPendler — Übergabe (Stand 23.09.2026, 1.0 / Build 22 + Aufzeichnung)
+# RadPendler — Übergabe (Stand 23.09.2026, 1.1 / Build 23)
 
 Multimodaler Pendel-Planer für iPhone, iPad und Apple Watch: Büro ↔ Zuhause mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln,
 Regen und Countdown.
@@ -7,7 +7,7 @@ Das Projekt ist quelloffen (MIT); Adressen und Schlüssel gehören nicht hinein.
 ## Bauen, testen, ausliefern
 
 ```bash
-./dev test      # generiert das .xcodeproj bei Bedarf, dann 79 Tests im Simulator
+./dev test      # generiert das .xcodeproj bei Bedarf, dann 108 Tests im Simulator
 #               MOTIS_LIVE=1 schaltet zusätzlich den echten Transitous-Aufruf frei
 #               (aus Xcode heraus; xcodebuild reicht die Variable nicht durch)
 ./dev open      # Xcode mit demselben DerivedData wie die Kommandozeile
@@ -51,14 +51,14 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   erfundenen Fixes, siehe `RideTests`), `RideTracker` (der Manager drumherum; schaltet
   `allowsBackgroundLocationUpdates` **nur** zwischen Start und Ende einer Fahrt ein und
   danach wieder aus, schickt die Zahlen im Sekundentakt an die Uhr und sichert alle 30 s
-  einen Zwischenstand), `RideStore` (+ `RideCloud`: Zusammenfassungen in einer Datei,
-  Linien je eine, dazu die private CloudKit-Datenbank),
+  einen Zwischenstand), `RideStore` (Zusammenfassungen im
+  Schlüssel-Wert-Speicher und damit in iCloud, Linien je eine Datei und damit nur lokal),
   `Location` (ein einzelner Fix auf Tippen, danach nichts mehr;
   `place(from:at:)` ist absichtlich `nonisolated`, damit es ohne Gerät testbar ist),
   `Motis` (Transitous/MOTIS 2: `MotisClient` + `MotisParser`, inkl.
-  Polylinien-Dekoder), `CloudStore` (iCloud-Schlüssel-Wert-Abgleich der Einstellungen; hört auf
-  `UserDefaults.didChangeNotification` statt auf zwanzig Setter, `placeHistory` wird
-  zusammengeführt statt ersetzt), `WatchLink` (Plan an die Uhr), `Hafas` (VBB mgate + Parser), `BRouter` (+ `CompositeRouter`), `StreetRouter`
+  Polylinien-Dekoder), `CloudStore` (iCloud-Schlüssel-Wert-Abgleich der Einstellungen **und** der
+  Fahrt-Kennzahlen; hört auf `UserDefaults.didChangeNotification` statt auf zwanzig
+  Setter, `placeHistory` und `rides` werden zusammengeführt statt ersetzt), `WatchLink` (Plan an die Uhr), `Hafas` (VBB mgate + Parser), `BRouter` (+ `CompositeRouter`), `StreetRouter`
   (MapKit), `RoadData` (Overpass + `RouteAnalyzer` + `SegmentGrid`), `Rain` (Open-Meteo),
   `RadarOverlay` (DWD-WMS-Kacheln), `Waypoints`, `TripPlanner` (+ `BikeCandidate`,
   `BikeTransitComposer`), `Alarm`.
@@ -152,10 +152,14 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
 - **Die Ampelzuordnung friert beim Start der Fahrt ein.** `RideTracker.start` bekommt die
   Kreuzungen der *geplanten* Route mit; eine Neuplanung unterwegs darf nicht nachträglich
   entscheiden, ob ein Halt vor drei Kilometern eine Ampel war.
-- **Fahrten reisen über CloudKit, nicht über den Schlüssel-Wert-Speicher.** Der fasst 1 MB
-  insgesamt; eine Fahrt mit Linie ist komprimiert rund 20 kB. Container
-  `iCloud.de.keese.radpendler`, Datensatztyp `Ride`, die Linie zlib-komprimiert im Feld
-  `track`. Ohne iCloud-Konto bleibt alles lokal, wie bei `CloudStore` auch.
+- **Von den Fahrten reisen nur die Kennzahlen, nie die Linien.** Beides zusammen passt
+  nicht: der Schlüssel-Wert-Speicher fasst 1 MB für die ganze App, eine Linie ist rund
+  80 kB. Die Zusammenfassungen liegen deshalb unter `CloudStore.ridesKey` (komprimiert,
+  gedeckelt auf `RideStore.maxRides`), die Linien als Dateien unter `Rides/tracks/`.
+  `rides` ist wie `placeHistory` ein **zusammengeführter** Schlüssel — deshalb wirkt ein
+  Löschen nur auf dem Gerät, auf dem gelöscht wurde, und die App sagt das auch.
+  `CloudStore.settingsKeys` ist die Liste, gegen die
+  `testEverySettingTheAppSavesAlsoTravelsThroughICloud` prüft; `keys` ist sie plus `rides`.
 - **Keine Adressen im Programm** — die App startet leer. Adressen und Einstellungen liegen
   auf dem Gerät und in der **privaten iCloud des Nutzers** (Schlüssel-Wert-Speicher,
   Entitlement `com.apple.developer.ubiquity-kvstore-identifier`); sie gehen an keinen
@@ -168,12 +172,18 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
 
 ## Offen / Ideen
 
-- **Der CloudKit-Container muss im Entwicklerkonto existieren.** Xcode legt ihn bei
-  automatischer Signierung beim ersten Bauen auf ein Gerät an; ein `archive` von der
-  Kommandozeile kann daran scheitern, bevor es je ein Gerät gesehen hat. Im Simulator
-  werden die iCloud-Rechte ohne Profil ohnehin weggelassen — dort synchronisiert nichts,
-  und das ist kein Fehler. Vor der Produktivumgebung im CloudKit-Dashboard prüfen, ob
-  `Ride` abfragbar indiziert ist (`recordName`), sonst liefert `fetchSummaries` nichts.
+- **Die Linien reisen (noch) nicht.** Dafür bräuchte es CloudKit, dafür einen
+  iCloud-Container im Entwicklerkonto — und der lässt sich **nur von Hand** anlegen:
+  <https://developer.apple.com/account/resources/identifiers/list/cloudContainer>, danach
+  beim App-Identifier die iCloud-Capability bearbeiten. Weder
+  `xcodebuild -allowProvisioningUpdates` noch die App-Store-Connect-API können das.
+  Steht er einmal, ist der Weg dorthin kurz: `Ride` und `RideTrack` sind schon getrennt,
+  und `RideStore` hat genau zwei Stellen, die schreiben.
+- **`xcodebuild` auf diesem Mac hat kein Entwicklerkonto** („No Accounts: Add a new
+  account in Accounts settings"). Automatisches Signieren aus der Kommandozeile geht
+  deshalb nur mit einem API-Schlüssel, der im Portal Rechte hat; `PAGC3W2GBL` hat sie
+  für App Store Connect (Upload), aber nicht fürs Provisioning. Profile kommen bis auf
+  Weiteres aus Xcode.app.
 - `UIBackgroundModes` gibt es **nicht** als `INFOPLIST_KEY_*`. Deshalb die Teil-Datei
   `RadPendlerInfo.plist` neben `GENERATE_INFOPLIST_FILE: YES`; Xcode mischt beides. Sie
   enthält genau diesen einen Schlüssel und darf nicht in einen Quell- oder

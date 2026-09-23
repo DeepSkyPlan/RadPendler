@@ -19,7 +19,7 @@ final class CloudStore {
     /// `testEverySettingTheAppSavesAlsoTravelsThroughICloud` fails when a new
     /// setting is added to `AppSettings` and forgotten here — which is how the
     /// four preference lists missed the boat between 0.10.0 and 0.12.1.
-    static let keys = ["origin", "destination", "workPlace", "homePlace", "waypoints", "placeHistory",
+    static let settingsKeys = ["origin", "destination", "workPlace", "homePlace", "waypoints", "placeHistory",
                        "bikeLines", "timetableSource", "departurePresets2", "prepMinutes", "bikeMovingSpeedKmh",
                        "bikeStationBufferMinutes", "maxBikeToStationKm", "parkingMinutes",
                        "transferPenaltyMinutes", "signalWaitSeconds", "requireAllWaypoints",
@@ -27,9 +27,17 @@ final class CloudStore {
                        "alertMinutes", "alertsOn",
                        "modeOrder", "bikeVariantOrder", "carVariantOrder", "rainSwitchLevel"]
 
-    /// The one key that is merged instead of replaced: a device that has not
-    /// pulled yet must not be able to shorten the list it has not seen.
-    private static let mergedKey = "placeHistory"
+    /// The recorded rides — summaries only, never their lines. Not a setting,
+    /// which is why it stands apart from `settingsKeys`: that list is checked
+    /// against everything `AppSettings` writes, and this key belongs to
+    /// `RideStore`. It travels on exactly the same terms.
+    static let ridesKey = "rides"
+
+    static let keys = settingsKeys + [ridesKey]
+
+    /// The keys that are merged instead of replaced: a device that has not
+    /// pulled yet must not be able to shorten a list it has not seen.
+    private static let mergedKeys: Set<String> = ["placeHistory", ridesKey]
 
     /// Called after values came in from another device.
     var onPull: (() -> Void)?
@@ -127,11 +135,11 @@ final class CloudStore {
                 // Gone from the cloud means deleted somewhere, not "no news":
                 // an address removed on the phone stayed on the iPad forever.
                 // The merged list is the exception — it is never shortened.
-                if key != Self.mergedKey { defaults.removeObject(forKey: key) }
+                if !Self.mergedKeys.contains(key) { defaults.removeObject(forKey: key) }
                 continue
             }
-            if key == Self.mergedKey, let incoming = value as? Data {
-                defaults.set(Self.mergedHistory(local: defaults.data(forKey: key), cloud: incoming) ?? incoming,
+            if Self.mergedKeys.contains(key), let incoming = value as? Data {
+                defaults.set(Self.merged(key, local: defaults.data(forKey: key), cloud: incoming) ?? incoming,
                              forKey: key)
             } else {
                 defaults.set(value, forKey: key)
@@ -142,14 +150,20 @@ final class CloudStore {
         applying = false
         // Whatever the merge produced has to go back out, or the other device
         // never learns about the entries only this one had.
-        if keys.contains(Self.mergedKey) { push([Self.mergedKey]) }
+        let merged = keys.filter(Self.mergedKeys.contains)
+        if !merged.isEmpty { push(merged) }
     }
 
     /// Both lists into one; nil when either side cannot be read, so the caller
     /// falls back to what came in.
-    static func mergedHistory(local: Data?, cloud: Data) -> Data? {
+    static func merged(_ key: String, local: Data?, cloud: Data) -> Data? {
+        guard let local else { return nil }
+        if key == Self.ridesKey {
+            guard let mine = RideStore.decode(local), let theirs = RideStore.decode(cloud) else { return nil }
+            return RideStore.encode(RideStore.merge(mine, theirs))
+        }
         let decoder = JSONDecoder()
-        guard let local, let mine = try? decoder.decode([PlaceUse].self, from: local),
+        guard let mine = try? decoder.decode([PlaceUse].self, from: local),
               let theirs = try? decoder.decode([PlaceUse].self, from: cloud) else { return nil }
         return try? JSONEncoder().encode(mine.merging(theirs))
     }

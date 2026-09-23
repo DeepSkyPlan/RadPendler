@@ -223,27 +223,53 @@ final class RideTests: XCTestCase {
 
     // MARK: Storage
 
-    func testATrackSurvivesTheTripThroughICloud() {
-        let track = RideTrack(id: UUID(),
-                              points: (0..<500).map {
-                                  RidePoint(lat: 52.5 + Double($0) / 100_000, lon: 13.4,
-                                            t: start.addingTimeInterval(Double($0)), v: 5.5)
-                              },
-                              stops: [RideStop(lat: 52.5, lon: 13.4, start: start, seconds: 22, atSignal: true)])
-        let data = RideCloud.encodeTrack(track)
-        XCTAssertNotNil(data)
-        // Compressed, or the field limit decides how long a commute may be.
-        XCTAssertLessThan(data!.count, (try! JSONEncoder().encode(track)).count / 2)
-        XCTAssertEqual(RideCloud.decodeTrack(data!), track)
+    private func ride(_ offsetDays: Int, meters: Double = 9000) -> Ride {
+        let t = start.addingTimeInterval(Double(offsetDays) * 86_400)
+        return Ride(started: t, ended: t.addingTimeInterval(1700), origin: "A", destination: "B",
+                    mode: TravelMode.bike.rawValue, meters: meters, movingSeconds: 1400,
+                    maxKmh: 34.2, signalStops: 7, otherStops: 2, signalWaitTotal: 190,
+                    plannedSeconds: 1800, pointCount: 812)
     }
 
-    func testARideSurvivesTheTripThroughARecord() {
-        let ride = Ride(started: start, ended: start.addingTimeInterval(1700), origin: "A", destination: "B",
-                        mode: TravelMode.bikeTransit.rawValue, meters: 9300, movingSeconds: 1400,
-                        maxKmh: 34.2, signalStops: 7, otherStops: 2, signalWaitTotal: 190,
-                        plannedSeconds: 1800, pointCount: 812)
-        let record = RideCloud.record(ride, RideTrack(id: ride.id))
-        XCTAssertEqual(RideCloud.ride(record), ride)
+    /// The summaries travel in the same one-megabyte store as the settings, so
+    /// their size is not a detail — it is the reason the lines stay at home.
+    func testSummariesPackSmallEnoughForTheKeyValueStore() {
+        let rides = (0..<RideStore.maxRides).map { ride(-$0) }
+        guard let packed = RideStore.encode(rides) else { return XCTFail("nicht verpackt") }
+        XCTAssertLessThan(packed.count, 300_000, "eintausend Fahrten müssen weit unter 1 MB bleiben")
+        XCTAssertEqual(RideStore.decode(packed)?.count, RideStore.maxRides)
+        XCTAssertEqual(RideStore.decode(packed)?.first, rides.first)
+    }
+
+    /// A value written before there was compression still has to read.
+    func testUncompressedSummariesStillRead() {
+        let rides = [ride(0), ride(-1)]
+        let plain = try! JSONEncoder().encode(rides)
+        XCTAssertEqual(RideStore.decode(plain)?.count, 2)
+    }
+
+    /// Two devices, one list: nothing counted twice, nothing dropped because
+    /// the other side had not heard of it yet.
+    func testTwoDevicesMergeIntoOneList() {
+        let shared = ride(0)
+        let mine = [shared, ride(-1)]
+        let theirs = [shared, ride(-2)]
+        let merged = RideStore.merge(mine, theirs)
+        XCTAssertEqual(merged.count, 3)
+        XCTAssertEqual(Set(merged.map(\.id)).count, 3)
+        // Newest first, whichever device it came from.
+        XCTAssertEqual(merged.map(\.started), merged.map(\.started).sorted(by: >))
+        // Idempotent: merging again changes nothing.
+        XCTAssertEqual(RideStore.merge(merged, theirs).count, 3)
+    }
+
+    func testTheMergeStopsAtTheCeiling() {
+        let mine = (0..<RideStore.maxRides).map { ride(-$0) }
+        let theirs = (RideStore.maxRides..<(RideStore.maxRides + 50)).map { ride(-$0) }
+        let merged = RideStore.merge(mine, theirs)
+        XCTAssertEqual(merged.count, RideStore.maxRides)
+        // The oldest go, because the recent months are what the list is for.
+        XCTAssertEqual(merged.first, mine.first)
     }
 
     // MARK: Colours

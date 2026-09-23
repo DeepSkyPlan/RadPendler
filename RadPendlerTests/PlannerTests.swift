@@ -294,11 +294,32 @@ final class PlannerTests: XCTestCase {
         XCTAssertEqual(merged[0].lastUsed, t0.addingTimeInterval(600), "the later use wins")
     }
 
-    func testHistoryMergeFallsBackWhenOneSideIsUnreadable() {
+    func testAMergeFallsBackWhenOneSideIsUnreadable() {
         let good = try! JSONEncoder().encode([PlaceUse(place: place("A", 52, 13), count: 1, lastUsed: t0)])
-        XCTAssertNil(CloudStore.mergedHistory(local: nil, cloud: good), "nothing local: take what came in")
-        XCTAssertNil(CloudStore.mergedHistory(local: Data("kaputt".utf8), cloud: good))
-        XCTAssertNotNil(CloudStore.mergedHistory(local: good, cloud: good))
+        let key = "placeHistory"
+        XCTAssertNil(CloudStore.merged(key, local: nil, cloud: good), "nothing local: take what came in")
+        XCTAssertNil(CloudStore.merged(key, local: Data("kaputt".utf8), cloud: good))
+        XCTAssertNotNil(CloudStore.merged(key, local: good, cloud: good))
+    }
+
+    /// The rides go through the same gate, with their own merge behind it.
+    func testTheRidesUseTheirOwnMerge() {
+        let t = Date(timeIntervalSince1970: 1_780_000_000)
+        func ride(_ n: Int) -> Ride {
+            Ride(started: t.addingTimeInterval(Double(n) * 86_400), ended: t.addingTimeInterval(Double(n) * 86_400 + 1200),
+                 origin: "A", destination: "B", mode: TravelMode.bike.rawValue, meters: 8000,
+                 movingSeconds: 1100, maxKmh: 30, signalStops: 3, otherStops: 0,
+                 signalWaitTotal: 60, plannedSeconds: nil)
+        }
+        let shared = ride(0)
+        let mine = RideStore.encode([shared, ride(-1)])!
+        let theirs = RideStore.encode([shared, ride(-2)])!
+        guard let out = CloudStore.merged(CloudStore.ridesKey, local: mine, cloud: theirs) else {
+            return XCTFail("nicht zusammengeführt")
+        }
+        XCTAssertEqual(RideStore.decode(out)?.count, 3)
+        XCTAssertNil(CloudStore.merged(CloudStore.ridesKey, local: nil, cloud: theirs))
+        XCTAssertNil(CloudStore.merged(CloudStore.ridesKey, local: Data("kaputt".utf8), cloud: theirs))
     }
 
     // MARK: Long trips
@@ -435,7 +456,9 @@ final class PlannerTests: XCTestCase {
         settings.homePlace = from
         let saved = Set((UserDefaults.standard.persistentDomain(forName: suite) ?? [:]).keys)
         XCTAssertFalse(saved.isEmpty, "the settings must write something, or this test proves nothing")
-        let carried = Set(CloudStore.keys)
+        // `settingsKeys`, not `keys`: the rides travel in the same store but
+        // belong to RideStore, and AppSettings never writes them.
+        let carried = Set(CloudStore.settingsKeys)
         XCTAssertTrue(saved.subtracting(carried).isEmpty,
                       "these settings never reach the other devices: \(saved.subtracting(carried).sorted())")
         XCTAssertTrue(carried.subtracting(saved).isEmpty,

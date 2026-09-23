@@ -55,7 +55,7 @@ struct HelpView: View {
                     section("Gefahrene Fahrten", "list.bullet.rectangle", [
                         "Menü → Fahrten: alle Aufzeichnungen, nach Jahren und Monaten. Die Überschrift eines Monats zeigt Kilometer, Schnitt und Ampelhalts dieses Monats.",
                         "Eine Fahrt antippen zeigt die gefahrene Linie, jede Zahl dazu und die längsten Halte.",
-                        "Die Fahrten liegen in deiner eigenen privaten iCloud und stehen dadurch auf allen deinen Geräten. Nach links wischen löscht eine — überall.",
+                        "Die Zahlen jeder Fahrt gehen über deine eigene iCloud auf deine anderen Geräte; die gefahrene Linie bleibt auf dem Gerät, auf dem sie aufgezeichnet wurde. Nach links wischen löscht eine Fahrt — auf diesem Gerät.",
                     ])
                     section("Aktualisieren", "arrow.down", [
                         "Seite nach unten ziehen und loslassen. Einen Knopf dafür gibt es nicht mehr.",

@@ -58,8 +58,9 @@ eingecheckt — die Struktur steht in `project.yml` (XcodeGen).
 
 - **CoreLocation** — „Mein Standort" als Startadresse (ein einzelner Fix auf
   Tippen) und, während einer Aufzeichnung, die gefahrene Strecke.
-- **CloudKit**, private Datenbank — die aufgezeichneten Fahrten zwischen den
-  Geräten des Nutzers.
+- **iCloud-Schlüssel-Wert-Speicher** — Einstellungen und die Kennzahlen der
+  aufgezeichneten Fahrten zwischen den Geräten des Nutzers. Die gefahrenen
+  Linien bleiben auf dem Gerät, auf dem sie entstanden sind.
 
 ## Privates
 
@@ -70,9 +71,8 @@ danach wieder vergessen. Laufend geortet wird **ausschließlich** zwischen
 Tasche, anders ist eine Pendelfahrt nicht aufzuzeichnen; iOS zeigt solange die
 blaue Leiste, und die App schaltet den Hintergrundmodus danach selbst wieder ab.
 Was der Nutzer eingibt und was aufgezeichnet wird, bleibt auf seinen Geräten und
-in seiner eigenen iCloud (Einstellungen im Schlüssel-Wert-Speicher, Fahrten in
-der privaten CloudKit-Datenbank); es geht an keinen Server dieses Projekts, weil
-es keinen gibt. Die Testdaten unter `RadPendlerTests/Fixtures` sind echte Antworten
+in seiner eigenen iCloud (Schlüssel-Wert-Speicher); es geht an keinen Server
+dieses Projekts, weil es keinen gibt. Die Testdaten unter `RadPendlerTests/Fixtures` sind echte Antworten
 der Dienste, aber auf neutrale Adressen und eine versetzte Geometrie gebracht.
 
 ## Lizenz

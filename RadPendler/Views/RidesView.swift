@@ -27,11 +27,7 @@ struct RidesView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } }
-                if store.syncing {
-                    ToolbarItem(placement: .topBarLeading) { ProgressView().controlSize(.mini) }
-                }
             }
-            .task { await store.syncFromCloud() }
         }
     }
 
@@ -65,7 +61,9 @@ struct RidesView: View {
             }
             Button("Behalten", role: .cancel) { pendingDelete = nil }
         } message: {
-            Text("Auch aus deiner iCloud — auf allen Geräten.")
+            // The list is merged between devices, so a gap has to be made on
+            // each of them — sagen statt hinterher erklären.
+            Text("Auf diesem Gerät. Andere Geräte behalten sie, bis du sie auch dort löschst.")
         }
     }
 }
@@ -180,9 +178,12 @@ struct RideMapCard: View {
                              track: track.points, trackStops: track.stops)
                 SpeedLegend().padding(8)
             } else if searched {
+                // The numbers of every ride reach every device; the line stays
+                // where it was drawn. Eighty Kilobyte je Fahrt passen nicht in
+                // einen Speicher, der für die ganze App ein Megabyte hat.
                 ContentUnavailableView("Keine Linie",
                                        systemImage: "map",
-                                       description: Text("Die Aufzeichnung liegt auf dem Gerät, auf dem sie entstanden ist — sie kommt, sobald iCloud sie herübergereicht hat."))
+                                       description: Text("Diese Fahrt wurde auf einem anderen Gerät aufgezeichnet. Die Zahlen reisen mit, die gefahrene Linie bleibt dort."))
             } else {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -193,7 +194,7 @@ struct RideMapCard: View {
                 .strokeBorder(Color.primary.opacity(0.06))
         }
         .task {
-            track = await store.track(for: ride)
+            track = store.track(for: ride)
             searched = true
         }
     }
@@ -304,6 +305,6 @@ private struct StopList: View {
                 .card()
             }
         }
-        .task { stops = await store.track(for: ride)?.stops ?? [] }
+        .task { stops = store.track(for: ride)?.stops ?? [] }
     }
 }
