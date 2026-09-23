@@ -1,4 +1,4 @@
-# RadPendler — Übergabe (Stand 23.09.2026, 1.1 / Build 23)
+# RadPendler — Übergabe (Stand 23.09.2026, 1.2 / Build 24)
 
 Multimodaler Pendel-Planer für iPhone, iPad und Apple Watch: Büro ↔ Zuhause mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln,
 Regen und Countdown.
@@ -7,7 +7,7 @@ Das Projekt ist quelloffen (MIT); Adressen und Schlüssel gehören nicht hinein.
 ## Bauen, testen, ausliefern
 
 ```bash
-./dev test      # generiert das .xcodeproj bei Bedarf, dann 108 Tests im Simulator
+./dev test      # generiert das .xcodeproj bei Bedarf, dann 122 Tests im Simulator
 #               MOTIS_LIVE=1 schaltet zusätzlich den echten Transitous-Aufruf frei
 #               (aus Xcode heraus; xcodebuild reicht die Variable nicht durch)
 ./dev open      # Xcode mit demselben DerivedData wie die Kommandozeile
@@ -53,6 +53,8 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   danach wieder aus, schickt die Zahlen im Sekundentakt an die Uhr und sichert alle 30 s
   einen Zwischenstand), `RideStore` (Zusammenfassungen im
   Schlüssel-Wert-Speicher und damit in iCloud, Linien je eine Datei und damit nur lokal),
+  `TurnGuide` (Abbiegehinweise **aus der gezeichneten Linie**, rein und testbar:
+  kein Router sagt sie an, und keiner muss es),
   `Location` (ein einzelner Fix auf Tippen, danach nichts mehr;
   `place(from:at:)` ist absichtlich `nonisolated`, damit es ohne Gerät testbar ist),
   `Motis` (Transitous/MOTIS 2: `MotisClient` + `MotisParser`, inkl.
@@ -80,6 +82,8 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   `Mark` (die Geometrie des App-Zeichens in einem 100 × 100-Feld, y nach unten),
   `RideTrackingView` (+ `RideSummarySheet`) und `RidesView` (Liste, Detail, `RideFacts`,
   `RideMapCard`), `RideStyle` (`RideColors` — die fünf Tempostufen der gefahrenen Linie,
+  `Orientation` (`AppDelegate` — nur damit UIKit jemanden hat, den es nach der
+  erlaubten Lage fragen kann),
   und `SpeedLegend`, die Skala dazu).
 - App-Zeichen: Form und Farben stehen **nur** in `Views/Mark.swift`. Neu rendern mit
   `swiftc -O -parse-as-library tools/make_icon.swift RadPendler/Views/Mark.swift -o /tmp/mkicon`
@@ -149,9 +153,24 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   `UIBackgroundModes: location` steht deshalb in `RadPendlerInfo.plist`. Wer daran etwas
   ändert, ändert auch den App-Datenschutz-Fragebogen und die Datenschutzerklärung —
   **beide sind für diesen Stand noch nicht nachgezogen.**
-- **Die Ampelzuordnung friert beim Start der Fahrt ein.** `RideTracker.start` bekommt die
-  Kreuzungen der *geplanten* Route mit; eine Neuplanung unterwegs darf nicht nachträglich
-  entscheiden, ob ein Halt vor drei Kilometern eine Ampel war.
+- **Alles, was die Fahrt führt, friert beim Start der Fahrt ein.** `RideTracker.start`
+  bekommt die Kreuzungen *und die Route* der geplanten Fahrt mit. Eine Neuplanung
+  unterwegs darf weder nachträglich entscheiden, ob ein Halt vor drei Kilometern eine
+  Ampel war, noch den Abbiegepfeil auf eine Straße zeigen lassen, auf der man nicht ist —
+  und ein Plan, der still leer zurückkommt, darf die Führung nicht mitnehmen. Genau das
+  ist am 23.09. im Simulator passiert, bevor die Route mit einfror.
+- **Ein Halt ab `signalStopSeconds` (30 s) ist eine Ampel**, auch ohne Kartendaten, und
+  wird als `LearnedSignal` behalten. Gelernte Ampeln wirken in zwei Richtungen zurück:
+  in `RideMeter.signals` der nächsten Fahrt und über `TripPlanner.withLearned` in
+  `RoadData.signals`, also in die Ampelzahl und damit in die Radzeit jeder Route.
+  `RouteAnalyzer` fasst Signalknoten innerhalb von 60 m zusammen — eine gelernte Ampel
+  auf einer gemappten zählt deshalb nicht doppelt.
+- **Der Pfeil der Fahrtansicht dreht sich um `Kurs − Blickrichtung der Karte`.** Beim
+  Folgen dreht sich die Karte selbst in den Kurs; wer den Pfeil zusätzlich um den Kurs
+  dreht, zeigt doppelt daneben. Erster Befund der ersten Testfahrt.
+- **`OrientationLock.apply()` fordert in `auto` bewusst *keine* Geometrieänderung an.**
+  Ein `requestGeometryUpdate` mit „alle Richtungen" nagelt die App auf die Lage fest, in
+  der sie gerade ist — das Gegenteil von automatisch.
 - **Von den Fahrten reisen nur die Kennzahlen, nie die Linien.** Beides zusammen passt
   nicht: der Schlüssel-Wert-Speicher fasst 1 MB für die ganze App, eine Linie ist rund
   80 kB. Die Zusammenfassungen liegen deshalb unter `CloudStore.ridesKey` (komprimiert,
