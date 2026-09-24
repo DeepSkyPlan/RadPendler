@@ -68,6 +68,64 @@ struct RoadData {
     }
 }
 
+/// Der Schlauch um die gefundenen Routen, in dem gefragt wird.
+///
+/// Vorher fragte die App den **umschließenden Kasten** ab. Bei einer
+/// diagonalen Pendelstrecke ist das halb Berlin: gemessen 3,6 MB und 18 238
+/// Elemente für eine 20-km-Strecke, von denen die Auswertung ein Dreizehntel
+/// anfasst. Overpass kann statt dessen entlang einer Linie fragen
+/// (`around:`) — dieselbe Strecke: 287 kB und 1 409 Elemente.
+struct Corridor: Codable, Equatable {
+    /// Ausgedünnte Stützpunkte, Breitengrad und Längengrad.
+    var points: [[Double]]
+    /// Radius um jeden Punkt, in Metern.
+    var radius: Double
+
+    /// Abstand der Stützpunkte. Enger als der Radius, sonst hat der Schlauch
+    /// Löcher zwischen den Punkten.
+    static let spacing = 150.0
+    /// So weit neben der Route werden Straßen noch gebraucht: `RouteAnalyzer`
+    /// sucht Querungen in einem Kasten von 100 m um die Linie und zählt Meter
+    /// bis 20 m daneben. 150 m ist mit Luft darüber.
+    static let needed = 150.0
+    static let radius = 300.0
+
+    /// Jeden Punkt, der weiter als `spacing` von allen schon behaltenen weg
+    /// ist. Das dünnt jede einzelne Route aus **und** legt die gemeinsamen
+    /// Stücke mehrerer Varianten übereinander — neun Routen über dieselbe
+    /// Hauptstraße ergeben einen Schlauch, nicht neun.
+    static func around(_ coords: [CLLocationCoordinate2D], spacing: Double = spacing,
+                       radius: Double = radius) -> Corridor {
+        var kept: [CLLocationCoordinate2D] = []
+        for c in coords where Geo.valid(c) {
+            if kept.contains(where: { $0.distance(to: c) < spacing }) { continue }
+            kept.append(c)
+        }
+        return Corridor(points: kept.map { [$0.latitude, $0.longitude] }, radius: radius)
+    }
+
+    var coordinates: [CLLocationCoordinate2D] {
+        points.compactMap { $0.count >= 2 ? CLLocationCoordinate2D(latitude: $0[0], longitude: $0[1]) : nil }
+    }
+
+    /// Reicht das, was für diesen Schlauch geholt wurde, auch für jene Route?
+    ///
+    /// Ein Punkt der neuen Route, der `d` von einem Stützpunkt entfernt liegt,
+    /// hat seine 150-m-Umgebung nur dann vollständig im Geholten, wenn
+    /// `d + needed ≤ radius`. Geprüft wird jeder fünfte Punkt; enger liegen
+    /// sie ohnehin nicht als ein paar Meter auseinander.
+    func covers(_ coords: [CLLocationCoordinate2D]) -> Bool {
+        let mine = coordinates
+        guard !mine.isEmpty else { return false }
+        let limit = radius - Self.needed
+        guard limit > 0 else { return false }
+        for (i, c) in coords.enumerated() where i % 5 == 0 {
+            if !mine.contains(where: { $0.distance(to: c) <= limit }) { return false }
+        }
+        return true
+    }
+}
+
 /// Fetches `RoadData` for a bounding box from the Overpass API and keeps it
 /// on disk for 30 days. The box is snapped outward to a 0.05° grid so the
 /// daily commute always hits the same file; the first fetch for the Berlin
@@ -119,7 +177,7 @@ actor RoadDataStore {
     }
 
     static let shared = RoadDataStore()
-    private var memory: [Box: RoadData] = [:]
+    private var memory: [Box: (data: RoadData, corridor: Corridor?)] = [:]
     /// Requests already on their way. Bike, car and bike+rail ask for
     /// overlapping corridors at the same moment; without this they all miss the
     /// cache, and Overpass answers the same 4-MB question three times — and
@@ -138,7 +196,14 @@ actor RoadDataStore {
         guard !coords.isEmpty else { throw RoadData.OverpassError.malformed }
         let box = Box(around: coords)
         guard !box.isTooLarge else { throw RoadData.OverpassError.corridorTooBig }
-        if let hit = memory.first(where: { $0.key.contains(box) }) { return hit.value }
+        // Der Kasten bleibt der Schlüssel — er ist über Tage hinweg derselbe,
+        // während der Schlauch mit jeder neu gefundenen Route ein wenig
+        // anders aussieht. Benutzt wird ein Treffer aber nur, wenn sein
+        // Schlauch auch diese Strecke deckt.
+        if let hit = memory.first(where: { $0.key.contains(box) && ($0.value.corridor?.covers(coords) ?? true) }) {
+            return hit.value.data
+        }
+        let corridor = Corridor.around(coords)
         // Someone is already fetching a corridor that covers this one: wait for
         // their answer instead of asking the same question again. The task is
         // registered before the first `await`, or the actor would let the next
@@ -146,24 +211,24 @@ actor RoadDataStore {
         if let running = inFlight.first(where: { $0.key.contains(box) })?.value {
             return try await running.value
         }
-        if let (b, d) = loadFromDisk(covering: box) {
-            remember(b, d)
+        if let (b, d, c) = loadFromDisk(covering: box, coords: coords) {
+            remember(b, d, c)
             return d
         }
         let task = Task { [directory] () throws -> RoadData in
-            let raw = try await Self.fetch(box)
+            let raw = try await Self.fetch(corridor)
             let parsed = try RoadData.parse(raw)
             try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let file = directory.appendingPathComponent("\(box.fileName).json")
             try? raw.write(to: file, options: .completeFileProtection)
-            Self.writeSidecar(box, next: file)
+            Self.writeSidecar(box, corridor: corridor, next: file)
             return parsed
         }
         inFlight[box] = task
         defer { inFlight[box] = nil }
         do {
             let parsed = try await task.value
-            remember(box, parsed)
+            remember(box, parsed, corridor)
             sweep(keeping: box)
             return parsed
         } catch {
@@ -172,7 +237,7 @@ actor RoadDataStore {
             // Server kaputt. Der Plan wartet darauf nicht — er sagt, dass die
             // Ampeln fehlen, und holt sie in Ruhe nach. Einmal geholt, liegen
             // sie dreißig Tage auf der Platte, und der nächste Plan hat sie.
-            warm(box)
+            warm(box, corridor)
             throw error
         }
     }
@@ -180,24 +245,24 @@ actor RoadDataStore {
     /// Der zweite Versuch: derselbe Korridor, aber mit viel mehr Geduld — auf
     /// beiden Seiten. Er blockiert nichts und meldet nichts; er füllt nur den
     /// Zwischenspeicher.
-    private func warm(_ box: Box) {
+    private func warm(_ box: Box, _ corridor: Corridor) {
         guard warming.insert(box).inserted else { return }
         Task { [directory] in
             defer { warming.remove(box) }
-            guard let raw = try? await Self.fetch(box, serverSeconds: 180, requestSeconds: 210),
+            guard let raw = try? await Self.fetch(corridor, serverSeconds: 180, requestSeconds: 210),
                   let parsed = try? RoadData.parse(raw) else { return }
             try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let file = directory.appendingPathComponent("\(box.fileName).json")
             try? raw.write(to: file, options: .completeFileProtection)
-            Self.writeSidecar(box, next: file)
-            remember(box, parsed)
+            Self.writeSidecar(box, corridor: corridor, next: file)
+            remember(box, parsed, corridor)
             sweep(keeping: box)
         }
     }
 
     /// Keeps the memory cache to the two corridors a trip can have.
-    private func remember(_ box: Box, _ data: RoadData) {
-        memory[box] = data
+    private func remember(_ box: Box, _ data: RoadData, _ corridor: Corridor?) {
+        memory[box] = (data, corridor)
         guard memory.count > maxBoxesInMemory else { return }
         // Drop boxes that the new one already covers first, then anything.
         for key in memory.keys where key != box && box.contains(key) { memory[key] = nil }
@@ -209,18 +274,34 @@ actor RoadDataStore {
     /// Reads the box back from the little sidecar next to each cached answer.
     /// The data file is named by a hash, so a directory listing no longer
     /// spells out the corridor between home and work.
-    private func box(of file: URL) -> Box? {
-        let sidecar = file.deletingPathExtension().appendingPathExtension("box")
-        guard let text = try? String(contentsOf: sidecar, encoding: .utf8) else { return nil }
-        let parts = text.split(separator: " ").compactMap { Double($0) }
-        guard parts.count == 4 else { return nil }
-        return Box(south: parts[0], west: parts[1], north: parts[2], east: parts[3])
+    /// Was neben einer zwischengespeicherten Antwort steht: welcher Kasten,
+    /// und welcher Schlauch tatsächlich abgefragt wurde.
+    private struct Sidecar: Codable {
+        var south, west, north, east: Double
+        /// Fehlt bei Dateien aus der Zeit, als der ganze Kasten geholt wurde.
+        /// Die decken alles ab, was in ihm liegt — deshalb `nil` und nicht
+        /// „deckt nichts".
+        var corridor: Corridor?
+        var box: Box { Box(south: south, west: west, north: north, east: east) }
     }
 
-    private static func writeSidecar(_ box: Box, next file: URL) {
-        let sidecar = file.deletingPathExtension().appendingPathExtension("box")
-        let text = "\(box.south) \(box.west) \(box.north) \(box.east)"
-        try? text.write(to: sidecar, atomically: true, encoding: .utf8)
+    private func sidecar(of file: URL) -> Sidecar? {
+        let url = file.deletingPathExtension().appendingPathExtension("box")
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        if let decoded = try? JSONDecoder().decode(Sidecar.self, from: data) { return decoded }
+        // Die alte Form: vier Zahlen, durch Leerzeichen getrennt.
+        guard let text = String(data: data, encoding: .utf8) else { return nil }
+        let parts = text.split(separator: " ").compactMap { Double($0) }
+        guard parts.count == 4 else { return nil }
+        return Sidecar(south: parts[0], west: parts[1], north: parts[2], east: parts[3], corridor: nil)
+    }
+
+    private static func writeSidecar(_ box: Box, corridor: Corridor, next file: URL) {
+        let url = file.deletingPathExtension().appendingPathExtension("box")
+        let side = Sidecar(south: box.south, west: box.west, north: box.north, east: box.east,
+                           corridor: corridor)
+        guard let data = try? JSONEncoder().encode(side) else { return }
+        try? data.write(to: url, options: .atomic)
     }
 
     /// Deletes what is stale or already contained in the box just written — the
@@ -237,37 +318,56 @@ actor RoadDataStore {
                 .map { Date.now.timeIntervalSince($0) } ?? .infinity
             // No sidecar means the file predates this scheme: it is unreadable
             // to us now, so it is rubbish either way.
-            let contained = self.box(of: f).map { box.contains($0) } ?? true
+            let contained = self.sidecar(of: f).map { box.contains($0.box) } ?? true
             guard age > maxAge || contained else { continue }
             try? fm.removeItem(at: f)
             try? fm.removeItem(at: f.deletingPathExtension().appendingPathExtension("box"))
         }
     }
 
-    private func loadFromDisk(covering box: Box) -> (Box, RoadData)? {
+    /// Ein Treffer muss beides: im Kasten liegen **und** mit seinem Schlauch
+    /// diese Strecke decken. Eine alte Datei ohne Schlauch deckt alles im
+    /// Kasten — damals wurde er ganz geholt.
+    private func loadFromDisk(covering box: Box,
+                              coords: [CLLocationCoordinate2D]) -> (Box, RoadData, Corridor?)? {
         let fm = FileManager.default
         guard let files = try? fm.contentsOfDirectory(at: directory,
                                                       includingPropertiesForKeys: [.contentModificationDateKey])
         else { return nil }
         for f in files where f.pathExtension == "json" {
-            guard let b = self.box(of: f) else { continue }
+            guard let side = self.sidecar(of: f), side.box.contains(box) else { continue }
+            guard side.corridor?.covers(coords) ?? true else { continue }
             let age = (try? f.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
                 .map { Date.now.timeIntervalSince($0) } ?? .infinity
-            guard b.contains(box), age < maxAge, let data = try? Data(contentsOf: f),
+            guard age < maxAge, let data = try? Data(contentsOf: f),
                   let parsed = try? RoadData.parse(data) else { continue }
-            return (b, parsed)
+            return (side.box, parsed, side.corridor)
         }
         return nil
     }
 
-    private static func fetch(_ b: Box, serverSeconds: Int = 25, requestSeconds: TimeInterval = 30) async throws -> Data {
-        let bbox = String(format: "%.3f,%.3f,%.3f,%.3f", b.south, b.west, b.north, b.east)
-        let query = """
-        [out:json][timeout:\(serverSeconds)][bbox:\(bbox)];
-        (node[highway=traffic_signals];node[crossing=traffic_signals];);out skel qt;
-        way[highway~"^(trunk|primary|secondary)(_link)?$"];
+    /// Die Frage an Overpass: Ampeln und große Straßen **entlang der Route**,
+    /// nicht im ganzen Kasten. Gemessen an einer 20-km-Strecke quer durch
+    /// Berlin: 287 kB und 1 409 Elemente statt 3,6 MB und 18 238.
+    ///
+    /// Die beiden Ampel-Schreibweisen — `highway=traffic_signals` am Knoten
+    /// und `crossing=traffic_signals` an der Querung — kommen über einen
+    /// Schlüssel-Ausdruck in **eine** Abfrage; sonst stünde die lange
+    /// Punktliste dreimal im Text statt zweimal.
+    static func query(_ corridor: Corridor, serverSeconds: Int = 25) -> String {
+        let around = corridor.points.map { String(format: "%.5f,%.5f", $0[0], $0[1]) }.joined(separator: ",")
+        let r = Int(corridor.radius)
+        return """
+        [out:json][timeout:\(serverSeconds)];
+        node(around:\(r),\(around))[~"^(highway|crossing)$"~"^traffic_signals$"];out skel qt;
+        way(around:\(r),\(around))[highway~"^(trunk|primary|secondary)(_link)?$"];
         convert way ::geom=geom(),ref=t["ref"],name=t["name"],tunnel=t["tunnel"];out geom qt;
         """
+    }
+
+    private static func fetch(_ corridor: Corridor, serverSeconds: Int = 25,
+                              requestSeconds: TimeInterval = 30) async throws -> Data {
+        let query = Self.query(corridor, serverSeconds: serverSeconds)
         var request = URLRequest(url: URL(string: "https://overpass-api.de/api/interpreter")!,
                                  timeoutInterval: requestSeconds)
         request.httpMethod = "POST"
