@@ -250,6 +250,14 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   sample $PID 5 -file /tmp/rp.txt                             # „Version:" im Kopf prüfen
   ```
 
+- **Englische Fassung: Mechanismus steht, Übersetzung liegt beiseite.** Ein Umschalter
+  im Burger-Menü war gebaut und bewiesen — ohne Neustart, mit zwei Fähnchen. Übersetzt
+  sind 14 von rund 260 Texten, deshalb wieder ausgebaut. Alles, was man dafür wissen
+  muss, steht in `_claude.code/RadPendler-Englisch.md`: der funktionierende Weg (`L(…)`
+  liest unmittelbar aus `en.lproj`, weil SwiftUI sich von innen nicht umstellen lässt),
+  **vier nachgemessene Sackgassen**, die man nicht nochmal gehen muss, und wo der
+  erhaltene Stand liegt. Dort anfangen.
+
 - **Die Linien reisen** (seit Build 29). `TrackCloud` hängt an `RideStore.add` /
   `delete` / `track(for:)`; Container `iCloud.org.afjk.radpendler` steht im Portal und
   ist dem App-Identifier zugewiesen, die Berechtigung in `project.yml` ist an. Offen:
