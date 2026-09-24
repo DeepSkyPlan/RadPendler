@@ -30,6 +30,29 @@ die Team-ID steht in `project.yml`, weil ohne sie niemand bauen kann — sie ste
 ohnehin in jedem signierten Binary.
 Apple erlaubt kein Anlegen von Apps per API — das muss von Hand im Browser passieren.
 
+### Beim Veröffentlichen (nicht vorher)
+
+Drei Dinge, die zur *öffentlichen* Fassung gehören und deshalb bis dahin liegen bleiben —
+die Seite im Netz muss beschreiben, was die App im Store tut, nicht was TestFlight kann:
+
+1. **Datenschutzseite nachziehen.** `appstore/pages/radpendler-privacy/index.html` (10,3 kB,
+   beschreibt die Fahrtaufzeichnung) nach `deepskyplan.github.io/radpendler-privacy`. Online
+   steht Stand 24.09.2026 noch die alte Fassung (8,0 kB, ein „Standort", kein Wort zur
+   Aufzeichnung) — richtig für 1.0, falsch für alles ab 1.1.
+   Entscheidung des Nutzers: erst mit der Veröffentlichung der neuen Version.
+2. **Datenschutz-Fragebogen** unter
+   <https://appstoreconnect.apple.com/apps/6813997635/distribution/privacy> —
+   über die API **nicht** lesbar oder änderbar, alle Endpunkte antworten 404.
+   Einzutragen: Standort → Genauer Standort, Zweck App-Funktionalität, **nicht** mit der
+   Identität verknüpft, **kein** Tracking. Sonst nichts: keine Tracking-SDKs, kein IDFA,
+   keine Kennung in irgendeiner Anfrage.
+   *Achtung, gilt schon für 1.0:* auch ohne Aufzeichnung gehen Start- und Zielkoordinaten
+   an `brouter.de`, `overpass-api.de`, `fahrinfo.vbb.de`, `api.transitous.org`,
+   `api.open-meteo.com` und `maps.dwd.de`. „Nein auf alles" ist deshalb auch für die
+   Fassung falsch, die gerade in der Prüfung steht.
+3. **CloudKit-Schema übernehmen**, falls die Linien bis dahin reisen:
+   <https://icloud.developer.apple.com/dashboard/> → Schema → Deploy, Development → Production.
+
 Simulator mit Adressen füttern (zum Screenshotten ohne Tippen):
 
 ```bash
