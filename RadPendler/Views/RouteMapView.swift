@@ -29,6 +29,12 @@ struct RouteMapView: UIViewRepresentable {
     var course: CLLocationDirection = -1
     /// Keep the map on the rider instead of on the whole route.
     var following = false
+    /// Gesetzt, solange der Fahrer neben der Route ist: dann folgt die Karte
+    /// ihm nicht mehr eng, sondern nimmt beides ins Bild — wo er ist und wo
+    /// die Route liegt. Und sie steht dabei nach Norden: auf einer Karte, die
+    /// sich mitdreht, ist „dort drüben liegt die Route" schwerer zu lesen als
+    /// ein Pfeil auf einer, die still steht.
+    var showBoth: CLLocationCoordinate2D? = nil
     /// The user dragged the map: following has to give way to the hand.
     var onPan: (() -> Void)? = nil
     /// Keeps MapKit's own controls — the compass above all — out from under
@@ -308,6 +314,7 @@ struct RouteMapView: UIViewRepresentable {
         private var stopKey = 0
         private var rideSignals = -1
         private var lastCamera: (center: CLLocationCoordinate2D, heading: CLLocationDirection)?
+        private var lastBoth: (CLLocationCoordinate2D, CLLocationCoordinate2D)?
         /// What we last told the map. Never read back from the view: that is
         /// how the margins loop started.
         private var hidesCompass = false
@@ -515,7 +522,9 @@ struct RouteMapView: UIViewRepresentable {
             }
             live?.coordinate = here
             live?.course = view.course
-            if view.following {
+            if view.following, let other = view.showBoth {
+                fitBoth(map, here, other)
+            } else if view.following {
                 let heading = view.course >= 0 ? view.course : map.camera.heading
                 // Only when something actually moved. A camera animation
                 // started every second, each one interrupting the last, is a
@@ -531,11 +540,30 @@ struct RouteMapView: UIViewRepresentable {
             } else {
                 lastCamera = nil
             }
+            if view.showBoth == nil { lastBoth = nil }
             // After the camera, not before: the arrow is drawn against the
             // heading the map is about to have.
             if let live, let v = map.view(for: live) as? RiderView {
                 v.configure(live, mapHeading: view.following && view.course >= 0 ? view.course : map.camera.heading)
             }
+        }
+
+        /// Beides ins Bild: der Fahrer und der nächste Punkt der Route. Neu
+        /// eingepasst wird nur, wenn sich wirklich etwas bewegt hat — sonst
+        /// setzt sich die Karte im Sekundentakt selbst neu und steht nie still.
+        private func fitBoth(_ map: MKMapView, _ here: CLLocationCoordinate2D,
+                             _ other: CLLocationCoordinate2D) {
+            if let last = lastBoth, last.0.distance(to: here) < 25, last.1.distance(to: other) < 25 { return }
+            lastBoth = (here, other)
+            lastCamera = nil
+            let mid = CLLocationCoordinate2D(latitude: (here.latitude + other.latitude) / 2,
+                                             longitude: (here.longitude + other.longitude) / 2)
+            // Anderthalbmal der Abstand, mindestens so viel, dass man noch
+            // Straßen erkennt: ein Bild, das genau die beiden Punkte umfasst,
+            // zeigt sie am Rand und nichts dazwischen.
+            let apart = here.distance(to: other)
+            map.setCamera(MKMapCamera(lookingAtCenter: mid, fromDistance: Swift.max(apart * 2.5, 600),
+                                      pitch: 0, heading: 0), animated: true)
         }
 
         private func drawRoutes(_ map: MKMapView, _ view: RouteMapView) {

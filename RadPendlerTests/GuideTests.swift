@@ -322,4 +322,49 @@ final class RoadMixTests: XCTestCase {
         XCTAssertNil(RoadPoint.nearest(points, to: away, from: 0))
         XCTAssertEqual(RoadPoint.nearest(points, to: base, from: 0)?.cls, .cycleway)
     }
+
+    // MARK: Neben der Route
+
+    /// Der nächste Punkt liegt fast nie auf einer Ecke der Linie. BRouter setzt
+    /// zwischen zwei Punkten gern hundert Meter gerade Straße; wer nur die
+    /// Ecken misst, meldet eine Abweichung, die es nicht gibt.
+    func testTheNearestPointIsOnTheSegmentNotOnItsCorners() {
+        // Eine Ost-West-Strecke, 1 km lang, auf 52,5° Nord.
+        let west = CLLocationCoordinate2D(latitude: 52.5, longitude: 13.400)
+        let east = CLLocationCoordinate2D(latitude: 52.5, longitude: 13.4147)
+        let route = [west, east]
+        // Genau in der Mitte, 40 m nördlich davon.
+        let mid = CLLocationCoordinate2D(latitude: 52.5 + 40 / 111_320.0, longitude: 13.4074)
+        guard let fix = OffRoute.nearest(to: mid, on: route) else { return XCTFail("kein Punkt gefunden") }
+        XCTAssertEqual(fix.meters, 40, accuracy: 3, "der Lotfußpunkt, nicht die 500 m bis zur Ecke")
+        XCTAssertEqual(fix.bearing, 180, accuracy: 5, "die Route liegt südlich")
+        XCTAssertEqual(fix.nearest.latitude, 52.5, accuracy: 0.0005)
+
+        // Hinter dem Ende: dann ist die Ecke selbst der nächste Punkt.
+        let beyond = CLLocationCoordinate2D(latitude: 52.5, longitude: 13.420)
+        guard let past = OffRoute.nearest(to: beyond, on: route) else { return XCTFail("kein Punkt gefunden") }
+        XCTAssertEqual(past.nearest.longitude, east.longitude, accuracy: 0.0002)
+        XCTAssertEqual(past.bearing, 270, accuracy: 5, "die Route liegt westlich")
+    }
+
+    /// Ohne Hysterese flackert der Pfeil auf einem Radweg neben der gerouteten
+    /// Fahrbahn: ein Fix mit fünfzehn Metern Ungenauigkeit springt über die
+    /// Schwelle und wieder zurück.
+    func testBeingOffTheRouteHasHysteresis() {
+        XCTAssertFalse(OffRoute.isOff(50, was: false), "50 m reichen nicht, um abgewichen zu sein")
+        XCTAssertTrue(OffRoute.isOff(70, was: false), "70 m schon")
+        XCTAssertTrue(OffRoute.isOff(50, was: true), "und dann bleibt man es bei 50 m auch")
+        XCTAssertFalse(OffRoute.isOff(30, was: true), "erst unter 35 m ist man wieder drauf")
+        XCTAssertLessThan(OffRoute.backOnMeters, OffRoute.offMeters)
+        XCTAssertGreaterThan(OffRoute.replanMeters, OffRoute.offMeters)
+    }
+
+    /// Eine leere Linie hat keinen nächsten Punkt — und darf nicht abstürzen.
+    func testAnEmptyRouteHasNoNearestPoint() {
+        XCTAssertNil(OffRoute.nearest(to: CLLocationCoordinate2D(latitude: 52.5, longitude: 13.4), on: []))
+        let only = CLLocationCoordinate2D(latitude: 52.5, longitude: 13.4)
+        let fix = OffRoute.nearest(to: CLLocationCoordinate2D(latitude: 52.5, longitude: 13.41), on: [only])
+        XCTAssertNotNil(fix, "ein einzelner Punkt ist auch eine Antwort")
+        XCTAssertEqual(fix?.bearing ?? 0, 270, accuracy: 5)
+    }
 }

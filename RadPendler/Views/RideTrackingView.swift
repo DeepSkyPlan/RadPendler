@@ -37,7 +37,7 @@ struct RideTrackingView: View {
             if isLandscape {
                 HStack(alignment: .top, spacing: 8) {
                     VStack(alignment: .leading, spacing: 8) {
-                        turnBanner
+                        banner
                         controls(settings: $settings.orientation)
                         Spacer(minLength: 0)
                     }
@@ -47,7 +47,7 @@ struct RideTrackingView: View {
                 .padding(10)
             } else {
                 VStack(spacing: 8) {
-                    turnBanner
+                    banner
                     controls(settings: $settings.orientation)
                     Spacer(minLength: 0)
                     panel
@@ -84,14 +84,65 @@ struct RideTrackingView: View {
                      track: tracker.meter.points, trackStops: tracker.meter.stops,
                      signals: tracker.signals,
                      rider: tracker.here, course: tracker.course, following: following,
+                     showBoth: tracker.detour?.nearest,
                      onPan: {
                          following = false
                          pannedAt = .now
                      },
                      // Room for the turn banner, so MapKit's compass does not
                      // end up behind it.
-                     topInset: tracker.nextTurn == nil ? 0 : 96)
+                     topInset: tracker.nextTurn == nil && tracker.detour == nil ? 0 : 96)
             .ignoresSafeArea()
+    }
+
+    /// Neben der Route zählt nicht, wo man als Nächstes abbiegt — die
+    /// Abbiegung liegt auf einer Straße, auf der man nicht ist. Dann zählt nur,
+    /// wo die Route liegt, und das sagt ein Pfeil.
+    @ViewBuilder private var banner: some View {
+        if tracker.detour != nil { detourBanner } else { turnBanner }
+    }
+
+    /// Der Pfeil zeigt **auf der Karte**, nicht nach dem Kurs: neben der Route
+    /// steht die Karte nach Norden (siehe `RouteMapView.showBoth`), also ist
+    /// die Richtung zur Route auch auf dem Bildschirm die Richtung zur Route.
+    @ViewBuilder private var detourBanner: some View {
+        if let detour = tracker.detour {
+            HStack(spacing: 12) {
+                Image(systemName: "location.north.fill")
+                    .font(.system(size: 34, weight: .heavy))
+                    .rotationEffect(.degrees(detour.bearing))
+                    .frame(width: 46)
+                VStack(alignment: .leading, spacing: -2) {
+                    Text(Fmt.km(detour.meters))
+                        .font(.system(size: 30, weight: .heavy, design: .rounded))
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                    Text(detour.meters > OffRoute.replanMeters ? "neben der Route — wird neu geplant"
+                                                               : "neben der Route")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .opacity(0.9)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.gradient(.orange), in: RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
+            .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(Fmt.km(detour.meters)) neben der Route, Richtung \(Self.compass(detour.bearing))")
+        }
+    }
+
+    /// Für die Ansage: aus Grad wird eine Himmelsrichtung. „Nordost" ist etwas,
+    /// das man hören kann; „siebenundvierzig Grad" nicht.
+    static func compass(_ degrees: Double) -> String {
+        let names = ["Norden", "Nordosten", "Osten", "Südosten", "Süden", "Südwesten", "Westen", "Nordwesten"]
+        let i = Int(((degrees.truncatingRemainder(dividingBy: 360) + 360) / 45).rounded()) % 8
+        return names[i]
     }
 
     /// The one line worth a glance at twenty km/h: what comes, and in how far.
