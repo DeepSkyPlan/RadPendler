@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.3 (Build 30) — Reihenfolge, Höhenmeter, weicheres Radar
+
+- **Die Kästen füllen sich der Reihe nach.** Bisher stand der ganze Bildschirm auf
+  „sucht …", bis der langsamste der vier Dienste geantwortet hatte. Gefragt wird weiter
+  alles gleichzeitig; was da ist, steht jetzt sofort da. Die Reihenfolge ist die aus den
+  Einstellungen — dieselbe Liste, die schon die Kästen anordnet.
+- **Geöffnet ist der erste Kasten deiner Reihenfolge, nicht der empfohlene.** Wer das Rad
+  nach oben gestellt hat, sieht die Radroute und nicht Rad + Bahn, nur weil die zwei
+  Minuten früher ankommt. Der Stern sagt weiterhin, was die App für die bessere Wahl hält.
+- **Höhenmeter zählen mit.** Jede Radroute zeigt ihren Anstieg, und er geht in die
+  Fahrzeit ein: fünf Sekunden je Meter, also 720 Höhenmeter in der Stunde. Bei gleicher
+  Länge gewinnt damit die flachere Strecke — ein halber Kilometer Umweg schlägt
+  115 Höhenmeter. Bergab wird nichts gutgeschrieben; die Zeit holt man nicht wieder herein.
+- **Der Straßenbalken steht auch auf der Hauptseite**, unten in der Streckenbox, ohne
+  Legende. Die Kilometer je Straßenart bleiben im Detail.
+- **Das Regenradar sieht aus wie ein Feld, nicht wie ein Schachbrett.** Der DWD misst in
+  1-km-Zellen und malt sie als Rechtecke aus; auf Pendelstrecken-Zoom ist eine Zelle
+  26 Pixel breit. Sie werden jetzt geglättet — über den Kachelrand hinaus, damit keine
+  Nähte entstehen.
+- **Radrouten: höchstens drei Anfragen gleichzeitig**, und wenn der Routendienst nicht
+  antwortet, steht das jetzt da. Vorher verschwanden die Varianten stillschweigend und es
+  blieb eine statt fünf.
+
 ## 1.3 (Build 28) — der Hänger ist gefunden
 
 **Ursache der Hänger: ein `TimelineView` in einer `ToolbarItem`.** Unter iOS 26 legt jeder
