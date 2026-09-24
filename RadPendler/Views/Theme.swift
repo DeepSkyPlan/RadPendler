@@ -322,14 +322,16 @@ struct CountdownSchedule: TimelineSchedule {
         return abs(left) <= fineWindow + 5 ? fine : coarse
     }
 
+    /// Every entry lies **after** `start`. Returning `start` itself means "draw
+    /// now", and since SwiftUI asks for a fresh iterator on every body
+    /// evaluation, "now" answers "now" answers "now": the view redraws, the
+    /// redraw asks for the next date, gets this instant, and redraws again.
+    /// The app then lays itself out at full frame rate for ever — which is
+    /// what 1.2 did until Build 26, and why it burned battery, stuttered under
+    /// the thumb and was eventually killed by the scene-update watchdog.
     func entries(from start: Date, mode: TimelineScheduleMode) -> AnyIterator<Date> {
         var next = start
-        var first = true
         return AnyIterator {
-            if first {
-                first = false
-                return next
-            }
             next = next.addingTimeInterval(Self.step(left: target?.timeIntervalSince(next)))
             return next
         }

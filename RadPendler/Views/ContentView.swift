@@ -140,10 +140,17 @@ struct ContentView: View {
                     rainNote
                     // The column is taller than the controls need, so the
                     // whole detail goes in: why this trip, what kind of route
-                    // it is, and every leg. On an iPad nothing is behind a tap;
-                    // on a phone held sideways it fills what would otherwise be
-                    // an empty third of the column, and scrolls where it cannot.
-                    if let option = model.selected {
+                    // it is, and every leg. On an iPad nothing is behind a tap.
+                    //
+                    // **iPad only.** In 1.2 this also filled the landscape
+                    // column on the phone, which looked tidier and cost five
+                    // seconds per change of trip — the whole timeline, laid out
+                    // in a 360-point column in a screen barely 390 points high,
+                    // in one SwiftUI pass. On a phone it took longer than the
+                    // scene-update watchdog allows and the app was killed.
+                    // Measured: 0,4 s portrait against 5,3 s landscape.
+                    // Sideways one turned the phone for the map anyway.
+                    if isWide, let option = model.selected {
                         ScrollView {
                             VStack(spacing: 12) {
                                 TripNotes(option: option, reason: reason(for: option))
@@ -307,6 +314,14 @@ struct ContentView: View {
                     Text("Datenquellen: VBB · Transitous/MOTIS · Apple Karten · BRouter und OpenStreetMap · DWD · Open-Meteo")
                         .font(Self.sourceFont)
                         .padding(.top, 5)
+                    // Vorübergehend, solange die Hänger nicht gefunden sind:
+                    // eine Zahl, die man ablesen und weitergeben kann.
+                    if let stalls = StallWatch.shared.summary {
+                        Text(stalls)
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.orange)
+                            .padding(.top, 4)
+                    }
                 }
                 .font(.system(.caption2, design: .rounded))
                 .foregroundStyle(.secondary)

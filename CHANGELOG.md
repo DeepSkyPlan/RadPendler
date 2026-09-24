@@ -1,6 +1,31 @@
 # Changelog
 
-## 1.2 (Build 25) — Notbremse für Build 24
+## 1.2 (Build 26) — zwei Funde, ein Messgerät
+Build 25 war **nicht** die Lösung: die App hängt weiter, und der zweite Absturzbericht
+zeigt denselben `scene-update`-Watchdog — über zehn Sekunden in *einem* SwiftUI-Layoutlauf,
+beide Male beim Wechsel in den Hintergrund. Was hier drin ist:
+
+- **Die Detailspalte steht wieder nur auf dem iPad.** In 1.2 füllte sie auch die
+  Querformatspalte des Telefons — das sah aufgeräumter aus und kostete Sekunden: der ganze
+  Zeitstrahl, in eine 360-Punkt-Spalte auf einem knapp 390 Punkte hohen Bildschirm, in
+  einem Durchlauf. Gemessen 0,4 s hochkant gegen 5,3 s quer; nach dem Rückbau 0,44 s.
+  Quer dreht man das Telefon ohnehin wegen der Karte.
+- **Der Analysebalken wird gezeichnet statt gelegt.** Ein `GeometryReader` liest die Breite
+  und gibt sie seinen Kindern als feste Breite zurück — in einer scrollenden Spalte eine
+  Größenverhandlung, die SwiftUI jedes Mal ausrechnen muss. Ein `Canvas` nimmt, was er
+  bekommt, und malt.
+- **Der Countdown-Terminplan hält sich an seinen Vertrag.** Seine erste Marke war `start`
+  selbst, also „jetzt".
+- **Neu und vorübergehend: ein Hänger-Zähler.** Ein Timer misst, wie spät der Hauptthread
+  drankommt; was über eine halbe Sekunde geht, wird gezählt. Steht etwas an, erscheint im
+  Menü unten eine orange Zeile: „3 Hänger, längster 12,4 s". Absichtlich auch im
+  ausgelieferten Build — ein Hänger, der nur auf einem bestimmten Telefon auftritt, ist im
+  Simulator nicht zu finden; das hat diese Runde zweimal bewiesen.
+
+**Was weiterhin offen ist:** die Ursache der Hänger. Die Dauerlast, der ich zuerst
+nachgegangen bin, steckt nachweislich schon in 1.1 und ist es nicht.
+
+## 1.2 (Build 25, zurückgezogen) — Notbremse für Build 24
 **Build 24 nicht benutzen.** Er wurde von Minute zu Minute langsamer, das Kartenfenster
 schrumpfte dabei, und am Ende stürzte die App ab. Ursache war ein Fehler aus derselben
 Runde: um MapKits Kompass unter dem neuen Abbiegeband wegzuschieben, setzte die App die
