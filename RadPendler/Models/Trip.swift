@@ -70,13 +70,29 @@ enum BikeVariant: String, CaseIterable, Comparable {
     // and inserting one in the middle would silently reorder the old ones.
     case fastest, shortest, balanced, quiet, lowTraffic
 
+    /// „ruhigst" und „verkehrsarm" waren am Wort nicht auseinanderzuhalten,
+    /// obwohl sie zwei verschiedene Fragen beantworten: die eine, **wie lange
+    /// man neben Autos fährt**, die andere, **wie oft man ihretwegen anhält**.
+    /// Die Namen sagen das jetzt.
     var title: String {
         switch self {
         case .fastest: "schnellst"
         case .shortest: "kürzest"
         case .balanced: "optimal"
-        case .quiet: "ruhigst"
-        case .lowTraffic: "verkehrsarm"
+        case .quiet: "wenig Autos"
+        case .lowTraffic: "wenig Halts"
+        }
+    }
+
+    /// Ein Satz, der den Namen erklärt — für die Detailseite und die
+    /// Einstellungen, wo Platz dafür ist.
+    var explanation: String {
+        switch self {
+        case .fastest: "kürzeste Fahrzeit, Ampeln und Höhenmeter eingerechnet"
+        case .shortest: "die kürzeste Strecke, ganz gleich worüber"
+        case .balanced: "das beste Verhältnis von Zeit und Ruhe"
+        case .quiet: "die wenigsten Meter neben fahrenden Autos"
+        case .lowTraffic: "am seltensten wegen des Verkehrs anhalten"
         }
     }
 
@@ -95,7 +111,7 @@ enum BikeVariant: String, CaseIterable, Comparable {
     }
 
     /// Ships with "optimal" first: that is the one the app suggests. The user
-    /// can put "ruhigst" or "kürzest" in front of it.
+    /// can put "wenig Autos" or "kürzest" in front of it.
     static let defaultOrder: [BikeVariant] = [.balanced, .fastest, .quiet, .lowTraffic, .shortest]
 }
 
@@ -155,6 +171,21 @@ struct BikeRouteInfo {
     var title: String { variants.isEmpty ? "Alternative" : variants.map(\.title).joined(separator: " · ") }
     /// Was der Kasten schreibt: der erste Name, oder „Alternative".
     var shortTitle: String { variants.first?.title ?? "Alternative" }
+
+    /// Warum diese Linie so heißt — und, wenn sie mehrere Rollen gewonnen hat,
+    /// dass sie in **allen** diesen Hinsichten die beste ist. Eine Aufzählung
+    /// „optimal · schnellst · wenig Autos" allein liest sich wie eine Auswahl,
+    /// aus der man etwas anklicken müsste; gemeint ist das Gegenteil.
+    var reason: String {
+        guard let first = variants.first else {
+            return "in keiner Hinsicht die beste — aber ein anderer Weg"
+        }
+        guard variants.count > 1 else { return first.explanation }
+        let rest = variants.dropFirst().map(\.title)
+        let list = rest.count == 1 ? rest[0]
+                                   : rest.dropLast().joined(separator: ", ") + " und " + rest.last!
+        return "\(first.explanation) — und zugleich \(list)"
+    }
 }
 
 /// Whether the bike may come along. `unknown` is a real answer, not a missing
