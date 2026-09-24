@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.3 (Build 32) — die Ampeln kommen zurück
+
+**OpenStreetMap wird jetzt entlang der Route gefragt, nicht im umschließenden Kasten.**
+Bei einer diagonalen Pendelstrecke war der Kasten halb Berlin. Gemessen an 20 km quer
+durch Berlin: **287 kB statt 3,6 MB**, 1 410 statt 18 238 Elemente. Genau daran war die
+Abfrage auf dem Gerät gescheitert — der Dienst brach sie mit einem Zeitfehler ab, und
+ohne sie fehlten die Ampelzahl, die Straßenarten und jede Bewertung nach „ruhigst" oder
+„verkehrsarm".
+
+- **Scheitert sie trotzdem, läuft ein zweiter Versuch in Ruhe im Hintergrund** und füllt
+  den Zwischenspeicher; der hält 30 Tage, der nächste Plan hat die Daten dann. Die Notiz
+  sagt das auch.
+- Der Zwischenspeicher prüft jetzt, ob das Gespeicherte die neue Strecke wirklich abdeckt —
+  sonst hätten Ampeln gefehlt, ohne dass es auffällt.
+
 ## 1.3 (Build 31) — mehr Radrouten, und die Karte zeigt gleich etwas
 
 - **Jede gefundene Radroute bleibt wählbar.** Bisher wurden fünf Rollen vergeben —
