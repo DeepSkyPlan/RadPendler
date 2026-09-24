@@ -7,6 +7,7 @@ struct RadPendlerApp: App {
     @State private var settings = AppSettings()
     @State private var rides = RideStore.shared
     @State private var tracker = RideTracker()
+    @Environment(\.scenePhase) private var phase
 
     init() {
         // Up before the first plan lands, so the first search already reaches
@@ -21,6 +22,10 @@ struct RadPendlerApp: App {
                 .environment(rides)
                 .environment(tracker)
                 .task {
+                    // Die im Hintergrund geweckte App fragt diese Einstellungen,
+                    // statt sich zweite zu bauen, die dieselben Schlüssel noch
+                    // einmal schreiben.
+                    BackgroundReplan.live = { settings }
                     // Addresses and preferences travel through iCloud, so the
                     // iPad starts with what the iPhone already knows.
                     CloudStore.shared.onPull = {
@@ -35,6 +40,13 @@ struct RadPendlerApp: App {
                     await rides.recoverInterrupted()
                     // Whatever the user last chose, from this device or another.
                     settings.orientation.apply()
+                }
+                // Beim Schließen anmelden: ab hier kann die App nicht mehr
+                // selbst nachplanen, und genau dafür ist die Aufgabe da. Eine
+                // App mit Szenen bekommt `applicationDidEnterBackground` nie
+                // zu sehen — `scenePhase` ist der Weg, der wirklich feuert.
+                .onChange(of: phase) { _, now in
+                    if now == .background { BackgroundReplan.schedule() }
                 }
         }
     }

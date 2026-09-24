@@ -20,13 +20,19 @@ final class PlanModel {
         }
     }
 
-    var when: When = .departNow
+    /// Die drei, die zusammen bestimmen, worauf der Countdown zählt. Sie
+    /// werden auch von außen gesetzt — ein Tipp auf eine Beschriftung der
+    /// Karte, ein Wechsel der Verkehrsmittel-Box —, und was der Countdown
+    /// zählt, muss die im Hintergrund geweckte App erfahren. Deshalb hängt das
+    /// Mitschreiben an den Zuständen selbst und nicht an den Methoden: eine
+    /// Methode kann man umgehen, eine Zuweisung nicht.
+    var when: When = .departNow { didSet { rememberCountdown() } }
     private(set) var result = PlanResult()
     private(set) var isLoading = false
     private(set) var lastRun: Date?
     /// Chosen option per mode; the map draws the one of the active mode in colour.
-    var selection: [TravelMode: TripOption.ID] = [:]
-    var activeMode: TravelMode = .bike
+    var selection: [TravelMode: TripOption.ID] = [:] { didSet { rememberCountdown() } }
+    var activeMode: TravelMode = .bike { didSet { rememberCountdown() } }
     private(set) var needsAddresses = false
     /// Straight line between the two ends of the current plan, in kilometres.
     private(set) var directKm = 0.0
@@ -173,6 +179,7 @@ final class PlanModel {
     /// Called after every search and whenever the chosen trip changes — the
     /// watch never plans anything itself, it mirrors what the phone decided.
     func publishToWatch() {
+        rememberCountdown()
         guard let places, !options.isEmpty else { return }
         WatchLink.shared.send(TripSnapshot(origin: places.from, destination: places.to,
                                            options: options,
@@ -181,6 +188,16 @@ final class PlanModel {
                                            computedAt: lastRun ?? .now,
                                            arrivalSearch: when.isArrival,
                                            order: modeOrder))
+    }
+
+    /// Was der Countdown gerade zählt, für die App, die iOS im Hintergrund
+    /// weckt. Sie stellt damit dieselbe Frage wie dieser Bildschirm — eine
+    /// geweckte App, die sich selbst eine Verbindung sucht, warnt zuverlässig
+    /// vor dem falschen Zug.
+    private func rememberCountdown() {
+        guard let trip = activeCountdown else { return BackgroundReplan.remember(nil) }
+        BackgroundReplan.remember(.init(mode: trip.mode.rawValue, date: when.date,
+                                        isArrival: when.isArrival))
     }
 
     func refresh(settings: AppSettings) {

@@ -1,4 +1,4 @@
-# RadPendler — Übergabe (Stand 23.09.2026, 1.2 / Build 24)
+# RadPendler — Übergabe (Stand 24.09.2026, 1.2 / nach Build 26)
 
 Multimodaler Pendel-Planer für iPhone, iPad und Apple Watch: Büro ↔ Zuhause mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln,
 Regen und Countdown.
@@ -7,7 +7,7 @@ Das Projekt ist quelloffen (MIT); Adressen und Schlüssel gehören nicht hinein.
 ## Bauen, testen, ausliefern
 
 ```bash
-./dev test      # generiert das .xcodeproj bei Bedarf, dann 132 Tests im Simulator
+./dev test      # generiert das .xcodeproj bei Bedarf, dann 134 Tests im Simulator
 #               MOTIS_LIVE=1 schaltet zusätzlich den echten Transitous-Aufruf frei
 #               (aus Xcode heraus; xcodebuild reicht die Variable nicht durch)
 ./dev open      # Xcode mit demselben DerivedData wie die Kommandozeile
@@ -209,12 +209,24 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
 
 ## Offen / Ideen
 
-- **Die Hänger von 1.2 sind ungelöst.** Builds 24–27 sind auf dem iPhone des
-  Nutzers unbenutzbar (Watchdog, `scene-update`), Build 23 läuft. Der ganze
-  Befundstand — was belegt ist, welche Messungen sich als falsch erwiesen haben
-  und welche Experimente als Nächstes etwas entscheiden — steht in
-  `_claude.code/RadPendler-Haenger.md`. **Dort anfangen, nicht neu raten**, und
-  nichts nach TestFlight laden, bevor eine Ursache belegt ist.
+- **Die Hänger sind gefunden und behoben** (24.09.2026, Branch
+  `fix/haenger-cloudstore`). Ein `TimelineView` in einer `ToolbarItem` legt unter
+  iOS 26 bei jedem Takt die Navigationsleiste neu aus, und dieses Auslegen macht
+  den Ansichtsgraphen erneut schmutzig — die App lief dauerhaft mit voller
+  Bildrate durch. Leerlauf-CPU im Simulator, Release: 70–85 % vorher, 0 %
+  nachher. Der Fehler steckte in 1.0, 1.1 und 1.2 gleichermaßen; Build 23 war nie
+  heil, und keine Neuinstallation konnte je helfen. Das Protokoll — auch die
+  Messungen, die sich als falsch erwiesen haben — steht in
+  `_claude.code/RadPendler-Haenger.md`.
+
+  **Die Lehre daraus, bevor wieder jemand rät:** zuerst die CPU messen. Drei
+  Runden Hypothesen aus dem Quelltext sind an den Daten gestorben; ein `ps`
+  auf den Simulator-Prozess hätte es am ersten Tag gezeigt.
+
+  ```bash
+  PID=$(pgrep -f "Devices/$SIM.*RadPendler.app/RadPendler")   # nie ohne $SIM filtern
+  sample $PID 5 -file /tmp/rp.txt                             # „Version:" im Kopf prüfen
+  ```
 
 - **Die Linien reisen (noch) nicht.** Dafür bräuchte es CloudKit, dafür einen
   iCloud-Container im Entwicklerkonto — und der lässt sich **nur von Hand** anlegen:
