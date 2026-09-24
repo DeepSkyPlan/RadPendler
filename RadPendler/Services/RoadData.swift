@@ -11,6 +11,12 @@ struct Flat {
     init(latitude: Double) { kx = 111_320 * cos(latitude * .pi / 180) }
 
     func point(_ c: CLLocationCoordinate2D) -> SIMD2<Double> { SIMD2(c.longitude * kx, c.latitude * ky) }
+
+    /// Zurück in Grad — für alles, was auf der Ebene einen Punkt *findet* und
+    /// ihn danach auf der Karte zeigen muss.
+    func coordinate(_ p: SIMD2<Double>) -> CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: p.y / ky, longitude: kx != 0 ? p.x / kx : 0)
+    }
 }
 
 /// Traffic signals and large roads (trunk/primary/secondary) from

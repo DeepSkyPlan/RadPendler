@@ -1,0 +1,79 @@
+import CoreLocation
+import Foundation
+import simd
+
+/// Wo die geplante Linie liegt, wenn man nicht auf ihr ist.
+///
+/// Auf dem Rad verpasst man eine Abbiegung, oder eine Straße ist auf, oder man
+/// fährt bewusst anders. Der Abbiegehinweis zeigt dann auf eine Straße, auf der
+/// man nicht mehr ist — und je weiter weg, desto sinnloser. Statt dessen: ein
+/// Pfeil dorthin, wo die Route liegt, und eine Karte, die weit genug
+/// herausgeht, dass man beides sieht. Und wenn das Zurückfinden sich nicht mehr
+/// lohnt, ein neuer Weg von hier aus.
+enum OffRoute {
+    struct Fix: Equatable {
+        /// Abstand zur Linie, in Metern.
+        var meters: Double
+        /// Grad von Norden, vom Fahrer zum nächsten Punkt der Linie.
+        var bearing: CLLocationDirection
+        /// Ebendieser Punkt — die Karte muss ihn und den Fahrer zusammen zeigen.
+        var nearest: CLLocationCoordinate2D
+
+        /// `CLLocationCoordinate2D` ist von sich aus nicht vergleichbar.
+        static func == (a: Fix, b: Fix) -> Bool {
+            a.meters == b.meters && a.bearing == b.bearing
+                && a.nearest.latitude == b.nearest.latitude && a.nearest.longitude == b.nearest.longitude
+        }
+    }
+
+    /// Ab hier gilt man als abgewichen …
+    static let offMeters = 60.0
+    /// … und erst darunter wieder als drauf. Der Abstand dazwischen ist
+    /// Absicht: ohne ihn flackert der Pfeil auf einem Radweg neben der
+    /// gerouteten Fahrbahn, wo ein Fix mit fünfzehn Metern Ungenauigkeit über
+    /// die Schwelle und wieder zurück springt.
+    static let backOnMeters = 35.0
+    /// Ab hier lohnt das Zurückfinden nicht mehr — dann wird der Weg zum Ziel
+    /// von hier aus neu berechnet.
+    static let replanMeters = 1000.0
+    /// Und selbst dann nicht öfter als so oft: eine Neuplanung je Ortung wäre
+    /// eine Anfrage je Sekunde.
+    static let replanEvery: TimeInterval = 60
+
+    /// Nächster Punkt auf der Linie — auf den Strecken, nicht nur auf ihren
+    /// Ecken. BRouter setzt zwischen zwei Punkten gern hundert Meter gerade
+    /// Straße; der nächste Punkt liegt dann fast nie auf einer der Ecken, und
+    /// wer nur die Ecken misst, meldet eine Abweichung, die es nicht gibt.
+    static func nearest(to here: CLLocationCoordinate2D,
+                        on route: [CLLocationCoordinate2D]) -> Fix? {
+        guard let first = route.first else { return nil }
+        guard route.count >= 2 else {
+            return Fix(meters: here.distance(to: first),
+                       bearing: TurnGuide.bearing(from: here, to: first), nearest: first)
+        }
+        let flat = Flat(latitude: here.latitude)
+        let p = flat.point(here)
+        var best: (d2: Double, at: SIMD2<Double>)?
+        for (a, b) in zip(route, route.dropFirst()) {
+            let pa = flat.point(a), pb = flat.point(b)
+            let ab = pb - pa
+            let len2 = simd_length_squared(ab)
+            // Der Lotfußpunkt, auf die Strecke begrenzt: außerhalb ist es einer
+            // der beiden Endpunkte.
+            let t = len2 > 0 ? Swift.max(0, Swift.min(1, simd_dot(p - pa, ab) / len2)) : 0
+            let q = pa + ab * t
+            let d2 = simd_length_squared(p - q)
+            if best == nil || d2 < best!.d2 { best = (d2, q) }
+        }
+        guard let best else { return nil }
+        let point = flat.coordinate(best.at)
+        return Fix(meters: here.distance(to: point),
+                   bearing: TurnGuide.bearing(from: here, to: point), nearest: point)
+    }
+
+    /// Ob man (noch) als abgewichen gilt. Mit Hysterese — hinein ab
+    /// `offMeters`, heraus erst unter `backOnMeters`.
+    static func isOff(_ meters: Double, was: Bool) -> Bool {
+        was ? meters > backOnMeters : meters > offMeters
+    }
+}
