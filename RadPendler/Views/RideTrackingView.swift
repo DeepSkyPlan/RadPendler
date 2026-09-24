@@ -64,11 +64,6 @@ struct RideTrackingView: View {
             withAnimation(.easeInOut) { following = true }
             pannedAt = nil
         }
-        // Der Schalter „Bildschirm anlassen" wirkt sofort, nicht erst bei der
-        // nächsten Fahrt.
-        .onChange(of: settings.keepScreenAwake, initial: true) { _, on in
-            tracker.setKeepScreenAwake(on)
-        }
         .confirmationDialog("Fahrt beenden?", isPresented: $confirmStop, titleVisibility: .visible) {
             Button("Fahrt beenden", role: .destructive, action: onStop)
             Button("Weiterfahren", role: .cancel) {}
