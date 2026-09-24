@@ -205,7 +205,7 @@ final class GuideTests: XCTestCase {
 
     func testTheLowTrafficVariantIsOfferedAndSurvivesAnOldStoredOrder() {
         XCTAssertTrue(BikeVariant.defaultOrder.contains(.lowTraffic))
-        XCTAssertEqual(BikeVariant.lowTraffic.title, "verkehrsarm")
+        XCTAssertEqual(BikeVariant.lowTraffic.title, "wenig Halts")
         // Ein Gerät, das die Liste vor dieser Version geschrieben hat, darf die
         // neue Variante nicht verschlucken.
         let old = ["balanced", "fastest", "quiet", "shortest"]

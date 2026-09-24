@@ -40,7 +40,7 @@ struct SettingsView: View {
                     }
                     NavigationLink {
                         PriorityList(title: "Radrouten", items: $settings.bikeVariantOrder,
-                                     footer: "Welche der gefundenen Radrouten vorgeschlagen wird — die oberste. Die anderen bleiben erreichbar, ein Tipp auf den Kasten schaltet weiter.",
+                                     footer: "Welche der gefundenen Radrouten vorgeschlagen wird — die oberste. Die anderen bleiben erreichbar, ein Tipp auf den Kasten schaltet weiter.\n\n„wenig Autos“ und „wenig Halts“ beantworten zwei verschiedene Fragen: die erste, wie lange man neben fahrenden Autos fährt, die zweite, wie oft man ihretwegen anhalten muss. Die kürzeste Strecke ist selten beides.",
                                      label: \.title, symbol: \.symbol)
                     } label: {
                         LabeledContent("Radrouten", value: settings.bikeVariantOrder.first?.title ?? "")

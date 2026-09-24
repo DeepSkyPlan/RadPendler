@@ -322,7 +322,7 @@ extension BikeRouteTests {
     /// Eine namenlose Linie heißt „Alternative" — nicht „Route" und nicht leer.
     func testAnUnlabelledLineIsCalledAlternative() {
         let named = BikeRouteInfo(variants: [.quiet, .fastest], stats: nil, source: "safety")
-        XCTAssertEqual(named.shortTitle, "ruhigst")
+        XCTAssertEqual(named.shortTitle, "wenig Autos")
         let plain = BikeRouteInfo(variants: [], stats: nil, source: "trekking")
         XCTAssertEqual(plain.shortTitle, "Alternative")
         XCTAssertEqual(plain.title, "Alternative")
@@ -397,5 +397,29 @@ extension BikeRouteTests {
         XCTAssertEqual(q.components(separatedBy: "around:").count - 1, 2,
                        "zweimal, nicht dreimal — die Punktliste ist der lange Teil")
         try? q.write(toFile: "/tmp/radpendler-overpass-query.txt", atomically: true, encoding: .utf8)
+    }
+
+    /// „wenig Autos" und „wenig Halts" beantworten zwei verschiedene Fragen —
+    /// am Wort waren „ruhigst" und „verkehrsarm" nicht auseinanderzuhalten.
+    func testTheTwoQuietVariantsAreTellableApart() {
+        XCTAssertNotEqual(BikeVariant.quiet.title, BikeVariant.lowTraffic.title)
+        XCTAssertTrue(BikeVariant.quiet.explanation.contains("neben"), BikeVariant.quiet.explanation)
+        XCTAssertTrue(BikeVariant.lowTraffic.explanation.contains("anhalten"),
+                      BikeVariant.lowTraffic.explanation)
+        XCTAssertEqual(Set(BikeVariant.allCases.map(\.title)).count, BikeVariant.allCases.count,
+                       "kein Name zweimal")
+    }
+
+    /// Eine Linie, die mehrere Rollen gewinnt, ist in **allen** die beste —
+    /// eine Aufzählung „optimal · schnellst · wenig Autos" liest sich aber wie
+    /// eine Auswahl, aus der man etwas anklicken müsste.
+    func testAMultiRoleLineExplainsItself() {
+        let one = BikeRouteInfo(variants: [.balanced], stats: nil, source: "safety")
+        XCTAssertEqual(one.reason, BikeVariant.balanced.explanation)
+        let three = BikeRouteInfo(variants: [.balanced, .fastest, .quiet], stats: nil, source: "safety")
+        XCTAssertTrue(three.reason.contains("zugleich"), three.reason)
+        XCTAssertTrue(three.reason.contains("schnellst und wenig Autos"), three.reason)
+        let none = BikeRouteInfo(variants: [], stats: nil, source: "trekking")
+        XCTAssertTrue(none.reason.contains("anderer Weg"), none.reason)
     }
 }

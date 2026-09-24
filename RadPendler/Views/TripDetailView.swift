@@ -133,9 +133,15 @@ struct TripFacts: View {
 
     private func bikeCard(_ bike: BikeRouteInfo) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("Radroute: \(bike.title)", systemImage: "bicycle")
-                .display(.subheadline)
-                .foregroundStyle(LegKind.bike.color)
+            VStack(alignment: .leading, spacing: 1) {
+                Label("Radroute: \(bike.shortTitle)", systemImage: "bicycle")
+                    .display(.subheadline)
+                    .foregroundStyle(LegKind.bike.color)
+                Text(bike.reason)
+                    .font(.system(size: 11, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if !bike.mix.isEmpty {
                 RoadMixBar(mix: bike.mix)
             }

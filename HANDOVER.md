@@ -255,16 +255,22 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   ist dem App-Identifier zugewiesen, die Berechtigung in `project.yml` ist an. Offen:
   das Schema im CloudKit-Dashboard einmal von Development nach Production übernehmen —
   erst dann reisen die Linien auch für die veröffentlichte App.
-- **Signieren auf diesem Mac, seit es den Container gibt.** Die Xcode-Team-Profile hier
-  sind älter als der Container und kennen ihn nicht. Automatisches Signieren nimmt
-  **nur** Xcode-eigene Profile und kann sie ohne angemeldetes Konto nicht auffrischen —
-  `-allowProvisioningUpdates` scheitert mit „Authentication failed", der Schlüssel
-  `PAGC3W2GBL` darf lesen, aber keine Profile anlegen. **Einmal aus Xcode.app bauen**
-  zieht sie nach, danach geht alles wieder von der Kommandozeile.
-  Build 29 wurde ersatzweise von Hand signiert: zwei über die API erzeugte Profile
-  (`RadPendler AppStore CK`, `RadPendlerWatch AppStore CK`), `CODE_SIGN_STYLE: Manual`
-  nur für den einen Lauf, danach wieder `Automatic`. Die beiden Profile dürfen weg,
-  sobald Xcode die eigenen erneuert hat.
+- **Signieren geht wieder von der Kommandozeile** (seit 24.09.2026, abends). Die
+  Xcode-Team-Profile waren älter als der iCloud-Container und kannten ihn nicht;
+  automatisches Signieren nimmt **nur** Xcode-eigene Profile und kann sie ohne
+  angemeldetes Konto nicht auffrischen — `-allowProvisioningUpdates` scheitert mit
+  „Authentication failed", der Schlüssel `PAGC3W2GBL` darf lesen, aber keine Profile
+  anlegen. Die Builds 29–33 wurden deshalb von Hand signiert.
+
+  Gelöst, und die Reihenfolge ist der Punkt: **ein Apple-Konto in Xcodes Einstellungen,
+  dann einmal für ein Gerät bauen** (erneuert das Entwicklungsprofil) **und einmal
+  archivieren und verteilen** (erneuert das Store-Profil). Nur zu bauen reicht nicht —
+  Xcode holt je Profil nur das nach, was der jeweilige Schritt braucht.
+  Nachgewiesen mit einem Trockenlauf: `clean archive` plus `-exportArchive` mit
+  `signingStyle: automatic` und ohne Upload läuft durch.
+
+  Die beiden von Hand erzeugten Profile (`RadPendler AppStore CK`,
+  `RadPendlerWatch AppStore CK`) liegen noch im Portal und dürfen weg.
 - **`xcodebuild` auf diesem Mac hat kein Entwicklerkonto** („No Accounts: Add a new
   account in Accounts settings"). Automatisches Signieren aus der Kommandozeile geht
   deshalb nur mit einem API-Schlüssel, der im Portal Rechte hat; `PAGC3W2GBL` hat sie
