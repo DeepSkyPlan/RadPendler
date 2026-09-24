@@ -327,4 +327,75 @@ extension BikeRouteTests {
         XCTAssertEqual(plain.shortTitle, "Alternative")
         XCTAssertEqual(plain.title, "Alternative")
     }
+
+    // MARK: Der Schlauch statt des Kastens
+
+    /// Eine Linie durch **Hamburg**, gut 18 km. Bewusst weit weg von der
+    /// Strecke, für die diese App gebaut wurde: das Repository ist öffentlich,
+    /// und in Testdaten gehört so wenig eine echte Pendelstrecke wie in den
+    /// Quelltext.
+    private var testLine: [CLLocationCoordinate2D] {
+        (0...600).map { i in
+            CLLocationCoordinate2D(latitude: 53.59 - 0.13 * Double(i) / 600,
+                                   longitude: 9.90 + 0.16 * Double(i) / 600)
+        }
+    }
+
+    /// Neun Routen über dieselbe Hauptstraße ergeben **einen** Schlauch, nicht
+    /// neun: ein Punkt, der nahe an einem schon behaltenen liegt, fällt weg.
+    func testTheCorridorThinsAndMergesTheVariants() {
+        let one = Corridor.around(testLine)
+        XCTAssertLessThan(one.points.count, 160, "20 km alle 150 m sind gut 130 Punkte")
+        XCTAssertGreaterThan(one.points.count, 100)
+        // Dieselbe Strecke zweimal — der Schlauch darf nicht doppelt so dick werden.
+        let twice = Corridor.around(testLine + testLine)
+        XCTAssertEqual(twice.points.count, one.points.count)
+    }
+
+    /// Ein Treffer aus dem Zwischenspeicher darf nur benutzt werden, wenn sein
+    /// Schlauch die neue Strecke wirklich deckt — sonst würden Ampeln fehlen,
+    /// ohne dass es jemand merkt.
+    func testACorridorOnlyCoversWhatItReachesAround() {
+        let corridor = Corridor.around(testLine)
+        XCTAssertTrue(corridor.covers(testLine), "sich selbst deckt er")
+        // 100 m daneben: noch im Schlauch.
+        let nearby = testLine.map {
+            CLLocationCoordinate2D(latitude: $0.latitude + 100 / 111_320.0, longitude: $0.longitude)
+        }
+        XCTAssertTrue(corridor.covers(nearby))
+        // 2 km daneben: nicht mehr.
+        let faraway = testLine.map {
+            CLLocationCoordinate2D(latitude: $0.latitude + 2000 / 111_320.0, longitude: $0.longitude)
+        }
+        XCTAssertFalse(corridor.covers(faraway))
+        XCTAssertFalse(Corridor(points: [], radius: 300).covers(testLine), "ein leerer deckt nichts")
+    }
+
+    /// Die echte Antwort auf die neue Abfrage, damit der Parser nicht nur
+    /// gegen die alte Kastenform geprüft ist: `around` liefert dieselbe
+    /// Struktur, aber es steht nirgends geschrieben, dass das so bleibt.
+    func testTheCorridorAnswerParses() throws {
+        let url = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "overpass_corridor",
+                                                           withExtension: "json"))
+        let data = try RoadData.parse(try Data(contentsOf: url))
+        XCTAssertFalse(data.signals.isEmpty, "Ampelknoten")
+        XCTAssertFalse(data.roads.isEmpty, "Straßen mit Geometrie")
+        XCTAssertTrue(data.roads.allSatisfy { $0.points.count >= 2 })
+        XCTAssertTrue(data.signals.allSatisfy(Geo.valid))
+        XCTAssertFalse(data.roads.contains { $0.name.isEmpty }, "jede Straße hat einen Namen oder „Hauptstraße\"")
+    }
+
+    /// Die Abfrage selbst — und zwar die, die die App wirklich schickt. Sie
+    /// wird nach `/tmp` geschrieben, damit sie gegen den echten Dienst
+    /// geprüft werden kann, ohne den Test vom Netz abhängig zu machen.
+    func testTheQueryAsksAlongTheRouteNotInsideABox() {
+        let q = RoadDataStore.query(Corridor.around(testLine), serverSeconds: 60)
+        XCTAssertTrue(q.contains("around:300,"), q.prefix(120).description)
+        XCTAssertFalse(q.contains("[bbox:"), "kein Kasten mehr")
+        XCTAssertTrue(q.contains("traffic_signals"))
+        XCTAssertTrue(q.contains("trunk|primary|secondary"))
+        XCTAssertEqual(q.components(separatedBy: "around:").count - 1, 2,
+                       "zweimal, nicht dreimal — die Punktliste ist der lange Teil")
+        try? q.write(toFile: "/tmp/radpendler-overpass-query.txt", atomically: true, encoding: .utf8)
+    }
 }
