@@ -42,6 +42,22 @@ targets:
         # Auch die Kennzahlen der gefahrenen Fahrten reisen hierüber — nur die
         # Zahlen, nie die Linien: der Speicher fasst 1 MB für die ganze App.
         com.apple.developer.ubiquity-kvstore-identifier: $(TeamIdentifierPrefix)$(CFBundleIdentifier)
+        # --- Die Linien der Fahrten (TrackCloud). Erst einschalten, wenn der
+        # Container existiert, sonst schlägt das Signieren fehl. Drei Schritte,
+        # alle von Hand, keiner davon geht über xcodebuild oder die API:
+        #   1. https://developer.apple.com/account/resources/identifiers/list/cloudContainer
+        #      → „+" → Beschreibung frei, Bezeichner: iCloud.org.afjk.radpendler
+        #      (org.afjk.*, nicht de.keese.*: die Bundle-Id der veröffentlichten
+        #       App bleibt, aber ein neuer Bezeichner folgt der Regel.)
+        #   2. Beim App-Identifier de.keese.radpendler die iCloud-Capability
+        #      bearbeiten und den Container ankreuzen.
+        #   3. Die beiden Zeilen unten einkommentieren, `./dev generate`, und in
+        #      Xcode einmal bauen, damit ein neues Profil gezogen wird.
+        # Der Datensatztyp legt sich beim ersten Hochladen selbst an; für den
+        # Produktionsbetrieb muss das Schema danach im CloudKit-Dashboard einmal
+        # von Development nach Production übernommen werden.
+        # com.apple.developer.icloud-container-identifiers: [iCloud.org.afjk.radpendler]
+        # com.apple.developer.icloud-services: [CloudKit]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: de.keese.radpendler

@@ -73,6 +73,10 @@ final class RideStore {
             try? data.write(to: trackFile(ride.id), options: .atomic)
         }
         write()
+        // Und die Linie zu den anderen Geräten. Ohne Container ein stiller
+        // Nichtstuer; die Fahrt ist hier schon abgelegt, bevor irgendetwas
+        // reist.
+        Task { await TrackCloud.shared.upload(track) }
     }
 
     func delete(_ ride: Ride) {
@@ -80,6 +84,7 @@ final class RideStore {
         tracks[ride.id] = nil
         try? FileManager.default.removeItem(at: trackFile(ride.id))
         write()
+        Task { await TrackCloud.shared.delete(ride.id) }
     }
 
     /// The line of one ride, from memory or from disk. nil means it was
@@ -95,9 +100,20 @@ final class RideStore {
             guard let data = try? Data(contentsOf: url) else { return nil }
             return try? JSONDecoder().decode(RideTrack.self, from: data)
         }.value
-        guard let decoded else { return nil }
-        tracks[ride.id] = decoded
-        return decoded
+        if let decoded {
+            tracks[ride.id] = decoded
+            return decoded
+        }
+        // Nicht auf dieser Platte: dann wurde sie auf einem anderen Gerät
+        // gezeichnet. Die Zahlen sind über den Schlüssel-Wert-Speicher
+        // gereist, die Linie liegt in CloudKit — und was von dort kommt, wird
+        // hier abgelegt, damit die zweite Ansicht sie nicht noch einmal holt.
+        guard let fetched = await TrackCloud.shared.download(ride.id) else { return nil }
+        tracks[ride.id] = fetched
+        if let data = try? JSONEncoder().encode(fetched) {
+            try? data.write(to: url, options: .atomic)
+        }
+        return fetched
     }
 
     // MARK: Packing
