@@ -356,10 +356,18 @@ final class PlannerTests: XCTestCase {
         XCTAssertTrue(toHamburg.isTooLarge, "hundreds of megabytes is not a query, it is a hang")
     }
 
+    /// Overpass antwortet auf eine kleine Frage in zwei Sekunden und auf die
+    /// Korridor-Anfrage einer Pendelstrecke mit `504` — die Abfrage ist teuer,
+    /// nicht der Server kaputt. Der Plan wartet nicht darauf, sagt aber, dass
+    /// er es nachholt; einmal geholt, liegen die Daten dreißig Tage bereit.
     func testTheNoteSaysWhyTheLightsAreMissing() {
         let s = PlanSettings()
-        XCTAssertTrue(TripPlanner.noRoadDataNote(km: 23, settings: s).contains("nicht erreichbar"))
-        XCTAssertTrue(TripPlanner.noRoadDataNote(km: 255, settings: s).contains("nicht gezählt"))
+        let short = TripPlanner.noRoadDataNote(km: 23, settings: s)
+        XCTAssertTrue(short.contains("OpenStreetMap"), short)
+        XCTAssertTrue(short.contains("nachgeholt"), short)
+        let long = TripPlanner.noRoadDataNote(km: 255, settings: s)
+        XCTAssertTrue(long.contains("nicht gezählt"))
+        XCTAssertFalse(long.contains("nachgeholt"), "was zu lang ist, wird beim zweiten Mal nicht kürzer")
     }
 
     // MARK: Priorities

@@ -253,7 +253,7 @@ struct TripPlanner {
     static func noRoadDataNote(km: Double, settings: PlanSettings) -> String {
         km > settings.longTripKm
             ? "Ampeln und Hauptstraßen auf dieser Länge nicht gezählt"
-            : "Ampeln und Hauptstraßen unbekannt (OpenStreetMap nicht erreichbar)"
+            : "Ampeln und Hauptstraßen unbekannt — OpenStreetMap antwortete nicht, wird im Hintergrund nachgeholt"
     }
 
     func carOptions(_ req: PlanRequest) async throws -> [TripOption] {

@@ -125,6 +125,8 @@ actor RoadDataStore {
     /// cache, and Overpass answers the same 4-MB question three times — and
     /// throttles, which turned a 2-second plan into a 24-second one.
     private var inFlight: [Box: Task<RoadData, Error>] = [:]
+    /// Korridore, für die gerade ein zweiter, geduldigerer Versuch läuft.
+    private var warming: Set<Box> = []
     /// Two corridors are all a trip has; more is a leak, not a cache.
     private let maxBoxesInMemory = 2
     private let maxAge: TimeInterval = 30 * 86_400
@@ -159,10 +161,38 @@ actor RoadDataStore {
         }
         inFlight[box] = task
         defer { inFlight[box] = nil }
-        let parsed = try await task.value
-        remember(box, parsed)
-        sweep(keeping: box)
-        return parsed
+        do {
+            let parsed = try await task.value
+            remember(box, parsed)
+            sweep(keeping: box)
+            return parsed
+        } catch {
+            // Overpass antwortet auf eine kleine Frage in zwei Sekunden und
+            // auf diese hier mit `504`: die Abfrage ist teuer, nicht der
+            // Server kaputt. Der Plan wartet darauf nicht — er sagt, dass die
+            // Ampeln fehlen, und holt sie in Ruhe nach. Einmal geholt, liegen
+            // sie dreißig Tage auf der Platte, und der nächste Plan hat sie.
+            warm(box)
+            throw error
+        }
+    }
+
+    /// Der zweite Versuch: derselbe Korridor, aber mit viel mehr Geduld — auf
+    /// beiden Seiten. Er blockiert nichts und meldet nichts; er füllt nur den
+    /// Zwischenspeicher.
+    private func warm(_ box: Box) {
+        guard warming.insert(box).inserted else { return }
+        Task { [directory] in
+            defer { warming.remove(box) }
+            guard let raw = try? await Self.fetch(box, serverSeconds: 180, requestSeconds: 210),
+                  let parsed = try? RoadData.parse(raw) else { return }
+            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let file = directory.appendingPathComponent("\(box.fileName).json")
+            try? raw.write(to: file, options: .completeFileProtection)
+            Self.writeSidecar(box, next: file)
+            remember(box, parsed)
+            sweep(keeping: box)
+        }
     }
 
     /// Keeps the memory cache to the two corridors a trip can have.
@@ -230,15 +260,16 @@ actor RoadDataStore {
         return nil
     }
 
-    private static func fetch(_ b: Box) async throws -> Data {
+    private static func fetch(_ b: Box, serverSeconds: Int = 25, requestSeconds: TimeInterval = 30) async throws -> Data {
         let bbox = String(format: "%.3f,%.3f,%.3f,%.3f", b.south, b.west, b.north, b.east)
         let query = """
-        [out:json][timeout:25][bbox:\(bbox)];
+        [out:json][timeout:\(serverSeconds)][bbox:\(bbox)];
         (node[highway=traffic_signals];node[crossing=traffic_signals];);out skel qt;
         way[highway~"^(trunk|primary|secondary)(_link)?$"];
         convert way ::geom=geom(),ref=t["ref"],name=t["name"],tunnel=t["tunnel"];out geom qt;
         """
-        var request = URLRequest(url: URL(string: "https://overpass-api.de/api/interpreter")!, timeoutInterval: 30)
+        var request = URLRequest(url: URL(string: "https://overpass-api.de/api/interpreter")!,
+                                 timeoutInterval: requestSeconds)
         request.httpMethod = "POST"
         request.setValue("RadPendler iOS (private commute planner)", forHTTPHeaderField: "User-Agent")
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
