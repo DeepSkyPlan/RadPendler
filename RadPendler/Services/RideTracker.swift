@@ -244,7 +244,15 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         // The app can be killed in a pocket; what was ridden up to then is
         // still a ride, and the next start finds it and files it.
         let now = Date.now
-        if now.timeIntervalSince(lastSave) >= 30 {
+        // Alle halbe Minute, solange die Linie kurz ist — danach seltener.
+        // Geschrieben wird jedes Mal die ganze Linie, und was sie kostet,
+        // wächst mit der Fahrt; eine Pendelfahrt ist nach dieser Grenze
+        // ohnehin vorbei, und eine Tagestour braucht keine Sicherung im
+        // Halbminutentakt. (Inkrementell wäre schöner, verlangt aber ein
+        // anderes Dateiformat — und seit das Schreiben neben dem Hauptthread
+        // läuft und die Kopie gedeckelt ist, kauft das nichts mehr.)
+        let every: TimeInterval = meter.points.count > 3_000 ? 120 : 30
+        if now.timeIntervalSince(lastSave) >= every {
             lastSave = now
             if let subject {
                 store.saveInterrupted(meter.result(id: subject.id, origin: subject.origin,

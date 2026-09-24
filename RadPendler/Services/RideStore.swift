@@ -136,14 +136,40 @@ final class RideStore {
 
     // MARK: A ride the app did not survive
 
-    /// Written every half minute while recording, so a ride does not die with
-    /// the process. `clearInterrupted` removes it the moment the ride ends
-    /// properly.
+    /// So viele Punkte gehen höchstens in die Zwischensicherung. Die Linie
+    /// selbst darf so lang werden, wie die Fahrt dauert — diese Kopie hier
+    /// nicht: sie wird im Minutentakt neu geschrieben und beim nächsten Start
+    /// wieder eingelesen, und beides muss eine feste Obergrenze haben. Bei
+    /// einem Punkt je Sekunde sind 20 000 gut fünfeinhalb Stunden Fahrt; was
+    /// länger ist, wird ausgedünnt und verliert nichts als Zwischenpunkte.
+    nonisolated static let maxInterruptedPoints = 20_000
+
+    /// Jeden n-ten Punkt, Anfang und Ende immer. Die Halte bleiben vollzählig:
+    /// es sind wenige, und sie sind der Grund, aus dem die Fahrt gezählt wird.
+    nonisolated static func thinned(_ track: RideTrack) -> RideTrack {
+        guard track.points.count > maxInterruptedPoints else { return track }
+        let step = (track.points.count + maxInterruptedPoints - 1) / maxInterruptedPoints
+        var kept = stride(from: 0, to: track.points.count, by: step).map { track.points[$0] }
+        if let last = track.points.last, kept.last != last { kept.append(last) }
+        return RideTrack(id: track.id, points: kept, stops: track.stops)
+    }
+
+    /// Written while recording, so a ride does not die with the process.
+    /// `clearInterrupted` removes it the moment the ride ends properly.
+    ///
+    /// Kodieren und Schreiben laufen **neben** dem Hauptthread. Vorher lag
+    /// beides darauf: eine lange Fahrt ist einige Megabyte JSON, die Linie
+    /// steckt zweimal kodiert darin, und das mitten in einer Fahrt, während
+    /// die Karte mitläuft.
     func saveInterrupted(_ state: (Ride, RideTrack)) {
-        guard let ride = try? JSONEncoder().encode(state.0),
-              let track = try? JSONEncoder().encode(state.1) else { return }
-        try? JSONEncoder().encode(Interrupted(ride: ride, track: track))
-            .write(to: interruptedFile, options: .atomic)
+        let url = interruptedFile
+        let ride = state.0, track = Self.thinned(state.1)
+        Task.detached(priority: .utility) {
+            guard let rideData = try? JSONEncoder().encode(ride),
+                  let trackData = try? JSONEncoder().encode(track),
+                  let blob = try? JSONEncoder().encode(Interrupted(ride: rideData, track: trackData)) else { return }
+            try? blob.write(to: url, options: .atomic)
+        }
     }
 
     func clearInterrupted() {
@@ -152,17 +178,33 @@ final class RideStore {
 
     /// Called at launch: whatever was being recorded when the app went away is
     /// filed as the ride it was, up to its last known second.
-    func recoverInterrupted() {
-        guard let data = try? Data(contentsOf: interruptedFile),
-              let saved = try? JSONDecoder().decode(Interrupted.self, from: data),
-              let ride = try? JSONDecoder().decode(Ride.self, from: saved.ride),
-              let track = try? JSONDecoder().decode(RideTrack.self, from: saved.track) else { return }
-        clearInterrupted()
+    ///
+    /// **Erst löschen, dann dekodieren.** Vorher stand das Löschen hinter dem
+    /// Dekodieren: dauerte das länger, als der Watchdog erlaubt, starb die App
+    /// davor — und beim nächsten Start wieder, an derselben Datei. Eine
+    /// Startschleife, aus der nur das Löschen der App herausführt. Jetzt sind
+    /// die Bytes gelesen und die Datei weg, bevor irgendetwas ausgepackt wird;
+    /// im schlimmsten Fall geht eine abgebrochene Aufzeichnung verloren, und
+    /// das ist allemal besser als eine App, die nicht mehr startet.
+    ///
+    /// Lesen, Löschen und Auspacken laufen neben dem Hauptthread; nur das
+    /// Ablegen in der Liste läuft auf ihm.
+    func recoverInterrupted() async {
+        let url = interruptedFile
+        let recovered = await Task.detached(priority: .userInitiated) { () -> (Ride, RideTrack)? in
+            guard let data = try? Data(contentsOf: url) else { return nil }
+            try? FileManager.default.removeItem(at: url)
+            guard let saved = try? JSONDecoder().decode(Interrupted.self, from: data),
+                  let ride = try? JSONDecoder().decode(Ride.self, from: saved.ride),
+                  let track = try? JSONDecoder().decode(RideTrack.self, from: saved.track) else { return nil }
+            return (ride, track)
+        }.value
+        guard let (ride, track) = recovered else { return }
         guard ride.seconds >= 60, ride.meters >= 100, !rides.contains(where: { $0.id == ride.id }) else { return }
         add(ride, track: track)
     }
 
-    private struct Interrupted: Codable {
+    struct Interrupted: Codable {
         var ride: Data
         var track: Data
     }

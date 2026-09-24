@@ -56,6 +56,10 @@ final class CloudStore {
     /// every half second, and the settings list stuttered while scrolling.
     private var pushed: [String: Any] = [:]
     private let queue = DispatchQueue(label: "de.keese.radpendler.cloud", qos: .utility)
+    /// Über dem Kontingent nimmt der Dienst nichts mehr an, schickt den
+    /// Serverstand zurück und meldet das als Änderung. Weiterzuschreiben hieße,
+    /// mit ihm zu streiten — ab da wird nur noch gelesen.
+    private var overQuota = false
 
     /// Whether iCloud is doing anything at all — for the line in the settings.
     private(set) var available = false
@@ -70,15 +74,20 @@ final class CloudStore {
         NotificationCenter.default.addObserver(self, selector: #selector(localChanged),
                                                name: UserDefaults.didChangeNotification,
                                                object: defaults)
-        cloud.synchronize()
-        // A store that has never been written gets this device's settings;
-        // otherwise this device takes what the others agreed on.
-        if Self.keys.allSatisfy({ cloud.object(forKey: $0) == nil }) {
-            push(Self.keys)
-        } else {
-            pull(Self.keys)
+        // Der Stand, gegen den später verglichen wird: was hier schon liegt.
+        for key in Self.keys { pushed[key] = defaults.object(forKey: key) }
+        // `synchronize()` geht auf die Platte, und dies ist der erste Bildlauf
+        // der App — beides gehört nicht auf denselben Faden.
+        queue.async { [weak self, cloud] in
+            cloud.synchronize()
+            // A store that has never been written gets this device's settings;
+            // otherwise this device takes what the others agreed on.
+            let empty = Self.keys.allSatisfy { cloud.object(forKey: $0) == nil }
+            DispatchQueue.main.async {
+                guard let self else { return }
+                if empty { self.push(Self.keys) } else { self.pull(Self.keys) }
+            }
         }
-        for key in Self.keys where pushed[key] == nil { pushed[key] = defaults.object(forKey: key) }
     }
 
     // MARK: Out
@@ -96,16 +105,24 @@ final class CloudStore {
     /// Writes only what actually differs from what iCloud already has, and
     /// writes it off the main thread — `synchronize()` touches the disk.
     private func push(_ keys: [String]) {
-        var changed: [String: Any?] = [:]
+        var changed: [String] = []
         for key in keys {
             let value = defaults.object(forKey: key)
             guard !Self.same(value, pushed[key]) else { continue }
-            changed[key] = value
-            if let value { pushed[key] = value } else { pushed[key] = nil }
+            pushed[key] = value
+            changed.append(key)
         }
-        guard !changed.isEmpty else { return }
+        send(changed)
+    }
+
+    /// Hinaus damit, ohne weitere Frage. Der Vergleich ist die Sache des
+    /// Aufrufers: nach einem Zusammenführen steht in `pushed` schon das
+    /// Ergebnis, und `push` würde nichts mehr zu tun finden.
+    private func send(_ keys: [String]) {
+        guard !keys.isEmpty, !overQuota else { return }
+        let values: [String: Any?] = keys.reduce(into: [:]) { $0[$1] = defaults.object(forKey: $1) }
         queue.async { [cloud] in
-            for (key, value) in changed {
+            for (key, value) in values {
                 if let value { cloud.set(value, forKey: key) } else { cloud.removeObject(forKey: key) }
             }
             cloud.synchronize()
@@ -124,35 +141,80 @@ final class CloudStore {
     // MARK: In
 
     @objc private func cloudChanged(_ note: Notification) {
+        if note.userInfo?[NSUbiquitousKeyValueStoreChangeReasonKey] as? Int
+            == NSUbiquitousKeyValueStoreQuotaViolationChange {
+            overQuota = true
+        }
         let changed = note.userInfo?[NSUbiquitousKeyValueStoreChangedKeysKey] as? [String]
         pull((changed ?? Self.keys).filter { Self.keys.contains($0) })
     }
 
+    /// Was aus einem Schlüssel werden soll, wenn die Wolke sich gemeldet hat.
+    private enum Resolution {
+        case set(Any)
+        case remove
+        /// Nichts tun — was hier steht, ist das Bessere.
+        case keep
+    }
+
+    /// Liest, was drüben steht, und führt es mit dem hiesigen Stand zusammen.
+    ///
+    /// Das Zusammenführen ist der teure Teil: zlib für die Fahrten, JSON für
+    /// alles andere, und `LearnedSignal.merging` vergleicht jeden Eintrag mit
+    /// jedem. Es läuft deshalb neben dem Hauptthread; auf ihm bleibt nur das
+    /// Hinschreiben des Ergebnisses.
     private func pull(_ keys: [String]) {
         guard !keys.isEmpty else { return }
-        applying = true
-        for key in keys {
-            guard let value = cloud.object(forKey: key) else {
-                // Gone from the cloud means deleted somewhere, not "no news":
-                // an address removed on the phone stayed on the iPad forever.
-                // The merged list is the exception — it is never shortened.
-                if !Self.mergedKeys.contains(key) { defaults.removeObject(forKey: key) }
-                continue
+        let mine: [String: Data] = keys.filter(Self.mergedKeys.contains)
+            .reduce(into: [:]) { $0[$1] = defaults.data(forKey: $1) }
+        queue.async { [weak self, cloud] in
+            var resolved: [String: Resolution] = [:]
+            var had: [String: Any] = [:]
+            for key in keys {
+                guard let value = cloud.object(forKey: key) else {
+                    // Gone from the cloud means deleted somewhere, not "no news":
+                    // an address removed on the phone stayed on the iPad forever.
+                    // The merged list is the exception — it is never shortened.
+                    resolved[key] = Self.mergedKeys.contains(key) ? .keep : .remove
+                    continue
+                }
+                had[key] = value
+                if Self.mergedKeys.contains(key), let incoming = value as? Data {
+                    resolved[key] = .set(Self.merged(key, local: mine[key], cloud: incoming) ?? incoming)
+                } else {
+                    resolved[key] = .set(value)
+                }
             }
-            if Self.mergedKeys.contains(key), let incoming = value as? Data {
-                defaults.set(Self.merged(key, local: defaults.data(forKey: key), cloud: incoming) ?? incoming,
-                             forKey: key)
-            } else {
-                defaults.set(value, forKey: key)
+            DispatchQueue.main.async { self?.apply(resolved, cloudHad: had) }
+        }
+    }
+
+    private func apply(_ resolved: [String: Resolution], cloudHad: [String: Any]) {
+        applying = true
+        for (key, what) in resolved {
+            switch what {
+            case .set(let value): defaults.set(value, forKey: key)
+            case .remove: defaults.removeObject(forKey: key)
+            case .keep: break
             }
         }
-        for key in keys { pushed[key] = defaults.object(forKey: key) }
         onPull?()
         applying = false
-        // Whatever the merge produced has to go back out, or the other device
-        // never learns about the entries only this one had.
-        let merged = keys.filter(Self.mergedKeys.contains)
-        if !merged.isEmpty { push(merged) }
+        // Erst **jetzt** festhalten, was draußen steht — nach `onPull`, nicht
+        // davor. `AppSettings.load()` normalisiert beim Lesen: eine Reihenfolge
+        // ohne einen Eintrag, den diese Fassung kennt, bekommt ihn angehängt.
+        // Stand hier der Stand von vor `onPull`, galt diese Normalisierung als
+        // Änderung und ging zurück in die Wolke — wo das andere Gerät sie
+        // wieder wegnahm und zurückschrieb. Zwischen zwei Geräten mit
+        // verschiedenen Ständen ist das ein Pingpong ohne Ende.
+        for key in resolved.keys { pushed[key] = defaults.object(forKey: key) }
+        // Was das Zusammenführen dazugewonnen hat, muss dagegen hinaus, sonst
+        // erfährt das andere Gerät nie von den Einträgen, die nur hier standen.
+        // Das stand schon immer hier — nur wirkungslos, weil `pushed` damals
+        // vor `onPull` gesetzt wurde und der Vergleich nie etwas fand.
+        send(resolved.keys.filter {
+            Self.mergedKeys.contains($0) && !Self.same(defaults.object(forKey: $0), cloudHad[$0])
+        })
     }
 
     /// Both lists into one; nil when either side cannot be read, so the caller

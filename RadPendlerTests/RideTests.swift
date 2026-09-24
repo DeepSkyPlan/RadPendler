@@ -369,4 +369,40 @@ final class RideTests: XCTestCase {
         let back = try? JSONDecoder().decode(RideLive.self, from: JSONEncoder().encode(live))
         XCTAssertEqual(back, live)
     }
+
+    // MARK: Die abgebrochene Aufzeichnung
+
+    /// Die Zwischensicherung wird im Minutentakt geschrieben und beim Start
+    /// wieder gelesen; ungedeckelt wächst sie mit der Fahrt.
+    func testTheInterruptedCopyIsCapped() {
+        let many = (0..<50_000).map { i in
+            RidePoint(lat: 52.5 + Double(i) * 1e-6, lon: 13.4, t: start.addingTimeInterval(Double(i)), v: 5)
+        }
+        let stops = (0..<40).map { i in
+            RideStop(lat: 52.5, lon: 13.4, start: start.addingTimeInterval(Double(i) * 100), seconds: 30,
+                     atSignal: true)
+        }
+        let thin = RideStore.thinned(RideTrack(id: UUID(), points: many, stops: stops))
+        XCTAssertLessThanOrEqual(thin.points.count, RideStore.maxInterruptedPoints)
+        XCTAssertEqual(thin.points.first, many.first, "der Anfang bleibt")
+        XCTAssertEqual(thin.points.last, many.last, "und das Ende erst recht")
+        XCTAssertEqual(thin.stops.count, stops.count, "die Halte sind der Grund für das Ganze")
+        let short = RideTrack(id: UUID(), points: Array(many.prefix(100)), stops: [])
+        XCTAssertEqual(RideStore.thinned(short).points.count, 100, "was hineinpasst, bleibt unangetastet")
+    }
+
+    /// Der Grund, aus dem beim Start erst gelöscht und dann ausgepackt wird:
+    /// stirbt die App am Auspacken, findet der nächste Start dieselbe Datei
+    /// wieder — eine Startschleife, aus der nur das Löschen der App führt.
+    @MainActor func testTheInterruptedFileIsGoneEvenWhenItCannotBeRead() async {
+        let folder = URL.temporaryDirectory.appending(path: "RideStoreTest-\(UUID().uuidString)")
+        let store = RideStore(folder: folder, defaults: UserDefaults(suiteName: "test-\(UUID().uuidString)")!)
+        let file = folder.appending(path: "current.json")
+        try? Data("kein gültiges JSON".utf8).write(to: file)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: file.path))
+        await store.recoverInterrupted()
+        XCTAssertFalse(FileManager.default.fileExists(atPath: file.path), "weg, obwohl nichts zu lesen war")
+        XCTAssertTrue(store.rides.isEmpty)
+        try? FileManager.default.removeItem(at: folder)
+    }
 }

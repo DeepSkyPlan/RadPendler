@@ -465,4 +465,22 @@ final class PlannerTests: XCTestCase {
                       "these keys are carried but nobody writes them: \(carried.subtracting(saved).sorted())")
         UserDefaults.standard.removePersistentDomain(forName: suite)
     }
+
+    /// Hält fest, warum `CloudStore` seinen Vergleichsstand erst **nach**
+    /// `onPull` nimmt. `storedOrder` normalisiert beim Lesen, und zwei
+    /// Fassungen normalisieren gegenläufig: die neuere hängt an, was die
+    /// ältere nicht kennt, die ältere wirft es wieder weg. Ginge diese
+    /// Normalisierung als vermeintliche Änderung zurück in die Wolke, schöben
+    /// sich zwei Geräte den Wert endlos hin und her — und jede Runde kostet
+    /// auf beiden Seiten ein vollständiges `load()`.
+    func testTheOrderNormalisationDoesNotConvergeBetweenVersions() {
+        let stored = ["fastest", "shortest", "balanced", "quiet"]
+        let newer = storedOrder(stored, fallback: BikeVariant.allCases)
+        XCTAssertEqual(newer, BikeVariant.allCases, "die neuere Fassung hängt an, was fehlt")
+        let backAgain = storedOrder(newer.map(\.rawValue).filter { $0 != "lowTraffic" },
+                                    fallback: BikeVariant.allCases)
+        XCTAssertEqual(backAgain, newer, "und tut es beim nächsten Mal wieder")
+        XCTAssertNotEqual(newer.map(\.rawValue), stored,
+                          "die normalisierte Fassung ist nicht die gespeicherte — genau darum darf sie nicht hinaus")
+    }
 }
