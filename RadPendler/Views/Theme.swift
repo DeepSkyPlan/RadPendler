@@ -209,20 +209,33 @@ struct CountdownBox: View {
     @State private var fired: Set<Int> = []
     @State private var watched: TripOption.ID?
 
+    /// Die Uhr, die den Kasten treibt. **Kein `TimelineView`** — und das ist
+    /// keine Geschmacksfrage: dieser Kasten sitzt als `ToolbarItem` in der
+    /// Navigationsleiste, und ein `TimelineView` in einer Werkzeugleiste legt
+    /// unter iOS 26 die Leiste bei jedem Takt neu aus. Dieses Auslegen macht
+    /// den Ansichtsgraphen erneut schmutzig, der daraufhin sofort den nächsten
+    /// Durchlauf anfordert — eine Rückkopplung, die nie zur Ruhe kommt: der
+    /// Hauptthread läuft mit voller Bildrate durch, ohne dass sich etwas
+    /// ändert. Gemessen im Simulator, Release, Leerlauf: 70–85 % CPU mit,
+    /// 0 % ohne. Auf dem Gerät ist das der Stromfresser, das Ruckeln bei jeder
+    /// Berührung und am Ende der `scene-update`-Watchdog.
+    ///
+    /// Eine eigene Uhr tickt genauso einmal die Sekunde, aber sie schreibt nur
+    /// einen Wert — das Auslegen der Leiste löst sie nicht aus.
+    @State private var now = Date.now
+
     var body: some View {
-        // Sekundentakt, wie seit jeher. In 1.2 stand hier ein selbst
-        // geschriebener `TimelineSchedule`, der den Takt über zehn Minuten
-        // Restzeit auf zwanzig Sekunden senken sollte — Strom sparen. Er ist
-        // wieder draußen: die Ersparnis war nie gemessen, das Risiko eines
-        // eigenen Schedules ist real, und das Werkzeug, mit dem ich beides
-        // beurteilt habe, hat sich als untauglich erwiesen.
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            let left = option.map { $0.getReady.timeIntervalSince(context.date) }
-            let gone = option.map { context.date > $0.leave } ?? false
-            Group {
-                if compact { pill(left, gone: gone) } else { content(left, gone: gone) }
+        let left = option.map { $0.getReady.timeIntervalSince(now) }
+        let gone = option.map { now > $0.leave } ?? false
+        Group {
+            if compact { pill(left, gone: gone) } else { content(left, gone: gone) }
+        }
+        .onChange(of: Int((left ?? 0) / 60)) { _, _ in beep(left) }
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                now = .now
             }
-            .onChange(of: Int((left ?? 0) / 60)) { _, _ in beep(left) }
         }
     }
 
