@@ -111,12 +111,20 @@ final class BikeRouteTests: XCTestCase {
         XCTAssertTrue(roles["verkehrsarm"]?.contains(.lowTraffic) ?? false)
     }
 
-    func testOneRouteWinningEverythingIsListedOnce() {
+    /// Eine Linie, die alles gewinnt, steht **einmal** da und trägt alle ihre
+    /// Namen. Die schlechtere verschwindet deswegen aber nicht — sie ist ein
+    /// anderer Weg und bleibt als „Alternative" wählbar. Bis 1.3 fiel sie
+    /// heraus, und unter dem Rad-Kasten standen zwei Punkte, wo neun Routen
+    /// angefragt worden waren.
+    func testTheWinnerIsListedOnceAndTheOthersStay() {
         let best = candidate("safety", km: 19, signals: 10, crossings: 2, mainKm: 1)
         let worse = candidate("fastbike", km: 20, signals: 50, crossings: 18, mainKm: 13)
         let picked = BikeCandidate.pick([worse, best], settings: PlanSettings())
-        XCTAssertEqual(picked.count, 1)
-        XCTAssertEqual(picked[0].1, BikeVariant.defaultOrder, "all four labels, in the user's order")
+        XCTAssertEqual(picked.count, 2, "beide Wege bleiben wählbar")
+        XCTAssertEqual(picked[0].0.source, "safety", "die benannte steht vorn")
+        XCTAssertEqual(picked[0].1, BikeVariant.defaultOrder, "all five labels, in the user's order")
+        XCTAssertEqual(picked[1].0.source, "fastbike")
+        XCTAssertTrue(picked[1].1.isEmpty, "ohne Namen, weil sie in keiner Hinsicht die beste ist")
     }
 
     func testTheVariantOrderTravelsThroughToWhatIsSuggested() {
@@ -257,5 +265,66 @@ extension BikeRouteTests {
         XCTAssertEqual(fastest?.0.source, "drumherum", "der halbe Kilometer Umweg ist billiger als 115 Höhenmeter")
         let shortest = picked.first { $0.1.contains(.shortest) }
         XCTAssertEqual(shortest?.0.source, "über den Berg", "kürzest bleibt kürzest")
+    }
+
+    // MARK: Wie viele Radrouten der Bildschirm zeigt
+
+    private func line(_ name: String, km: Double, seconds: Double, offset: Double = 0,
+                      disturbance: Double? = nil, stops: Int = 0) -> BikeCandidate {
+        // Eine gerade Linie nach Osten, um `offset` Grad nach Norden versetzt.
+        let points = (0...20).map {
+            CLLocationCoordinate2D(latitude: 52.5 + offset, longitude: 13.30 + Double($0) * km / 20 / 68.0)
+        }
+        var stats: BikeRouteStats?
+        if let disturbance {
+            // mainRoadMeters trägt die Störung, damit `disturbance` stimmt.
+            stats = BikeRouteStats(signals: 0, crossings: [], mainRoadMeters: disturbance, signalPoints: [])
+        }
+        var c = BikeCandidate(source: name,
+                              route: StreetRoute(distance: km * 1000, expectedTravelTime: seconds,
+                                                 coordinates: points, ascent: 0),
+                              stats: stats)
+        if stats != nil { c.stats?.crossings = Array(repeating: "x", count: stops) }
+        return c
+    }
+
+    /// Mehrere Profile liefern oft dieselbe Straße. Zwei gleiche Linien sind
+    /// keine zwei Möglichkeiten.
+    func testIdenticalLinesCountOnce() {
+        let a = line("trekking", km: 10, seconds: 1800)
+        let b = line("fastbike", km: 10.05, seconds: 1800)      // dieselbe Straße
+        let c = line("umweg", km: 10, seconds: 1800, offset: 0.02)  // gut 2 km daneben
+        XCTAssertTrue(BikeCandidate.sameLine(a.route, b.route))
+        XCTAssertFalse(BikeCandidate.sameLine(a.route, c.route))
+        XCTAssertEqual(BikeCandidate.distinct([a, b, c]).count, 2)
+        XCTAssertEqual(BikeCandidate.distinct([a, b, c]).map { $0.source }, ["trekking", "umweg"])
+    }
+
+    /// Der Grund, aus dem unter dem Rad-Kasten oft nur zwei Punkte standen:
+    /// eine Linie ohne Rolle fiel ganz heraus. Die Namen bleiben wahr — die
+    /// beste ist die beste —, aber jeder andere Weg bleibt wählbar.
+    func testEveryDistinctLineStaysChoosable() {
+        var s = PlanSettings()
+        s.signalWaitSeconds = 0
+        // Die erste Linie ist in jeder Hinsicht die beste; früher blieb davon
+        // ein Kasten übrig und die anderen vier verschwanden.
+        let best = line("best", km: 9.0, seconds: 0, offset: 0.000, disturbance: 100)
+        let two = line("zwei", km: 9.5, seconds: 0, offset: 0.02, disturbance: 200)
+        let three = line("drei", km: 10.0, seconds: 0, offset: 0.04, disturbance: 300)
+        let four = line("vier", km: 10.5, seconds: 0, offset: 0.06, disturbance: 400)
+        let picked = BikeCandidate.pick([best, two, three, four], settings: s)
+        XCTAssertEqual(picked.count, 4, "vier verschiedene Wege bleiben vier Möglichkeiten")
+        XCTAssertEqual(picked.first?.0.source, "best", "die benannte steht vorn")
+        XCTAssertEqual(Set(picked[0].1).count, 5, "und trägt alle fünf Namen, weil sie alle gewinnt")
+        XCTAssertTrue(picked.dropFirst().allSatisfy { $0.1.isEmpty }, "die übrigen tragen keinen")
+    }
+
+    /// Eine namenlose Linie heißt „Alternative" — nicht „Route" und nicht leer.
+    func testAnUnlabelledLineIsCalledAlternative() {
+        let named = BikeRouteInfo(variants: [.quiet, .fastest], stats: nil, source: "safety")
+        XCTAssertEqual(named.shortTitle, "ruhigst")
+        let plain = BikeRouteInfo(variants: [], stats: nil, source: "trekking")
+        XCTAssertEqual(plain.shortTitle, "Alternative")
+        XCTAssertEqual(plain.title, "Alternative")
     }
 }
