@@ -1,6 +1,23 @@
 # Changelog
 
-## 1.2 (Build 24) — nach der ersten Testfahrt
+## 1.2 (Build 25) — Notbremse für Build 24
+**Build 24 nicht benutzen.** Er wurde von Minute zu Minute langsamer, das Kartenfenster
+schrumpfte dabei, und am Ende stürzte die App ab. Ursache war ein Fehler aus derselben
+Runde: um MapKits Kompass unter dem neuen Abbiegeband wegzuschieben, setzte die App die
+`layoutMargins` der Karte — und weil `insetsLayoutMarginsFromSafeArea` voreingestellt an
+ist, liest sich der Wert nie so zurück, wie er gesetzt wurde. Also wurde bei *jedem*
+Neuzeichnen verglichen, für ungleich befunden und neu gesetzt: eine Rückkopplung, die
+die Karte jedes Mal neu auslegte und ihre Fläche ein Stück kleiner machte, bis der
+Watchdog die App beendete.
+
+Der Kompass wird jetzt einfach ausgeblendet, solange das Abbiegeband oben steht — das
+Band sagt, wo es langgeht, und der Pfeil, wohin man zeigt. An `layoutMargins` fasst die
+App nicht mehr.
+
+Nachgemessen im Simulator: Kartenfenster über 90 Sekunden und sechs Wechsel unverändert
+370 × 414, ein Boxenwechsel dauert 0,4 statt 3 Sekunden.
+
+## 1.2 (Build 24, zurückgezogen) — nach der ersten Testfahrt
 Punkte aus der Praxis, nicht aus dem Simulator.
 
 **Der Grund, warum die App geruckelt und Strom gezogen hat, war ein Buchhaltungsfehler beim Regenradar.** Es hängte nach jedem Neuzeichnen alle 22 Kachelebenen wieder an die Karte, nachdem es 19 davon gerade abgeräumt hatte — hunderte Kachelanfragen pro Sekunde, für Bilder, die niemand ansah. Das erklärt beides auf einmal: das Stocken beim Schieben der Karte *und* dass sogar das Einstellen der Uhrzeit hakte, auf einem Bildschirm, hinter dem nur die Karte lag. Ein Test hält jetzt fest, dass die Buchhaltung zur Ruhe kommt: zweimal hintereinander gefragt, passiert nichts mehr.
