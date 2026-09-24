@@ -203,6 +203,7 @@ struct ContentView: View {
     private var map: some View {
         TripMapPanel(options: model.options, selectedID: model.selected?.id,
                      waypoints: settings.waypoints,
+                     ends: [settings.origin?.coordinate, settings.destination?.coordinate].compactMap { $0 },
                      onSelect: { select($0) },
                      lastRun: model.lastRun, loading: model.isLoading,
                      onRefresh: refresh)
