@@ -1,16 +1,49 @@
 import MapKit
 import SwiftUI
 
-struct SettingsView: View {
-    @Environment(AppSettings.self) private var settings
+/// Die Einstellungen, auf vier Seiten verteilt.
+///
+/// Es war **eine** Seite mit sechzehn Abschnitten; darin etwas wiederzufinden
+/// war Glückssache. Jetzt gibt es vier Einträge im Menü, und jeder beantwortet
+/// eine Frage: wohin fahre ich, wie soll geplant werden, womit fahre ich, und
+/// wie sieht es dabei aus.
+///
+/// `Page` ist die Klammer darum: Titel, „Fertig", und das Nachfragen der
+/// Mitteilungsrechte — das braucht jede Seite gleich.
+private struct Page<Content: View>: View {
+    var title: String
+    @ViewBuilder var content: Content
     @Environment(\.dismiss) private var dismiss
-    /// Whether iOS lets the app post the countdown warnings at all.
+    @Environment(AppSettings.self) private var settings
+    @State private var notifications: Alarm.Permission = .unknown
+
+    var body: some View {
+        NavigationStack {
+            Form { content }
+                .navigationTitle(title)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } }
+                }
+                // Asking iOS every time the sheet opens, so the hint disappears
+                // as soon as the permission is granted somewhere else.
+                .task { notifications = await Alarm.permission() }
+                .onChange(of: settings.alertsOn) { _, on in
+                    guard on else { return }
+                    Task { notifications = await Alarm.requestPermission() ? .granted : .denied }
+                }
+        }
+    }
+}
+
+/// Wohin es geht: die beiden Adressen, die beiden festen Orte, die Fixpunkte.
+struct AddressSettingsView: View {
+    @Environment(AppSettings.self) private var settings
     @State private var notifications: Alarm.Permission = .unknown
 
     var body: some View {
         @Bindable var settings = settings
-        NavigationStack {
-            Form {
+        Page(title: "Adressen") {
                 Section {
                     NavigationLink {
                         AddressSearchView(title: "Start", offersLocation: true) { settings.origin = $0 }
@@ -29,171 +62,6 @@ struct SettingsView: View {
                     Text(CloudStore.shared.available
                          ? "Die App wird ohne Adressen ausgeliefert. Start, Ziel, die benutzten Adressen und alle Einstellungen gleichen sich über deine iCloud mit deinen anderen Geräten ab — sonst verlässt nichts davon deine Geräte."
                          : "Die App wird ohne Adressen ausgeliefert. Start und Ziel bleiben nur auf diesem Gerät gespeichert. Mit einem angemeldeten iCloud-Konto gleichen sie sich mit deinen anderen Geräten ab.")
-                }
-                Section {
-                    NavigationLink {
-                        PriorityList(title: "Verkehrsmittel", items: $settings.modeOrder,
-                                     footer: "Von oben nach unten: was gewinnt, wenn zwei Fahrten fast gleichzeitig ankommen. Dieselbe Reihenfolge ordnet die vier Kästen auf der Hauptseite, entscheidet, welcher nach einer Suche geöffnet ist, und in welcher Folge sie sich füllen — das Oberste steht zuerst da, der Rest kommt nach.",
-                                     label: \.title, symbol: \.symbol)
-                    } label: {
-                        LabeledContent("Verkehrsmittel", value: settings.modeOrder.map(\.short).joined(separator: " › "))
-                    }
-                    NavigationLink {
-                        PriorityList(title: "Radrouten", items: $settings.bikeVariantOrder,
-                                     footer: "Welche der gefundenen Radrouten vorgeschlagen wird — die oberste. Die anderen bleiben erreichbar, ein Tipp auf den Kasten schaltet weiter.\n\n„wenig Autos“ und „wenig Halts“ beantworten zwei verschiedene Fragen: die erste, wie lange man neben fahrenden Autos fährt, die zweite, wie oft man ihretwegen anhalten muss. Die kürzeste Strecke ist selten beides.",
-                                     label: \.title, symbol: \.symbol)
-                    } label: {
-                        LabeledContent("Radrouten", value: settings.bikeVariantOrder.first?.title ?? "")
-                    }
-                    NavigationLink {
-                        PriorityList(title: "Autorouten", items: $settings.carVariantOrder,
-                                     footer: "Dasselbe fürs Auto. Apple Karten liefert meist zwei oder drei Linien; welche davon oben steht, entscheidet diese Liste.",
-                                     label: \.title, symbol: { _ in nil })
-                    } label: {
-                        LabeledContent("Autorouten", value: settings.carVariantOrder.first?.title ?? "")
-                    }
-                    Picker("Rad in die Bahn ab", selection: $settings.rainSwitchLevel) {
-                        ForEach([RainLevel.possible, .light, .rain, .heavy], id: \.self) { level in
-                            Text(level.label).tag(level)
-                        }
-                    }
-                    Button("Zurück auf Werkseinstellung") { settings.resetPriorities() }
-                } header: {
-                    Text("Vorlieben")
-                } footer: {
-                    Text("Womit die App plant, wenn sie die Wahl hat. Ab dem gewählten Regen wird nicht mehr die ganze Strecke geradelt, sondern das Rad in die Bahn gestellt — „starker Regen“ heißt also praktisch immer fahren.")
-                }
-                Section {
-                    Stepper("Rüstzeit: \(settings.prepMinutes) min", value: $settings.prepMinutes, in: 0...30)
-                } footer: {
-                    Text("Zeit vom Planen bis zum Losgehen. Gilt für jedes Verkehrsmittel.")
-                }
-                Section {
-                    Stepper(value: $settings.bikeSpeedKmh, in: 10...45, step: 1) {
-                        Text("Fahrgeschwindigkeit: \(Int(settings.bikeSpeedKmh)) km/h")
-                    }
-                    Stepper("Puffer am Bahnhof: \(settings.bikeStationBufferMinutes) min",
-                            value: $settings.bikeStationBufferMinutes, in: 0...10)
-                    Stepper("Wartezeit je Ampel: \(settings.signalWaitSeconds) s",
-                            value: $settings.signalWaitSeconds, in: 0...90, step: 5)
-                    Stepper(value: $settings.maxBikeToStationKm, in: 1...10, step: 0.5) {
-                        Text("Radweg zum Bahnhof: bis \(settings.maxBikeToStationKm.formatted(.number.precision(.fractionLength(0...1)))) km")
-                    }
-                } header: {
-                    Text("Fahrrad")
-                } footer: {
-                    Text("Fahrgeschwindigkeit = Tempo beim Rollen, ohne Halte. Die Fahrzeit ist Strecke ÷ Fahrgeschwindigkeit plus die Wartezeit je Ampelkreuzung (inkl. Anfahren); daraus ergibt sich der angezeigte Schnitt „Ø … km/h“. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung auf der Strecke addiert. Für die ganze Strecke gibt es bis zu drei Routen: kürzest, Mittelweg und ruhigst (wenig Ampeln, wenig Hauptstraßen). Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet.")
-                }
-                Section {
-                    Picker("Ausrichtung", selection: $settings.orientation) {
-                        ForEach(OrientationLock.allCases, id: \.self) { o in
-                            Label(o.title, systemImage: o.symbol).tag(o)
-                        }
-                    }
-                    .onChange(of: settings.orientation) { settings.orientation.apply() }
-                    Picker("Neu berechnen ab", selection: $settings.replanOffRouteMeters) {
-                        Text("aus").tag(0.0)
-                        ForEach([100.0, 200.0, 500.0, 1000.0], id: \.self) { m in
-                            Text("\(Int(m)) m neben der Route").tag(m)
-                        }
-                    }
-                    Picker("… oder nach", selection: $settings.replanOffRouteMinutes) {
-                        Text("aus").tag(0.0)
-                        ForEach([1.0, 2.0, 5.0, 10.0], id: \.self) { m in
-                            Text("\(Int(m)) min daneben").tag(m)
-                        }
-                    }
-                    Stepper("Ampelhalt ab \(settings.signalStopSeconds) s",
-                            value: $settings.signalStopSeconds, in: 10...120, step: 5)
-                    HStack {
-                        Label("Gelernte Ampeln", systemImage: "light.beacon.max")
-                        Spacer()
-                        Text("\(settings.learnedSignals.count)")
-                            .foregroundStyle(.secondary)
-                            .monospacedDigit()
-                    }
-                    if !settings.learnedSignals.isEmpty {
-                        Button("Gelernte Ampeln vergessen", role: .destructive) {
-                            settings.learnedSignals = []
-                        }
-                    }
-                } header: {
-                    Text("Fahrt aufzeichnen")
-                } footer: {
-                    Text("„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — Während einer Aufzeichnung bleibt der Bildschirm an, bis du die Fahrt beendest; das kostet Strom und ist so gewollt. — Verlässt du die Route, zeigt ein Pfeil zurück. Neu berechnet wird, was zuerst eintritt: die eingestellte Entfernung (und dann erst nach ein paar Sekunden am Stück, damit ein Bogen um eine Baustelle keine Neuplanung auslöst) oder die eingestellte Zeit, egal wie weit — wer im Kreis um einen gesperrten Weg fährt, kommt nie weit genug weg. Beides „aus“ lässt es beim Pfeil. — Wer länger als die eingestellte Zeit steht, stand an einer Ampel, auch wenn keine Karte dort eine kennt. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein: in der Zahl der Ampeln einer Radroute und damit in ihrer Fahrzeit. Sie bleiben auf deinen Geräten.")
-                }
-                Section {
-                    Picker("Fahrplan", selection: $settings.timetableSource) {
-                        ForEach(TimetableSource.allCases) { Text($0.title).tag($0) }
-                    }
-                    Link(destination: URL(string: "https://transitous.org/sources/")!) {
-                        Label("transitous.org/sources", systemImage: "arrow.up.right.square")
-                    }
-                    Link(destination: URL(string: "https://www.openstreetmap.org/copyright")!) {
-                        Label("openstreetmap.org/copyright", systemImage: "arrow.up.right.square")
-                    }
-                } header: {
-                    Text("Fahrplanquelle")
-                } footer: {
-                    Text("„Automatisch“ fragt den VBB, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link.")
-                }
-                Section {
-                    // Kontakt als Seite, nicht als Adresse: eine Adresse im
-                    // Programm ist eine Adresse, die jeder mitliest.
-                    Link(destination: URL(string: "https://deepskyplan.github.io/radpendler-app/#support")!) {
-                        Label("Hilfe und Rückmeldung", systemImage: "questionmark.circle")
-                    }
-                    Link(destination: URL(string: "https://deepskyplan.github.io/radpendler-privacy/")!) {
-                        Label("Datenschutz", systemImage: "hand.raised")
-                    }
-                    Link(destination: URL(string: "https://github.com/DeepSkyPlan/RadPendler")!) {
-                        Label("Quelltext auf GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
-                    }
-                } header: {
-                    Text("Hilfe und Rechtliches")
-                } footer: {
-                    Text("Fragen, Fehler und Vorschläge gehen über die Support-Seite. Dort steht auch, was dabei hilft: Gerät, Version, Strecke und was die App gezeigt hat.")
-                }
-                Section {
-                    NavigationLink {
-                        BikeLinesView()
-                    } label: {
-                        LabeledContent("Fahrradmitnahme") {
-                            let open = settings.bikeLines.filter { $0.allowed == nil }.count
-                            Text(settings.bikeLines.isEmpty ? "noch keine Linie"
-                                 : (open == 0 ? "alle geklärt" : "\(open) offen"))
-                                .foregroundStyle(open > 0 ? .orange : .secondary)
-                        }
-                    }
-                } footer: {
-                    Text("Welche Linien das Rad mitnehmen, weißt du besser als jeder Fahrplan. Die Liste füllt sich mit den Linien, die in gefundenen Verbindungen vorkommen; was die Auskunft selbst zusichert, steht schon auf „ja“. Solange eine Linie offen ist, wird die Fahrt trotzdem vorgeschlagen — mit dem Hinweis, dass die Mitnahme ungeklärt ist.")
-                }
-                Section {
-                    Stepper("Umstieg zählt wie \(settings.transferPenaltyMinutes) min", value: $settings.transferPenaltyMinutes, in: 0...30)
-                } header: {
-                    Text("Umsteigen")
-                } footer: {
-                    Text("Beim Sortieren und Empfehlen wird jeder Umstieg wie so viele Minuten längere Fahrt gewertet. Eine direkte Verbindung gewinnt also, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.")
-                }
-                Section {
-                    ForEach(settings.departurePresets, id: \.self) { p in
-                        Text(p.title)
-                    }
-                    .onDelete { settings.departurePresets.remove(atOffsets: $0) }
-                    Menu {
-                        ForEach(DeparturePreset.choices, id: \.self) { p in
-                            Button(p.title) {
-                                guard !settings.departurePresets.contains(p) else { return }
-                                settings.departurePresets.append(p)
-                            }
-                        }
-                    } label: {
-                        Label("Zeitpunkt hinzufügen", systemImage: "plus.circle")
-                    }
-                } header: {
-                    Text("Startzeiten")
-                } footer: {
-                    Text("Diese Vorschläge stehen oben neben „Jetzt“ zur Wahl — relativ („in 15 min“) oder als Uhrzeit („um 8 Uhr“, heute oder morgen).")
                 }
                 Section {
                     ForEach(PlaceRole.allCases, id: \.self) { role in
@@ -223,6 +91,68 @@ struct SettingsView: View {
                     Text("Zuhause und Arbeit")
                 } footer: {
                     Text("Diese zwei bekommen überall ein Zeichen — in der Adresssuche, in der Liste der benutzten Adressen und oben auf der Hauptseite — und stehen in der Suche ganz oben. Fahrten zur Arbeit starten mit „Ankunft um …“, Fahrten nach Hause mit „Abfahrt jetzt“; von Hand umschaltbar.")
+                }
+                Section {
+                    ForEach(settings.waypoints, id: \.self) { p in
+                        Label(p.withArea, systemImage: "mappin.and.ellipse")
+                    }
+                    .onDelete { settings.waypoints.remove(atOffsets: $0) }
+                    NavigationLink {
+                        AddressSearchView(title: "Fixpunkt") { settings.waypoints.append($0) }
+                    } label: {
+                        Label("Fixpunkt hinzufügen", systemImage: "plus.circle")
+                    }
+                    if settings.waypoints.count > 1 {
+                        Toggle("Alle Fixpunkte verlangen", isOn: $settings.requireAllWaypoints)
+                    }
+                } header: {
+                    Text("Fixpunkte")
+                } footer: {
+                    Text("Punkte, über die die Strecke führen soll, z. B. „S Ostkreuz“ oder „Berlin Hauptbahnhof“. Verbindungen, die nicht daran vorbeikommen, werden ausgegraut ans Ende gestellt und nie empfohlen. Ohne Fixpunkte gilt keine Einschränkung.")
+                }
+        }
+    }
+}
+
+/// Wie geplant wird: Rüstzeit, Puffer, Umsteigen, Startzeiten, Countdown.
+struct NavigationSettingsView: View {
+    @Environment(AppSettings.self) private var settings
+    @State private var notifications: Alarm.Permission = .unknown
+
+    var body: some View {
+        @Bindable var settings = settings
+        Page(title: "Navigation") {
+                Section {
+                    Stepper("Rüstzeit: \(settings.prepMinutes) min", value: $settings.prepMinutes, in: 0...30)
+                } footer: {
+                    Text("Zeit vom Planen bis zum Losgehen. Gilt für jedes Verkehrsmittel.")
+                }
+                Section {
+                    Stepper("Umstieg zählt wie \(settings.transferPenaltyMinutes) min", value: $settings.transferPenaltyMinutes, in: 0...30)
+                } header: {
+                    Text("Umsteigen")
+                } footer: {
+                    Text("Beim Sortieren und Empfehlen wird jeder Umstieg wie so viele Minuten längere Fahrt gewertet. Eine direkte Verbindung gewinnt also, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.")
+                }
+                Section {
+                    ForEach(settings.departurePresets, id: \.self) { p in
+                        Text(p.title)
+                    }
+                    .onDelete { settings.departurePresets.remove(atOffsets: $0) }
+                    Menu {
+                        ForEach(DeparturePreset.choices, id: \.self) { p in
+                            Button(p.title) {
+                                guard !settings.departurePresets.contains(p) else { return }
+                                settings.departurePresets.append(p)
+                            }
+                        }
+                    } label: {
+                        Label("Zeitpunkt hinzufügen", systemImage: "plus.circle")
+                    }
+                } header: {
+                    Text("Startzeiten")
+                } footer: {
+                    Text("Diese Vorschläge stehen oben neben „Jetzt“ zur Wahl — relativ („in 15 min“) oder als Uhrzeit („um 8 Uhr“, heute oder morgen).")
                 }
                 Section {
                     Stepper("Puffer vor der Abfahrt: \(settings.departureBufferMinutes) min",
@@ -262,26 +192,168 @@ struct SettingsView: View {
                 } footer: {
                     Text("Der Countdown oben rechts zählt bis zum Losgehen für Bahn und Bus — und bei „Ankunft um …“ für jede Fahrt. Warnungen kommen als Mitteilung, auch wenn die App zu ist; bei offener App zusätzlich als Ton.")
                 }
-                Section {
-                    ForEach(settings.waypoints, id: \.self) { p in
-                        Label(p.withArea, systemImage: "mappin.and.ellipse")
-                    }
-                    .onDelete { settings.waypoints.remove(atOffsets: $0) }
-                    NavigationLink {
-                        AddressSearchView(title: "Fixpunkt") { settings.waypoints.append($0) }
-                    } label: {
-                        Label("Fixpunkt hinzufügen", systemImage: "plus.circle")
-                    }
-                    if settings.waypoints.count > 1 {
-                        Toggle("Alle Fixpunkte verlangen", isOn: $settings.requireAllWaypoints)
-                    }
-                } header: {
-                    Text("Fixpunkte")
-                } footer: {
-                    Text("Punkte, über die die Strecke führen soll, z. B. „S Ostkreuz“ oder „Berlin Hauptbahnhof“. Verbindungen, die nicht daran vorbeikommen, werden ausgegraut ans Ende gestellt und nie empfohlen. Ohne Fixpunkte gilt keine Einschränkung.")
-                }
                 Section("Auto") {
                     Stepper("Parkplatzsuche: \(settings.parkingMinutes) min", value: $settings.parkingMinutes, in: 0...30)
+                }
+        }
+    }
+}
+
+/// Womit gefahren wird: wie viele Möglichkeiten, in welcher Reihenfolge, welcher Fahrplan, welche Linie nimmt das Rad mit.
+struct ModeSettingsView: View {
+    @Environment(AppSettings.self) private var settings
+    @State private var notifications: Alarm.Permission = .unknown
+
+    var body: some View {
+        @Bindable var settings = settings
+        Page(title: "Verkehrsmittel") {
+                Section {
+                    Picker("Möglichkeiten je Verkehrsmittel", selection: $settings.optionsPerMode) {
+                        ForEach(1...3, id: \.self) { n in Text("\(n)").tag(n) }
+                    }
+                    NavigationLink {
+                        PriorityList(title: "Verkehrsmittel", items: $settings.modeOrder,
+                                     footer: "Von oben nach unten: was gewinnt, wenn zwei Fahrten fast gleichzeitig ankommen. Dieselbe Reihenfolge ordnet die vier Kästen auf der Hauptseite, entscheidet, welcher nach einer Suche geöffnet ist, und in welcher Folge sie sich füllen — das Oberste steht zuerst da, der Rest kommt nach.",
+                                     label: \.title, symbol: \.symbol)
+                    } label: {
+                        LabeledContent("Verkehrsmittel", value: settings.modeOrder.map(\.short).joined(separator: " › "))
+                    }
+                    NavigationLink {
+                        PriorityList(title: "Radrouten", items: $settings.bikeVariantOrder,
+                                     footer: "Die obersten so vieler, wie oben eingestellt — die erste wird vorgeschlagen, die anderen erreicht ein Tipp auf den Kasten. Was weiter unten steht, wird gar nicht erst berechnet und spart die Anfrage.\n\n„wenig Autos“ und „wenig Halts“ beantworten zwei verschiedene Fragen: die erste, wie lange man neben fahrenden Autos fährt, die zweite, wie oft man ihretwegen anhalten muss. Die kürzeste Strecke ist selten beides.",
+                                     label: \.title, symbol: \.symbol)
+                    } label: {
+                        LabeledContent("Radrouten", value: settings.bikeVariantOrder.first?.title ?? "")
+                    }
+                    NavigationLink {
+                        PriorityList(title: "Autorouten", items: $settings.carVariantOrder,
+                                     footer: "Dasselbe fürs Auto. Apple Karten liefert meist zwei oder drei Linien; welche davon oben steht, entscheidet diese Liste.",
+                                     label: \.title, symbol: { _ in nil })
+                    } label: {
+                        LabeledContent("Autorouten", value: settings.carVariantOrder.first?.title ?? "")
+                    }
+                    Picker("Rad in die Bahn ab", selection: $settings.rainSwitchLevel) {
+                        ForEach([RainLevel.possible, .light, .rain, .heavy], id: \.self) { level in
+                            Text(level.label).tag(level)
+                        }
+                    }
+                    Button("Zurück auf Werkseinstellung") { settings.resetPriorities() }
+                } header: {
+                    Text("Vorlieben")
+                } footer: {
+                    Text("Womit die App plant, wenn sie die Wahl hat. Ab dem gewählten Regen wird nicht mehr die ganze Strecke geradelt, sondern das Rad in die Bahn gestellt — „starker Regen“ heißt also praktisch immer fahren.")
+                }
+                Section {
+                    Stepper(value: $settings.bikeSpeedKmh, in: 10...45, step: 1) {
+                        Text("Fahrgeschwindigkeit: \(Int(settings.bikeSpeedKmh)) km/h")
+                    }
+                    Stepper("Puffer am Bahnhof: \(settings.bikeStationBufferMinutes) min",
+                            value: $settings.bikeStationBufferMinutes, in: 0...10)
+                    Stepper("Wartezeit je Ampel: \(settings.signalWaitSeconds) s",
+                            value: $settings.signalWaitSeconds, in: 0...90, step: 5)
+                    Stepper(value: $settings.maxBikeToStationKm, in: 1...10, step: 0.5) {
+                        Text("Radweg zum Bahnhof: bis \(settings.maxBikeToStationKm.formatted(.number.precision(.fractionLength(0...1)))) km")
+                    }
+                } header: {
+                    Text("Fahrrad")
+                } footer: {
+                    Text("Fahrgeschwindigkeit = Tempo beim Rollen, ohne Halte. Die Fahrzeit ist Strecke ÷ Fahrgeschwindigkeit plus die Wartezeit je Ampelkreuzung (inkl. Anfahren); daraus ergibt sich der angezeigte Schnitt „Ø … km/h“. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung auf der Strecke addiert. Für die ganze Strecke gibt es bis zu drei Routen: kürzest, Mittelweg und ruhigst (wenig Ampeln, wenig Hauptstraßen). Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet.")
+                }
+                Section {
+                    Picker("Fahrplan", selection: $settings.timetableSource) {
+                        ForEach(TimetableSource.allCases) { Text($0.title).tag($0) }
+                    }
+                    Link(destination: URL(string: "https://transitous.org/sources/")!) {
+                        Label("transitous.org/sources", systemImage: "arrow.up.right.square")
+                    }
+                    Link(destination: URL(string: "https://www.openstreetmap.org/copyright")!) {
+                        Label("openstreetmap.org/copyright", systemImage: "arrow.up.right.square")
+                    }
+                } header: {
+                    Text("Fahrplanquelle")
+                } footer: {
+                    Text("„Automatisch“ fragt den VBB, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link.")
+                }
+                Section {
+                    NavigationLink {
+                        BikeLinesView()
+                    } label: {
+                        LabeledContent("Fahrradmitnahme") {
+                            let open = settings.bikeLines.filter { $0.allowed == nil }.count
+                            Text(settings.bikeLines.isEmpty ? "noch keine Linie"
+                                 : (open == 0 ? "alle geklärt" : "\(open) offen"))
+                                .foregroundStyle(open > 0 ? .orange : .secondary)
+                        }
+                    }
+                } footer: {
+                    Text("Welche Linien das Rad mitnehmen, weißt du besser als jeder Fahrplan. Die Liste füllt sich mit den Linien, die in gefundenen Verbindungen vorkommen; was die Auskunft selbst zusichert, steht schon auf „ja“. Solange eine Linie offen ist, wird die Fahrt trotzdem vorgeschlagen — mit dem Hinweis, dass die Mitnahme ungeklärt ist.")
+                }
+        }
+    }
+}
+
+/// Alles Übrige: Anzeige und Verhalten während einer Fahrt, Hilfe, Rechtliches.
+struct SettingsView: View {
+    @Environment(AppSettings.self) private var settings
+    @State private var notifications: Alarm.Permission = .unknown
+
+    var body: some View {
+        @Bindable var settings = settings
+        Page(title: "Einstellungen") {
+                Section {
+                    Picker("Ausrichtung", selection: $settings.orientation) {
+                        ForEach(OrientationLock.allCases, id: \.self) { o in
+                            Label(o.title, systemImage: o.symbol).tag(o)
+                        }
+                    }
+                    .onChange(of: settings.orientation) { settings.orientation.apply() }
+                    Picker("Neu berechnen ab", selection: $settings.replanOffRouteMeters) {
+                        Text("aus").tag(0.0)
+                        ForEach([100.0, 200.0, 500.0, 1000.0], id: \.self) { m in
+                            Text("\(Int(m)) m neben der Route").tag(m)
+                        }
+                    }
+                    Picker("… oder nach", selection: $settings.replanOffRouteMinutes) {
+                        Text("aus").tag(0.0)
+                        ForEach([1.0, 2.0, 5.0, 10.0], id: \.self) { m in
+                            Text("\(Int(m)) min daneben").tag(m)
+                        }
+                    }
+                    Stepper("Ampelhalt ab \(settings.signalStopSeconds) s",
+                            value: $settings.signalStopSeconds, in: 10...120, step: 5)
+                    HStack {
+                        Label("Gelernte Ampeln", systemImage: "light.beacon.max")
+                        Spacer()
+                        Text("\(settings.learnedSignals.count)")
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    if !settings.learnedSignals.isEmpty {
+                        Button("Gelernte Ampeln vergessen", role: .destructive) {
+                            settings.learnedSignals = []
+                        }
+                    }
+                } header: {
+                    Text("Fahrt aufzeichnen")
+                } footer: {
+                    Text("„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — Während einer Aufzeichnung bleibt der Bildschirm an, bis du die Fahrt beendest; das kostet Strom und ist so gewollt. — Verlässt du die Route, zeigt ein Pfeil zurück. Neu berechnet wird, was zuerst eintritt: die eingestellte Entfernung (und dann erst nach ein paar Sekunden am Stück, damit ein Bogen um eine Baustelle keine Neuplanung auslöst) oder die eingestellte Zeit, egal wie weit — wer im Kreis um einen gesperrten Weg fährt, kommt nie weit genug weg. Beides „aus“ lässt es beim Pfeil. — Wer länger als die eingestellte Zeit steht, stand an einer Ampel, auch wenn keine Karte dort eine kennt. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein: in der Zahl der Ampeln einer Radroute und damit in ihrer Fahrzeit. Sie bleiben auf deinen Geräten.")
+                }
+                Section {
+                    // Kontakt als Seite, nicht als Adresse: eine Adresse im
+                    // Programm ist eine Adresse, die jeder mitliest.
+                    Link(destination: URL(string: "https://deepskyplan.github.io/radpendler-app/#support")!) {
+                        Label("Hilfe und Rückmeldung", systemImage: "questionmark.circle")
+                    }
+                    Link(destination: URL(string: "https://deepskyplan.github.io/radpendler-privacy/")!) {
+                        Label("Datenschutz", systemImage: "hand.raised")
+                    }
+                    Link(destination: URL(string: "https://github.com/DeepSkyPlan/RadPendler")!) {
+                        Label("Quelltext auf GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+                    }
+                } header: {
+                    Text("Hilfe und Rechtliches")
+                } footer: {
+                    Text("Fragen, Fehler und Vorschläge gehen über die Support-Seite. Dort steht auch, was dabei hilft: Gerät, Version, Strecke und was die App gezeigt hat.")
                 }
                 Section {
                     Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"))")
@@ -298,19 +370,6 @@ struct SettingsView: View {
                         Text("© 2026 AK. Alle Zeiten ohne Gewähr.")
                     }
                 }
-            }
-            .navigationTitle("Einstellungen")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } }
-            }
-            // Asking iOS every time the sheet opens, so the hint disappears as
-            // soon as the permission is granted somewhere else.
-            .task { notifications = await Alarm.permission() }
-            .onChange(of: settings.alertsOn) { _, on in
-                guard on else { return }
-                Task { notifications = await Alarm.requestPermission() ? .granted : .denied }
-            }
         }
     }
 }

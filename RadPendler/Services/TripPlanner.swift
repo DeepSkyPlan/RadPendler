@@ -85,7 +85,11 @@ struct TripPlanner {
             case .transit: await transit
             }
             switch outcome {
-            case .success(let options): result.options += options
+            case .success(let options):
+                // Auch Bahn und Rad + Bahn: die eingestellte Zahl gilt für
+                // jedes Verkehrsmittel. Bei den Fahrplänen sind es die
+                // nächsten Abfahrten, bei Rad und Auto die obersten Rollen.
+                result.options += options.prefix(Swift.max(1, req.settings.optionsPerMode))
             case .failure(let error): result.failures[mode] = error.localizedDescription
             }
             Self.settle(&result, req)
@@ -132,19 +136,21 @@ struct TripPlanner {
     /// wait at every light.
     func bikeOptions(_ req: PlanRequest) async throws -> [TripOption] {
         let (o, d) = (req.origin.coordinate, req.destination.coordinate)
-        let requests: [(String, BRouterClient.Profile?, Int)] = [
-            ("Apple", nil, 0), ("trekking", .trekking, 0), ("fastbike", .fastbike, 0),
-            ("safety", .safety, 0), ("safety", .safety, 1), ("safety", .safety, 2),
-            // Pays a detour to stay off roads with cars on them — often the
-            // way one actually rides home. Two of them, because one profile
-            // that happens to agree with "safety" leaves the box with fewer
-            // choices than it has room for.
-            ("verkehrsarm", .lowTraffic, 0), ("verkehrsarm", .lowTraffic, 1),
-            // The genuinely short line. Without it "kürzest" was whichever of
-            // the others happened to be shortest, which is usually one of the
-            // routes that already won something else.
-            ("shortest", .shortest, 0),
-        ]
+        // **Nur holen, was jemand sehen will.** Jede Rolle braucht ein
+        // bestimmtes BRouter-Profil; die Rollen jenseits der eingestellten
+        // Zahl braucht niemand, und jede Anfrage dafür ist eine Anfrage an
+        // einen fremden Server für nichts. Vorher waren es immer neun.
+        let wanted = req.settings.bikeVariantOrder.prefix(Swift.max(1, req.settings.optionsPerMode))
+        var requests: [(String, BRouterClient.Profile?, Int)] = [("Apple", nil, 0)]
+        for v in wanted {
+            switch v {
+            case .balanced: requests.append(("trekking", .trekking, 0))
+            case .fastest: requests.append(("fastbike", .fastbike, 0))
+            case .shortest: requests.append(("shortest", .shortest, 0))
+            case .quiet: requests.append(("safety", .safety, 0))
+            case .lowTraffic: requests.append(("verkehrsarm", .lowTraffic, 0))
+            }
+        }
         // Höchstens so viele Anfragen gleichzeitig an BRouter. Der öffentliche
         // Server ist ein Geschenk und keine Infrastruktur: wirft man ihm acht
         // Anfragen auf einmal hin, antwortet er mit `403 Please, retry later!`
@@ -684,12 +690,15 @@ struct CarCandidate {
                 roles[i, default: []].append(.fewSignals)
             }
         }
-        // A line without a role is still a line.
+        // A line without a role is still a line — aber nur, solange noch ein
+        // Platz frei ist. Mehr als die eingestellte Zahl will niemand sehen.
         for i in all.indices where roles[i] == nil { roles[i] = [.alternative] }
         let rank = { (v: CarVariant) in order.firstIndex(of: v) ?? order.count }
         return roles
             .map { (all[$0.key], $0.value.sorted { rank($0) < rank($1) }) }
             .sorted { rank($0.1.first!) < rank($1.1.first!) }
+            .prefix(Swift.max(1, s.optionsPerMode))
+            .map { $0 }
     }
 }
 
@@ -816,26 +825,20 @@ struct BikeCandidate {
             lowTraffic = all.firstIndex { $0.source == "verkehrsarm" } ?? quiet
         }
         let shortest = all.indices.min { all[$0].route.distance < all[$1].route.distance }!
+        // **Nur die obersten Rollen der eigenen Reihenfolge.** Namenlose
+        // Linien gibt es nicht mehr: „Alternative" dreimal untereinander sagt
+        // nichts, und jede davon kostete eine Anfrage. Gewinnt eine Linie
+        // mehrere Rollen, steht sie einmal da und trägt alle ihre Namen —
+        // dann sind es eben weniger Kästen, und das ist die richtige Antwort.
+        let order = Array(s.bikeVariantOrder.prefix(Swift.max(1, s.optionsPerMode)))
+        let winner: [BikeVariant: Int] = [.fastest: fastest, .shortest: shortest,
+                                          .balanced: balanced, .quiet: quiet, .lowTraffic: lowTraffic]
         var roles: [Int: [BikeVariant]] = [:]
-        roles[fastest, default: []].append(.fastest)
-        roles[shortest, default: []].append(.shortest)
-        roles[balanced, default: []].append(.balanced)
-        roles[quiet, default: []].append(.quiet)
-        roles[lowTraffic, default: []].append(.lowTraffic)
-        // Eine Linie ohne Rolle ist immer noch eine Linie.
-        for i in all.indices where roles[i] == nil { roles[i] = [] }
-        let order = s.bikeVariantOrder
+        for v in order { roles[winner[v]!, default: []].append(v) }
         let rank = { (v: BikeVariant) in order.firstIndex(of: v) ?? order.count }
         return roles
             .map { (all[$0.key], $0.value.sorted { rank($0) < rank($1) }) }
-            .sorted { a, b in
-                switch (a.1.first, b.1.first) {
-                case (let x?, let y?): return rank(x) < rank(y)
-                case (_?, nil): return true
-                case (nil, _?): return false
-                default: return a.0.time(s) < b.0.time(s)
-                }
-            }
+            .sorted { rank($0.1.first!) < rank($1.1.first!) }
     }
 }
 

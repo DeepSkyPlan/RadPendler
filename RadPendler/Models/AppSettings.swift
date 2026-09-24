@@ -119,6 +119,14 @@ final class AppSettings {
         didSet { defaults.set(replanOffRouteMinutes, forKey: "replanOffRouteMinutes") }
     }
 
+    /// Wie viele Möglichkeiten je Verkehrsmittel gerechnet und angeboten
+    /// werden — die obersten so vieler aus der jeweiligen Reihenfolge.
+    /// Weniger heißt auch weniger Anfragen: für eine Rolle, die niemand sieht,
+    /// wird keine Route mehr geholt.
+    var optionsPerMode: Int = 3 {
+        didSet { defaults.set(optionsPerMode, forKey: "optionsPerMode") }
+    }
+
     /// Whether the screen may turn. On a handlebar an automatic rotation is a
     /// nuisance, not a feature.
     var orientation: OrientationLock = .auto {
@@ -209,6 +217,7 @@ final class AppSettings {
                defaults.object(forKey: "replanOffRouteMeters") as? Double ?? replanOffRouteMeters)
         assign(\.replanOffRouteMinutes,
                defaults.object(forKey: "replanOffRouteMinutes") as? Double ?? replanOffRouteMinutes)
+        assign(\.optionsPerMode, defaults.object(forKey: "optionsPerMode") as? Int ?? optionsPerMode)
         loadedOnce = true
     }
 
@@ -314,7 +323,8 @@ final class AppSettings {
                      waypoints: waypoints, requireAllWaypoints: requireAllWaypoints,
                      departureBufferMinutes: departureBufferMinutes, arrivalBufferMinutes: arrivalBufferMinutes,
                      modeOrder: modeOrder, bikeVariantOrder: bikeVariantOrder,
-                     carVariantOrder: carVariantOrder, rainSwitchLevel: rainSwitchLevel,
+                     carVariantOrder: carVariantOrder, optionsPerMode: optionsPerMode,
+                     rainSwitchLevel: rainSwitchLevel,
                      bikeLineStatus: bikeLines.status, timetableSource: timetableSource,
                      learnedSignals: learnedSignals)
     }
@@ -346,6 +356,8 @@ struct PlanSettings: Equatable {
     var modeOrder: [TravelMode] = TravelMode.defaultOrder
     var bikeVariantOrder: [BikeVariant] = BikeVariant.defaultOrder
     var carVariantOrder: [CarVariant] = CarVariant.defaultOrder
+    /// Wie viele Möglichkeiten je Verkehrsmittel gerechnet werden.
+    var optionsPerMode = 3
     var rainSwitchLevel: RainLevel = .light
     /// Line name → whether the bike may come. Missing means undecided, which
     /// is shown with a warning rather than hidden.

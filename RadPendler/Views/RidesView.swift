@@ -9,6 +9,8 @@ struct RidesView: View {
     @Environment(RideStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var pendingDelete: Ride?
+    /// Warum die Linien gerade nicht reisen — leer, solange sie es tun.
+    @State private var cloudTrouble: String?
 
     private var years: [Ride.Year] { Ride.grouped(store.rides) }
 
@@ -23,6 +25,20 @@ struct RidesView: View {
                     list
                 }
             }
+            // Ein Upload, der dauerhaft abgewiesen wird, war bis hierher
+            // völlig stumm: die Liste sah normal aus, und dass in der Wolke
+            // nichts ankam, merkte man erst im CloudKit-Dashboard.
+            .safeAreaInset(edge: .top) {
+                if let cloudTrouble {
+                    Label(cloudTrouble, systemImage: "exclamationmark.icloud")
+                        .font(.system(size: 12, design: .rounded))
+                        .foregroundStyle(.orange)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, Theme.gutter).padding(.vertical, 7)
+                        .background(.regularMaterial)
+                }
+            }
+            .task { cloudTrouble = await TrackCloud.shared.lastFailure }
             .navigationTitle("Fahrten")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

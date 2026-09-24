@@ -1,11 +1,24 @@
 import SwiftUI
 
 struct TripDetailView: View {
-    var option: TripOption
+    /// Alle Möglichkeiten **dieser** Kategorie, damit sich hier
+    /// durchschalten lässt, ohne zurückzugehen: wer zwei Radrouten
+    /// vergleichen will, will nicht zweimal den Weg über die Hauptseite.
+    var siblings: [TripOption] = []
     /// Why the app recommends this trip, when it does — the line the trip bar
     /// used to carry on the main screen.
     var reason: String? = nil
     @Environment(AppSettings.self) private var settings
+    @State private var shown: TripOption.ID
+
+    init(option: TripOption, siblings: [TripOption] = [], reason: String? = nil) {
+        self.siblings = siblings.contains { $0.id == option.id } ? siblings : [option] + siblings
+        self.reason = reason
+        _shown = State(initialValue: option.id)
+    }
+
+    private var option: TripOption { siblings.first { $0.id == shown } ?? siblings[0] }
+    private var index: Int { siblings.firstIndex { $0.id == shown } ?? 0 }
 
     var body: some View {
         ZStack {
@@ -13,15 +26,22 @@ struct TripDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     TripMapPanel(options: [option], selectedID: option.id, waypoints: settings.waypoints)
-                        .frame(height: 320)
+                        // Größer als vorher: die Karte ist der Grund, aus dem
+                        // man diese Seite öffnet.
+                        .frame(height: 440)
                         .clipShape(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
                         .overlay {
                             RoundedRectangle(cornerRadius: Theme.corner, style: .continuous)
                                 .strokeBorder(Color.primary.opacity(0.06))
                         }
+                    if siblings.count > 1 { pager }
                     summary
                     TripFacts(option: option)
-                    timeline
+                    // Der Zeitstrahl wiederholt bei einer einteiligen Fahrt nur,
+                    // was zwei Zeilen weiter oben schon steht: Abfahrt, Ankunft,
+                    // Strecke, Dauer. Er steht deshalb nur da, wo er etwas
+                    // hinzufügt — sobald umgestiegen wird.
+                    if option.legs.count > 1 { timeline }
                 }
                 .padding(.horizontal, Theme.gutter)
                 .padding(.bottom, 28)
@@ -29,6 +49,44 @@ struct TripDetailView: View {
         }
         .navigationTitle(option.mode.title)
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// Vor und zurück innerhalb der Kategorie, mit dem Namen der Möglichkeit
+    /// in der Mitte — dasselbe, was der Kasten auf der Hauptseite schreibt.
+    private var pager: some View {
+        HStack(spacing: 10) {
+            step(-1, "chevron.left")
+            VStack(spacing: -1) {
+                Text(option.bikeRoute?.shortTitle ?? option.carRoute?.variants.first?.title
+                     ?? "\(Fmt.time(option.leave)) ab")
+                    .display(.subheadline, weight: .semibold)
+                    .lineLimit(1).minimumScaleFactor(0.7)
+                Text("\(index + 1) von \(siblings.count)")
+                    .font(.system(size: 11, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+            .frame(maxWidth: .infinity)
+            step(1, "chevron.right")
+        }
+        .padding(.horizontal, 10).padding(.vertical, 6)
+        .card()
+    }
+
+    private func step(_ by: Int, _ symbol: String) -> some View {
+        Button {
+            let next = (index + by + siblings.count) % siblings.count
+            withAnimation(.snappy(duration: 0.2)) { shown = siblings[next].id }
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        } label: {
+            Image(systemName: symbol)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(option.mode.color)
+                .frame(width: 38, height: 34)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(by < 0 ? "Vorige Möglichkeit" : "Nächste Möglichkeit")
     }
 
     private var summary: some View {
@@ -153,8 +211,16 @@ struct TripFacts: View {
                 }
                 .lineLimit(1).minimumScaleFactor(0.8)
                 if !st.crossings.isEmpty {
-                    Text(st.crossings.joined(separator: " → "))
-                        .font(.system(.caption, design: .rounded)).foregroundStyle(.secondary)
+                    // Eingeklappt: die Liste der gequerten Hauptstraßen ist auf
+                    // einer Pendelstrecke lang und im Zweifel uninteressant.
+                    DisclosureGroup("\(st.crossings.count) Hauptstraßen queren") {
+                        Text(st.crossings.joined(separator: " → "))
+                            .font(.system(.caption, design: .rounded))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .font(.system(.caption, design: .rounded))
+                    .tint(.secondary)
                 }
             }
             Text(bike.source == "Apple" ? "Route von Apple Karten" : "Route von BRouter (\(bike.source))")

@@ -147,7 +147,10 @@ struct SelectedTripBar: View {
 
     private var bar: some View {
         NavigationLink {
-            TripDetailView(option: option, reason: recommendationReason)
+            // Die Geschwister mit, damit sich auf der Detailseite
+            // durchschalten lässt, ohne den Weg über die Hauptseite.
+            TripDetailView(option: option, siblings: model.options(for: option.mode),
+                           reason: recommendationReason)
         } label: {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
