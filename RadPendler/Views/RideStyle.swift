@@ -100,19 +100,25 @@ struct RoadMixBar: View {
 
     private var classes: [RoadClass] { mix.present }
 
+    /// Drawn, not laid out. A `GeometryReader` here would read the width and
+    /// hand it back to its children as a `frame(width:)`, and in a scrolling
+    /// column that is a size negotiation SwiftUI has to settle every time —
+    /// work in the layout pass, which is the one place that must stay cheap.
+    /// A `Canvas` takes the size it is offered and paints.
     private var bar: some View {
-        GeometryReader { geo in
+        Canvas { context, size in
             let gaps = Self.gap * CGFloat(max(classes.count - 1, 0))
-            let usable = max(geo.size.width - gaps, 1)
-            HStack(spacing: Self.gap) {
-                ForEach(classes) { c in
-                    RoundedRectangle(cornerRadius: 2.5, style: .continuous)
-                        .fill(c.color)
-                        // A stretch of eighty metres in a twenty-kilometre
-                        // route is a hairline, but leaving it out would be a
-                        // lie about what the bar adds up to.
-                        .frame(width: max(2, usable * mix.share(c)))
-                }
+            let usable = max(size.width - gaps, 1)
+            var x: CGFloat = 0
+            for c in classes {
+                // A stretch of eighty metres in a twenty-kilometre route is a
+                // hairline, but leaving it out would be a lie about what the
+                // bar adds up to.
+                let w = max(2, usable * mix.share(c))
+                context.fill(Path(roundedRect: CGRect(x: x, y: 0, width: w, height: size.height),
+                                  cornerRadius: 2.5),
+                             with: .color(c.color))
+                x += w + Self.gap
             }
         }
         .frame(height: compact ? 8 : 11)
