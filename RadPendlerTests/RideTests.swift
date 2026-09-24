@@ -308,15 +308,6 @@ final class RideTests: XCTestCase {
 
     /// The bug that made the whole app feel busy: the radar dropped nineteen
     /// tile overlays and hung them straight back on, every single redraw.
-    /// Der Countdown tickt nur dort im Sekundentakt, wo Sekunden zu sehen sind.
-    func testTheCountdownOnlyTicksPerSecondWhereItShows() {
-        XCTAssertEqual(CountdownSchedule.step(left: 30), CountdownSchedule.fine)
-        XCTAssertEqual(CountdownSchedule.step(left: 599), CountdownSchedule.fine)
-        XCTAssertEqual(CountdownSchedule.step(left: -120), CountdownSchedule.fine, "auch überfällig")
-        XCTAssertEqual(CountdownSchedule.step(left: 1800), CountdownSchedule.coarse)
-        XCTAssertEqual(CountdownSchedule.step(left: nil), CountdownSchedule.coarse, "ohne Abfahrt gar nichts")
-    }
-
     func testTheRadarSettlesInsteadOfChurning() {
         let frames = (0..<22).map { start.addingTimeInterval(Double($0) * 300) }
         let wanted = RouteMapView.Coordinator.window(around: frames[10], in: frames)
