@@ -127,50 +127,77 @@ final class AppSettings {
         load()
     }
 
+    /// Setzt nur, was sich wirklich unterscheidet.
+    ///
+    /// `@Observable` fragt nicht nach: jede Zuweisung meldet eine Änderung,
+    /// auch wenn derselbe Wert wieder hineingeschrieben wird. `load()` läuft
+    /// nach jeder Rückmeldung aus iCloud und weist dreißig Eigenschaften zu —
+    /// ohne diesen Vergleich macht das jedes Mal den halben Ansichtsbaum
+    /// ungültig, samt Karte, und schreibt dreißig unnötige Werte in die
+    /// UserDefaults, deren Benachrichtigung dann wieder `CloudStore` weckt.
+    /// Beim ersten Lesen wird trotzdem alles geschrieben: erst damit steht die
+    /// vollständige Liste der Schlüssel in den UserDefaults, und darauf beruht
+    /// `testEverySettingTheAppSavesAlsoTravelsThroughICloud` — der Test, der
+    /// merkt, wenn eine neue Einstellung den Weg nach iCloud nicht findet.
+    /// Einmal beim Start ist das nichts; dreißigmal je iCloud-Rückmeldung war
+    /// das Problem.
+    private var loadedOnce = false
+
+    private func assign<T: Equatable>(_ path: ReferenceWritableKeyPath<AppSettings, T>, _ value: T) {
+        guard !loadedOnce || self[keyPath: path] != value else { return }
+        self[keyPath: path] = value
+    }
+
     /// Reads everything out of UserDefaults. Also the way back in after iCloud
     /// handed us another device's settings — every property keeps what it has
     /// when the key is missing, so a partial store cannot wipe anything.
     func load() {
-        origin = Self.place("origin", defaults) ?? origin
-        destination = Self.place("destination", defaults) ?? destination
-        workPlace = Self.place("workPlace", defaults) ?? workPlace
-        homePlace = Self.place("homePlace", defaults) ?? homePlace
-        prepMinutes = defaults.object(forKey: "prepMinutes") as? Int ?? prepMinutes
+        assign(\.origin, Self.place("origin", defaults) ?? origin)
+        assign(\.destination, Self.place("destination", defaults) ?? destination)
+        assign(\.workPlace, Self.place("workPlace", defaults) ?? workPlace)
+        assign(\.homePlace, Self.place("homePlace", defaults) ?? homePlace)
+        assign(\.prepMinutes, defaults.object(forKey: "prepMinutes") as? Int ?? prepMinutes)
         // 0.1.x stored an all-in average under "bikeSpeedKmh" — deliberately not read.
-        bikeSpeedKmh = defaults.object(forKey: "bikeMovingSpeedKmh") as? Double ?? bikeSpeedKmh
-        bikeStationBufferMinutes = defaults.object(forKey: "bikeStationBufferMinutes") as? Int ?? bikeStationBufferMinutes
-        maxBikeToStationKm = defaults.object(forKey: "maxBikeToStationKm") as? Double ?? maxBikeToStationKm
-        parkingMinutes = defaults.object(forKey: "parkingMinutes") as? Int ?? parkingMinutes
-        transferPenaltyMinutes = defaults.object(forKey: "transferPenaltyMinutes") as? Int ?? transferPenaltyMinutes
-        signalWaitSeconds = defaults.object(forKey: "signalWaitSeconds") as? Int ?? signalWaitSeconds
-        departurePresets = (defaults.array(forKey: "departurePresets2") as? [String])?
-            .compactMap(DeparturePreset.init(stored:)) ?? departurePresets
-        waypoints = defaults.data(forKey: "waypoints").flatMap { try? JSONDecoder().decode([Place].self, from: $0) } ?? waypoints
-        requireAllWaypoints = defaults.object(forKey: "requireAllWaypoints") as? Bool ?? requireAllWaypoints
-        departureBufferMinutes = defaults.object(forKey: "departureBufferMinutes") as? Int ?? departureBufferMinutes
-        arrivalBufferMinutes = defaults.object(forKey: "arrivalBufferMinutes") as? Int ?? arrivalBufferMinutes
-        workArrivalMinutes = defaults.object(forKey: "workArrivalMinutes") as? Int ?? workArrivalMinutes
-        alertMinutes = defaults.array(forKey: "alertMinutes") as? [Int] ?? alertMinutes
-        alertsOn = defaults.object(forKey: "alertsOn") as? Bool ?? alertsOn
-        placeHistory = defaults.data(forKey: "placeHistory")
-            .flatMap { try? JSONDecoder().decode([PlaceUse].self, from: $0) } ?? placeHistory
-        bikeLines = defaults.data(forKey: "bikeLines")
-            .flatMap { try? JSONDecoder().decode([BikeLine].self, from: $0) } ?? bikeLines
-        timetableSource = (defaults.string(forKey: "timetableSource"))
-            .flatMap(TimetableSource.init(rawValue:)) ?? timetableSource
-        modeOrder = storedOrder(defaults.array(forKey: "modeOrder") as? [String], fallback: TravelMode.defaultOrder)
-        bikeVariantOrder = storedOrder(defaults.array(forKey: "bikeVariantOrder") as? [String],
-                                       fallback: BikeVariant.defaultOrder)
-        carVariantOrder = storedOrder(defaults.array(forKey: "carVariantOrder") as? [String],
-                                      fallback: CarVariant.defaultOrder)
-        rainSwitchLevel = (defaults.object(forKey: "rainSwitchLevel") as? Int)
-            .flatMap(RainLevel.init(rawValue:)) ?? rainSwitchLevel
-        signalStopSeconds = defaults.object(forKey: "signalStopSeconds") as? Int ?? signalStopSeconds
-        learnedSignals = defaults.data(forKey: "learnedSignals")
-            .flatMap { try? JSONDecoder().decode([LearnedSignal].self, from: $0) } ?? learnedSignals
-        orientation = (defaults.string(forKey: "orientationLock"))
-            .flatMap(OrientationLock.init(rawValue:)) ?? orientation
-        keepScreenAwake = defaults.object(forKey: "keepScreenAwake") as? Bool ?? keepScreenAwake
+        assign(\.bikeSpeedKmh, defaults.object(forKey: "bikeMovingSpeedKmh") as? Double ?? bikeSpeedKmh)
+        assign(\.bikeStationBufferMinutes,
+               defaults.object(forKey: "bikeStationBufferMinutes") as? Int ?? bikeStationBufferMinutes)
+        assign(\.maxBikeToStationKm, defaults.object(forKey: "maxBikeToStationKm") as? Double ?? maxBikeToStationKm)
+        assign(\.parkingMinutes, defaults.object(forKey: "parkingMinutes") as? Int ?? parkingMinutes)
+        assign(\.transferPenaltyMinutes,
+               defaults.object(forKey: "transferPenaltyMinutes") as? Int ?? transferPenaltyMinutes)
+        assign(\.signalWaitSeconds, defaults.object(forKey: "signalWaitSeconds") as? Int ?? signalWaitSeconds)
+        assign(\.departurePresets, (defaults.array(forKey: "departurePresets2") as? [String])?
+            .compactMap(DeparturePreset.init(stored:)) ?? departurePresets)
+        assign(\.waypoints, defaults.data(forKey: "waypoints")
+            .flatMap { try? JSONDecoder().decode([Place].self, from: $0) } ?? waypoints)
+        assign(\.requireAllWaypoints, defaults.object(forKey: "requireAllWaypoints") as? Bool ?? requireAllWaypoints)
+        assign(\.departureBufferMinutes,
+               defaults.object(forKey: "departureBufferMinutes") as? Int ?? departureBufferMinutes)
+        assign(\.arrivalBufferMinutes, defaults.object(forKey: "arrivalBufferMinutes") as? Int ?? arrivalBufferMinutes)
+        assign(\.workArrivalMinutes, defaults.object(forKey: "workArrivalMinutes") as? Int ?? workArrivalMinutes)
+        assign(\.alertMinutes, defaults.array(forKey: "alertMinutes") as? [Int] ?? alertMinutes)
+        assign(\.alertsOn, defaults.object(forKey: "alertsOn") as? Bool ?? alertsOn)
+        assign(\.placeHistory, defaults.data(forKey: "placeHistory")
+            .flatMap { try? JSONDecoder().decode([PlaceUse].self, from: $0) } ?? placeHistory)
+        assign(\.bikeLines, defaults.data(forKey: "bikeLines")
+            .flatMap { try? JSONDecoder().decode([BikeLine].self, from: $0) } ?? bikeLines)
+        assign(\.timetableSource, (defaults.string(forKey: "timetableSource"))
+            .flatMap(TimetableSource.init(rawValue:)) ?? timetableSource)
+        assign(\.modeOrder, storedOrder(defaults.array(forKey: "modeOrder") as? [String],
+                                        fallback: TravelMode.defaultOrder))
+        assign(\.bikeVariantOrder, storedOrder(defaults.array(forKey: "bikeVariantOrder") as? [String],
+                                               fallback: BikeVariant.defaultOrder))
+        assign(\.carVariantOrder, storedOrder(defaults.array(forKey: "carVariantOrder") as? [String],
+                                              fallback: CarVariant.defaultOrder))
+        assign(\.rainSwitchLevel, (defaults.object(forKey: "rainSwitchLevel") as? Int)
+            .flatMap(RainLevel.init(rawValue:)) ?? rainSwitchLevel)
+        assign(\.signalStopSeconds, defaults.object(forKey: "signalStopSeconds") as? Int ?? signalStopSeconds)
+        assign(\.learnedSignals, defaults.data(forKey: "learnedSignals")
+            .flatMap { try? JSONDecoder().decode([LearnedSignal].self, from: $0) } ?? learnedSignals)
+        assign(\.orientation, (defaults.string(forKey: "orientationLock"))
+            .flatMap(OrientationLock.init(rawValue:)) ?? orientation)
+        assign(\.keepScreenAwake, defaults.object(forKey: "keepScreenAwake") as? Bool ?? keepScreenAwake)
+        loadedOnce = true
     }
 
     /// One wait, remembered. Called for every stop a finished ride counted as

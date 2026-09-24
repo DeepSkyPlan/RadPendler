@@ -32,7 +32,7 @@ struct RadPendlerApp: App {
                     CloudStore.shared.start()
                     // A ride the app did not survive is still a ride; it is
                     // filed here, up to the last second it knew about.
-                    rides.recoverInterrupted()
+                    await rides.recoverInterrupted()
                     // Whatever the user last chose, from this device or another.
                     settings.orientation.apply()
                 }
