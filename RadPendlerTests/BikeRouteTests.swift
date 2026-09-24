@@ -187,4 +187,75 @@ extension BikeRouteTests {
         XCTAssertEqual(picked.count, 2)
         XCTAssertEqual(picked.last?.1, [.alternative], "shown as an alternative rather than dropped")
     }
+
+    // MARK: Höhenmeter
+
+    /// BRouter rechnet den Anstieg selbst aus und nennt ihn `filtered ascend` —
+    /// „filtered", weil das Rauschen des Höhenmodells herausgerechnet ist.
+    /// Ungefiltert summiert jede Unebenheit der Messung ein paar Zentimeter,
+    /// und aus einer flachen Berliner Strecke werden hundert Höhenmeter.
+    func testTheAscentComesFromTheRouterAndIsFiltered() throws {
+        let url = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "brouter_safety_route", withExtension: "json"))
+        let route = try BRouterClient.parse(try Data(contentsOf: url))
+        XCTAssertEqual(try XCTUnwrap(route.ascent), 46, accuracy: 0.5)
+
+        let raw = try XCTUnwrap(JSONSerialization.jsonObject(with: try Data(contentsOf: url)) as? [String: Any])
+        let feature = try XCTUnwrap((raw["features"] as? [[String: Any]])?.first)
+        let coords = try XCTUnwrap((feature["geometry"] as? [String: Any])?["coordinates"] as? [[Double]])
+        let unfiltered = try XCTUnwrap(BRouterClient.climbed(coords))
+        XCTAssertGreaterThan(unfiltered, 46, "ungefiltert ist es immer mehr — das ist der Punkt")
+    }
+
+    /// Ohne Höhen in den Punkten gibt es keine Antwort. Eine Strecke ohne
+    /// Höhen ist nicht flach, sie ist unbekannt.
+    func testARouteWithoutHeightsHasNoAscent() {
+        XCTAssertNil(BRouterClient.climbed([[13.4, 52.5], [13.41, 52.51]]))
+        XCTAssertEqual(BRouterClient.climbed([[13.4, 52.5, 30], [13.41, 52.51, 40], [13.42, 52.52, 35]]), 10,
+                       "nur das Bergauf zählt, das Bergab nicht dagegen")
+    }
+
+    /// Apple Karten liefert keine Höhen. Diese Linie darf dadurch weder
+    /// gewinnen noch verlieren — für die Bewertung bekommt sie den
+    /// Durchschnitt der bekannten, angezeigt wird weiter nichts.
+    func testAnUnknownAscentIsNeitherRewardedNorPunished() {
+        func candidate(_ name: String, ascent: Double?) -> BikeCandidate {
+            BikeCandidate(source: name,
+                          route: StreetRoute(distance: 10_000, expectedTravelTime: 1800, coordinates: [],
+                                             ascent: ascent),
+                          stats: nil)
+        }
+        let levelled = BikeCandidate.levelled([candidate("Apple", ascent: nil),
+                                               candidate("a", ascent: 20),
+                                               candidate("b", ascent: 60)])
+        XCTAssertEqual(levelled[0].ascent, 40, "der Durchschnitt der beiden bekannten")
+        XCTAssertNil(levelled[0].route.ascent, "gemessen ist weiterhin nichts")
+        XCTAssertEqual(levelled[1].ascent, 20)
+
+        // Und der Anstieg kostet Zeit: 40 m × 5 s sind gut drei Minuten.
+        var s = PlanSettings()
+        s.signalWaitSeconds = 0
+        let flat = candidate("flach", ascent: 0)
+        let hilly = candidate("bergig", ascent: 100)
+        XCTAssertEqual(BikeCandidate.levelled([flat, hilly])[1].time(s) - flat.time(s), 500, accuracy: 1)
+    }
+
+    /// Bei gleicher Länge gewinnt die flachere Strecke das Rennen um
+    /// „schnellst" — vorher entschied allein die Länge.
+    func testTheFlatterRouteWinsOnTime() {
+        var s = PlanSettings()
+        s.signalWaitSeconds = 0
+        func candidate(_ name: String, km: Double, ascent: Double) -> BikeCandidate {
+            BikeCandidate(source: name,
+                          route: StreetRoute(distance: km * 1000, expectedTravelTime: 0, coordinates: [],
+                                             ascent: ascent),
+                          stats: nil)
+        }
+        let over = candidate("über den Berg", km: 10, ascent: 120)
+        let around = candidate("drumherum", km: 10.5, ascent: 5)
+        let picked = BikeCandidate.pick([over, around], settings: s)
+        let fastest = picked.first { $0.1.contains(.fastest) }
+        XCTAssertEqual(fastest?.0.source, "drumherum", "der halbe Kilometer Umweg ist billiger als 115 Höhenmeter")
+        let shortest = picked.first { $0.1.contains(.shortest) }
+        XCTAssertEqual(shortest?.0.source, "über den Berg", "kürzest bleibt kürzest")
+    }
 }

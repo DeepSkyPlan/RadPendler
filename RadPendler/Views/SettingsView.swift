@@ -33,7 +33,7 @@ struct SettingsView: View {
                 Section {
                     NavigationLink {
                         PriorityList(title: "Verkehrsmittel", items: $settings.modeOrder,
-                                     footer: "Von oben nach unten: was gewinnt, wenn zwei Fahrten fast gleichzeitig ankommen. Auch die Reihenfolge der vier Kästen auf der Hauptseite.",
+                                     footer: "Von oben nach unten: was gewinnt, wenn zwei Fahrten fast gleichzeitig ankommen. Dieselbe Reihenfolge ordnet die vier Kästen auf der Hauptseite, entscheidet, welcher nach einer Suche geöffnet ist, und in welcher Folge sie sich füllen — das Oberste steht zuerst da, der Rest kommt nach.",
                                      label: \.title, symbol: \.symbol)
                     } label: {
                         LabeledContent("Verkehrsmittel", value: settings.modeOrder.map(\.short).joined(separator: " › "))
