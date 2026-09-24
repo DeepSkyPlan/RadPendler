@@ -308,13 +308,28 @@ struct RouteMapView: UIViewRepresentable {
         private var stopKey = 0
         private var rideSignals = -1
         private var lastCamera: (center: CLLocationCoordinate2D, heading: CLLocationDirection)?
+        /// What we last told the map. Never read back from the view: that is
+        /// how the margins loop started.
+        private var hidesCompass = false
         private var live: Rider?
 
         func update(_ map: MKMapView, _ view: RouteMapView) {
             onSelect = view.onSelect
             onPan = view.onPan
-            if map.layoutMargins.top != view.topInset {
-                map.layoutMargins = UIEdgeInsets(top: view.topInset, left: 0, bottom: 0, right: 0)
+            // Never `layoutMargins`. Setting them on an MKMapView whose
+            // `insetsLayoutMarginsFromSafeArea` is on — the default — reads
+            // back as safe area *plus* what was set, so a comparison against
+            // the wanted value never matches and it is set again on the next
+            // redraw. That loop laid the map out over and over and shrank its
+            // usable area a little each time: the app got slower the longer it
+            // ran, with a map window that kept getting smaller. (1.2, Build 24.)
+            //
+            // The compass was the whole reason. While a turn banner covers the
+            // top of the screen it can simply go: the banner says where to go,
+            // and the arrow says which way one is pointing.
+            if hidesCompass != (view.topInset > 0) {
+                hidesCompass = view.topInset > 0
+                map.showsCompass = !hidesCompass
             }
             // New plan → redraw and fit; new selection only → redraw.
             let plan = view.options.map { $0.id.uuidString }.joined()
