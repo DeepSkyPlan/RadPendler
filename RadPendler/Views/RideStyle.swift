@@ -116,12 +116,12 @@ struct RoadMixBar: View {
                 // bar adds up to.
                 let w = max(2, usable * mix.share(c))
                 context.fill(Path(roundedRect: CGRect(x: x, y: 0, width: w, height: size.height),
-                                  cornerRadius: 2.5),
+                                  cornerRadius: Swift.min(2.5, size.height / 2)),
                              with: .color(c.color))
                 x += w + Self.gap
             }
         }
-        .frame(height: compact ? 8 : 11)
+        .frame(height: compact ? 5 : 11)
     }
 
     private var legend: some View {

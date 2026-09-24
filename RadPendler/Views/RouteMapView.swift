@@ -14,6 +14,11 @@ struct RouteMapView: UIViewRepresentable {
     var radarPreload = false
     /// Fixed points from the settings, drawn as flags.
     var waypoints: [Place] = []
+    /// Start und Ziel, für die Sekunden **vor** der ersten Route. Ohne das
+    /// steht die Karte beim Öffnen auf halb Europa: man sieht eine Karte und
+    /// erkennt nichts darauf — und weil die Kästen sich jetzt nacheinander
+    /// füllen, dauert dieser Zustand sichtbar länger als früher.
+    var ends: [CLLocationCoordinate2D] = []
     /// The way actually ridden, coloured by speed. Grows point by point while
     /// a ride is being recorded and stands still afterwards.
     var track: [RidePoint] = []
@@ -315,6 +320,7 @@ struct RouteMapView: UIViewRepresentable {
         private var rideSignals = -1
         private var lastCamera: (center: CLLocationCoordinate2D, heading: CLLocationDirection)?
         private var lastBoth: (CLLocationCoordinate2D, CLLocationCoordinate2D)?
+        private var endsKey: String?
         /// What we last told the map. Never read back from the view: that is
         /// how the margins loop started.
         private var hidesCompass = false
@@ -349,11 +355,30 @@ struct RouteMapView: UIViewRepresentable {
                     zoomToRoutes(map, view)
                 }
             }
+            fitEnds(map, view)
             updateRadar(map, view)
             updateRider(map, view)
             updateTrack(map, view)
             updateLive(map, view)
             updateRideSignals(map, view)
+        }
+
+        /// Solange es noch keine Route gibt: auf Start und Ziel einpassen.
+        /// Sobald eine Route da ist, übernimmt `zoomToRoutes` — und wenn der
+        /// Fahrer verfolgt wird, gar nichts davon.
+        private func fitEnds(_ map: MKMapView, _ view: RouteMapView) {
+            guard view.options.isEmpty, !view.following, view.ends.count >= 2 else {
+                if !view.options.isEmpty { endsKey = nil }
+                return
+            }
+            let key = view.ends.map { String(format: "%.4f,%.4f", $0.latitude, $0.longitude) }.joined()
+            guard key != endsKey else { return }
+            endsKey = key
+            let rect = view.ends.reduce(MKMapRect.null) {
+                $0.union(MKMapRect(origin: MKMapPoint($1), size: MKMapSize(width: 1, height: 1)))
+            }
+            guard !rect.isNull else { return }
+            fitTrack(map, rect)
         }
 
         /// The lit junctions of a ride in progress. Drawn once and left alone:
@@ -964,6 +989,8 @@ struct TripMapPanel: View {
     var options: [TripOption]
     var selectedID: TripOption.ID?
     var waypoints: [Place] = []
+    /// Start und Ziel, für die Zeit vor der ersten Route.
+    var ends: [CLLocationCoordinate2D] = []
     var onSelect: ((TripOption.ID) -> Void)? = nil
     /// The stamp on the time axis: when the plan was computed, and the way back
     /// to a fresh one. Left away on the detail screen, which plans nothing.
@@ -982,7 +1009,7 @@ struct TripMapPanel: View {
             RouteMapView(options: options, selectedID: selectedID, radarFrames: radarOn ? frames : [],
                          radarTime: radarOn && frames.indices.contains(index) ? frames[index] : nil,
                          radarPreload: playing,
-                         waypoints: waypoints, onSelect: onSelect)
+                         waypoints: waypoints, ends: ends, onSelect: onSelect)
             RadarControls(frames: frames, index: $index, visible: $radarOn, playing: $playing,
                           lastRun: lastRun, loading: loading, onRefresh: onRefresh)
                 .padding(8)
