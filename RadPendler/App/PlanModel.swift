@@ -221,14 +221,26 @@ final class PlanModel {
         longTripKm = settings.snapshot.longTripKm
         order = settings.modeOrder
         isLoading = true
-        task = Task {
-            let r = await planner.plan(req)
-            guard !Task.isCancelled else { return }
+        task = Task { @MainActor [weak self] in
+            // Zwischenstände: jeder Modus, sobald er da ist. Die Auswahl
+            // bleibt unangetastet — sie wird erst gesetzt, wenn alles steht,
+            // sonst springt die aktive Box, während man schon darauf tippt.
+            let r = await planner.plan(req) { partial in
+                guard let self, !Task.isCancelled else { return }
+                self.result = partial
+            }
+            guard let self, !Task.isCancelled else { return }
             result = r
             selection = [:]
             if let rec = r.recommendation.flatMap({ rid in r.options.first { $0.id == rid.optionID } }) {
                 selection[rec.mode] = rec.id
-                activeMode = rec.mode
+            }
+            // Aktiv ist die **erste Kategorie der eigenen Reihenfolge**, die
+            // etwas gefunden hat — nicht die empfohlene. Wer das Rad nach oben
+            // gestellt hat, will die Radroute sehen; der Stern sagt trotzdem,
+            // was die App für die bessere Wahl hält.
+            if let first = modeOrder.first(where: { m in r.options.contains { $0.mode == m } }) {
+                activeMode = first
             }
             lastRun = .now
             isLoading = false

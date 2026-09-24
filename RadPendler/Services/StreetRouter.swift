@@ -15,6 +15,10 @@ struct StreetRoute {
     /// The same knowledge with positions, so a recorded ride can be attributed
     /// to it afterwards.
     var roadPoints: [RoadPoint] = []
+    /// Summierter Anstieg in Metern — alles Bergauf der Strecke zusammen, das
+    /// Bergab zählt nicht dagegen. nil heißt **unbekannt**, nicht flach:
+    /// BRouter kennt die Höhen, Apple Karten liefert keine.
+    var ascent: Double? = nil
 }
 
 enum StreetMode: Hashable {

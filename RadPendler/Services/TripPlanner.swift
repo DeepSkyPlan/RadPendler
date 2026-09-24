@@ -60,25 +60,53 @@ struct TripPlanner {
     /// Nearest stations of any kind (incl. U-Bahn-only) for the alternative search: 2 × 2.
     var alternativeStationCount = 2
 
-    func plan(_ req: PlanRequest) async -> PlanResult {
+    /// `onProgress` bekommt den Stand nach jedem Modus — schon sortiert und
+    /// mit Empfehlung, damit der Bildschirm ihn unverändert zeigen kann.
+    ///
+    /// Gefragt wird weiter alles gleichzeitig; gewartet wird in der
+    /// Reihenfolge aus den Einstellungen. Steht das Rad dort oben, steht es
+    /// nach einer Sekunde auf dem Bildschirm und die Bahn kommt nach — vorher
+    /// stand alles auf „sucht …", bis der langsamste Dienst geantwortet hatte.
+    func plan(_ req: PlanRequest,
+              onProgress: (@MainActor @Sendable (PlanResult) -> Void)? = nil) async -> PlanResult {
         async let bike = capture { try await bikeOptions(req) }
         async let car = capture { try await carOptions(req) }
         async let transit = capture { try await transitOptions(req) }
         async let bikeTransit = capture { try await bikeTransitOptions(req) }
 
         var result = PlanResult()
-        for (mode, outcome) in await [(TravelMode.bike, bike), (.car, car), (.transit, transit), (.bikeTransit, bikeTransit)] {
+        // Dieselbe Liste, die auch die Kästen anordnet: was oben steht, wird
+        // zuerst gezeigt. `modeOrder` enthält immer alle vier.
+        for mode in req.settings.modeOrder {
+            let outcome = switch mode {
+            case .bike: await bike
+            case .car: await car
+            case .bikeTransit: await bikeTransit
+            case .transit: await transit
+            }
             switch outcome {
             case .success(let options): result.options += options
             case .failure(let error): result.failures[mode] = error.localizedDescription
             }
+            Self.settle(&result, req)
+            await onProgress?(result)
         }
 
+        // Der Regen zum Schluss, in **einer** Anfrage für alle Möglichkeiten.
+        // Je Modus zu fragen wären vier Anfragen für dieselbe Auskunft.
         do {
             try await attachRain(&result.options)
         } catch {
             result.rainFailure = "Regenvorhersage nicht verfügbar: \(error.localizedDescription)"
         }
+        Self.settle(&result, req)
+        return result
+    }
+
+    /// Fixpunkte prüfen, sortieren, empfehlen — auf dem Stand, der gerade da
+    /// ist. Ein Zwischenstand ist damit genauso vollständig beschrieben wie
+    /// das Endergebnis, nur mit weniger Möglichkeiten darin.
+    private static func settle(_ result: inout PlanResult, _ req: PlanRequest) {
         for i in result.options.indices {
             result.options[i].passesWaypoints = WaypointMatcher.passes(
                 result.options[i], waypoints: req.settings.waypoints,
@@ -86,10 +114,9 @@ struct TripPlanner {
         }
         let penalty = req.settings.transferPenalty
         let order = req.settings.modeOrder
-        result.options.sort { Self.ranking($0, $1, penalty: penalty, order: order) }
-        result.recommendation = Self.recommend(result.options, penalty: penalty, order: order,
-                                               rainSwitch: req.settings.rainSwitchLevel)
-        return result
+        result.options.sort { ranking($0, $1, penalty: penalty, order: order) }
+        result.recommendation = recommend(result.options, penalty: penalty, order: order,
+                                          rainSwitch: req.settings.rainSwitchLevel)
     }
 
     private func capture(_ work: () async throws -> [TripOption]) async -> Result<[TripOption], Error> {
@@ -164,7 +191,8 @@ struct TripPlanner {
                                                         km: c.route.distance / 1000, settings: req.settings),
                                     bikeRoute: BikeRouteInfo(variants: variants, stats: c.stats, source: c.source,
                                                              mix: c.route.mix,
-                                                             roadPoints: c.route.roadPoints))
+                                                             roadPoints: c.route.roadPoints,
+                                                             ascent: c.route.ascent))
             // Only the route that matches the user's first choice is the one
             // the recommendation weighs; the others are alternatives.
             option.isPreferredVariant = index == 0
@@ -670,10 +698,37 @@ struct BikeCandidate {
     var source: String
     var route: StreetRoute
     var stats: BikeRouteStats?
+    /// Die Höhenmeter, mit denen **gerechnet** wird — nicht unbedingt die
+    /// gemessenen. Siehe `levelled`.
+    var ascent: Double?
 
-    /// Riding time at the configured speed plus the expected wait at lights.
+    /// Was ein Höhenmeter an Zeit kostet.
+    ///
+    /// Fünf Sekunden je Meter sind 720 Höhenmeter in der Stunde — das Tempo
+    /// von jemandem, der in der Ebene 29 km/h rollt. Bergab wird nichts
+    /// gutgeschrieben: man holt die Zeit, die ein Anstieg kostet, auf der
+    /// anderen Seite nicht wieder herein, und eine Strecke mit hundert Metern
+    /// hoch und hundert wieder runter ist anstrengender als eine flache, auch
+    /// wenn sie am Ende gleich lang ist.
+    static let climbSecondsPerMeter = 5.0
+
+    var climbTime: TimeInterval { (ascent ?? 0) * Self.climbSecondsPerMeter }
+
+    /// Apple Karten liefert keine Höhen. Eine Linie, deren Anstieg niemand
+    /// kennt, darf dadurch weder gewinnen noch verlieren — sie bekommt für
+    /// die Bewertung den Durchschnitt der bekannten. Angezeigt wird trotzdem
+    /// nur, was wirklich gemessen ist.
+    static func levelled(_ all: [BikeCandidate]) -> [BikeCandidate] {
+        let known = all.compactMap(\.route.ascent)
+        guard !known.isEmpty else { return all }
+        let mean = known.reduce(0, +) / Double(known.count)
+        return all.map { var c = $0; c.ascent = c.route.ascent ?? mean; return c }
+    }
+
+    /// Riding time at the configured speed, the expected wait at lights, and
+    /// what the climbing costs.
     func time(_ s: PlanSettings) -> TimeInterval {
-        s.bikeTime(route.distance) + Double((stats?.signals ?? route.signals) * s.signalWaitSeconds)
+        s.bikeTime(route.distance) + Double((stats?.signals ?? route.signals) * s.signalWaitSeconds) + climbTime
     }
 
     /// Mittelweg: time plus half the disturbance, converted to riding time.
@@ -694,7 +749,8 @@ struct BikeCandidate {
     ///
     /// The list comes back in the order the user put the variants in, so the
     /// first route is the one the app suggests and the first the boxes show.
-    static func pick(_ all: [BikeCandidate], settings s: PlanSettings) -> [(BikeCandidate, [BikeVariant])] {
+    static func pick(_ candidates: [BikeCandidate], settings s: PlanSettings) -> [(BikeCandidate, [BikeVariant])] {
+        let all = levelled(candidates)
         guard let fastest = all.indices.min(by: { all[$0].time(s) < all[$1].time(s) }) else { return [] }
         let quiet: Int, balanced: Int, lowTraffic: Int
         if all.contains(where: { $0.stats != nil }) {

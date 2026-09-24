@@ -176,6 +176,12 @@ struct SelectedTripBar: View {
                     if let signals = option.bikeRoute?.stats?.signals ?? option.carRoute?.signals {
                         Chip(text: "\(signals)", icon: AnyView(TrafficLightIcon()))
                     }
+                    // Nur beim Rad, und nur wo der Router Höhen kennt. Null
+                    // Höhenmeter sind eine Auskunft — „flach" —, deshalb steht
+                    // die Zahl auch dann da.
+                    if let ascent = option.bikeRoute?.ascent {
+                        Chip(text: "\(Int(ascent.rounded())) hm", symbol: "arrow.up.forward")
+                    }
                     if let t = option.transferText {
                         Chip(text: t, symbol: option.transfers == 0 ? "arrow.forward" : "arrow.triangle.swap",
                              tint: option.transfers == 0 ? .green : .red, strong: true)
@@ -187,6 +193,12 @@ struct SelectedTripBar: View {
                 }
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
+                // Worauf gefahren wird, als eine Zeile ohne Legende: die
+                // Kilometer je Straßenart stehen im Detail, hier zählt nur der
+                // Blick — wie viel davon ist Hauptstraße?
+                if let mix = option.bikeRoute?.mix, !mix.isEmpty {
+                    RoadMixBar(mix: mix, compact: true)
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)

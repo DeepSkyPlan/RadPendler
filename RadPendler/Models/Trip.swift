@@ -146,6 +146,8 @@ struct BikeRouteInfo {
     /// The same with positions, handed to a recording so the ride can be
     /// attributed to the same classes afterwards.
     var roadPoints: [RoadPoint] = []
+    /// Summierter Anstieg in Metern; nil, wenn der Router keine Höhen kennt.
+    var ascent: Double? = nil
 
     /// Already in the order the user put the variants in; the first is the one
     /// that decides what the box says.

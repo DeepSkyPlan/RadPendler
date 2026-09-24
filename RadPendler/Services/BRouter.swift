@@ -47,7 +47,30 @@ struct BRouterClient {
         guard points.count > 1 else { throw BRouterError.malformed }
         let roads = Self.roads(props["messages"] as? [[String]])
         return StreetRoute(distance: length, expectedTravelTime: time, coordinates: points,
-                           mix: roads.mix, roadPoints: roads.points)
+                           mix: roads.mix, roadPoints: roads.points,
+                           ascent: Self.ascent(props: props, coordinates: coords))
+    }
+
+    /// Der summierte Anstieg. BRouter rechnet ihn selbst aus und nennt ihn
+    /// `filtered ascend` — „filtered", weil das Rauschen des Höhenmodells
+    /// herausgerechnet ist: ohne das summiert jede Unebenheit der Messung ein
+    /// paar Zentimeter, und aus einer flachen Strecke werden hundert
+    /// Höhenmeter. Fehlt der Wert, wird er aus den Höhen der Punkte gerechnet
+    /// — dieselbe Zahl, nur ungefiltert.
+    static func ascent(props: [String: Any], coordinates: [[Double]]) -> Double? {
+        if let v = props["filtered ascend"] as? Double { return v }
+        if let v = props["filtered ascend"] as? Int { return Double(v) }
+        if let s = props["filtered ascend"] as? String, let v = Double(s) { return v }
+        return climbed(coordinates)
+    }
+
+    /// Alles Bergauf zusammengezählt, aus der dritten Stelle jeder Koordinate.
+    /// nil, wenn die Höhen fehlen — eine Strecke ohne Höhen ist nicht flach,
+    /// sie ist unbekannt.
+    static func climbed(_ coordinates: [[Double]]) -> Double? {
+        let heights = coordinates.compactMap { $0.count >= 3 ? $0[2] : nil }
+        guard heights.count == coordinates.count, heights.count >= 2 else { return nil }
+        return zip(heights, heights.dropFirst()).reduce(0) { $0 + Swift.max(0, $1.1 - $1.0) }
     }
 
     /// BRouter's per-segment table: one row per stretch, with its length and
