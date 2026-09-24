@@ -13,7 +13,7 @@ options:
 settings:
   base:
     MARKETING_VERSION: "1.3"
-    CURRENT_PROJECT_VERSION: "28"
+    CURRENT_PROJECT_VERSION: "29"
     SWIFT_VERSION: "5.0"
 
 targets:
@@ -42,22 +42,22 @@ targets:
         # Auch die Kennzahlen der gefahrenen Fahrten reisen hierüber — nur die
         # Zahlen, nie die Linien: der Speicher fasst 1 MB für die ganze App.
         com.apple.developer.ubiquity-kvstore-identifier: $(TeamIdentifierPrefix)$(CFBundleIdentifier)
-        # --- Die Linien der Fahrten (TrackCloud). Erst einschalten, wenn der
-        # Container existiert, sonst schlägt das Signieren fehl. Drei Schritte,
-        # alle von Hand, keiner davon geht über xcodebuild oder die API:
-        #   1. https://developer.apple.com/account/resources/identifiers/list/cloudContainer
-        #      → „+" → Beschreibung frei, Bezeichner: iCloud.org.afjk.radpendler
-        #      (org.afjk.*, nicht de.keese.*: die Bundle-Id der veröffentlichten
-        #       App bleibt, aber ein neuer Bezeichner folgt der Regel.)
-        #   2. Beim App-Identifier de.keese.radpendler die iCloud-Capability
-        #      bearbeiten und den Container ankreuzen.
-        #   3. Die beiden Zeilen unten einkommentieren, `./dev generate`, und in
-        #      Xcode einmal bauen, damit ein neues Profil gezogen wird.
-        # Der Datensatztyp legt sich beim ersten Hochladen selbst an; für den
-        # Produktionsbetrieb muss das Schema danach im CloudKit-Dashboard einmal
-        # von Development nach Production übernommen werden.
-        # com.apple.developer.icloud-container-identifiers: [iCloud.org.afjk.radpendler]
-        # com.apple.developer.icloud-services: [CloudKit]
+        # Die Linien der Fahrten (TrackCloud). Container und Zuordnung stehen
+        # seit 24.09.2026 im Portal; der Datensatztyp legt sich beim ersten
+        # Hochladen selbst an. Fürs Ausliefern muss das Schema danach im
+        # CloudKit-Dashboard einmal von Development nach Production.
+        #
+        # **Wer hier etwas ändert, braucht ein Profil mit diesem Container.**
+        # Die Xcode-Team-Profile auf diesem Mac sind älter als der Container
+        # und kennen ihn nicht; automatisches Signieren nimmt nur Xcode-eigene
+        # Profile und kann sie ohne angemeldetes Konto nicht auffrischen.
+        # Einmal aus Xcode.app bauen zieht sie nach — danach geht alles wieder
+        # von der Kommandozeile. Build 29 wurde ersatzweise mit von Hand über
+        # die API erzeugten Profilen signiert („RadPendler AppStore CK" und
+        # „RadPendlerWatch AppStore CK"); die stehen im Portal und können weg,
+        # sobald Xcode die eigenen erneuert hat.
+        com.apple.developer.icloud-container-identifiers: [iCloud.org.afjk.radpendler]
+        com.apple.developer.icloud-services: [CloudKit]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: de.keese.radpendler

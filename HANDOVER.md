@@ -251,18 +251,21 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   sample $PID 5 -file /tmp/rp.txt                             # „Version:" im Kopf prüfen
   ```
 
-- **Die Linien reisen, sobald der Container steht.** Der Code ist fertig
-  (`TrackCloud`, an `RideStore.add` / `delete` / `track(for:)` angeschlossen; ohne
-  Container ein stiller Nichtstuer). Was fehlt, geht **nur von Hand** — weder
-  `xcodebuild -allowProvisioningUpdates` noch die App-Store-Connect-API können es:
-  1. <https://developer.apple.com/account/resources/identifiers/list/cloudContainer>
-     → „+" → Bezeichner `iCloud.org.afjk.radpendler`.
-  2. Beim App-Identifier `de.keese.radpendler` die iCloud-Capability bearbeiten und
-     den Container ankreuzen.
-  3. In `project.yml` die zwei auskommentierten `icloud-*`-Zeilen einkommentieren,
-     `./dev generate`, einmal aus Xcode bauen (neues Profil).
-  Der Datensatztyp legt sich beim ersten Hochladen selbst an; fürs Ausliefern muss das
-  Schema danach im CloudKit-Dashboard von Development nach Production übernommen werden.
+- **Die Linien reisen** (seit Build 29). `TrackCloud` hängt an `RideStore.add` /
+  `delete` / `track(for:)`; Container `iCloud.org.afjk.radpendler` steht im Portal und
+  ist dem App-Identifier zugewiesen, die Berechtigung in `project.yml` ist an. Offen:
+  das Schema im CloudKit-Dashboard einmal von Development nach Production übernehmen —
+  erst dann reisen die Linien auch für die veröffentlichte App.
+- **Signieren auf diesem Mac, seit es den Container gibt.** Die Xcode-Team-Profile hier
+  sind älter als der Container und kennen ihn nicht. Automatisches Signieren nimmt
+  **nur** Xcode-eigene Profile und kann sie ohne angemeldetes Konto nicht auffrischen —
+  `-allowProvisioningUpdates` scheitert mit „Authentication failed", der Schlüssel
+  `PAGC3W2GBL` darf lesen, aber keine Profile anlegen. **Einmal aus Xcode.app bauen**
+  zieht sie nach, danach geht alles wieder von der Kommandozeile.
+  Build 29 wurde ersatzweise von Hand signiert: zwei über die API erzeugte Profile
+  (`RadPendler AppStore CK`, `RadPendlerWatch AppStore CK`), `CODE_SIGN_STYLE: Manual`
+  nur für den einen Lauf, danach wieder `Automatic`. Die beiden Profile dürfen weg,
+  sobald Xcode die eigenen erneuert hat.
 - **`xcodebuild` auf diesem Mac hat kein Entwicklerkonto** („No Accounts: Add a new
   account in Accounts settings"). Automatisches Signieren aus der Kommandozeile geht
   deshalb nur mit einem API-Schlüssel, der im Portal Rechte hat; `PAGC3W2GBL` hat sie
