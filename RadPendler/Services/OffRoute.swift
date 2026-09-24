@@ -41,6 +41,23 @@ enum OffRoute {
     /// Und erst, wenn man so lange ohne Unterbrechung daneben ist. Ein kurzer
     /// Bogen um eine Baustelle ist kein neuer Weg.
     static let offFor: TimeInterval = 15
+
+    /// Ob jetzt neu geplant werden soll: **was zuerst eintritt**.
+    ///
+    /// - Die Strecke, aber nicht sofort — `offFor` Sekunden am Stück daneben,
+    ///   sonst löst jeder Bogen um eine Baustelle eine Neuplanung aus.
+    /// - Oder die Zeit, ganz ohne Rücksicht auf die Entfernung: wer im Kreis
+    ///   um einen gesperrten Weg fährt, kommt nie weit genug weg und braucht
+    ///   trotzdem irgendwann einen neuen Vorschlag.
+    ///
+    /// Beide Werte 0 heißt: gar nicht neu planen, nur der Pfeil zurück.
+    /// Rein, damit die Regel ohne Fahrt zu prüfen ist.
+    static func shouldReplan(meters: Double, offFor seconds: TimeInterval,
+                             afterMeters: Double, afterMinutes: Double) -> Bool {
+        if afterMeters > 0, meters > afterMeters, seconds >= offFor { return true }
+        if afterMinutes > 0, seconds >= afterMinutes * 60 { return true }
+        return false
+    }
     /// Und selbst dann nicht öfter als so oft: eine Neuplanung je Ortung wäre
     /// eine Anfrage je Sekunde.
     static let replanEvery: TimeInterval = 60

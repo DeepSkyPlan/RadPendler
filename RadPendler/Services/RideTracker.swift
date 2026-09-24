@@ -93,6 +93,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     private var lastReplan = Date.distantPast
     /// Ab wann neu berechnet wird; 0 schaltet es ab.
     private var replanOffRouteMeters = OffRoute.replanMeters
+    private var replanOffRouteMinutes = 0.0
     /// Seit wann ohne Unterbrechung neben der Route.
     private var offSince: Date?
     private var replanTask: Task<Void, Never>?
@@ -106,10 +107,12 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                route: [CLLocationCoordinate2D] = [],
                roadPoints: [RoadPoint] = [],
                signalSeconds: TimeInterval = RideMeter.defaultSignalSeconds,
-               replanOffRouteMeters: Double = OffRoute.replanMeters) {
+               replanOffRouteMeters: Double = OffRoute.replanMeters,
+               replanOffRouteMinutes: Double = 0) {
         guard !isRecording else { return }
         self.signalSeconds = signalSeconds
         self.replanOffRouteMeters = replanOffRouteMeters
+        self.replanOffRouteMinutes = replanOffRouteMinutes
         self.roadPoints = roadPoints
         plannedRoute = route
         routeLengths = TurnGuide.cumulative(route)
@@ -320,10 +323,10 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         guard let next else { offSince = nil; return }
         let since = offSince ?? .now
         offSince = since
-        // Weit genug daneben, und lange genug am Stück: ein kurzer Bogen um
-        // eine Baustelle ist kein neuer Weg.
-        guard replanOffRouteMeters > 0, next.meters > replanOffRouteMeters,
-              Date.now.timeIntervalSince(since) >= OffRoute.offFor else { return }
+        guard OffRoute.shouldReplan(meters: next.meters,
+                                    offFor: Date.now.timeIntervalSince(since),
+                                    afterMeters: replanOffRouteMeters,
+                                    afterMinutes: replanOffRouteMinutes) else { return }
         replan(from: here)
     }
 

@@ -97,6 +97,12 @@ struct SettingsView: View {
                             Text("\(Int(m)) m neben der Route").tag(m)
                         }
                     }
+                    Picker("… oder nach", selection: $settings.replanOffRouteMinutes) {
+                        Text("aus").tag(0.0)
+                        ForEach([1.0, 2.0, 5.0, 10.0], id: \.self) { m in
+                            Text("\(Int(m)) min daneben").tag(m)
+                        }
+                    }
                     Stepper("Ampelhalt ab \(settings.signalStopSeconds) s",
                             value: $settings.signalStopSeconds, in: 10...120, step: 5)
                     HStack {
@@ -114,7 +120,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Fahrt aufzeichnen")
                 } footer: {
-                    Text("„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — Während einer Aufzeichnung bleibt der Bildschirm an, bis du die Fahrt beendest; das kostet Strom und ist so gewollt. — Wer länger als die eingestellte Zeit steht, stand an einer Ampel, auch wenn keine Karte dort eine kennt. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein: in der Zahl der Ampeln einer Radroute und damit in ihrer Fahrzeit. Sie bleiben auf deinen Geräten.")
+                    Text("„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — Während einer Aufzeichnung bleibt der Bildschirm an, bis du die Fahrt beendest; das kostet Strom und ist so gewollt. — Verlässt du die Route, zeigt ein Pfeil zurück. Neu berechnet wird, was zuerst eintritt: die eingestellte Entfernung (und dann erst nach ein paar Sekunden am Stück, damit ein Bogen um eine Baustelle keine Neuplanung auslöst) oder die eingestellte Zeit, egal wie weit — wer im Kreis um einen gesperrten Weg fährt, kommt nie weit genug weg. Beides „aus“ lässt es beim Pfeil. — Wer länger als die eingestellte Zeit steht, stand an einer Ampel, auch wenn keine Karte dort eine kennt. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein: in der Zahl der Ampeln einer Radroute und damit in ihrer Fahrzeit. Sie bleiben auf deinen Geräten.")
                 }
                 Section {
                     Picker("Fahrplan", selection: $settings.timetableSource) {

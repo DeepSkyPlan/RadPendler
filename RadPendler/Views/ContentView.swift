@@ -272,7 +272,8 @@ struct ContentView: View {
                       route: RideTrackingView.route(of: model.options, selected: option.id),
                       roadPoints: option.bikeRoute?.roadPoints ?? [],
                       signalSeconds: TimeInterval(settings.signalStopSeconds),
-                      replanOffRouteMeters: settings.replanOffRouteMeters)
+                      replanOffRouteMeters: settings.replanOffRouteMeters,
+                      replanOffRouteMinutes: settings.replanOffRouteMinutes)
     }
 
     @ViewBuilder private var rainNote: some View {
