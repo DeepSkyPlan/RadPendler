@@ -749,8 +749,54 @@ struct BikeCandidate {
     ///
     /// The list comes back in the order the user put the variants in, so the
     /// first route is the one the app suggests and the first the boxes show.
+    /// Zwei Linien sind dieselbe, wenn die eine überall auf der anderen liegt.
+    /// Geprüft an neun Punkten der einen gegen die ganze andere — das ist
+    /// unempfindlich dagegen, dass zwei Profile dieselbe Straße mit
+    /// verschieden vielen Stützpunkten beschreiben.
+    static func sameLine(_ a: StreetRoute, _ b: StreetRoute, tolerance: Double = 25) -> Bool {
+        guard a.coordinates.count > 1, b.coordinates.count > 1 else { return false }
+        guard abs(a.distance - b.distance) <= 0.02 * Swift.max(a.distance, b.distance) else { return false }
+        let step = Swift.max(1, (a.coordinates.count - 1) / 8)
+        for i in stride(from: 0, to: a.coordinates.count, by: step) {
+            guard let fix = OffRoute.nearest(to: a.coordinates[i], on: b.coordinates),
+                  fix.meters <= tolerance else { return false }
+        }
+        return true
+    }
+
+    /// Neun Anfragen, aber oft nur drei verschiedene Wege: „trekking",
+    /// „fastbike" und „safety" einigen sich auf einer Pendelstrecke gern auf
+    /// dieselbe Straße. Doppelte müssen raus, bevor Rollen vergeben werden —
+    /// sonst nehmen zwei gleiche Linien einander die Rollen weg und eine
+    /// dritte, wirklich andere, fällt hinten herunter.
+    static func distinct(_ all: [BikeCandidate]) -> [BikeCandidate] {
+        var out: [BikeCandidate] = []
+        for c in all where !out.contains(where: { sameLine($0.route, c.route) }) { out.append(c) }
+        return out
+    }
+
+    /// schnellst = kürzeste Fahrzeit (Ampeln und Höhenmeter inbegriffen),
+    /// ruhigst = am wenigsten Störung, verkehrsarm = am seltensten wegen des
+    /// Verkehrs anhalten, optimal = bestes Verhältnis von Zeit und Störung.
+    /// Eine Linie, die mehrere Rollen gewinnt, steht einmal da und trägt alle
+    /// ihre Namen — ein Name muss wahr bleiben: „schnellst" ist die
+    /// schnellste, nicht die zweitschnellste.
+    ///
+    /// **Und jede übrige Linie bleibt trotzdem wählbar.** Sie bekommt keinen
+    /// Namen, weil sie in keiner Hinsicht die beste ist — aber sie ist ein
+    /// anderer Weg, und den wegzuwerfen war der Grund, aus dem unter dem
+    /// Rad-Kasten oft nur zwei Punkte standen, obwohl neun Routen angefragt
+    /// wurden. Beim Auto gab es diesen Auffangfall immer („Alternative"),
+    /// beim Rad nicht.
+    ///
+    /// Ohne OpenStreetMap-Daten lässt sich nur die Zeit beurteilen; dann steht
+    /// BRouters „safety"-Route für „ruhigst" und sein Verkehrsarm-Profil für
+    /// „verkehrsarm".
+    ///
+    /// Die Liste kommt in der Reihenfolge zurück, die der Nutzer eingestellt
+    /// hat; die namenlosen Linien hängen hinten an, die schnellste zuerst.
     static func pick(_ candidates: [BikeCandidate], settings s: PlanSettings) -> [(BikeCandidate, [BikeVariant])] {
-        let all = levelled(candidates)
+        let all = levelled(distinct(candidates))
         guard let fastest = all.indices.min(by: { all[$0].time(s) < all[$1].time(s) }) else { return [] }
         let quiet: Int, balanced: Int, lowTraffic: Int
         if all.contains(where: { $0.stats != nil }) {
@@ -776,11 +822,20 @@ struct BikeCandidate {
         roles[balanced, default: []].append(.balanced)
         roles[quiet, default: []].append(.quiet)
         roles[lowTraffic, default: []].append(.lowTraffic)
+        // Eine Linie ohne Rolle ist immer noch eine Linie.
+        for i in all.indices where roles[i] == nil { roles[i] = [] }
         let order = s.bikeVariantOrder
         let rank = { (v: BikeVariant) in order.firstIndex(of: v) ?? order.count }
         return roles
             .map { (all[$0.key], $0.value.sorted { rank($0) < rank($1) }) }
-            .sorted { rank($0.1.first!) < rank($1.1.first!) }
+            .sorted { a, b in
+                switch (a.1.first, b.1.first) {
+                case (let x?, let y?): return rank(x) < rank(y)
+                case (_?, nil): return true
+                case (nil, _?): return false
+                default: return a.0.time(s) < b.0.time(s)
+                }
+            }
     }
 }
 

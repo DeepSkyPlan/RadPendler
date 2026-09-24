@@ -121,7 +121,7 @@ struct ModeStrip: View {
             if model.isLoading { return "sucht …" }
             return model.result.failures[mode] != nil ? "Fehler" : "nichts"
         }
-        if let bike = option.bikeRoute { return bike.variants.first?.title ?? "Route" }
+        if let bike = option.bikeRoute { return bike.shortTitle }
         if let car = option.carRoute { return car.variants.first?.title ?? Fmt.km(option.totalDistance) }
         if option.transitLegs.isEmpty { return Fmt.km(option.totalDistance) }
         return option.transfers == 0 ? "ab \(Fmt.time(option.leave))"

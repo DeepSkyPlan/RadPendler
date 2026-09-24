@@ -150,8 +150,11 @@ struct BikeRouteInfo {
     var ascent: Double? = nil
 
     /// Already in the order the user put the variants in; the first is the one
-    /// that decides what the box says.
-    var title: String { variants.map(\.title).joined(separator: " · ") }
+    /// that decides what the box says. Leer heißt: diese Linie ist in keiner
+    /// Hinsicht die beste — ein anderer Weg ist sie trotzdem.
+    var title: String { variants.isEmpty ? "Alternative" : variants.map(\.title).joined(separator: " · ") }
+    /// Was der Kasten schreibt: der erste Name, oder „Alternative".
+    var shortTitle: String { variants.first?.title ?? "Alternative" }
 }
 
 /// Whether the bike may come along. `unknown` is a real answer, not a missing
