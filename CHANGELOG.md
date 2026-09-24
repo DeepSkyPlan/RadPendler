@@ -1,5 +1,49 @@
 # Changelog
 
+## 1.3 (Build 28) — der Hänger ist gefunden
+
+**Ursache der Hänger: ein `TimelineView` in einer `ToolbarItem`.** Unter iOS 26 legt jeder
+Takt die Navigationsleiste neu aus, und dieses Auslegen macht den Ansichtsgraphen erneut
+schmutzig — worauf er sofort den nächsten Durchlauf anfordert. Die App lief dauerhaft mit
+voller Bildrate durch, ohne dass sich etwas änderte. Leerlauf-CPU im Simulator, Release:
+**70–85 % vorher, 0 % nachher.** Auf dem Gerät war das der Stromverbrauch, die drei
+Sekunden pro Berührung und am Ende der `scene-update`-Watchdog.
+
+Der Fehler steckte in 1.0, 1.1 und 1.2 gleichermaßen — es gibt ihn, seit es den Countdown
+gibt. Build 23 war nie heil, Build 27 ist codegleich und war es ebenso wenig, das iPad
+zeigte dasselbe, und keine Neuinstallation konnte je helfen. Der Countdown bekommt jetzt
+eine eigene Uhr: ein `@State` und ein `.task`, das einmal die Sekunde schreibt. Tickt
+genauso, löst aber kein Auslegen der Leiste aus.
+
+**Neu: neben der Route weist ein Pfeil den Weg zurück.** Wer eine Abbiegung verpasst oder
+bewusst anders fährt, bekam bisher weiter Abbiegehinweise für eine Straße, auf der er
+nicht mehr ist. Jetzt tritt ein Pfeil an ihre Stelle — dorthin, wo die Route liegt, mit
+dem Abstand daneben —, die Karte geht heraus, bis beides im Bild ist, und steht dabei nach
+Norden. Über einem Kilometer daneben wird der Weg zum Ziel von der aktuellen Position aus
+neu berechnet, höchstens einmal die Minute.
+
+**Neu: die Warnungen stimmen auch, während die App zu ist.** Sie standen fest, sobald ein
+Plan da war — fuhr der Zug danach fünf Minuten später, klingelte es fünf Minuten zu früh.
+iOS weckt die App jetzt gelegentlich, und sie stellt dieselbe Frage noch einmal: dieselbe
+Kategorie, dieselbe Abfahrt oder Ankunft.
+
+**Die Linien der Fahrten können reisen.** Bisher reisten nur die Zahlen einer Fahrt; unter
+einer auf dem iPhone aufgezeichneten Fahrt stand auf dem iPad „nicht auf diesem Gerät".
+Der Weg über CloudKit ist gebaut und wird eingeschaltet, sobald der iCloud-Container steht.
+
+Dazu, unsichtbar, aber auf demselben Weg — dem Hauptthread beim Start:
+
+- Der iCloud-Abgleich rechnet nicht mehr auf dem Hauptthread (zlib, JSON, und ein
+  Vergleich jeder gelernten Ampel mit jeder).
+- Die Einstellungen melden nur noch Änderungen, die welche sind. Vorher waren es dreißig
+  gemeldete Änderungen je Rückmeldung aus iCloud — und damit der halbe Bildschirm samt
+  Karte.
+- Was das Zusammenführen zweier Geräte dazugewinnt, geht jetzt auch wirklich hinaus; das
+  tat es bisher nie.
+- Eine abgebrochene Aufzeichnung wird erst gelöscht und dann ausgepackt. Stirbt die App am
+  Auspacken, fand der nächste Start bisher dieselbe Datei wieder — eine Startschleife, aus
+  der nur das Löschen der App führte.
+
 ## 1.2 (Build 26) — zwei Funde, ein Messgerät
 Build 25 war **nicht** die Lösung: die App hängt weiter, und der zweite Absturzbericht
 zeigt denselben `scene-update`-Watchdog — über zehn Sekunden in *einem* SwiftUI-Layoutlauf,
