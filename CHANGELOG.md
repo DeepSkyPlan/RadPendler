@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.3 (Build 33) — vier Funde von der Heimfahrt
+
+- **Im Fahrtmodus bleibt der Bildschirm an**, bis du die Fahrt beendest. Vorher ging er
+  aus, obwohl der Schalter „Bildschirm anlassen" an war: das Flag gilt nur, solange die
+  App vorn ist, und auf einer Fahrt kommt sie dauernd aus dem Hintergrund zurück. Den
+  Schalter gibt es nicht mehr — ein Blick auf die Karte an der Kreuzung nützt nichts,
+  wenn man vorher entsperren muss. Das kostet Strom und ist so gewollt.
+- **Die Karte bleibt beim Verlassen der Route in Fahrtrichtung gedreht.** In Build 31/32
+  stellte sie sich dabei auf Norden — falsch: eine Karte, die sich dreht, wenn man falsch
+  fährt, ist genau dann unlesbar, wenn man sie braucht.
+- **Neu berechnet wird ab 200 m statt ab einem Kilometer**, und einstellbar: „Neu
+  berechnen ab" (Entfernung) und „… oder nach" (Minuten daneben) — was zuerst eintritt.
+  Die Entfernung greift erst nach fünfzehn Sekunden am Stück, damit ein Bogen um eine
+  Baustelle keine Neuplanung auslöst; die Zeit greift unabhängig davon, für den Fall, dass
+  man im Kreis um einen gesperrten Weg fährt.
+- **Die Fahrtansicht zeigt, wie lange insgesamt gestanden wurde** — neben der Zeit an den
+  Ampeln, nicht statt ihrer, und im Sekundentakt mitlaufend.
+
 ## 1.3 (Build 32) — die Ampeln kommen zurück
 
 **OpenStreetMap wird jetzt entlang der Route gefragt, nicht im umschließenden Kasten.**
