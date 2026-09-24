@@ -1,3 +1,7 @@
+import MapKit
+import UniformTypeIdentifiers
+import ImageIO
+import CoreGraphics
 import CoreLocation
 import XCTest
 @testable import RadPendler
@@ -129,5 +133,79 @@ final class RadarLabelTests: XCTestCase {
         // A minute that is not in the list keeps only itself.
         XCTAssertEqual(RouteMapView.Coordinator.window(around: now.addingTimeInterval(5), in: frames),
                        Set<Date>([now.addingTimeInterval(5)]))
+    }
+
+    // MARK: Regenradar — die Klötzchen
+
+    /// Das Komposit hat 1-km-Zellen. Auf der Zoomstufe, auf der man eine
+    /// Pendelstrecke ansieht, sind das 26 Pixel je Zelle — darum sah die Karte
+    /// aus wie ein Schachbrett.
+    func testTheBlurFollowsTheCellSize() {
+        XCTAssertEqual(RadarTileOverlay.cellPixels(z: 12), 26.2, accuracy: 0.3)
+        XCTAssertEqual(RadarTileOverlay.blurRadius(z: 12), 8.7, accuracy: 0.3)
+        XCTAssertEqual(RadarTileOverlay.cellPixels(z: 8), 1.6, accuracy: 0.2)
+        XCTAssertEqual(RadarTileOverlay.blurRadius(z: 8), 0,
+                       "wo eine Zelle kleiner als ein Pixel ist, gibt es nichts zu glätten")
+        XCTAssertLessThanOrEqual(RadarTileOverlay.blurRadius(z: 12), 12, "und nie unbegrenzt")
+    }
+
+    /// Der Rand holt mehr Fläche bei **gleichem** Maßstab — sonst säße die
+    /// geglättete Kachel versetzt auf der Karte. Geprüft an den Metern je Pixel
+    /// und daran, dass der größere Ausschnitt den kleineren mittig enthält.
+    func testTheMarginKeepsTheScaleAndStaysCentred() {
+        let t = Date(timeIntervalSince1970: 1_800_000_000)
+        func bbox(_ margin: Int) -> [Double] {
+            let u = RadarTileOverlay.url(z: 12, x: 2200, y: 1350, time: t, margin: margin)
+            let q = URLComponents(url: u, resolvingAgainstBaseURL: false)!.queryItems!
+            return q.first { $0.name == "bbox" }!.value!.split(separator: ",").map { Double($0)! }
+        }
+        func pixels(_ margin: Int) -> Double {
+            let u = RadarTileOverlay.url(z: 12, x: 2200, y: 1350, time: t, margin: margin)
+            let q = URLComponents(url: u, resolvingAgainstBaseURL: false)!.queryItems!
+            return Double(q.first { $0.name == "width" }!.value!)!
+        }
+        let plain = bbox(0), wide = bbox(RadarTileOverlay.margin)
+        XCTAssertEqual(pixels(0), 256)
+        XCTAssertEqual(pixels(RadarTileOverlay.margin), 384)
+        let mppPlain = (plain[2] - plain[0]) / pixels(0)
+        let mppWide = (wide[2] - wide[0]) / pixels(RadarTileOverlay.margin)
+        XCTAssertEqual(mppPlain, mppWide, accuracy: 0.001, "gleiche Meter je Pixel, nur mehr davon")
+        let over = mppPlain * Double(RadarTileOverlay.margin)
+        XCTAssertEqual(wide[0], plain[0] - over, accuracy: 0.01)
+        XCTAssertEqual(wide[3], plain[3] + over, accuracy: 0.01)
+    }
+
+    /// Geglättet wird auf den Rand, zurück kommt die Kachel ohne ihn — und die
+    /// harten Kanten sind weg.
+    func testSmoothingCropsTheMarginAndSoftensEdges() throws {
+        let side = 256 + 2 * RadarTileOverlay.margin
+        // Schachbrett mit 26-Pixel-Feldern, so grob wie das echte Komposit.
+        let cs = CGColorSpace(name: CGColorSpace.sRGB)!
+        let ctx = CGContext(data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: 0,
+                            space: cs, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        for row in 0..<(side / 26 + 1) {
+            for col in 0..<(side / 26 + 1) {
+                ctx.setFillColor(gray: (row + col) % 2 == 0 ? 0 : 1, alpha: 1)
+                ctx.fill(CGRect(x: col * 26, y: row * 26, width: 26, height: 26))
+            }
+        }
+        let image = ctx.makeImage()!
+        let buffer = CFDataCreateMutable(nil, 0)!
+        let dest = CGImageDestinationCreateWithData(buffer, UTType.png.identifier as CFString, 1, nil)!
+        CGImageDestinationAddImage(dest, image, nil)
+        XCTAssertTrue(CGImageDestinationFinalize(dest))
+
+        let out = try XCTUnwrap(RadarTileOverlay.smoothed(buffer as Data, radius: 8.7,
+                                                          margin: RadarTileOverlay.margin))
+        let src = try XCTUnwrap(CGImageSourceCreateWithData(out as CFData, nil))
+        let got = try XCTUnwrap(CGImageSourceCreateImageAtIndex(src, 0, nil))
+        XCTAssertEqual(got.width, 256, "der Rand ist wieder ab")
+        XCTAssertEqual(got.height, 256)
+
+        // Ohne Glätten bleibt die Kachel hart — dann ist der Unterschied
+        // zwischen Nachbarpixeln an den Feldgrenzen voll da.
+        let flat = try XCTUnwrap(RadarTileOverlay.smoothed(buffer as Data, radius: 0,
+                                                           margin: RadarTileOverlay.margin))
+        XCTAssertNotEqual(flat, out, "mit Radius 0 kommt etwas anderes heraus als mit 8,7")
     }
 }
