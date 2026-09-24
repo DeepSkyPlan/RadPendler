@@ -118,22 +118,23 @@ struct TripPlanner {
             // routes that already won something else.
             ("shortest", .shortest, 0),
         ]
-        let found = await withTaskGroup(of: (Int, String, StreetRoute?).self) { group in
-            for (i, (name, profile, alt)) in requests.enumerated() {
-                group.addTask {
-                    let r: StreetRoute? = if let profile {
-                        try? await brouter.route(from: o, to: d, profile: profile, alternative: alt)
-                    } else {
-                        try? await apple.route(from: o, to: d, mode: .bike, departure: nil)
-                    }
-                    return (i, name, r)
-                }
+        // Höchstens so viele Anfragen gleichzeitig an BRouter. Der öffentliche
+        // Server ist ein Geschenk und keine Infrastruktur: wirft man ihm acht
+        // Anfragen auf einmal hin, antwortet er mit `403 Please, retry later!`
+        // — und weil ein Fehlschlag hier nur eine fehlende Möglichkeit ist und
+        // keinen Fehler, verschwanden die Varianten stillschweigend. Apple
+        // zählt nicht mit, das ist ein anderer Dienst.
+        let found = await Self.gathered(requests, atOnce: 3) { name, profile, alt in
+            if let profile {
+                return try? await brouter.route(from: o, to: d, profile: profile, alternative: alt)
             }
-            var out: [(Int, String, StreetRoute)] = []
-            for await (i, name, r) in group { if let r { out.append((i, name, r)) } }
-            return out.sorted { $0.0 < $1.0 }.map { ($0.1, $0.2) }
+            return try? await apple.route(from: o, to: d, mode: .bike, departure: nil)
         }
         guard !found.isEmpty else { throw PlannerError.noBikeRoute }
+        // Kam von BRouter gar nichts, steht nur Apples eine Linie da — dann
+        // gibt es eine Variante statt fünf, und der Nutzer soll wissen, warum.
+        let brouterAsked = requests.contains { $0.1 != nil }
+        let brouterAnswered = found.contains { $0.0 != "Apple" }
 
         let data = Self.withLearned(try? await roads.data(covering: found.flatMap { $0.1.coordinates }), req.settings)
         // 63 ms per route, six routes: serially that is 378 ms of the plan for
@@ -159,7 +160,8 @@ struct TripPlanner {
                           departure: leave, arrival: leave.addingTimeInterval(ride),
                           distance: c.route.distance, coordinates: c.route.coordinates)
             var option = TripOption(mode: .bike, legs: [leg], prep: req.settings.prep,
-                                    note: data == nil ? Self.noRoadDataNote(km: c.route.distance / 1000, settings: req.settings) : nil,
+                                    note: Self.bikeNote(roadData: data, brouterMissing: brouterAsked && !brouterAnswered,
+                                                        km: c.route.distance / 1000, settings: req.settings),
                                     bikeRoute: BikeRouteInfo(variants: variants, stats: c.stats, source: c.source,
                                                              mix: c.route.mix,
                                                              roadPoints: c.route.roadPoints))
@@ -175,6 +177,40 @@ struct TripPlanner {
     /// The lights come from the same OpenStreetMap data the bike routes use —
     /// on a commute that is the difference between the autobahn detour and the
     /// straight run through town.
+    /// Läuft die Liste ab, aber nie mehr als `atOnce` gleichzeitig. Die
+    /// Reihenfolge der Antworten ist wieder die der Liste — sie entscheidet,
+    /// welche Route bei Gleichstand eine Rolle bekommt.
+    static func gathered<T>(_ items: [(String, T, Int)], atOnce: Int,
+                            _ run: @escaping @Sendable (String, T, Int) async -> StreetRoute?)
+        async -> [(String, StreetRoute)] where T: Sendable {
+        var out: [(Int, String, StreetRoute)] = []
+        await withTaskGroup(of: (Int, String, StreetRoute?).self) { group in
+            var next = 0
+            func add() {
+                guard next < items.count else { return }
+                let (i, item) = (next, items[next])
+                next += 1
+                group.addTask { (i, item.0, await run(item.0, item.1, item.2)) }
+            }
+            for _ in 0..<Swift.min(atOnce, items.count) { add() }
+            for await (i, name, r) in group {
+                if let r { out.append((i, name, r)) }
+                add()
+            }
+        }
+        return out.sorted { $0.0 < $1.0 }.map { ($0.1, $0.2) }
+    }
+
+    /// Was unter der Radroute steht, wenn etwas fehlte. Beides kann zutreffen;
+    /// dann wiegt die fehlende Route schwerer — sie kostet Möglichkeiten,
+    /// nicht nur Genauigkeit.
+    static func bikeNote(roadData: RoadData?, brouterMissing: Bool, km: Double,
+                         settings: PlanSettings) -> String? {
+        if brouterMissing { return "Nur die Route von Apple Karten — BRouter antwortet gerade nicht" }
+        guard roadData == nil else { return nil }
+        return noRoadDataNote(km: km, settings: settings)
+    }
+
     /// Why a route has no traffic-light count: too long to ask Overpass for,
     /// or Overpass simply did not answer.
     /// OpenStreetMap's lit junctions plus the ones this rider has been stopped
