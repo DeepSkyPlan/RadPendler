@@ -111,6 +111,14 @@ final class AppSettings {
         didSet { defaults.set(replanOffRouteMeters, forKey: "replanOffRouteMeters") }
     }
 
+    /// Oder: nach so vielen Minuten ohne Unterbrechung neben der Route, egal
+    /// wie weit. 0 schaltet es ab. Beides zusammen heißt „was zuerst
+    /// eintritt" — wer im Kreis um einen gesperrten Weg fährt, kommt nie weit
+    /// genug weg und braucht trotzdem irgendwann einen neuen Vorschlag.
+    var replanOffRouteMinutes: Double = 0 {
+        didSet { defaults.set(replanOffRouteMinutes, forKey: "replanOffRouteMinutes") }
+    }
+
     /// Whether the screen may turn. On a handlebar an automatic rotation is a
     /// nuisance, not a feature.
     var orientation: OrientationLock = .auto {
@@ -199,6 +207,8 @@ final class AppSettings {
             .flatMap(OrientationLock.init(rawValue:)) ?? orientation)
         assign(\.replanOffRouteMeters,
                defaults.object(forKey: "replanOffRouteMeters") as? Double ?? replanOffRouteMeters)
+        assign(\.replanOffRouteMinutes,
+               defaults.object(forKey: "replanOffRouteMinutes") as? Double ?? replanOffRouteMinutes)
         loadedOnce = true
     }
 

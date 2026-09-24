@@ -368,6 +368,26 @@ final class RoadMixTests: XCTestCase {
         XCTAssertEqual(fix?.bearing ?? 0, 270, accuracy: 5)
     }
 
+    /// Neu geplant wird, **was zuerst eintritt**: die Entfernung oder die
+    /// Zeit. Die Entfernung erst nach ein paar Sekunden am Stück — sonst löst
+    /// jeder Bogen um eine Baustelle eine Neuplanung aus. Die Zeit ganz ohne
+    /// Rücksicht auf die Entfernung: wer im Kreis um einen gesperrten Weg
+    /// fährt, kommt nie weit genug weg und braucht trotzdem einen Vorschlag.
+    func testReplanTriggersOnWhicheverComesFirst() {
+        func should(_ m: Double, _ s: TimeInterval, meters: Double = 200, minutes: Double = 0) -> Bool {
+            OffRoute.shouldReplan(meters: m, offFor: s, afterMeters: meters, afterMinutes: minutes)
+        }
+        XCTAssertFalse(should(150, 60), "nah genug an der Route")
+        XCTAssertFalse(should(300, 5), "weit genug weg, aber erst seit fünf Sekunden")
+        XCTAssertTrue(should(300, 20), "weit genug und lange genug")
+
+        XCTAssertFalse(should(150, 60, minutes: 2), "eine Minute reicht für zwei nicht")
+        XCTAssertTrue(should(150, 130, minutes: 2), "zwei Minuten daneben reichen, auch auf 150 m")
+        XCTAssertTrue(should(300, 20, minutes: 2), "und die Entfernung greift trotzdem früher")
+
+        XCTAssertFalse(should(5000, 600, meters: 0, minutes: 0), "beides aus heißt aus")
+    }
+
     /// Auf der ersten Testfahrt war ein Kilometer zu spät: bis dahin ist man
     /// längst auf einer anderen Straße. 200 m, und erst nach einer Weile am
     /// Stück — ein kurzer Bogen um eine Baustelle ist kein neuer Weg.
