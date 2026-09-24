@@ -7,7 +7,7 @@ Das Projekt ist quelloffen (MIT); Adressen und Schlüssel gehören nicht hinein.
 ## Bauen, testen, ausliefern
 
 ```bash
-./dev test      # generiert das .xcodeproj bei Bedarf, dann 134 Tests im Simulator
+./dev test      # generiert das .xcodeproj bei Bedarf, dann 139 Tests im Simulator
 #               MOTIS_LIVE=1 schaltet zusätzlich den echten Transitous-Aufruf frei
 #               (aus Xcode heraus; xcodebuild reicht die Variable nicht durch)
 ./dev open      # Xcode mit demselben DerivedData wie die Kommandozeile
@@ -228,13 +228,18 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   sample $PID 5 -file /tmp/rp.txt                             # „Version:" im Kopf prüfen
   ```
 
-- **Die Linien reisen (noch) nicht.** Dafür bräuchte es CloudKit, dafür einen
-  iCloud-Container im Entwicklerkonto — und der lässt sich **nur von Hand** anlegen:
-  <https://developer.apple.com/account/resources/identifiers/list/cloudContainer>, danach
-  beim App-Identifier die iCloud-Capability bearbeiten. Weder
-  `xcodebuild -allowProvisioningUpdates` noch die App-Store-Connect-API können das.
-  Steht er einmal, ist der Weg dorthin kurz: `Ride` und `RideTrack` sind schon getrennt,
-  und `RideStore` hat genau zwei Stellen, die schreiben.
+- **Die Linien reisen, sobald der Container steht.** Der Code ist fertig
+  (`TrackCloud`, an `RideStore.add` / `delete` / `track(for:)` angeschlossen; ohne
+  Container ein stiller Nichtstuer). Was fehlt, geht **nur von Hand** — weder
+  `xcodebuild -allowProvisioningUpdates` noch die App-Store-Connect-API können es:
+  1. <https://developer.apple.com/account/resources/identifiers/list/cloudContainer>
+     → „+" → Bezeichner `iCloud.org.afjk.radpendler`.
+  2. Beim App-Identifier `de.keese.radpendler` die iCloud-Capability bearbeiten und
+     den Container ankreuzen.
+  3. In `project.yml` die zwei auskommentierten `icloud-*`-Zeilen einkommentieren,
+     `./dev generate`, einmal aus Xcode bauen (neues Profil).
+  Der Datensatztyp legt sich beim ersten Hochladen selbst an; fürs Ausliefern muss das
+  Schema danach im CloudKit-Dashboard von Development nach Production übernommen werden.
 - **`xcodebuild` auf diesem Mac hat kein Entwicklerkonto** („No Accounts: Add a new
   account in Accounts settings"). Automatisches Signieren aus der Kommandozeile geht
   deshalb nur mit einem API-Schlüssel, der im Portal Rechte hat; `PAGC3W2GBL` hat sie
