@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.3 (Build 31) — mehr Radrouten, und die Karte zeigt gleich etwas
+
+- **Jede gefundene Radroute bleibt wählbar.** Bisher wurden fünf Rollen vergeben —
+  schnellst, kürzest, optimal, ruhigst, verkehrsarm — und eine Linie, die keine davon
+  gewann, fiel heraus. Auf einer Stadtstrecke ist oft dieselbe Linie die schnellste *und*
+  die ruhigste; dann blieben von fünf Wegen zwei Kästen übrig. Jetzt steht jede übrige
+  Linie als „Alternative" daneben. Gleiche Linien, die mehrere Profile zurückgeben, zählen
+  vorher als eine.
+- **Die Karte zeigt von Anfang an Start und Ziel**, statt in den ersten Sekunden auf halb
+  Europa zu stehen.
+- **Der Straßenbalken auf der Hauptseite ist dünner.**
+
+Aus Build 30, für alle, die ihn übersprungen haben: die Kästen füllen sich der Reihe nach
+in der Reihenfolge aus den Einstellungen, Höhenmeter zählen in die Fahrzeit, das
+Regenradar ist geglättet, und der Straßenbalken steht auch auf der Hauptseite.
+
 ## 1.3 (Build 30) — Reihenfolge, Höhenmeter, weicheres Radar
 
 - **Die Kästen füllen sich der Reihe nach.** Bisher stand der ganze Bildschirm auf
