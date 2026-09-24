@@ -106,12 +106,10 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                route: [CLLocationCoordinate2D] = [],
                roadPoints: [RoadPoint] = [],
                signalSeconds: TimeInterval = RideMeter.defaultSignalSeconds,
-               keepScreenAwake: Bool = false,
                replanOffRouteMeters: Double = OffRoute.replanMeters) {
         guard !isRecording else { return }
         self.signalSeconds = signalSeconds
         self.replanOffRouteMeters = replanOffRouteMeters
-        self.keepScreenAwake = keepScreenAwake
         self.roadPoints = roadPoints
         plannedRoute = route
         routeLengths = TurnGuide.cumulative(route)
@@ -142,18 +140,12 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
 
     private var pending: (Subject, [CLLocationCoordinate2D])?
     private var signalSeconds = RideMeter.defaultSignalSeconds
-    /// Ob der Bildschirm während dieser Fahrt an bleiben soll. Lässt sich
-    /// mitten in der Fahrt umstellen — der Schalter in den Einstellungen wirkt
-    /// sofort und nicht erst bei der nächsten Fahrt.
-    private(set) var keepScreenAwake = false {
-        didSet { applyIdleTimer() }
-    }
-
-    func setKeepScreenAwake(_ on: Bool) {
-        guard keepScreenAwake != on else { return }
-        keepScreenAwake = on
-    }
-
+    /// Während einer Fahrt bleibt der Bildschirm an, bis die Fahrt beendet
+    /// ist — ohne Schalter. Es gab einen („Bildschirm anlassen", voreingestellt
+    /// aus, wegen des Stroms); er ist wieder weg, weil ein Blick auf die Karte
+    /// an der Kreuzung nichts nützt, wenn man vorher entsperren muss. Der
+    /// Strom, den das kostet, ist der Preis dafür, und er ist gewollt.
+    ///
     /// **Einmal setzen reicht nicht.** `isIdleTimerDisabled` gilt nur, solange
     /// die App vorn ist; kommt sie aus dem Hintergrund zurück — und das tut
     /// sie auf einer Fahrt dauernd, weil der Bildschirm sich sperrt und wieder
@@ -162,9 +154,8 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// Rückkehr nach vorn und bei jeder Ortung neu behauptet; die Zuweisung
     /// kostet nichts, wenn sie schon stimmt.
     private func applyIdleTimer() {
-        let wanted = isRecording && keepScreenAwake
-        guard UIApplication.shared.isIdleTimerDisabled != wanted else { return }
-        UIApplication.shared.isIdleTimerDisabled = wanted
+        guard UIApplication.shared.isIdleTimerDisabled != isRecording else { return }
+        UIApplication.shared.isIdleTimerDisabled = isRecording
     }
     private var roadPoints: [RoadPoint] = []
 
