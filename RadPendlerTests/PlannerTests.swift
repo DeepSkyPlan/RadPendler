@@ -483,4 +483,49 @@ final class PlannerTests: XCTestCase {
         XCTAssertNotEqual(newer.map(\.rawValue), stored,
                           "die normalisierte Fassung ist nicht die gespeicherte — genau darum darf sie nicht hinaus")
     }
+
+    // MARK: Wenn der Radrouter nicht antwortet
+
+    /// Der öffentliche BRouter antwortet auf acht gleichzeitige Anfragen mit
+    /// `403 Please, retry later!`. Höchstens drei auf einmal — und die
+    /// Reihenfolge muss die der Liste bleiben, denn sie entscheidet bei
+    /// Gleichstand, welche Route welche Rolle bekommt.
+    func testTheRouterIsAskedInSmallHelpingsAndKeepsItsOrder() async {
+        let counter = Counter()
+        let items: [(String, Int, Int)] = (0..<9).map { ("r\($0)", $0, 0) }
+        let got = await TripPlanner.gathered(items, atOnce: 3) { name, _, _ in
+            await counter.enter()
+            try? await Task.sleep(for: .milliseconds(20))
+            await counter.leave()
+            return StreetRoute(distance: 1000, expectedTravelTime: 300,
+                               coordinates: [CLLocationCoordinate2D(latitude: 52.5, longitude: 13.4),
+                                             CLLocationCoordinate2D(latitude: 52.51, longitude: 13.41)])
+        }
+        let peak = await counter.peak
+        XCTAssertLessThanOrEqual(peak, 3, "nie mehr als drei gleichzeitig")
+        XCTAssertEqual(got.map(\.0), items.map(\.0), "und am Ende wieder in der Reihenfolge der Liste")
+    }
+
+    /// Ohne BRouter bleibt eine einzige Linie von Apple übrig — eine Variante
+    /// statt fünf. Das darf nicht stillschweigend passieren.
+    func testMissingBikeRoutesAreSaidOutLoud() {
+        let s = PlanSettings()
+        XCTAssertEqual(TripPlanner.bikeNote(roadData: nil, brouterMissing: true, km: 8, settings: s),
+                       "Nur die Route von Apple Karten — BRouter antwortet gerade nicht")
+        XCTAssertEqual(TripPlanner.bikeNote(roadData: RoadData(signals: [], roads: []),
+                                            brouterMissing: true, km: 8, settings: s),
+                       "Nur die Route von Apple Karten — BRouter antwortet gerade nicht",
+                       "die fehlende Route wiegt schwerer als die fehlende Ampelzahl")
+        XCTAssertNotNil(TripPlanner.bikeNote(roadData: nil, brouterMissing: false, km: 8, settings: s))
+        XCTAssertNil(TripPlanner.bikeNote(roadData: RoadData(signals: [], roads: []),
+                                          brouterMissing: false, km: 8, settings: s))
+    }
+}
+
+/// Zählt, wie viele Aufgaben gleichzeitig laufen.
+private actor Counter {
+    private var now = 0
+    private(set) var peak = 0
+    func enter() { now += 1; peak = Swift.max(peak, now) }
+    func leave() { now -= 1 }
 }
