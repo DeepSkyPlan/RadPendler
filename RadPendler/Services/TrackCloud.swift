@@ -36,6 +36,13 @@ actor TrackCloud {
     /// oder die App hat die Berechtigung nicht. Dann wird nicht bei jeder Fahrt
     /// neu gefragt — das kostet nur Zeit und Strom für dieselbe Absage.
     private var unavailable = false
+    /// Woran das Hochladen zuletzt gescheitert ist — nil, solange alles geht.
+    /// Ohne das war ein dauerhaft abgewiesener Upload **völlig stumm**: die
+    /// Linie lag auf dem Gerät, die Fahrtenliste sah normal aus, und dass in
+    /// der Wolke nie etwas ankam, merkte man erst im Dashboard. Genau so ist
+    /// der erste Versuch untergegangen — in Production legt CloudKit keine
+    /// Datensatztypen von selbst an, der Server wies ab, niemand sah es.
+    private(set) var lastFailure: String?
 
     private func recordID(_ id: UUID) -> CKRecord.ID {
         CKRecord.ID(recordName: id.uuidString)
@@ -60,8 +67,10 @@ actor TrackCloud {
             // zweimal abzulegen ist kein Konflikt, sondern derselbe Inhalt.
             _ = try await database.modifyRecords(saving: [record], deleting: [],
                                                  savePolicy: .allKeys, atomically: true)
+            lastFailure = nil
         } catch {
             note(error)
+            lastFailure = Self.reason(error)
         }
     }
 
@@ -98,6 +107,19 @@ actor TrackCloud {
 
     /// Was einmal grundsätzlich fehlt, fehlt für diesen Lauf. Ein einzelner
     /// Netzfehler zählt nicht dazu — der nächste Versuch kann klappen.
+    /// In einem Satz, der in der Fahrtenliste Platz hat.
+    static func reason(_ error: Error) -> String {
+        guard let ck = error as? CKError else { return "Die Linien reisen gerade nicht in deine iCloud." }
+        switch ck.code {
+        case .notAuthenticated: return "Die Linien bleiben auf dem Gerät: keine Apple-ID angemeldet."
+        case .quotaExceeded: return "Die Linien bleiben auf dem Gerät: dein iCloud-Speicher ist voll."
+        case .networkUnavailable, .networkFailure: return "Die Linien reisen, sobald wieder Netz da ist."
+        case .invalidArguments, .serverRejectedRequest, .constraintViolation:
+            return "Die Linien reisen nicht: iCloud kennt den Datensatztyp nicht (Schema nicht übernommen)."
+        default: return "Die Linien reisen gerade nicht in deine iCloud (\(ck.code))."
+        }
+    }
+
     private func note(_ error: Error) {
         guard let ck = error as? CKError else { return }
         switch ck.code {

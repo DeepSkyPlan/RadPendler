@@ -13,13 +13,38 @@ struct ContentView: View {
     @Environment(\.horizontalSizeClass) private var widthClass
     @Environment(\.verticalSizeClass) private var heightClass
     @State private var model = PlanModel()
-    @State private var showSettings = false
+    /// Welche der vier Einstellungsseiten offen ist; nil heißt keine.
+    @State private var settingsPage: SettingsPage?
     @State private var showHelp = false
     @State private var showMenu = false
     @State private var showRides = false
     @State private var editing: PlaceField?
     /// Only for the double tap on the address box; a single fix, then forgotten.
     @State private var locator = LocationService()
+
+    /// Die vier Einträge im Menü. Aus einer Seite mit sechzehn Abschnitten
+    /// sind vier geworden, jede mit einer Frage: wohin, wie, womit, und wie
+    /// sieht es dabei aus.
+    enum SettingsPage: String, Identifiable, CaseIterable {
+        case addresses, navigation, modes, rest
+        var id: Self { self }
+        var title: String {
+            switch self {
+            case .addresses: "Adressen"
+            case .navigation: "Navigation"
+            case .modes: "Verkehrsmittel"
+            case .rest: "Einstellungen"
+            }
+        }
+        var symbol: String {
+            switch self {
+            case .addresses: "mappin.and.ellipse"
+            case .navigation: "point.topleft.down.to.point.bottomright.curvepath"
+            case .modes: "bicycle"
+            case .rest: "gearshape"
+            }
+        }
+    }
 
     enum PlaceField: Identifiable {
         case origin, destination
@@ -83,7 +108,14 @@ struct ContentView: View {
                 await Alarm.schedule(for: model.activeCountdown,
                                      alerts: settings.alertsOn ? settings.alertMinutes : [])
             }
-            .sheet(isPresented: $showSettings, onDismiss: refresh) { SettingsView() }
+            .sheet(item: $settingsPage, onDismiss: refresh) { page in
+                switch page {
+                case .addresses: AddressSettingsView()
+                case .navigation: NavigationSettingsView()
+                case .modes: ModeSettingsView()
+                case .rest: SettingsView()
+                }
+            }
             .sheet(isPresented: $showHelp) { HelpView() }
             .sheet(isPresented: $showRides) { RidesView() }
             // Right after arriving is the one moment the numbers get read.
@@ -302,8 +334,10 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 0) {
                 menuRow("Fahrten", "list.bullet.rectangle") { showRides = true }
                 Divider().padding(.leading, 44)
-                menuRow("Einstellungen", "gearshape") { showSettings = true }
-                Divider().padding(.leading, 44)
+                ForEach(SettingsPage.allCases) { page in
+                    menuRow(page.title, page.symbol) { settingsPage = page }
+                    Divider().padding(.leading, 44)
+                }
                 menuRow("Anleitung", "questionmark.circle") { showHelp = true }
                 Divider().padding(.top, 6)
                 VStack(alignment: .leading, spacing: 2) {

@@ -90,7 +90,7 @@ enum BikeVariant: String, CaseIterable, Comparable {
         switch self {
         case .fastest: "kürzeste Fahrzeit, Ampeln und Höhenmeter eingerechnet"
         case .shortest: "die kürzeste Strecke, ganz gleich worüber"
-        case .balanced: "das beste Verhältnis von Zeit und Ruhe"
+        case .balanced: "die Mischung: zügig, wenig neben Autos, wenig Halts"
         case .quiet: "die wenigsten Meter neben fahrenden Autos"
         case .lowTraffic: "am seltensten wegen des Verkehrs anhalten"
         }
@@ -112,7 +112,7 @@ enum BikeVariant: String, CaseIterable, Comparable {
 
     /// Ships with "optimal" first: that is the one the app suggests. The user
     /// can put "wenig Autos" or "kürzest" in front of it.
-    static let defaultOrder: [BikeVariant] = [.balanced, .fastest, .quiet, .lowTraffic, .shortest]
+    static let defaultOrder: [BikeVariant] = [.balanced, .fastest, .shortest, .quiet, .lowTraffic]
 }
 
 /// Which of the car alternatives an option is; one route can be several.
@@ -168,18 +168,16 @@ struct BikeRouteInfo {
     /// Already in the order the user put the variants in; the first is the one
     /// that decides what the box says. Leer heißt: diese Linie ist in keiner
     /// Hinsicht die beste — ein anderer Weg ist sie trotzdem.
-    var title: String { variants.isEmpty ? "Alternative" : variants.map(\.title).joined(separator: " · ") }
-    /// Was der Kasten schreibt: der erste Name, oder „Alternative".
-    var shortTitle: String { variants.first?.title ?? "Alternative" }
+    var title: String { variants.map(\.title).joined(separator: " · ") }
+    /// Was der Kasten schreibt: der erste Name.
+    var shortTitle: String { variants.first?.title ?? "Route" }
 
     /// Warum diese Linie so heißt — und, wenn sie mehrere Rollen gewonnen hat,
     /// dass sie in **allen** diesen Hinsichten die beste ist. Eine Aufzählung
     /// „optimal · schnellst · wenig Autos" allein liest sich wie eine Auswahl,
     /// aus der man etwas anklicken müsste; gemeint ist das Gegenteil.
     var reason: String {
-        guard let first = variants.first else {
-            return "in keiner Hinsicht die beste — aber ein anderer Weg"
-        }
+        guard let first = variants.first else { return "" }
         guard variants.count > 1 else { return first.explanation }
         let rest = variants.dropFirst().map(\.title)
         let list = rest.count == 1 ? rest[0]
