@@ -33,9 +33,14 @@ enum OffRoute {
     /// gerouteten Fahrbahn, wo ein Fix mit fünfzehn Metern Ungenauigkeit über
     /// die Schwelle und wieder zurück springt.
     static let backOnMeters = 35.0
-    /// Ab hier lohnt das Zurückfinden nicht mehr — dann wird der Weg zum Ziel
-    /// von hier aus neu berechnet.
-    static let replanMeters = 1000.0
+    /// Voreinstellung dafür, ab wann der Weg zum Ziel neu berechnet wird;
+    /// einstellbar unter „Neu berechnen ab". Auf der ersten Testfahrt war ein
+    /// Kilometer zu spät: bis dahin ist man längst auf einer anderen Straße,
+    /// und der Pfeil zurück zeigt auf einen Weg, den man nicht mehr fährt.
+    static let replanMeters = 200.0
+    /// Und erst, wenn man so lange ohne Unterbrechung daneben ist. Ein kurzer
+    /// Bogen um eine Baustelle ist kein neuer Weg.
+    static let offFor: TimeInterval = 15
     /// Und selbst dann nicht öfter als so oft: eine Neuplanung je Ortung wäre
     /// eine Anfrage je Sekunde.
     static let replanEvery: TimeInterval = 60

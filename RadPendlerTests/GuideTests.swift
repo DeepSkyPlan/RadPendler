@@ -367,4 +367,17 @@ final class RoadMixTests: XCTestCase {
         XCTAssertNotNil(fix, "ein einzelner Punkt ist auch eine Antwort")
         XCTAssertEqual(fix?.bearing ?? 0, 270, accuracy: 5)
     }
+
+    /// Auf der ersten Testfahrt war ein Kilometer zu spät: bis dahin ist man
+    /// längst auf einer anderen Straße. 200 m, und erst nach einer Weile am
+    /// Stück — ein kurzer Bogen um eine Baustelle ist kein neuer Weg.
+    func testTheReplanThresholdIsCloseEnoughToHelp() {
+        XCTAssertEqual(OffRoute.replanMeters, 200)
+        XCTAssertGreaterThan(OffRoute.replanMeters, OffRoute.offMeters,
+                             "erst abgewichen, dann neu berechnet")
+        XCTAssertGreaterThanOrEqual(OffRoute.offFor, 10)
+        XCTAssertEqual(AppSettings(defaults: UserDefaults(suiteName: UUID().uuidString)!)
+                        .replanOffRouteMeters, OffRoute.replanMeters,
+                       "die Voreinstellung ist dieselbe Zahl, nicht eine zweite daneben")
+    }
 }

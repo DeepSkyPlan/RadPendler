@@ -64,6 +64,11 @@ struct RideTrackingView: View {
             withAnimation(.easeInOut) { following = true }
             pannedAt = nil
         }
+        // Der Schalter „Bildschirm anlassen" wirkt sofort, nicht erst bei der
+        // nächsten Fahrt.
+        .onChange(of: settings.keepScreenAwake, initial: true) { _, on in
+            tracker.setKeepScreenAwake(on)
+        }
         .confirmationDialog("Fahrt beenden?", isPresented: $confirmStop, titleVisibility: .visible) {
             Button("Fahrt beenden", role: .destructive, action: onStop)
             Button("Weiterfahren", role: .cancel) {}
@@ -102,15 +107,17 @@ struct RideTrackingView: View {
         if tracker.detour != nil { detourBanner } else { turnBanner }
     }
 
-    /// Der Pfeil zeigt **auf der Karte**, nicht nach dem Kurs: neben der Route
-    /// steht die Karte nach Norden (siehe `RouteMapView.showBoth`), also ist
-    /// die Richtung zur Route auch auf dem Bildschirm die Richtung zur Route.
+    /// Der Pfeil zeigt **auf der Karte**, nicht nach Norden. Die Karte ist in
+    /// Fahrtrichtung gedreht, also ist die Richtung zur Route auf dem
+    /// Bildschirm `Richtung − Kurs` — dieselbe Rechnung wie beim Fahrerpfeil.
+    /// Ohne bekannten Kurs steht die Karte nach Norden, dann ist es die
+    /// Richtung selbst.
     @ViewBuilder private var detourBanner: some View {
         if let detour = tracker.detour {
             HStack(spacing: 12) {
                 Image(systemName: "location.north.fill")
                     .font(.system(size: 34, weight: .heavy))
-                    .rotationEffect(.degrees(detour.bearing))
+                    .rotationEffect(.degrees(detour.bearing - (tracker.course >= 0 ? tracker.course : 0)))
                     .frame(width: 46)
                 VStack(alignment: .leading, spacing: -2) {
                     Text(Fmt.km(detour.meters))
@@ -208,9 +215,9 @@ struct RideTrackingView: View {
                 VStack(spacing: 8) {
                     clock(now: context.date)
                     numbers(now: context.date)
+                    signalRow(now: context.date)
                 }
             }
-            signalRow
             stopButton
         }
         .padding(12)
@@ -278,9 +285,14 @@ struct RideTrackingView: View {
     }
 
     /// The count the whole recording is for.
-    private var signalRow: some View {
+    /// Ampelhalts, die dort verbrachte Zeit — und daneben, was **insgesamt**
+    /// gestanden wurde. Die beiden Zahlen sind nicht dasselbe: an der Ampel
+    /// wartet man, im Stau und vor der eigenen Haustür auch, und auf einer
+    /// Pendelfahrt ist der Unterschied genau das, was man wissen will.
+    private func signalRow(now: Date) -> some View {
         let stops = tracker.meter.signalStops
         let total = tracker.meter.signalWaitTotal
+        let standing = max(0, tracker.meter.seconds(at: now) - tracker.meter.movingSeconds)
         return HStack(spacing: 8) {
             TrafficLightIcon()
             VStack(alignment: .leading, spacing: 0) {
@@ -294,8 +306,14 @@ struct RideTrackingView: View {
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
-            if tracker.meter.otherStops > 0 {
-                Text("\(tracker.meter.otherStops) Halt\(tracker.meter.otherStops == 1 ? "" : "e")")
+            VStack(alignment: .trailing, spacing: 0) {
+                Text(Fmt.clock(standing))
+                    .font(.system(.subheadline, design: .rounded, weight: .bold))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                Text(tracker.meter.otherStops > 0
+                     ? "gestanden · \(tracker.meter.otherStops) sonst"
+                     : "gestanden")
                     .font(.system(size: 11, design: .rounded))
                     .foregroundStyle(.secondary)
             }

@@ -104,6 +104,13 @@ final class AppSettings {
         didSet { defaults.set(try? JSONEncoder().encode(learnedSignals), forKey: "learnedSignals") }
     }
 
+    /// Ab wie vielen Metern neben der geplanten Linie der Weg zum Ziel neu
+    /// berechnet wird. 0 schaltet es ab — dann bleibt es beim Pfeil zurück
+    /// zur alten Route.
+    var replanOffRouteMeters: Double = 200 {
+        didSet { defaults.set(replanOffRouteMeters, forKey: "replanOffRouteMeters") }
+    }
+
     /// Whether the screen stays on for the whole ride. Off by default: a
     /// phone in a pocket with the screen lit for forty minutes is the largest
     /// single drain the app can cause, and the recording does not need it.
@@ -197,6 +204,8 @@ final class AppSettings {
         assign(\.orientation, (defaults.string(forKey: "orientationLock"))
             .flatMap(OrientationLock.init(rawValue:)) ?? orientation)
         assign(\.keepScreenAwake, defaults.object(forKey: "keepScreenAwake") as? Bool ?? keepScreenAwake)
+        assign(\.replanOffRouteMeters,
+               defaults.object(forKey: "replanOffRouteMeters") as? Double ?? replanOffRouteMeters)
         loadedOnce = true
     }
 
