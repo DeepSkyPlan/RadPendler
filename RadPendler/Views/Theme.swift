@@ -210,7 +210,13 @@ struct CountdownBox: View {
     @State private var watched: TripOption.ID?
 
     var body: some View {
-        TimelineView(CountdownSchedule(target: option?.getReady)) { context in
+        // Sekundentakt, wie seit jeher. In 1.2 stand hier ein selbst
+        // geschriebener `TimelineSchedule`, der den Takt über zehn Minuten
+        // Restzeit auf zwanzig Sekunden senken sollte — Strom sparen. Er ist
+        // wieder draußen: die Ersparnis war nie gemessen, das Risiko eines
+        // eigenen Schedules ist real, und das Werkzeug, mit dem ich beides
+        // beurteilt habe, hat sich als untauglich erwiesen.
+        TimelineView(.periodic(from: .now, by: 1)) { context in
             let left = option.map { $0.getReady.timeIntervalSince(context.date) }
             let gone = option.map { context.date > $0.leave } ?? false
             Group {
@@ -303,37 +309,3 @@ struct CountdownBox: View {
 }
 
 
-/// Ticks once a second only where seconds are actually shown. Above ten
-/// minutes the pill counts in minutes, and waking the whole title bar once a
-/// second for a number that changes once a minute is work the battery pays
-/// for all morning. Without a departure at all there is nothing to count, and
-/// the slow rate does.
-struct CountdownSchedule: TimelineSchedule {
-    var target: Date?
-
-    static let fine: TimeInterval = 1
-    static let coarse: TimeInterval = 20
-    /// Below this much time left, `CountdownBox.text` shows seconds.
-    static let fineWindow: TimeInterval = 600
-
-    /// How long to wait before the next redraw, given what is left.
-    static func step(left: TimeInterval?) -> TimeInterval {
-        guard let left else { return coarse }
-        return abs(left) <= fineWindow + 5 ? fine : coarse
-    }
-
-    /// Every entry lies **after** `start`. Returning `start` itself means "draw
-    /// now", and since SwiftUI asks for a fresh iterator on every body
-    /// evaluation, "now" answers "now" answers "now": the view redraws, the
-    /// redraw asks for the next date, gets this instant, and redraws again.
-    /// The app then lays itself out at full frame rate for ever — which is
-    /// what 1.2 did until Build 26, and why it burned battery, stuttered under
-    /// the thumb and was eventually killed by the scene-update watchdog.
-    func entries(from start: Date, mode: TimelineScheduleMode) -> AnyIterator<Date> {
-        var next = start
-        return AnyIterator {
-            next = next.addingTimeInterval(Self.step(left: target?.timeIntervalSince(next)))
-            return next
-        }
-    }
-}

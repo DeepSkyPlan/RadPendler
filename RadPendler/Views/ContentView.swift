@@ -314,14 +314,6 @@ struct ContentView: View {
                     Text("Datenquellen: VBB · Transitous/MOTIS · Apple Karten · BRouter und OpenStreetMap · DWD · Open-Meteo")
                         .font(Self.sourceFont)
                         .padding(.top, 5)
-                    // Vorübergehend, solange die Hänger nicht gefunden sind:
-                    // eine Zahl, die man ablesen und weitergeben kann.
-                    if let stalls = StallWatch.shared.summary {
-                        Text(stalls)
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.orange)
-                            .padding(.top, 4)
-                    }
                 }
                 .font(.system(.caption2, design: .rounded))
                 .foregroundStyle(.secondary)
