@@ -209,6 +209,13 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
 
 ## Offen / Ideen
 
+- **Die Hänger von 1.2 sind ungelöst.** Builds 24–27 sind auf dem iPhone des
+  Nutzers unbenutzbar (Watchdog, `scene-update`), Build 23 läuft. Der ganze
+  Befundstand — was belegt ist, welche Messungen sich als falsch erwiesen haben
+  und welche Experimente als Nächstes etwas entscheiden — steht in
+  `_claude.code/RadPendler-Haenger.md`. **Dort anfangen, nicht neu raten**, und
+  nichts nach TestFlight laden, bevor eine Ursache belegt ist.
+
 - **Die Linien reisen (noch) nicht.** Dafür bräuchte es CloudKit, dafür einen
   iCloud-Container im Entwicklerkonto — und der lässt sich **nur von Hand** anlegen:
   <https://developer.apple.com/account/resources/identifiers/list/cloudContainer>, danach
