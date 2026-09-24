@@ -272,7 +272,8 @@ struct ContentView: View {
                       route: RideTrackingView.route(of: model.options, selected: option.id),
                       roadPoints: option.bikeRoute?.roadPoints ?? [],
                       signalSeconds: TimeInterval(settings.signalStopSeconds),
-                      keepScreenAwake: settings.keepScreenAwake)
+                      keepScreenAwake: settings.keepScreenAwake,
+                      replanOffRouteMeters: settings.replanOffRouteMeters)
     }
 
     @ViewBuilder private var rainNote: some View {

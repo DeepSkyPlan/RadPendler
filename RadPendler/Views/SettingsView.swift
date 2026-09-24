@@ -91,6 +91,12 @@ struct SettingsView: View {
                         }
                     }
                     .onChange(of: settings.orientation) { settings.orientation.apply() }
+                    Picker("Neu berechnen ab", selection: $settings.replanOffRouteMeters) {
+                        Text("aus").tag(0.0)
+                        ForEach([100.0, 200.0, 500.0, 1000.0], id: \.self) { m in
+                            Text("\(Int(m)) m neben der Route").tag(m)
+                        }
+                    }
                     Toggle("Bildschirm anlassen", isOn: $settings.keepScreenAwake)
                     Stepper("Ampelhalt ab \(settings.signalStopSeconds) s",
                             value: $settings.signalStopSeconds, in: 10...120, step: 5)

@@ -320,6 +320,7 @@ struct RouteMapView: UIViewRepresentable {
         private var rideSignals = -1
         private var lastCamera: (center: CLLocationCoordinate2D, heading: CLLocationDirection)?
         private var lastBoth: (CLLocationCoordinate2D, CLLocationCoordinate2D)?
+        private var lastBothHeading: CLLocationDirection = 0
         private var endsKey: String?
         /// What we last told the map. Never read back from the view: that is
         /// how the margins loop started.
@@ -548,7 +549,8 @@ struct RouteMapView: UIViewRepresentable {
             live?.coordinate = here
             live?.course = view.course
             if view.following, let other = view.showBoth {
-                fitBoth(map, here, other)
+                fitBoth(map, here, other,
+                        heading: view.course >= 0 ? view.course : map.camera.heading)
             } else if view.following {
                 let heading = view.course >= 0 ? view.course : map.camera.heading
                 // Only when something actually moved. A camera animation
@@ -576,10 +578,19 @@ struct RouteMapView: UIViewRepresentable {
         /// Beides ins Bild: der Fahrer und der nächste Punkt der Route. Neu
         /// eingepasst wird nur, wenn sich wirklich etwas bewegt hat — sonst
         /// setzt sich die Karte im Sekundentakt selbst neu und steht nie still.
+        ///
+        /// **Die Karte bleibt dabei in Fahrtrichtung gedreht.** Sie kurz auf
+        /// Norden zu stellen war ein Fehlgriff: auf dem Rad liest man die
+        /// Karte als „was vor mir liegt", und eine Karte, die sich beim
+        /// Verlassen der Route plötzlich dreht, ist genau dann unlesbar, wenn
+        /// man sie am nötigsten braucht. Der Pfeil zeigt entsprechend auf
+        /// `Richtung − Kurs`, wie der Fahrerpfeil auch.
         private func fitBoth(_ map: MKMapView, _ here: CLLocationCoordinate2D,
-                             _ other: CLLocationCoordinate2D) {
-            if let last = lastBoth, last.0.distance(to: here) < 25, last.1.distance(to: other) < 25 { return }
+                             _ other: CLLocationCoordinate2D, heading: CLLocationDirection) {
+            if let last = lastBoth, last.0.distance(to: here) < 25, last.1.distance(to: other) < 25,
+               abs(lastBothHeading - heading) < 4 { return }
             lastBoth = (here, other)
+            lastBothHeading = heading
             lastCamera = nil
             let mid = CLLocationCoordinate2D(latitude: (here.latitude + other.latitude) / 2,
                                              longitude: (here.longitude + other.longitude) / 2)
@@ -588,7 +599,7 @@ struct RouteMapView: UIViewRepresentable {
             // zeigt sie am Rand und nichts dazwischen.
             let apart = here.distance(to: other)
             map.setCamera(MKMapCamera(lookingAtCenter: mid, fromDistance: Swift.max(apart * 2.5, 600),
-                                      pitch: 0, heading: 0), animated: true)
+                                      pitch: 0, heading: heading), animated: true)
         }
 
         private func drawRoutes(_ map: MKMapView, _ view: RouteMapView) {

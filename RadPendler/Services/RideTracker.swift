@@ -47,6 +47,10 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     init(store: RideStore = .shared) {
         self.store = store
         super.init()
+        NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification,
+                                               object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.applyIdleTimer() }
+        }
         manager.delegate = self
         // `Best`, not `BestForNavigation`: the latter keeps the receiver and
         // its sensor fusion at full tilt for turn-by-turn guidance the app
@@ -87,6 +91,10 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// Wie oft der Weg unterwegs neu berechnet wurde. Nur fürs Protokoll.
     private(set) var replans = 0
     private var lastReplan = Date.distantPast
+    /// Ab wann neu berechnet wird; 0 schaltet es ab.
+    private var replanOffRouteMeters = OffRoute.replanMeters
+    /// Seit wann ohne Unterbrechung neben der Route.
+    private var offSince: Date?
     private var replanTask: Task<Void, Never>?
     private let router = CompositeRouter()
 
@@ -98,9 +106,11 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                route: [CLLocationCoordinate2D] = [],
                roadPoints: [RoadPoint] = [],
                signalSeconds: TimeInterval = RideMeter.defaultSignalSeconds,
-               keepScreenAwake: Bool = false) {
+               keepScreenAwake: Bool = false,
+               replanOffRouteMeters: Double = OffRoute.replanMeters) {
         guard !isRecording else { return }
         self.signalSeconds = signalSeconds
+        self.replanOffRouteMeters = replanOffRouteMeters
         self.keepScreenAwake = keepScreenAwake
         self.roadPoints = roadPoints
         plannedRoute = route
@@ -110,6 +120,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         nextTurn = nil
         detour = nil
         replans = 0
+        offSince = nil
         lastReplan = .distantPast
         replanTask?.cancel()
         replanTask = nil
@@ -131,7 +142,30 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
 
     private var pending: (Subject, [CLLocationCoordinate2D])?
     private var signalSeconds = RideMeter.defaultSignalSeconds
-    private var keepScreenAwake = false
+    /// Ob der Bildschirm während dieser Fahrt an bleiben soll. Lässt sich
+    /// mitten in der Fahrt umstellen — der Schalter in den Einstellungen wirkt
+    /// sofort und nicht erst bei der nächsten Fahrt.
+    private(set) var keepScreenAwake = false {
+        didSet { applyIdleTimer() }
+    }
+
+    func setKeepScreenAwake(_ on: Bool) {
+        guard keepScreenAwake != on else { return }
+        keepScreenAwake = on
+    }
+
+    /// **Einmal setzen reicht nicht.** `isIdleTimerDisabled` gilt nur, solange
+    /// die App vorn ist; kommt sie aus dem Hintergrund zurück — und das tut
+    /// sie auf einer Fahrt dauernd, weil der Bildschirm sich sperrt und wieder
+    /// aufwacht —, steht das Flag wieder auf dem Voreingestellten, und das
+    /// Telefon schläft mitten auf der Kreuzung ein. Deshalb wird es bei jeder
+    /// Rückkehr nach vorn und bei jeder Ortung neu behauptet; die Zuweisung
+    /// kostet nichts, wenn sie schon stimmt.
+    private func applyIdleTimer() {
+        let wanted = isRecording && keepScreenAwake
+        guard UIApplication.shared.isIdleTimerDisabled != wanted else { return }
+        UIApplication.shared.isIdleTimerDisabled = wanted
+    }
     private var roadPoints: [RoadPoint] = []
 
     private func begin(_ subject: Subject, _ signals: [CLLocationCoordinate2D]) {
@@ -146,7 +180,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         manager.allowsBackgroundLocationUpdates = true
         manager.showsBackgroundLocationIndicator = true
         manager.startUpdatingLocation()
-        UIApplication.shared.isIdleTimerDisabled = keepScreenAwake
+        applyIdleTimer()
         pushToWatch(force: true)
     }
 
@@ -157,12 +191,12 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         guard let subject else { return nil }
         manager.stopUpdatingLocation()
         manager.allowsBackgroundLocationUpdates = false
-        UIApplication.shared.isIdleTimerDisabled = false
         meter.finish(at: end)
         let (ride, track) = meter.result(id: subject.id, origin: subject.origin,
                                          destination: subject.destination, mode: subject.mode,
                                          plannedSeconds: subject.plannedSeconds, end: end)
         self.subject = nil
+        applyIdleTimer()
         // A ride of thirty seconds is a tap on the wrong button, not a commute.
         if ride.seconds >= 60, ride.meters >= 100 {
             store.add(ride, track: track)
@@ -234,6 +268,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
 
     private func accept(_ fixes: [RideMeter.Fix], _ courses: [CLLocationDirection]) {
         guard isRecording else { return }
+        applyIdleTimer()
         for fix in fixes { meter.add(fix) }
         if let last = fixes.last {
             here = last.coordinate
@@ -291,7 +326,13 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         }
         let next = OffRoute.isOff(fix.meters, was: detour != nil) ? fix : nil
         if detour != next { detour = next }
-        guard let next, next.meters > OffRoute.replanMeters else { return }
+        guard let next else { offSince = nil; return }
+        let since = offSince ?? .now
+        offSince = since
+        // Weit genug daneben, und lange genug am Stück: ein kurzer Bogen um
+        // eine Baustelle ist kein neuer Weg.
+        guard replanOffRouteMeters > 0, next.meters > replanOffRouteMeters,
+              Date.now.timeIntervalSince(since) >= OffRoute.offFor else { return }
         replan(from: here)
     }
 
@@ -327,6 +368,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         turns = TurnGuide.steps(on: route.coordinates)
         nextTurn = nil
         if detour != nil { detour = nil }
+        offSince = nil
         replans += 1
         // Die Beläge des neuen Wegs kommen hinten dran. Zugeordnet wird nach
         // Nähe mit einem mitlaufenden Index — was schon zugeordnet ist, bleibt.
