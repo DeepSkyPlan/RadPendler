@@ -1,4 +1,4 @@
-# RadPendler — Übergabe (Stand 24.09.2026, 1.2 / nach Build 26)
+# RadPendler — Übergabe (Stand 24.09.2026, abends · 1.3 / Build 35)
 
 Multimodaler Pendel-Planer für iPhone, iPad und Apple Watch: Büro ↔ Zuhause mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln,
 Regen und Countdown.
@@ -7,7 +7,7 @@ Das Projekt ist quelloffen (MIT); Adressen und Schlüssel gehören nicht hinein.
 ## Bauen, testen, ausliefern
 
 ```bash
-./dev test      # generiert das .xcodeproj bei Bedarf, dann 139 Tests im Simulator
+./dev test      # generiert das .xcodeproj bei Bedarf, dann 154 Tests im Simulator
 #               MOTIS_LIVE=1 schaltet zusätzlich den echten Transitous-Aufruf frei
 #               (aus Xcode heraus; xcodebuild reicht die Variable nicht durch)
 ./dev open      # Xcode mit demselben DerivedData wie die Kommandozeile
@@ -77,6 +77,13 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   Schlüssel-Wert-Speicher und damit in iCloud, Linien je eine Datei und damit nur lokal),
   `TurnGuide` (Abbiegehinweise **aus der gezeichneten Linie**, rein und testbar:
   kein Router sagt sie an, und keiner muss es),
+  `OffRoute` (wo die geplante Linie liegt, wenn man nicht auf ihr ist — reine
+  Geometrie mit Hysterese, plus `shouldReplan`: Entfernung **oder** Zeit),
+  `BackgroundReplan` (`BGAppRefreshTask`; stellt die Warnungen auf den aktuellen
+  Fahrplan nach, während die App zu ist — dieselbe Frage, die auf dem Bildschirm
+  stand, liegt als `countdownQuestion` in den UserDefaults),
+  `TrackCloud` (die **Linien** der Fahrten über CloudKit; ohne Container ein
+  stiller Nichtstuer, und ein abgewiesener Upload steht in der Fahrtenliste),
   `Location` (ein einzelner Fix auf Tippen, danach nichts mehr;
   `place(from:at:)` ist absichtlich `nonisolated`, damit es ohne Gerät testbar ist),
   `Motis` (Transitous/MOTIS 2: `MotisClient` + `MotisParser`, inkl.
@@ -123,10 +130,27 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   Haltestellen Ergebnisse, mit Adressen kommt H890 → die App wählt die Bahnhöfe selbst (3 × 4
   bevorzugte S/RE-Paare plus 2 × 2 beliebige für die U-Bahn-Alternative).
 - Ankunftssuche = `outFrwd: false`; mehrere `arrLocL` funktionieren **nicht**.
-- **BRouter** (brouter.de): Profile trekking/fastbike/safety, `alternativeidx` 0–2.
-- **Overpass**: eine bbox-Abfrage je Korridor (`convert` für schlanke Ausgabe, ~3,7 MB, ~7 s),
-  30 Tage in `Caches/osm-roads` gecacht. Abfragen entlang der Polylinie dauerten 45 s — nicht tun.
-  Bei Ausfall fehlen Ampeln und Hauptstraßen, die App zeigt das an.
+- **BRouter** (brouter.de): Profile trekking/fastbike/safety/shortest/fastbike-lowtraffic.
+  **Höchstens drei Anfragen gleichzeitig** — auf acht auf einmal antwortet der öffentliche
+  Server mit `403 Please, retry later!`, und zwar dauerhaft für diese IP (nachgemessen,
+  auch einzeln nach zwanzig Minuten Pause). Gefragt wird nur, was die eingestellten Rollen
+  brauchen: voreingestellt vier Anfragen statt neun. Antwortet er gar nicht, steht das
+  unter der Route.
+- **Overpass**: **entlang der Route**, nicht im umschließenden Kasten. Gemessen an 20 km
+  quer durch Berlin, beide Abfragen gegen overpass-api.de:
+
+  | | Kasten | Schlauch (`around:300`) |
+  |---|---|---|
+  | Antwort | 3 623 902 B | **287 349 B** |
+  | Elemente | 18 238 | **1 410** |
+
+  Eine ältere Fassung dieser Übergabe behauptete das Gegenteil („Abfragen entlang der
+  Polylinie dauerten 45 s — nicht tun"). Das stimmt nicht; der Unterschied war
+  vermutlich, dass damals jeder Routenpunkt einzeln in `around` stand statt eines auf
+  150 m ausgedünnten Schlauchs. 30 Tage in `Caches/osm-roads` gecacht, mit
+  Deckungsprüfung (`Corridor.covers`) — ein alter, schmalerer Schlauch darf nicht
+  stillschweigend Ampeln verschlucken. Scheitert die Abfrage (`504` kommt unter Last
+  vor), läuft ein geduldigerer zweiter Versuch im Hintergrund und füllt den Cache.
 - **Open-Meteo** `minutely_15` für Regen je Streckenpunkt, **DWD-WMS** `dwd:Niederschlagsradar`
   (−3 d … +2 h) für die Radarkacheln.
 - **Transitous / MOTIS 2** `https://api.transitous.org/api/v1/plan` — bundesweit und darüber
@@ -175,12 +199,21 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   `UIBackgroundModes: location` steht deshalb in `RadPendlerInfo.plist`. Wer daran etwas
   ändert, ändert auch den App-Datenschutz-Fragebogen und die Datenschutzerklärung —
   **beide sind für diesen Stand noch nicht nachgezogen.**
-- **Alles, was die Fahrt führt, friert beim Start der Fahrt ein.** `RideTracker.start`
+- **Im Fahrtmodus bleibt der Bildschirm an, bis die Fahrt beendet ist** — ohne Schalter
+  (Nutzer, 24.09.2026). Es gab einen; ein Blick auf die Karte an der Kreuzung nützt nichts,
+  wenn man vorher entsperren muss. **`isIdleTimerDisabled` einmal zu setzen reicht nicht:**
+  das Flag gilt nur, solange die App vorn ist, und auf einer Fahrt kommt sie dauernd aus
+  dem Hintergrund zurück. Es wird bei jeder Rückkehr und jeder Ortung neu behauptet.
+- **Alles, was die Fahrt führt, friert beim Start der Fahrt ein** — mit **einer** Ausnahme: `RideTracker.start`
   bekommt die Kreuzungen *und die Route* der geplanten Fahrt mit. Eine Neuplanung
   unterwegs darf weder nachträglich entscheiden, ob ein Halt vor drei Kilometern eine
   Ampel war, noch den Abbiegepfeil auf eine Straße zeigen lassen, auf der man nicht ist —
   und ein Plan, der still leer zurückkommt, darf die Führung nicht mitnehmen. Genau das
   ist am 23.09. im Simulator passiert, bevor die Route mit einfror.
+  Die Ausnahme ist die **Neuplanung beim Verlassen der Route** (einstellbar, voreingestellt
+  ab 200 m und fünfzehn Sekunden am Stück daneben, oder nach einer eingestellten Zahl
+  Minuten — was zuerst eintritt). Sie ändert nur den Weg nach vorn; gemessen bleibt, was
+  gemessen wurde.
 - **Ein Halt ab `signalStopSeconds` (30 s) ist eine Ampel**, auch ohne Kartendaten, und
   wird als `LearnedSignal` behalten. Gelernte Ampeln wirken in zwei Richtungen zurück:
   in `RideMeter.signals` der nächsten Fahrt und über `TripPlanner.withLearned` in
@@ -211,14 +244,31 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
 - **`OrientationLock.apply()` fordert in `auto` bewusst *keine* Geometrieänderung an.**
   Ein `requestGeometryUpdate` mit „alle Richtungen" nagelt die App auf die Lage fest, in
   der sie gerade ist — das Gegenteil von automatisch.
-- **Von den Fahrten reisen nur die Kennzahlen, nie die Linien.** Beides zusammen passt
-  nicht: der Schlüssel-Wert-Speicher fasst 1 MB für die ganze App, eine Linie ist rund
-  80 kB. Die Zusammenfassungen liegen deshalb unter `CloudStore.ridesKey` (komprimiert,
-  gedeckelt auf `RideStore.maxRides`), die Linien als Dateien unter `Rides/tracks/`.
+- **Die Kennzahlen reisen über den Schlüssel-Wert-Speicher, die Linien über CloudKit.**
+  Beides über denselben Weg ginge nicht: der Schlüssel-Wert-Speicher fasst 1 MB für die
+  ganze App, eine Linie ist rund 80 kB. Die Zusammenfassungen liegen deshalb unter
+  `CloudStore.ridesKey` (komprimiert,
+  gedeckelt auf `RideStore.maxRides`), die Linien als Dateien unter `Rides/tracks/` **und**
+  als `CKAsset` in der privaten CloudKit-Datenbank (`TrackCloud`, Container
+  `iCloud.org.afjk.radpendler`).
   `rides` ist wie `placeHistory` ein **zusammengeführter** Schlüssel — deshalb wirkt ein
   Löschen nur auf dem Gerät, auf dem gelöscht wurde, und die App sagt das auch.
   `CloudStore.settingsKeys` ist die Liste, gegen die
   `testEverySettingTheAppSavesAlsoTravelsThroughICloud` prüft; `keys` ist sie plus `rides`.
+- **Wie viele Möglichkeiten je Verkehrsmittel, entscheidet der Nutzer** (1–3,
+  voreingestellt 3). Die Zahl begrenzt nicht nur die Anzeige, sondern das **Rechnen**:
+  geholt wird nur, was die obersten Rollen der eigenen Reihenfolge brauchen. Gewinnt eine
+  Linie mehrere Rollen, steht sie einmal da und trägt alle ihre Namen — dann sind es eben
+  weniger Kästen. Eine namenlose „Alternative" danebenzustellen war ein Versuch in 1.3 und
+  ist wieder draußen: dreimal „Alternative" untereinander sagt nichts.
+- **Die Namen der Radvarianten sagen, was sie messen.** „wenig Autos" (die wenigsten Meter
+  neben fahrenden Autos) und „wenig Halts" (am seltensten ihretwegen anhalten) — vorher
+  hießen sie „ruhigst" und „verkehrsarm" und waren am Wort nicht auseinanderzuhalten.
+  Voreingestellte Reihenfolge: **optimal › schnellst › kürzest**, die beiden anderen
+  dahinter.
+- **Die Einstellungen stehen auf vier Seiten**, vier Einträgen im Menü: Adressen,
+  Navigation, Verkehrsmittel, Einstellungen. Es war eine Seite mit sechzehn Abschnitten.
+  `Page` in `SettingsView.swift` ist die gemeinsame Klammer.
 - **Keine Adressen im Programm** — die App startet leer. Adressen und Einstellungen liegen
   auf dem Gerät und in der **privaten iCloud des Nutzers** (Schlüssel-Wert-Speicher,
   Entitlement `com.apple.developer.ubiquity-kvstore-identifier`); sie gehen an keinen
@@ -228,6 +278,25 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
 - Adressen werden immer mit PLZ und Ort gezeigt; in der Kopfzeile klein hinter der Straße,
   sonst als zweite Zeile.
 - Blockreihenfolge: Fahrrad, Rad + Bahn, Auto, Bahn & Bus.
+
+## Was seit 1.2 dazugekommen ist (Builds 28–35)
+
+Ein Tag, acht Builds; die Reihenfolge steht im `CHANGELOG.md`, hier nur, was man wissen
+muss, um sich zurechtzufinden.
+
+- **Der Hänger ist weg** — ein `TimelineView` in einer `ToolbarItem`. Siehe unten.
+- **Die Kästen füllen sich der Reihe nach** (Reihenfolge aus den Einstellungen), und
+  aktiv ist die erste Kategorie dieser Reihenfolge, die etwas gefunden hat — nicht die
+  empfohlene.
+- **Höhenmeter zählen in die Fahrzeit**, fünf Sekunden je Meter, aus BRouters
+  `filtered ascend`. Eine Linie ohne Höhen (Apple Karten) bekommt für die Bewertung den
+  Durchschnitt der bekannten, damit sie weder gewinnt noch verliert.
+- **Neben der Route**: Pfeil zurück, Karte geht heraus und bleibt in Fahrtrichtung, und
+  eine Neuplanung nach Entfernung oder Zeit.
+- **Warnungen stimmen auch, während die App zu ist** (`BackgroundReplan`).
+- **Das Regenradar wird geglättet** — über den Kachelrand hinaus, sonst Nähte.
+- **Der Straßenbalken** steht auch auf der Hauptseite, dünn und ohne Legende.
+- **Die Fahrtansicht zeigt die Gesamtstandzeit** neben der Zeit an den Ampeln.
 
 ## Offen / Ideen
 
@@ -258,12 +327,16 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   **vier nachgemessene Sackgassen**, die man nicht nochmal gehen muss, und wo der
   erhaltene Stand liegt. Dort anfangen.
 
-- **Die Linien reisen** (seit Build 29). `TrackCloud` hängt an `RideStore.add` /
-  `delete` / `track(for:)`; Container `iCloud.org.afjk.radpendler` steht im Portal und
-  ist dem App-Identifier zugewiesen, die Berechtigung in `project.yml` ist an. Offen:
-  das Schema im CloudKit-Dashboard einmal von Development nach Production übernehmen —
-  erst dann reisen die Linien auch für die veröffentlichte App.
-- **Signieren geht wieder von der Kommandozeile** (seit 24.09.2026, abends). Die
+- **Die Linien reisen** (seit Build 29, Schema seit 24.09.2026 in Production).
+  `TrackCloud` hängt an `RideStore.add` / `delete` / `track(for:)`.
+  **Die Falle, die einen Abend gekostet hat:** ein TestFlight-Build schreibt in die
+  **Production**-Umgebung, nur ein Bau direkt aus Xcode in Development — und in Production
+  legt CloudKit **keine Datensatztypen von selbst an**. Die erste Fahrt wurde deshalb
+  abgewiesen, folgenlos und unsichtbar. Wer den Typ neu braucht: in Development anlegen
+  (`RideTrack` mit Feld `track`, Typ Asset) und *Deploy Schema Changes*. Seit Build 35
+  steht ein abgewiesener Upload mit Grund in der Fahrtenliste.
+- **Signieren geht wieder von der Kommandozeile**, seit Build 35 auch nachgewiesen
+  (Archiv und Upload mit `CODE_SIGN_STYLE: Automatic`). Die
   Xcode-Team-Profile waren älter als der iCloud-Container und kannten ihn nicht;
   automatisches Signieren nimmt **nur** Xcode-eigene Profile und kann sie ohne
   angemeldetes Konto nicht auffrischen — `-allowProvisioningUpdates` scheitert mit
