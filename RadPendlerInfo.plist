@@ -6,10 +6,19 @@
 	     project.yml und mischt es hier hinein. Hier steht nur, was es als
 	     Einstellung nicht gibt: der Hintergrundmodus für die Aufzeichnung
 	     einer Fahrt. Er ist nur zwischen „Fahrt aufzeichnen" und „Fahrt
-	     beenden" aktiv — siehe RideTracker. -->
+	     beenden" aktiv — siehe RideTracker. Dazu „fetch": damit darf iOS die
+	     App gelegentlich wecken, um den Fahrplan nachzuschlagen und die
+	     Warnungen nachzustellen — siehe BackgroundReplan. -->
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
+		<string>fetch</string>
+	</array>
+	<!-- Ohne diese Liste lehnt BGTaskScheduler die Anmeldung ab. Die Kennung
+	     steht genauso in BackgroundReplan.taskID. -->
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>de.keese.radpendler.replan</string>
 	</array>
 </dict>
 </plist>

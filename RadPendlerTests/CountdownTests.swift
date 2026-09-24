@@ -57,4 +57,50 @@ final class CountdownTests: XCTestCase {
         XCTAssertEqual(Countdown.urgency(nil), .idle)
         XCTAssertEqual(Countdown.urgency(600, gone: true), .gone)
     }
+
+    // MARK: Was die geweckte App nachstellt
+
+    private func trip(_ mode: TravelMode, _ kind: LegKind, leave: Date) -> TripOption {
+        TripOption(mode: mode, legs: [Leg(kind: kind, fromName: "a", toName: "b", departure: leave,
+                                          arrival: leave.addingTimeInterval(900))], prep: 300)
+    }
+
+    /// Die im Hintergrund geweckte App muss dieselbe Frage stellen wie der
+    /// Bildschirm: dieselbe Kategorie, die beste Möglichkeit darin, die
+    /// Alternative zuletzt. Sucht sie sich selbst eine Verbindung, warnt sie
+    /// zuverlässig vor dem falschen Zug.
+    func testTheWokenAppPicksTheSameTripTheScreenShowed() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        // Rad + Bahn über die Tram ist die Alternative, die über die S-Bahn nicht.
+        let viaTram = trip(.bikeTransit, .transit(line: "M10", product: .tram), leave: now.addingTimeInterval(300))
+        let viaSBahn = trip(.bikeTransit, .transit(line: "S7", product: .suburban), leave: now.addingTimeInterval(600))
+        XCTAssertTrue(viaTram.isAlternative)
+        XCTAssertFalse(viaSBahn.isAlternative)
+        let byBike = trip(.bike, .bike, leave: now)
+
+        let q = BackgroundReplan.Question(mode: TravelMode.bikeTransit.rawValue, date: nil, isArrival: false)
+        XCTAssertEqual(BackgroundReplan.option(for: q, in: [viaTram, byBike, viaSBahn])?.id, viaSBahn.id,
+                       "die Alternative kommt zuletzt, auch wenn sie früher fährt")
+        XCTAssertNil(BackgroundReplan.option(for: q, in: [byBike]), "keine Verbindung dieser Kategorie")
+
+        let byBikeNow = BackgroundReplan.Question(mode: TravelMode.bike.rawValue, date: nil, isArrival: false)
+        XCTAssertNil(BackgroundReplan.option(for: byBikeNow, in: [byBike]),
+                     "Rad mit „jetzt los“ hat keine feste Abfahrt — da ist nichts nachzustellen")
+        let byBikeThere = BackgroundReplan.Question(mode: TravelMode.bike.rawValue, date: now, isArrival: true)
+        XCTAssertEqual(BackgroundReplan.option(for: byBikeThere, in: [byBike])?.id, byBike.id,
+                       "mit gewünschter Ankunft dagegen schon")
+    }
+
+    /// Die Frage überlebt das Schließen der App — sie liegt in den UserDefaults,
+    /// und nil löscht sie wieder.
+    func testTheRememberedQuestionSurvivesAndClears() {
+        let before = BackgroundReplan.remembered
+        defer { BackgroundReplan.remember(before) }
+        let q = BackgroundReplan.Question(mode: TravelMode.transit.rawValue,
+                                          date: Date(timeIntervalSince1970: 1_800_000_000), isArrival: true)
+        BackgroundReplan.remember(q)
+        XCTAssertEqual(BackgroundReplan.remembered, q)
+        BackgroundReplan.remember(nil)
+        XCTAssertNil(BackgroundReplan.remembered)
+    }
 }
