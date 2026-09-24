@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.3 (Build 35) — weniger, dafür deutlicher
+
+- **Keine namenlosen „Alternative"-Kästen mehr.** Drei- bis fünfmal „Alternative"
+  untereinander sagt nichts, und jede davon kostete eine Anfrage.
+- **Neu: „Möglichkeiten je Verkehrsmittel" (1–3).** Begrenzt nicht nur die Anzeige,
+  sondern das Rechnen: statt neun BRouter-Anfragen sind es voreingestellt vier.
+- **Voreingestellte Reihenfolge ist jetzt optimal › schnellst › kürzest.** „wenig Autos"
+  und „wenig Halts" stehen dahinter; wer sie sehen will, zieht sie in den Einstellungen
+  nach oben. Genau deshalb waren sie zuletzt verschwunden.
+- **Die Einstellungen stehen auf vier Seiten** statt auf einer mit sechzehn Abschnitten:
+  Adressen, Navigation, Verkehrsmittel, Einstellungen.
+- **Die Detailseite**: größere Karte, vor und zurück innerhalb der Kategorie, die Liste
+  der gequerten Hauptstraßen eingeklappt, und kein Zeitstrahl mehr, wo er nur wiederholt,
+  was zwei Zeilen höher steht.
+- **Wenn die Linien nicht in die iCloud kommen, steht das jetzt in der Fahrtenliste** —
+  mit dem Grund. Vorher war es folgenlos und unsichtbar zugleich.
+
 ## 1.3 (Build 33) — vier Funde von der Heimfahrt
 
 - **Im Fahrtmodus bleibt der Bildschirm an**, bis du die Fahrt beendest. Vorher ging er
