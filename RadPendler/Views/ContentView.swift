@@ -159,9 +159,13 @@ struct ContentView: View {
             RideTrackingView(options: model.options, selectedID: model.selected?.id,
                              onStop: {
                                  tracker.stop()
-                                 // Where this ride stood is what the next one
-                                 // knows: the junctions no map has.
-                                 settings.learn(tracker.meter.stops)
+                                 // Where this ride stood — and where it rolled
+                                 // straight through — is what the next one
+                                 // knows: the junctions no map has, and what
+                                 // the known ones really cost.
+                                 settings.learn(stops: tracker.meter.stops,
+                                                track: tracker.meter.points,
+                                                junctions: tracker.meter.signals)
                              })
         } else if isTwoColumn {
             HStack(alignment: .top, spacing: 0) {

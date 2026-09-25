@@ -118,6 +118,28 @@ final class RideTests: XCTestCase {
         XCTAssertEqual(m.signalWaitTotal, 0)
     }
 
+    /// Vor der ersten Kurbelumdrehung steht man in der eigenen Einfahrt und
+    /// sucht die Handschuhe. Über die Dreißig-Sekunden-Regel wurde daraus eine
+    /// Ampel an der eigenen Haustür, die jede spätere Planung verlängerte.
+    func testStandingBeforeTheFirstPedalStrokeIsNoTrafficLight() {
+        var m = RideMeter()
+        for i in 0...60 { m.add(fix(0, Double(i), speed: 0)) }       // eine Minute Stillstand
+        for i in 61...70 { m.add(fix(Double(i - 60) * 5, Double(i), speed: 5)) }
+        m.finish(at: start.addingTimeInterval(70))
+        XCTAssertEqual(m.stops.count, 1, "gestanden hat er, das bleibt wahr")
+        XCTAssertEqual(m.signalStops, 0)
+        XCTAssertEqual(m.otherStops, 1)
+    }
+
+    func testStandingWhenTheRideEndsIsNoTrafficLight() {
+        var m = RideMeter()
+        for i in 0...10 { m.add(fix(Double(i) * 5, Double(i), speed: 5)) }
+        for i in 11...60 { m.add(fix(50, Double(i), speed: 0)) }     // angekommen, Knopf noch nicht gedrückt
+        m.finish(at: start.addingTimeInterval(60))
+        XCTAssertEqual(m.stops.count, 1)
+        XCTAssertEqual(m.signalStops, 0, "das ist das Ziel, keine Kreuzung")
+    }
+
     func testTheSignalRadiusIsGenerousButNotEndless() {
         var m = RideMeter()
         m.signals = [base]

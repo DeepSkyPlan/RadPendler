@@ -23,6 +23,25 @@ final class BikeRouteTests: XCTestCase {
         XCTAssertEqual(st.mainRoadMeters, 340, accuracy: 60)   // ~300 m beside Clayallee + ~40 m at the B 1
     }
 
+    /// Eine gelernte Kreuzung zählt wie eine der Karte — und bringt mit, was
+    /// sie diesen Fahrer wirklich kostet. Liegt sie auf einer, ist es eine.
+    func testLearnedJunctionsCountOnceAndCarryTheirMeasuredWait() {
+        let route = stride(from: 0.0, through: 1000, by: 20).map { c(0, $0) }
+        let mapped = LearnedSignal(lat: c(0, 300).latitude, lon: c(0, 300).longitude, stops: 3,
+                                   totalWait: 30, lastSeen: .now, passes: 20)
+        let unmapped = LearnedSignal(lat: c(0, 700).latitude, lon: c(0, 700).longitude, stops: 9,
+                                     totalWait: 360, lastSeen: .now, passes: 10)
+        let data = RoadData(signals: [c(2, 298), c(0, 900)], roads: [], learned: [mapped, unmapped])
+        let st = RouteAnalyzer.analyze(route, roads: data)
+        XCTAssertEqual(st.signals, 3, "die gelernte auf der gemappten ist eine Kreuzung")
+        XCTAssertEqual(st.learnedSignals.count, 2)
+        var s = PlanSettings()
+        s.signalWaitSeconds = 20
+        // 300 m: gemessen billig. 700 m: gemessen teuer. 900 m: nur die Karte.
+        XCTAssertEqual(s.signalWait(signals: st.signals, learned: st.learnedSignals),
+                       (30 + 60) / 23.0 + (360 + 60) / 13.0 + 20, accuracy: 0.01)
+    }
+
     func testDualCarriagewayCountsOnce() {
         let route = stride(from: 0.0, through: 1000, by: 20).map { c(0, $0) }
         let data = RoadData(signals: [], roads: [

@@ -180,6 +180,9 @@ struct TripNotes: View {
 /// has no card — its facts are the timeline.
 struct TripFacts: View {
     var option: TripOption
+    /// Nur für die Ampelzeit: die eingestellte Wartezeit gilt für jede
+    /// Kreuzung, die keine eigene gemessene mitbringt.
+    @Environment(AppSettings.self) private var settings
 
     var body: some View {
         if let bike = option.bikeRoute {
@@ -187,6 +190,15 @@ struct TripFacts: View {
         } else if let car = option.carRoute {
             carCard(car)
         }
+    }
+
+    /// Die Ampeln und was sie kosten. Die Zeit steht dabei, weil sie sonst
+    /// nirgends steht: sie ist der Unterschied zwischen Strecke ÷ Tempo und
+    /// der Fahrzeit, die oben angezeigt wird.
+    private func signalChip(_ st: BikeRouteStats) -> String {
+        let wait = PlanSettings.signalWait(signals: st.signals, learned: st.learnedSignals,
+                                           flat: TimeInterval(settings.signalWaitSeconds))
+        return "\(st.signals) Ampeln · \(Fmt.duration(wait))"
     }
 
     private func bikeCard(_ bike: BikeRouteInfo) -> some View {
@@ -205,7 +217,11 @@ struct TripFacts: View {
             }
             if let st = bike.stats {
                 HStack(spacing: 6) {
-                    Chip(text: "\(st.signals) Ampeln", icon: AnyView(TrafficLightIcon()))
+                    // Mit der Zeit, die sie kosten: sie ist der Unterschied
+                    // zwischen Strecke ÷ Tempo und der angezeigten Fahrzeit,
+                    // und ohne sie steht da eine Zahl, die niemand nachrechnen
+                    // kann.
+                    Chip(text: signalChip(st), icon: AnyView(TrafficLightIcon()))
                     Chip(text: "\(st.crossings.count)× quer", symbol: "arrow.left.arrow.right")
                     Chip(text: "\(Fmt.km(st.mainRoadMeters)) an Hauptstraßen", symbol: "road.lanes")
                 }

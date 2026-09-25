@@ -158,9 +158,12 @@ final class GuideTests: XCTestCase {
         func fix(_ meters: Double, _ s: Double, _ v: Double) -> RideMeter.Fix {
             RideMeter.Fix(coordinate: east(meters), time: start.addingTimeInterval(s), speed: v, accuracy: 5)
         }
+        // Unterwegs, nicht am Ziel: die Fahrt geht danach weiter. Der letzte
+        // Stillstand einer Fahrt ist die Ankunft und darf keine Ampel werden.
         for i in 0...9 { m.add(fix(Double(i) * 5, Double(i), 5)) }
         for i in 10...50 { m.add(fix(45, Double(i), 0.1)) }     // 40 s Stillstand
-        m.finish(at: start.addingTimeInterval(50))
+        for i in 51...60 { m.add(fix(45 + Double(i - 50) * 5, Double(i), 5)) }
+        m.finish(at: start.addingTimeInterval(60))
         XCTAssertEqual(m.signalStops, 1)
         XCTAssertEqual(m.otherStops, 0)
 
@@ -169,7 +172,8 @@ final class GuideTests: XCTestCase {
         short.signalSeconds = 30
         for i in 0...9 { short.add(fix(Double(i) * 5, Double(i), 5)) }
         for i in 10...20 { short.add(fix(45, Double(i), 0.1)) }
-        short.finish(at: start.addingTimeInterval(20))
+        for i in 21...30 { short.add(fix(45 + Double(i - 20) * 5, Double(i), 5)) }
+        short.finish(at: start.addingTimeInterval(30))
         XCTAssertEqual(short.signalStops, 0)
         XCTAssertEqual(short.otherStops, 1)
     }
