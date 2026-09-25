@@ -11,6 +11,7 @@ struct RideTrackingView: View {
     @Environment(RideTracker.self) private var tracker
     @Environment(AppSettings.self) private var settings
     @Environment(\.verticalSizeClass) private var heightClass
+    @Environment(\.scenePhase) private var phase
     var options: [TripOption]
     var selectedID: TripOption.ID?
     /// Ends the ride and hands back its summary.
@@ -18,6 +19,12 @@ struct RideTrackingView: View {
 
     @State private var following = true
     @State private var confirmStop = false
+    /// Der Bildschirm, der nach einer Weile dunkel wird — und beim ersten
+    /// Antippen wieder hell.
+    @State private var screen = ScreenDim()
+    /// Wann zuletzt etwas passiert ist, das den Bildschirm wachhält: eine
+    /// Berührung, eine Abbiegung, ein Abweichen von der Route.
+    @State private var lastTouch = Date.now
     /// When the map was last dragged. The camera comes back on its own after
     /// `Self.recenterAfter` — nobody wants to remember to press a button again
     /// while riding, and a map that stays where it was pushed is a map that
@@ -26,6 +33,18 @@ struct RideTrackingView: View {
     static let recenterAfter: Duration = .seconds(30)
 
     private var isLandscape: Bool { heightClass == .compact }
+
+    /// Neu gesetzt heißt: die Uhr fängt von vorn an.
+    private var dimKey: Date { lastTouch }
+
+    /// Beim Ziehen über die Karte kommen Dutzende Ereignisse je Sekunde. Die
+    /// Uhr deshalb höchstens sekündlich neu stellen — sonst startet der
+    /// Schlafauftrag mit jedem Fingerzucken neu.
+    private func touched() {
+        screen.wake()
+        guard Date.now.timeIntervalSince(lastTouch) > 1 else { return }
+        lastTouch = .now
+    }
 
     var body: some View {
         @Bindable var settings = settings
@@ -54,6 +73,29 @@ struct RideTrackingView: View {
                 }
                 .padding(10)
             }
+        }
+        // Jede Berührung macht hell und stellt die Uhr zurück. `simultaneous`,
+        // damit Knöpfe und Karte darunter weiter bedienbar bleiben.
+        .simultaneousGesture(DragGesture(minimumDistance: 0).onChanged { _ in touched() })
+        // Und alles, was die App von sich aus zu sagen hat, macht ebenfalls
+        // hell: eine Abbiegung, die ansteht, und der Weg zurück zur Route.
+        .onChange(of: showsTurn) { _, on in if on { touched() } }
+        .onChange(of: tracker.detour != nil) { _, off in if off { touched() } }
+        // Während einer Pause ist ohnehin nichts zu sehen.
+        .onChange(of: tracker.isPaused) { _, paused in if paused { screen.dim() } else { touched() } }
+        .task(id: dimKey) {
+            guard settings.rideDimSeconds > 0 else { return }
+            try? await Task.sleep(for: .seconds(settings.rideDimSeconds))
+            guard !Task.isCancelled else { return }
+            screen.dim()
+        }
+        // Fahrtende, Wechsel in den Hintergrund, Abbruch: die Helligkeit
+        // gehört dem ganzen Telefon, nicht dieser Ansicht.
+        .onDisappear { screen.wake() }
+        // Die Helligkeit gehört dem ganzen Telefon: wer die App verlässt, darf
+        // sie nicht gedimmt vorfinden.
+        .onChange(of: phase) { _, now in
+            if now == .active { touched() } else { screen.wake() }
         }
         // Restarts whenever the map is dragged again, so thirty seconds means
         // thirty seconds since the *last* touch.
