@@ -75,7 +75,11 @@ final class RadarTileOverlay: MKTileOverlay {
     /// Wie viel über die Kachel hinaus geholt wird, damit der Weichzeichner
     /// Nachbarschaft hat. Ohne diesen Rand rechnet jede Kachel nur mit sich
     /// selbst, und an den Kachelgrenzen stehen sichtbare Nähte.
-    static let margin = 64
+    ///
+    /// Zwei Radien reichen dafür, und der Radius ist gedeckelt auf 12
+    /// (`blurRadius`). 64 waren 384 × 384 statt 256 × 256 — zweieinviertelfache
+    /// Fläche je Kachel, für einen Rand, den kein Weichzeichner erreicht.
+    static let margin = 24
 
     /// Die Anfrage an den DWD. `margin > 0` holt einen größeren Ausschnitt bei
     /// gleichem Maßstab — dieselben Meter je Pixel, nur mehr davon.

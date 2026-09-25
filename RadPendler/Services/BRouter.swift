@@ -14,9 +14,21 @@ struct BRouterClient {
     }
 
     var session: URLSession = .shared
+    /// Ob dieselbe Frage aus dem Zwischenspeicher beantwortet werden darf.
+    /// Tests schalten es ab, damit sie messen, was sie messen wollen.
+    var cached = true
 
     func route(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
                profile: Profile, alternative: Int = 0) async throws -> StreetRoute {
+        // Start und Ziel einer Pendelstrecke ändern sich nicht, und BRouter
+        // kennt keine Verkehrslage: dieselbe Frage hat eine Stunde später
+        // dieselbe Antwort. Bisher wurden bei **jeder** Neuplanung drei
+        // Linien neu über das Netz geholt — von einem öffentlichen Server,
+        // der ohnehin drosselt.
+        let key = String(format: "%.5f,%.5f|%.5f,%.5f|%@|%d",
+                         from.latitude, from.longitude, to.latitude, to.longitude,
+                         profile.rawValue, alternative)
+        if cached, let hit = await RouteCache.shared.route(for: key) { return hit }
         var c = URLComponents(string: "https://brouter.de/brouter")!
         c.queryItems = [
             .init(name: "lonlats", value: String(format: "%.6f,%.6f|%.6f,%.6f",
@@ -31,7 +43,9 @@ struct BRouterClient {
         if let http = response as? HTTPURLResponse, http.statusCode != 200 {
             throw BRouterError.server(String(data: data.prefix(200), encoding: .utf8) ?? "HTTP \(http.statusCode)")
         }
-        return try Self.parse(data)
+        let route = try Self.parse(data)
+        if cached { await RouteCache.shared.keep(route, for: key) }
+        return route
     }
 
     static func parse(_ data: Data) throws -> StreetRoute {
@@ -154,6 +168,38 @@ struct BRouterClient {
             }
         }
     }
+}
+
+/// Gefahrene Wege, die sich nicht ändern, solange man sie fährt.
+///
+/// Eine Linie von A nach B ist bei BRouter eine Funktion der beiden Punkte
+/// und des Profils — keine Verkehrslage, keine Uhrzeit. Was sie ändern kann,
+/// sind die OpenStreetMap-Daten, und die ändern sich nicht in einer Stunde.
+actor RouteCache {
+    static let shared = RouteCache()
+
+    /// So lange gilt eine Antwort. Danach ist sie nicht falsch, aber es ist
+    /// billig genug, sie neu zu holen.
+    static let lifetime: TimeInterval = 3600
+    /// Und so viele werden behalten: eine Pendelstrecke mit allen Profilen
+    /// und beiden Richtungen sind ein Dutzend.
+    static let limit = 32
+
+    private var entries: [String: (route: StreetRoute, at: Date)] = [:]
+
+    func route(for key: String) -> StreetRoute? {
+        guard let hit = entries[key], Date.now.timeIntervalSince(hit.at) < Self.lifetime else { return nil }
+        return hit.route
+    }
+
+    func keep(_ route: StreetRoute, for key: String) {
+        if entries.count >= Self.limit, let oldest = entries.min(by: { $0.value.at < $1.value.at })?.key {
+            entries.removeValue(forKey: oldest)
+        }
+        entries[key] = (route, .now)
+    }
+
+    func forget() { entries.removeAll() }
 }
 
 /// Bike legs through BRouter's "safety" profile (bike paths and quiet streets

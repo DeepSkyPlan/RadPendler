@@ -1,5 +1,48 @@
 # Changelog
 
+## 1.4 (noch nicht hochgeladen) — Pause, Selbstbeenden und weniger Anfragen
+
+- **„Pause" auf dem Fahrtbildschirm.** Für die gewollte Unterbrechung: die Uhr steht, die
+  Ortung ist so lange aus, und die Pause zählt weder zur Fahrzeit noch als Halt noch in den
+  Schnitt. Es ist zugleich der einzige Knopf dieses Bildschirms, der wirklich Strom spart —
+  der Empfänger ist das Teuerste an einer Aufzeichnung.
+- **Die Aufzeichnung beendet sich von selbst**, wenn sie länger als eingestellt (10 min,
+  abschaltbar) an derselben Stelle steht und dort keine bekannte Ampel ist. Gezählt wird bis
+  zum Anfang des Stillstands; eine Mitteilung sagt Bescheid. Das ist der Fall „angekommen
+  und vergessen, auf beenden zu tippen", und er kostete bisher eine Stunde Ortung auf dem
+  Schreibtisch.
+- **„Sonstiges" nach einer Neuplanung.** Wurde unterwegs neu geplant, hingen die Stützpunkte
+  des neuen Wegs hinten an der Liste, und die Zuordnung suchte nur vorwärts im Rest des
+  alten — sie fand nichts mehr und schrieb **den ganzen Rest der Fahrt** als „sonstiges"
+  gut, obwohl jede Straße bekannt war. Die Zuordnung springt jetzt auf den neuen Abschnitt
+  und sieht im Zweifel einmal die ganze Liste durch.
+- **Eine Zahl statt zweier.** In der Fahrt und in der Fahrtenliste stehen der gefahrene und
+  der geplante Schnitt in einem Feld („13,2 / 14,7 Plan"), ebenso die Ampeln („18/20"). Die
+  zweite, gleichlautende Zeile darunter ist weg.
+- **Eine Fahrt beginnt quer**, oder so, wie du es während der letzten Fahrt zuletzt
+  eingestellt hast.
+- **Der gemessene Schnitt gilt auch für die Zubringer zum Bahnhof** — dort aber nur, wenn er
+  die vorsichtigere Zahl ist: wer den Zug verpasst, wartet zwanzig Minuten.
+- **Einstellungen zu- und wieder aufmachen plant nicht mehr neu**, solange nichts geändert
+  wurde. Eine volle Planung sind gut zwei Dutzend Anfragen.
+- **Die Einstellungen unterscheiden die beiden Geschwindigkeiten**: „Rolltempo ohne Ampeln"
+  (daraus rechnet die App jede Linie durch und entscheidet, welche die schnellste ist) und
+  den gemessenen „Gesamtschnitt" Tür zu Tür (der entscheidet, wie lange es dauert). Beide
+  gemessenen Werte stehen mit dem Satz daneben, wofür sie gelten.
+- **Hilfetexte klappen zu**, sobald sie länger als zwei Zeilen sind. Tippen zeigt den Rest.
+- **Weniger Anfragen, weniger Strom**: BRouter-Antworten werden zwischengespeichert (drei
+  Anfragen je Planung gespart), die im Hintergrund geweckte App fragt nur noch die
+  Kategorie, auf die der Countdown zählt (statt aller vier), Radarkacheln werden mit
+  vernünftigem Rand statt mit zweieinviertelfacher Fläche geholt, und der Countdown tickt
+  nicht mehr sekündlich, wenn es nichts zu zählen gibt.
+- **Aus der Prüfrunde**: eine Zielzeit in der Vergangenheit ergibt keine Abfahrt in der
+  Vergangenheit mehr; bei „Ankunft um …" gewinnt wieder die späteste Abfahrt statt der
+  frühesten Ankunft; veraltete Ortungen (der Empfänger liefert beim Start gern eine alte)
+  fließen nicht mehr in die Messung; ein Sprung des Empfängers kommt nicht mehr in die Linie
+  und nicht ins Höhenprofil; eine abgebrochene Aufzeichnung behält ihre geplante Linie;
+  Fahrtspuren und der OpenStreetMap-Korridor liegen jetzt mit Dateischutz auf der Platte;
+  drei Erklärtexte, die seit 1.3 nicht mehr stimmten, stimmen wieder.
+
 ## 1.3 (Build 36) — elf Funde von der Testfahrt
 
 - **Die Karte zeigt den Weg, auf den die Pfeile zeigen.** Wird unterwegs neu geplant, stand

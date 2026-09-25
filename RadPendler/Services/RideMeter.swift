@@ -78,6 +78,16 @@ struct RideMeter {
     private(set) var mix = RoadMix()
     private var roadIndex = 0
 
+    /// Die Beläge eines **neuen** Wegs kommen hinten dran — und die Zuordnung
+    /// springt mit. Ohne diesen Sprung sucht sie weiter im Rest des alten
+    /// Wegs, findet dort nichts in Reichweite und schreibt den ganzen Rest der
+    /// Fahrt als „sonstiges" gut.
+    mutating func addRoadPoints(_ new: [RoadPoint]) {
+        guard !new.isEmpty else { return }
+        roadIndex = roadPoints.count
+        roadPoints += new
+    }
+
     private(set) var points: [RidePoint] = []
     private(set) var stops: [RideStop] = []
     private(set) var meters = 0.0
@@ -88,6 +98,12 @@ struct RideMeter {
     private(set) var currentSpeed = 0.0
 
     private var lastPoint: Fix?
+    /// Eine gewollte Pause: Kaffee, Einkauf, Panne. Sie zählt nicht zur
+    /// Fahrzeit und hinterlässt weder einen Halt noch eine Ampel — und
+    /// solange sie läuft, kommt kein Fix an, weil die Ortung solange aus ist.
+    private(set) var pausedSeconds: TimeInterval = 0
+    private(set) var pausedSince: Date?
+    var isPaused: Bool { pausedSince != nil }
     private var standingSince: Date?
     private var standingAt: CLLocationCoordinate2D?
     /// Hat der Fahrer überhaupt schon einmal getreten?
@@ -110,6 +126,20 @@ struct RideMeter {
         return max(0, now.timeIntervalSince(since))
     }
 
+    /// Ein Stillstand, der keine Ampel ist und länger dauert, als eine Fahrt
+    /// ihn erklärt: meistens ist der Fahrer angekommen und hat das Beenden
+    /// vergessen, und die Ortung läuft seither in der Tasche weiter.
+    ///
+    /// Geprüft wird gegen die **bekannten** Kreuzungen, nicht gegen die
+    /// Dreißig-Sekunden-Regel — nach der wäre jeder lange Halt eine Ampel und
+    /// nichts würde je enden. Zurück kommt der Anfang des Stillstands: dort
+    /// endet die Fahrt, das Warten danach gehört nicht mehr dazu.
+    func autoStop(at now: Date, after seconds: TimeInterval) -> Date? {
+        guard seconds > 0, standingAfterRiding, let since = standingSince, let at = standingAt,
+              !nearSignal(at), standingSeconds(at: now) >= seconds else { return nil }
+        return since
+    }
+
     /// Ob der laufende Stillstand nach denselben Regeln eine Ampel ist, nach
     /// denen er am Ende gezählt wird — einschließlich der Regel, dass ein
     /// Stillstand ab `signalSeconds` überall eine Ampel ist. Er wird es also
@@ -126,9 +156,37 @@ struct RideMeter {
         return (signalStops + 1, signalWaitTotal + standingSeconds(at: now))
     }
 
+    /// Tür zu Tür, **ohne** die gewollten Pausen: wer zwanzig Minuten beim
+    /// Bäcker steht, ist deshalb nicht langsamer gefahren.
     func seconds(at now: Date) -> TimeInterval {
         guard let started else { return 0 }
-        return max(0, now.timeIntervalSince(started))
+        return max(0, now.timeIntervalSince(started) - pausedSeconds - currentPause(at: now))
+    }
+
+    /// Wie lange die laufende Pause schon dauert; 0, wenn keine läuft.
+    func currentPause(at now: Date) -> TimeInterval {
+        guard let since = pausedSince else { return 0 }
+        return max(0, now.timeIntervalSince(since))
+    }
+
+    /// Anhalten: die Uhr bleibt stehen, der laufende Stillstand wird
+    /// verworfen — er ist kein Halt, sondern der Anfang der Pause.
+    mutating func pause(at now: Date = .now) {
+        guard pausedSince == nil else { return }
+        pausedSince = now
+        standingSince = nil
+        standingAt = nil
+        standingAfterRiding = false
+        currentSpeed = 0
+    }
+
+    /// Weiterfahren. Der erste Fix danach liegt über `maxGap` hinter dem
+    /// letzten, gilt also als Lücke: die Luftlinie über die Pause hinweg wird
+    /// nicht als gefahrene Strecke gezählt.
+    mutating func resume(at now: Date = .now) {
+        guard let since = pausedSince else { return }
+        pausedSeconds += max(0, now.timeIntervalSince(since))
+        pausedSince = nil
     }
 
     /// Door to door, standing time included — the honest average.
@@ -144,6 +202,7 @@ struct RideMeter {
     /// One fix in. Everything that follows from it — the step, the stop, the
     /// point on the line — happens here and nowhere else.
     mutating func add(_ fix: Fix) {
+        guard pausedSince == nil else { return }
         guard fix.accuracy >= 0, fix.accuracy <= Self.maxAccuracy, Geo.valid(fix.coordinate) else { return }
         guard let previous = lastFix else {
             begin(with: fix)
@@ -172,7 +231,11 @@ struct RideMeter {
             maxSpeed = Swift.max(maxSpeed, currentSpeed)
         }
         updateStops(fix, gap: gap)
-        record(fix)
+        // Ein Sprung des Empfängers zählt schon nicht zur Strecke; in die
+        // Linie gehört er genauso wenig. Er zieht sonst eine Zacke über die
+        // Karte, macht aus sich selbst die „Spitze" der Fahrt und schiebt das
+        // Höhenprofil um seine Länge.
+        if !jump { record(fix) }
         lastFix = fix
     }
 
@@ -256,6 +319,7 @@ struct RideMeter {
 
     /// The last standstill has no fix to end it — the ride ends instead.
     mutating func finish(at end: Date) {
+        resume(at: end)
         if let since = standingSince { close(since: since, until: end, ending: true) }
         currentSpeed = 0
     }
@@ -289,6 +353,7 @@ struct RideMeter {
                         signalStops: signalStops, otherStops: otherStops,
                         signalWaitTotal: signalWaitTotal, plannedSeconds: plannedSeconds,
                         plannedMeters: plannedMeters, plannedSignals: plannedSignals,
+                        pausedSeconds: pausedSeconds + currentPause(at: end),
                         pointCount: points.count, mix: mix.isEmpty ? nil : mix)
         return (ride, RideTrack(id: id, points: points, stops: stops,
                                 planned: Geo.thinned(plannedLine).map(TrackPoint.init)))

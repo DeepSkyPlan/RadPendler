@@ -211,6 +211,87 @@ final class RideTests: XCTestCase {
         XCTAssertEqual(m.stops.count, 0)
     }
 
+    // MARK: Neuplanung mitten in der Fahrt
+
+    /// Nördlich von `base`, zusätzlich zur Verschiebung nach Osten.
+    private func at(east metres: Double, north: Double) -> CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: base.latitude + north / 111_320,
+                               longitude: base.longitude + metres / (111_320 * cos(base.latitude * .pi / 180)))
+    }
+
+    /// Wird unterwegs neu geplant, hängen die Stützpunkte des neuen Wegs
+    /// hinten an der Liste — und die Zuordnung suchte bis 1.3 nur vorwärts vom
+    /// letzten Treffer, also im Rest des **alten** Wegs. Dort fand sie nichts
+    /// mehr in Reichweite, und der ganze Rest der Fahrt wurde grau: „sonstiges",
+    /// obwohl jede Straße bekannt war.
+    func testTheRoadClassSurvivesAReplanInTheMiddle() {
+        var m = RideMeter()
+        m.roadPoints = (0..<25).map {
+            RoadPoint(lat: base.latitude,
+                      lon: at(east: Double($0) * 40, north: 0).longitude, cls: .cycleway)
+        }
+        // 200 m auf dem alten Weg …
+        for i in 0...20 { m.add(fix(Double(i) * 10, Double(i), speed: 10)) }
+        XCTAssertGreaterThan(m.mix[.cycleway], 150)
+        // … dann liegt der neue Weg 300 m weiter nördlich.
+        m.addRoadPoints((0..<50).map { i in
+            let c = at(east: Double(i) * 40, north: 300)
+            return RoadPoint(lat: c.latitude, lon: c.longitude, cls: .side)
+        })
+        var t = 21.0
+        for i in 0...100 {
+            let c = at(east: Double(i) * 10, north: 300)
+            m.add(RideMeter.Fix(coordinate: c, time: start.addingTimeInterval(t), speed: 10, accuracy: 5))
+            t += 1
+        }
+        XCTAssertGreaterThan(m.mix[.side], 800, "der neue Weg ist bekannt und muss auch so gezählt werden")
+        XCTAssertLessThan(m.mix[.other], 100, "nichts davon ist „sonstiges“")
+    }
+
+    // MARK: Pause und Selbstbeenden
+
+    /// Die gewollte Pause: die Uhr steht, es gibt keinen Halt, und der Schnitt
+    /// rechnet ohne sie. Sonst wäre jede Einkehr eine langsame Fahrt.
+    func testAPauseCountsNeitherAsTimeNorAsStop() {
+        var m = RideMeter()
+        for i in 0...10 { m.add(fix(Double(i) * 5, Double(i), speed: 5)) }
+        m.pause(at: start.addingTimeInterval(10))
+        // Während der Pause kommt nichts an — die Ortung ist aus.
+        m.resume(at: start.addingTimeInterval(610))
+        for i in 611...620 { m.add(fix(50 + Double(i - 610) * 5, Double(i), speed: 5)) }
+        XCTAssertEqual(m.pausedSeconds, 600, accuracy: 0.01)
+        XCTAssertEqual(m.seconds(at: start.addingTimeInterval(620)), 20, accuracy: 0.01)
+        XCTAssertEqual(m.stops.count, 0, "eine Pause ist kein Halt")
+        // 50 m davor, 45 m danach: der erste Fix nach der Pause liegt über
+        // `maxGap` hinter dem letzten, gilt also als Lücke — die fünf Meter
+        // über die Pause hinweg zählt niemand.
+        XCTAssertEqual(m.meters, 95, accuracy: 2, "die Luftlinie über die Pause zählt nicht")
+        XCTAssertEqual(m.averageKmh(at: start.addingTimeInterval(620)), 17.1, accuracy: 1)
+    }
+
+    /// Wer zehn Minuten an derselben Stelle steht und dort ist keine Ampel,
+    /// ist angekommen und hat das Beenden vergessen.
+    func testALongStandstillAwayFromALightEndsTheRide() {
+        var m = RideMeter()
+        for i in 0...10 { m.add(fix(Double(i) * 5, Double(i), speed: 5)) }
+        for i in 11...400 { m.add(fix(50, Double(i), speed: 0.1)) }
+        let now = start.addingTimeInterval(400)
+        XCTAssertNil(m.autoStop(at: now, after: 600), "sechseinhalb Minuten sind noch keine zehn")
+        XCTAssertNil(m.autoStop(at: now, after: 0), "0 heißt aus")
+        let since = m.autoStop(at: now, after: 300)
+        XCTAssertEqual(since?.timeIntervalSince(start) ?? -1, 10, accuracy: 2,
+                       "beendet wird auf den Anfang des Stillstands")
+    }
+
+    /// Steht dort eine Ampel, war es eine Ampel — auch nach zehn Minuten.
+    func testALongWaitAtALightDoesNotEndTheRide() {
+        var m = RideMeter()
+        m.signals = [east(50)]
+        for i in 0...10 { m.add(fix(Double(i) * 5, Double(i), speed: 5)) }
+        for i in 11...400 { m.add(fix(50, Double(i), speed: 0.1)) }
+        XCTAssertNil(m.autoStop(at: start.addingTimeInterval(400), after: 300))
+    }
+
     func testFixesOutOfOrderChangeNothing() {
         var m = RideMeter()
         m.add(fix(0, 10, speed: 5))

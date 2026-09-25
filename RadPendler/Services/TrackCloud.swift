@@ -58,7 +58,7 @@ actor TrackCloud {
         // `CKAsset` will eine Datei. Sie wird nach dem Hochladen nicht mehr
         // gebraucht — anders als die Linie selbst, die im Fahrtenordner bleibt.
         let scratch = URL.temporaryDirectory.appending(path: "upload-\(track.id.uuidString).json")
-        guard (try? data.write(to: scratch, options: .atomic)) != nil else { return }
+        guard (try? data.write(to: scratch, options: [.atomic, .completeFileProtectionUnlessOpen])) != nil else { return }
         defer { try? FileManager.default.removeItem(at: scratch) }
         let record = CKRecord(recordType: Self.recordType, recordID: recordID(track.id))
         record[Self.assetKey] = CKAsset(fileURL: scratch)

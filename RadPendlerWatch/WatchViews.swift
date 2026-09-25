@@ -95,14 +95,17 @@ struct RidePage: View {
 
     /// Running while the ride runs, stopped at its length once it is over.
     private func clock(now: Date) -> some View {
-        let seconds = live.running ? max(0, now.timeIntervalSince(live.started)) : live.seconds
+        let seconds = live.running && live.paused != true
+            ? max(0, now.timeIntervalSince(live.started) - (live.pausedSeconds ?? 0))
+            : live.seconds
         return VStack(spacing: -2) {
             Text(Fmt.clock(seconds))
                 .font(.system(size: 38, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
-            Text(live.running ? "unterwegs · \(Fmt.km(live.meters))" : "angekommen · \(Fmt.km(live.meters))")
+            Text(live.paused == true ? "Pause · \(Fmt.km(live.meters))"
+                 : (live.running ? "unterwegs · \(Fmt.km(live.meters))" : "angekommen · \(Fmt.km(live.meters))"))
                 .font(.system(size: 11, design: .rounded))
                 .foregroundStyle(.secondary)
         }

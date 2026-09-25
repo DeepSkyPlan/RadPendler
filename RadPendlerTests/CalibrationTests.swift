@@ -94,6 +94,25 @@ final class CalibrationTests: XCTestCase {
         XCTAssertTrue(c.measuredWins(s))
     }
 
+    /// Die Zubringer zum Bahnhof rechneten bis 1.3 ohne die Messung: die
+    /// ganze Radstrecke wurde realistisch verlängert, der Weg zum Bahnsteig
+    /// nicht — und Rad + Bahn gewann dadurch mit einem Puffer, den es nicht
+    /// gab.
+    func testTheStationLegIsNeverFasterThanTheMeasuredAverage() {
+        var s = PlanSettings(bikeSpeedKmh: 29)
+        s.signalWaitSeconds = 20
+        let leg = StreetRoute(distance: 3_000, expectedTravelTime: 0, coordinates: [], signals: 6)
+        let computed = s.bikeTime(3_000) + s.signalWait(signals: 6)
+        XCTAssertEqual(s.rideTime(leg), computed, accuracy: 1, "ohne Messung bleibt es bei der Rechnung")
+        // Gemessen 13 km/h Tür zu Tür: die Rechnung ist zu optimistisch.
+        s.measuredOverallKmh = 13
+        XCTAssertEqual(s.rideTime(leg), 3_000 / (13 / 3.6), accuracy: 1)
+        // Und in die andere Richtung gilt sie hier **nicht**: wer den Zug
+        // verpasst, wartet zwanzig Minuten.
+        s.measuredOverallKmh = 40
+        XCTAssertEqual(s.rideTime(leg), computed, accuracy: 1)
+    }
+
     /// Der Schnitt sagt, wie lange es dauert — nicht, wo es langgeht. Sonst
     /// wäre „schnellst" immer dieselbe Linie wie „kürzest".
     func testTheRolesAreStillDecidedByTheCalculation() {

@@ -36,6 +36,46 @@ private struct Page<Content: View>: View {
     }
 }
 
+/// Ein Hilfetext unter einem Abschnitt — zusammengeklappt, solange er länger
+/// ist als zwei Zeilen.
+///
+/// Die Einstellungsseiten waren zuletzt mehr Fließtext als Einstellung: wer
+/// eine Zahl ändern wollte, scrollte an Absätzen vorbei, die er beim ersten
+/// Mal gelesen hatte. Jetzt stehen zwei Zeilen da und der Rest auf Tippen.
+/// Kurze Hinweise bleiben, wie sie sind — ein „mehr" unter einem Halbsatz
+/// wäre albern.
+struct Hint: View {
+    var text: String
+    @State private var open = false
+
+    init(_ text: String) { self.text = text }
+
+    /// Ab so vielen Zeichen wird es in der Fußnotenschrift mehr als zwei
+    /// Zeilen. Gezählt statt gemessen: eine Höhenmessung je Fußnote kostet
+    /// einen zweiten Layoutdurchgang, und die Grenze muss nicht genau sein.
+    static let longEnough = 120
+
+    var body: some View {
+        if text.count <= Self.longEnough {
+            Text(text)
+        } else {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(text)
+                    .lineLimit(open ? nil : 2)
+                Text(open ? "weniger" : "mehr")
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Theme.accent)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .onTapGesture { withAnimation(.snappy(duration: 0.2)) { open.toggle() } }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(text)
+            .accessibilityHint(open ? "Tippen zum Zuklappen" : "Tippen für den ganzen Text")
+        }
+    }
+}
+
 /// Wohin es geht: die beiden Adressen, die beiden festen Orte, die Fixpunkte.
 struct AddressSettingsView: View {
     @Environment(AppSettings.self) private var settings
@@ -59,8 +99,8 @@ struct AddressSettingsView: View {
                 } header: {
                     Text("Adressen")
                 } footer: {
-                    Text(CloudStore.shared.available
-                         ? "Die App wird ohne Adressen ausgeliefert. Start, Ziel, die benutzten Adressen und alle Einstellungen gleichen sich über deine iCloud mit deinen anderen Geräten ab — sonst verlässt nichts davon deine Geräte."
+                    Hint(CloudStore.shared.available
+                         ? "Die App wird ohne Adressen ausgeliefert. Start, Ziel, die benutzten Adressen und alle Einstellungen gleichen sich über deine iCloud mit deinen anderen Geräten ab. Zum Planen gehen die Koordinaten von Start und Ziel an die Dienste, die die Strecke rechnen (VBB, Transitous, BRouter, Apple Karten, Open-Meteo) — ohne Namen und ohne Adresstext. Sonst verlässt nichts davon deine Geräte und deine iCloud."
                          : "Die App wird ohne Adressen ausgeliefert. Start und Ziel bleiben nur auf diesem Gerät gespeichert. Mit einem angemeldeten iCloud-Konto gleichen sie sich mit deinen anderen Geräten ab.")
                 }
                 Section {
@@ -90,7 +130,7 @@ struct AddressSettingsView: View {
                 } header: {
                     Text("Zuhause und Arbeit")
                 } footer: {
-                    Text("Diese zwei bekommen überall ein Zeichen — in der Adresssuche, in der Liste der benutzten Adressen und oben auf der Hauptseite — und stehen in der Suche ganz oben. Fahrten zur Arbeit starten mit „Ankunft um …“, Fahrten nach Hause mit „Abfahrt jetzt“; von Hand umschaltbar.")
+                    Hint("Diese zwei bekommen überall ein Zeichen — in der Adresssuche, in der Liste der benutzten Adressen und oben auf der Hauptseite — und stehen in der Suche ganz oben. Fahrten zur Arbeit starten mit „Ankunft um …“, Fahrten nach Hause mit „Abfahrt jetzt“; von Hand umschaltbar.")
                 }
                 Section {
                     ForEach(settings.waypoints, id: \.self) { p in
@@ -108,7 +148,7 @@ struct AddressSettingsView: View {
                 } header: {
                     Text("Fixpunkte")
                 } footer: {
-                    Text("Punkte, über die die Strecke führen soll, z. B. „S Ostkreuz“ oder „Berlin Hauptbahnhof“. Verbindungen, die nicht daran vorbeikommen, werden ausgegraut ans Ende gestellt und nie empfohlen. Ohne Fixpunkte gilt keine Einschränkung.")
+                    Hint("Punkte, über die die Strecke führen soll, z. B. „S Ostkreuz“ oder „Berlin Hauptbahnhof“. Verbindungen, die nicht daran vorbeikommen, werden ausgegraut ans Ende gestellt und nie empfohlen. Ohne Fixpunkte gilt keine Einschränkung.")
                 }
         }
     }
@@ -125,14 +165,14 @@ struct NavigationSettingsView: View {
                 Section {
                     Stepper("Rüstzeit: \(settings.prepMinutes) min", value: $settings.prepMinutes, in: 0...30)
                 } footer: {
-                    Text("Zeit vom Planen bis zum Losgehen. Gilt für jedes Verkehrsmittel.")
+                    Hint("Zeit vom Planen bis zum Losgehen. Gilt für jedes Verkehrsmittel.")
                 }
                 Section {
                     Stepper("Umstieg zählt wie \(settings.transferPenaltyMinutes) min", value: $settings.transferPenaltyMinutes, in: 0...30)
                 } header: {
                     Text("Umsteigen")
                 } footer: {
-                    Text("Beim Sortieren und Empfehlen wird jeder Umstieg wie so viele Minuten längere Fahrt gewertet. Eine direkte Verbindung gewinnt also, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.")
+                    Hint("Beim Sortieren und Empfehlen wird jeder Umstieg wie so viele Minuten längere Fahrt gewertet. Eine direkte Verbindung gewinnt also, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.")
                 }
                 Section {
                     ForEach(settings.departurePresets, id: \.self) { p in
@@ -152,7 +192,7 @@ struct NavigationSettingsView: View {
                 } header: {
                     Text("Startzeiten")
                 } footer: {
-                    Text("Diese Vorschläge stehen oben neben „Jetzt“ zur Wahl — relativ („in 15 min“) oder als Uhrzeit („um 8 Uhr“, heute oder morgen).")
+                    Hint("Diese Vorschläge stehen oben neben „Jetzt“ zur Wahl — relativ („in 15 min“) oder als Uhrzeit („um 8 Uhr“, heute oder morgen).")
                 }
                 Section {
                     Stepper("Puffer vor der Abfahrt: \(settings.departureBufferMinutes) min",
@@ -162,7 +202,7 @@ struct NavigationSettingsView: View {
                 } header: {
                     Text("Puffer")
                 } footer: {
-                    Text("Der Abfahrtspuffer verschiebt das Losgehen nach vorn, der Ankunftspuffer lässt die Verbindung früher ankommen. Beide zählen nicht zur angezeigten Fahrzeit.")
+                    Hint("Der Abfahrtspuffer verschiebt das Losgehen nach vorn, der Ankunftspuffer lässt die Verbindung früher ankommen. Beide zählen nicht zur angezeigten Fahrzeit.")
                 }
                 Section {
                     Toggle("Warnung vor dem Losgehen", isOn: $settings.alertsOn)
@@ -190,7 +230,7 @@ struct NavigationSettingsView: View {
                 } header: {
                     Text("Countdown")
                 } footer: {
-                    Text("Der Countdown oben rechts zählt bis zum Losgehen für Bahn und Bus — und bei „Ankunft um …“ für jede Fahrt. Warnungen kommen als Mitteilung, auch wenn die App zu ist; bei offener App zusätzlich als Ton.")
+                    Hint("Der Countdown oben rechts zählt bis zum Losgehen für Bahn und Bus — und bei „Ankunft um …“ für jede Fahrt. Warnungen kommen als Mitteilung, auch wenn die App zu ist; bei offener App zusätzlich als Ton.")
                 }
                 Section("Auto") {
                     Stepper("Parkplatzsuche: \(settings.parkingMinutes) min", value: $settings.parkingMinutes, in: 0...30)
@@ -241,11 +281,11 @@ struct ModeSettingsView: View {
                 } header: {
                     Text("Vorlieben")
                 } footer: {
-                    Text("Womit die App plant, wenn sie die Wahl hat. Ab dem gewählten Regen wird nicht mehr die ganze Strecke geradelt, sondern das Rad in die Bahn gestellt — „starker Regen“ heißt also praktisch immer fahren.")
+                    Hint("Womit die App plant, wenn sie die Wahl hat. Ab dem gewählten Regen wird nicht mehr die ganze Strecke geradelt, sondern das Rad in die Bahn gestellt — „starker Regen“ heißt also praktisch immer fahren.")
                 }
                 Section {
                     Stepper(value: $settings.bikeSpeedKmh, in: 10...45, step: 1) {
-                        Text("Fahrgeschwindigkeit: \(Int(settings.bikeSpeedKmh)) km/h")
+                        Text("Rolltempo ohne Ampeln: \(Int(settings.bikeSpeedKmh)) km/h")
                     }
                     Stepper("Puffer am Bahnhof: \(settings.bikeStationBufferMinutes) min",
                             value: $settings.bikeStationBufferMinutes, in: 0...10)
@@ -259,7 +299,7 @@ struct ModeSettingsView: View {
                 } header: {
                     Text("Fahrrad")
                 } footer: {
-                    Text("Beide Werte schreibt die App nach jeder aufgezeichneten Fahrt selbst fort — aus dem Median der letzten Fahrten, sobald es genug davon gibt. Von Hand gestellt gelten sie bis zur nächsten Fahrt. Die angezeigte Radfahrzeit kommt dann aus deinem gemessenen Tür-zu-Tür-Schnitt; die Rechnung aus Tempo, Ampeln und Höhenmetern entscheidet weiterhin, welche Linie die schnellste ist. Fahrgeschwindigkeit = Tempo beim Rollen, ohne Halte. Die Fahrzeit ist Strecke ÷ Fahrgeschwindigkeit plus die Wartezeit je Ampelkreuzung (inkl. Anfahren); daraus ergibt sich der angezeigte Schnitt „Ø … km/h“. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung auf der Strecke addiert — außer an den Kreuzungen, die deine eigenen Fahrten schon kennen: die kosten, was dort gemessen wurde. Für die ganze Strecke gibt es bis zu drei Routen: kürzest, Mittelweg und ruhigst (wenig Ampeln, wenig Hauptstraßen). Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet.")
+                    Hint("Zwei verschiedene Geschwindigkeiten, und sie tun Verschiedenes. Das Rolltempo ist das Tempo beim Fahren, ohne Halte: daraus plus der Wartezeit je Ampelkreuzung und den Höhenmetern rechnet die App jede Linie durch — es entscheidet also, welche Linie die schnellste ist. Der Gesamtschnitt ist die Messung deiner eigenen Fahrten, Tür zu Tür, mit allen Ampeln und Halten darin — er entscheidet, wie lange es dauert. Wäre die Rechnung schneller als dein gemessener Gesamtschnitt, gilt der Gesamtschnitt; auch bei den Zubringern zum Bahnhof, dort aber nur, wenn er die vorsichtigere Zahl ist. Beide Werte schreibt die App nach jeder aufgezeichneten Fahrt selbst fort, aus dem Median der letzten Fahrten, sobald es genug davon gibt; von Hand gestellt gelten sie bis zur nächsten Fahrt. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung addiert — außer an den Kreuzungen, die deine eigenen Fahrten schon kennen: die kosten, was dort gemessen wurde. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet.")
                 }
                 Section {
                     Picker("Fahrplan", selection: $settings.timetableSource) {
@@ -274,7 +314,7 @@ struct ModeSettingsView: View {
                 } header: {
                     Text("Fahrplanquelle")
                 } footer: {
-                    Text("„Automatisch“ fragt den VBB, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link.")
+                    Hint("„Automatisch“ fragt den VBB, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link.")
                 }
                 Section {
                     NavigationLink {
@@ -288,7 +328,7 @@ struct ModeSettingsView: View {
                         }
                     }
                 } footer: {
-                    Text("Welche Linien das Rad mitnehmen, weißt du besser als jeder Fahrplan. Die Liste füllt sich mit den Linien, die in gefundenen Verbindungen vorkommen; was die Auskunft selbst zusichert, steht schon auf „ja“. Solange eine Linie offen ist, wird die Fahrt trotzdem vorgeschlagen — mit dem Hinweis, dass die Mitnahme ungeklärt ist.")
+                    Hint("Welche Linien das Rad mitnehmen, weißt du besser als jeder Fahrplan. Die Liste füllt sich mit den Linien, die in gefundenen Verbindungen vorkommen; was die Auskunft selbst zusichert, steht schon auf „ja“. Solange eine Linie offen ist, wird die Fahrt trotzdem vorgeschlagen — mit dem Hinweis, dass die Mitnahme ungeklärt ist.")
                 }
         }
     }
@@ -323,6 +363,12 @@ struct SettingsView: View {
                     }
                     Stepper("Ampelhalt ab \(settings.signalStopSeconds) s",
                             value: $settings.signalStopSeconds, in: 10...120, step: 5)
+                    Picker("Von selbst beenden nach", selection: $settings.autoStopMinutes) {
+                        Text("aus").tag(0.0)
+                        ForEach([5.0, 10.0, 15.0, 20.0, 30.0], id: \.self) { m in
+                            Text("\(Int(m)) min Halt").tag(m)
+                        }
+                    }
                     HStack {
                         Label("Gelernte Ampeln", systemImage: "light.beacon.max")
                         Spacer()
@@ -338,7 +384,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Fahrt aufzeichnen")
                 } footer: {
-                    Text("„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — Während einer Aufzeichnung bleibt der Bildschirm an, bis du die Fahrt beendest; das kostet Strom und ist so gewollt. — Verlässt du die Route, zeigt ein Pfeil zurück. Neu berechnet wird, was zuerst eintritt: die eingestellte Entfernung (und dann erst nach ein paar Sekunden am Stück, damit ein Bogen um eine Baustelle keine Neuplanung auslöst) oder die eingestellte Zeit, egal wie weit — wer im Kreis um einen gesperrten Weg fährt, kommt nie weit genug weg. Beides „aus“ lässt es beim Pfeil. — Wer länger als die eingestellte Zeit steht, stand an einer Ampel, auch wenn keine Karte dort eine kennt — nur das Stehen vor dem Losfahren und nach dem Ankommen zählt nie, das ist die eigene Haustür. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein. Mitgezählt wird auch, wo eine Aufzeichnung ohne Halt durchkam: eine gelernte Kreuzung kostet beim Planen ihre gemessene Zeit über alle Vorbeifahrten, nicht den eingestellten Mittelwert. Sie bleiben auf deinen Geräten.")
+                    Hint("„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — Eine Fahrt beginnt quer, oder so, wie du es während der letzten Fahrt zuletzt eingestellt hast; der Knopf dafür steht oben links auf dem Fahrtbildschirm. — Steht die Aufzeichnung länger als eingestellt an derselben Stelle und ist dort keine bekannte Ampel, beendet sie sich selbst und zählt bis zum Anfang des Stillstands; das ist der Fall „angekommen und vergessen, auf beenden zu tippen“. Eine gewollte Unterbrechung ist der Knopf „Pause“ auf dem Fahrtbildschirm: er hält die Uhr an und schaltet die Ortung so lange ab, und die Pause zählt weder zur Fahrzeit noch als Halt. — Während einer Aufzeichnung bleibt der Bildschirm an, bis du die Fahrt beendest; das kostet Strom und ist so gewollt. — Verlässt du die Route, zeigt ein Pfeil zurück. Neu berechnet wird, was zuerst eintritt: die eingestellte Entfernung (und dann erst nach ein paar Sekunden am Stück, damit ein Bogen um eine Baustelle keine Neuplanung auslöst) oder die eingestellte Zeit, egal wie weit — wer im Kreis um einen gesperrten Weg fährt, kommt nie weit genug weg. Beides „aus“ lässt es beim Pfeil. — Wer länger als die eingestellte Zeit steht, stand an einer Ampel, auch wenn keine Karte dort eine kennt — nur das Stehen vor dem Losfahren und nach dem Ankommen zählt nie, das ist die eigene Haustür. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein. Mitgezählt wird auch, wo eine Aufzeichnung ohne Halt durchkam: eine gelernte Kreuzung kostet beim Planen ihre gemessene Zeit über alle Vorbeifahrten, nicht den eingestellten Mittelwert. Sie bleiben auf deinen Geräten und in deiner iCloud.")
                 }
                 Section {
                     // Kontakt als Seite, nicht als Adresse: eine Adresse im
@@ -355,7 +401,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Hilfe und Rechtliches")
                 } footer: {
-                    Text("Fragen, Fehler und Vorschläge gehen über die Support-Seite. Dort steht auch, was dabei hilft: Gerät, Version, Strecke und was die App gezeigt hat.")
+                    Hint("Fragen, Fehler und Vorschläge gehen über die Support-Seite. Dort steht auch, was dabei hilft: Gerät, Version, Strecke und was die App gezeigt hat.")
                 }
                 Section {
                     Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"))")
@@ -395,7 +441,7 @@ struct BikeLinesView: View {
                         .disabled(newLine.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             } footer: {
-                Text("Für Linien, die noch in keiner Verbindung vorkamen.")
+                Hint("Für Linien, die noch in keiner Verbindung vorkamen.")
             }
             if settings.bikeLines.isEmpty {
                 Section {
@@ -432,7 +478,7 @@ struct BikeLinesView: View {
                 } header: {
                     Text("Gesehene Linien")
                 } footer: {
-                    Text("„offen“ heißt: die Verbindung wird weiter vorgeschlagen, aber mit dem Hinweis, dass die Mitnahme ungeklärt ist. „Rad nein“ nimmt sie aus den Rad + Bahn-Vorschlägen heraus.")
+                    Hint("„offen“ heißt: die Verbindung wird weiter vorgeschlagen, aber mit dem Hinweis, dass die Mitnahme ungeklärt ist. „Rad nein“ nimmt sie aus den Rad + Bahn-Vorschlägen heraus.")
                 }
             }
         }
@@ -497,7 +543,7 @@ private struct PriorityList<T: Hashable>: View {
                 }
                 .onMove { items.move(fromOffsets: $0, toOffset: $1) }
             } footer: {
-                Text(footer)
+                Hint(footer)
             }
         }
         .environment(\.editMode, .constant(.active))
@@ -572,7 +618,7 @@ struct AddressSearchView: View {
                 } header: {
                     Text("Vorschlag")
                 } footer: {
-                    Text("Wird einmal abgefragt und in eine Adresse übersetzt. Die App folgt dir nicht.")
+                    Hint("Wird einmal abgefragt und in eine Adresse übersetzt. Die App folgt dir nicht.")
                 }
             }
             if !named.isEmpty {
@@ -739,19 +785,35 @@ struct MeasuredSpeedRow: View {
     var body: some View {
         if settings.measuredRides >= AppSettings.calibrationRides,
            let moving = settings.measuredMovingKmh, let overall = settings.measuredOverallKmh {
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 3) {
                 Label("Gemessen aus \(settings.measuredRides) Fahrten", systemImage: "speedometer")
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
-                Text("rollend \(Fmt.kmh(moving)) · Tür zu Tür \(Fmt.kmh(overall))")
-                    .font(.system(size: 11, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
+                row("Gesamtschnitt", Fmt.kmh(overall), "Tür zu Tür, mit Ampeln und Halten — damit wird die Fahrzeit gerechnet")
+                row("Rolltempo", Fmt.kmh(moving), "nur die fahrende Zeit — daraus kommt die Einstellung darüber")
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
         } else {
             Label("Noch keine gemessenen Fahrten", systemImage: "speedometer")
                 .font(.system(size: 13, design: .rounded))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    /// Eine gemessene Zahl mit ihrem Namen und dem Satz, wofür sie gilt. Die
+    /// beiden standen bis 1.3 in einer Zeile nebeneinander („rollend … · Tür
+    /// zu Tür …") und waren dadurch nicht auseinanderzuhalten.
+    private func row(_ title: String, _ value: String, _ what: String) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 6) {
+                Text(title).font(.system(size: 12, weight: .semibold, design: .rounded))
+                Spacer(minLength: 0)
+                Text(value)
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+            }
+            Text(what)
+                .font(.system(size: 10, design: .rounded))
                 .foregroundStyle(.secondary)
         }
     }

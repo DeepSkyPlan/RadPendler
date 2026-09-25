@@ -28,7 +28,8 @@ final class CloudStore {
                        "modeOrder", "bikeVariantOrder", "carVariantOrder", "rainSwitchLevel",
                        "signalStopSeconds", "learnedSignals", "orientationLock", "rideOrientationLock",
                        "replanOffRouteMeters", "replanOffRouteMinutes", "optionsPerMode",
-                       "measuredOverallKmh", "measuredMovingKmh", "measuredRides"]
+                       "measuredOverallKmh", "measuredMovingKmh", "measuredRides",
+                       "autoStopMinutes", "rideStartsLandscape"]
 
     /// The recorded rides — summaries only, never their lines. Not a setting,
     /// which is why it stands apart from `settingsKeys`: that list is checked

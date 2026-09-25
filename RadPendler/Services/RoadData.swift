@@ -306,7 +306,10 @@ actor RoadDataStore {
         let side = Sidecar(south: box.south, west: box.west, north: box.north, east: box.east,
                            corridor: corridor)
         guard let data = try? JSONEncoder().encode(side) else { return }
-        try? data.write(to: url, options: .atomic)
+        // Derselbe Schutz wie für die Antwort daneben: hier steht der Korridor
+        // in Klartextkoordinaten, also genau die Linie zwischen Zuhause und
+        // Arbeit, die der gehashte Dateiname verbergen soll.
+        try? data.write(to: url, options: [.atomic, .completeFileProtection])
     }
 
     /// Deletes what is stale or already contained in the box just written — the

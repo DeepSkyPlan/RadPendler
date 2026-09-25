@@ -139,9 +139,11 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                signalSeconds: TimeInterval = RideMeter.defaultSignalSeconds,
                replanOffRouteMeters: Double = OffRoute.replanMeters,
                replanOffRouteMinutes: Double = 0,
+               autoStopMinutes: Double = 0,
                plannedSignals: [CLLocationCoordinate2D] = []) {
         guard !isRecording else { return }
         self.signalSeconds = signalSeconds
+        self.autoStopSeconds = autoStopMinutes * 60
         self.replanOffRouteMeters = replanOffRouteMeters
         self.replanOffRouteMinutes = replanOffRouteMinutes
         self.roadPoints = roadPoints
@@ -178,6 +180,16 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
 
     private var pending: (Subject, [CLLocationCoordinate2D])?
     private var signalSeconds = RideMeter.defaultSignalSeconds
+    /// Ab wann ein Halt, der keine Ampel ist, die Fahrt beendet; 0 schaltet
+    /// es ab.
+    private var autoStopSeconds: TimeInterval = 0
+    /// Ob die letzte Fahrt von selbst endete. Steht in der Zusammenfassung,
+    /// sonst fragt sich der Fahrer, wer da auf „beenden" getippt hat.
+    private(set) var stoppedByItself = false
+    /// Was sonst der Knopf „Fahrt beenden" auslöst — nachmessen, dazulernen,
+    /// die Ausrichtung wieder freigeben. Beendet die Fahrt sich selbst, muss
+    /// dasselbe passieren, und der Bildschirm ist dabei aus.
+    var onAutoStop: (() -> Void)?
     /// Während einer Fahrt bleibt der Bildschirm an, bis die Fahrt beendet
     /// ist — ohne Schalter. Es gab einen („Bildschirm anlassen", voreingestellt
     /// aus, wegen des Stroms); er ist wieder weg, weil ein Blick auf die Karte
@@ -192,14 +204,16 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// Rückkehr nach vorn und bei jeder Ortung neu behauptet; die Zuweisung
     /// kostet nichts, wenn sie schon stimmt.
     private func applyIdleTimer() {
-        guard UIApplication.shared.isIdleTimerDisabled != isRecording else { return }
-        UIApplication.shared.isIdleTimerDisabled = isRecording
+        let on = isRecording && !meter.isPaused
+        guard UIApplication.shared.isIdleTimerDisabled != on else { return }
+        UIApplication.shared.isIdleTimerDisabled = on
     }
     private var roadPoints: [RoadPoint] = []
 
     private func begin(_ subject: Subject, _ signals: [CLLocationCoordinate2D]) {
         failure = nil
         finished = nil
+        stoppedByItself = false
         self.subject = subject
         meter = RideMeter()
         meter.signals = signals
@@ -207,6 +221,34 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         meter.roadPoints = roadPoints
         meter.plannedLine = originalRoute
         // Only now, and only for as long as the ride lasts.
+        manager.allowsBackgroundLocationUpdates = true
+        manager.showsBackgroundLocationIndicator = true
+        manager.startUpdatingLocation()
+        applyIdleTimer()
+        pushToWatch(force: true)
+    }
+
+    // MARK: Pause
+
+    var isPaused: Bool { meter.isPaused }
+
+    /// Eine gewollte Unterbrechung — Einkauf, Kaffee, Panne. Die Uhr steht,
+    /// und mit ihr die Ortung: das ist der einzige Knopf dieser App, der
+    /// wirklich Strom spart, denn der Empfänger ist das Teuerste an einer
+    /// Aufzeichnung. Der Bildschirm darf währenddessen wieder einschlafen.
+    func pause() {
+        guard isRecording, !meter.isPaused else { return }
+        meter.pause()
+        manager.stopUpdatingLocation()
+        manager.allowsBackgroundLocationUpdates = false
+        applyIdleTimer()
+        saveInterrupted(at: .now)
+        pushToWatch(force: true)
+    }
+
+    func resume() {
+        guard isRecording, meter.isPaused else { return }
+        meter.resume()
         manager.allowsBackgroundLocationUpdates = true
         manager.showsBackgroundLocationIndicator = true
         manager.startUpdatingLocation()
@@ -245,6 +287,14 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     // MARK: Live numbers
 
     func seconds(at now: Date = .now) -> TimeInterval { meter.seconds(at: now) }
+
+    /// Der Schnitt, den der Plan für diese Fahrt versprochen hat — Tür zu Tür,
+    /// wie der gemessene. nil, wenn nichts geplant war.
+    var plannedAverageKmh: Double? {
+        guard let s = subject, let seconds = s.plannedSeconds, seconds > 0,
+              let meters = s.plannedMeters, meters > 0 else { return nil }
+        return meters / seconds * 3.6
+    }
     func averageKmh(at now: Date = .now) -> Double { meter.averageKmh(at: now) }
 
     /// What the watch gets. `running` false is the summary after the ride.
@@ -258,7 +308,9 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                         meters: meter.meters, movingSeconds: meter.movingSeconds,
                         currentKmh: meter.currentSpeed * 3.6,
                         signalStops: meter.signalStops, otherStops: meter.otherStops,
-                        signalWaitTotal: meter.signalWaitTotal)
+                        signalWaitTotal: meter.signalWaitTotal,
+                        pausedSeconds: meter.pausedSeconds + meter.currentPause(at: now),
+                        paused: meter.isPaused)
     }
 
     /// Twice a minute would be too slow to watch, once a second is a
@@ -289,7 +341,16 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
 
     // MARK: CLLocationManagerDelegate
 
+    /// Älter als das ist die Ortung aus dem Zwischenspeicher des Empfängers.
+    /// `startUpdatingLocation` liefert als Erstes gern die letzte bekannte
+    /// Position, und die kann Minuten alt sein — sie würde die Fahrt vor dem
+    /// Losfahren beginnen lassen und den gemessenen Schnitt drücken, der über
+    /// `calibrate` in **jede** spätere Planung wandert.
+    static let maxFixAge: TimeInterval = 5
+
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        let locations = locations.filter { abs($0.timestamp.timeIntervalSinceNow) <= Self.maxFixAge }
+        guard !locations.isEmpty else { return }
         let fixes = locations.map {
             RideMeter.Fix(coordinate: $0.coordinate, time: $0.timestamp,
                           speed: $0.speed, accuracy: $0.horizontalAccuracy,
@@ -326,6 +387,17 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         } else if course < 0, let derived = Self.courseFromTrack(meter.points) {
             course = derived
         }
+        // Wer lange an derselben Stelle steht und dort keine Ampel ist, ist
+        // angekommen und hat das Beenden vergessen. Beendet wird auf den
+        // Anfang des Stillstands: das Warten danach war keine Fahrt.
+        if let since = meter.autoStop(at: Date.now, after: autoStopSeconds) {
+            stop(at: since)
+            stoppedByItself = true
+            onAutoStop?()
+            Alarm.note(title: "Fahrt beendet",
+                       body: "Du standst länger als \(Int(autoStopSeconds / 60)) Minuten an derselben Stelle — die Aufzeichnung ist gespeichert.")
+            return
+        }
         pushToWatch()
         // The app can be killed in a pocket; what was ridden up to then is
         // still a ride, and the next start finds it and files it.
@@ -338,16 +410,17 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         // anderes Dateiformat — und seit das Schreiben neben dem Hauptthread
         // läuft und die Kopie gedeckelt ist, kauft das nichts mehr.)
         let every: TimeInterval = meter.points.count > 3_000 ? 120 : 30
-        if now.timeIntervalSince(lastSave) >= every {
-            lastSave = now
-            if let subject {
-                store.saveInterrupted(meter.result(id: subject.id, origin: subject.origin,
-                                                   destination: subject.destination, mode: subject.mode,
-                                                   plannedSeconds: subject.plannedSeconds, end: now,
-                                                   plannedMeters: subject.plannedMeters,
-                                                   plannedSignals: subject.plannedSignals))
-            }
-        }
+        if now.timeIntervalSince(lastSave) >= every { saveInterrupted(at: now) }
+    }
+
+    private func saveInterrupted(at now: Date) {
+        guard let subject else { return }
+        lastSave = now
+        store.saveInterrupted(meter.result(id: subject.id, origin: subject.origin,
+                                           destination: subject.destination, mode: subject.mode,
+                                           plannedSeconds: subject.plannedSeconds, end: now,
+                                           plannedMeters: subject.plannedMeters,
+                                           plannedSignals: subject.plannedSignals))
     }
 
     // MARK: Neben der Route
@@ -415,7 +488,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         replans += 1
         // Die Beläge des neuen Wegs kommen hinten dran. Zugeordnet wird nach
         // Nähe mit einem mitlaufenden Index — was schon zugeordnet ist, bleibt.
-        meter.roadPoints += route.roadPoints
+        meter.addRoadPoints(route.roadPoints)
     }
 
     /// Wo auf der Route jede Ampel liegt, in Metern vom Anfang — nur die, die

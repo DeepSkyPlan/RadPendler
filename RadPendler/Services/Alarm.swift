@@ -61,6 +61,21 @@ enum Alarm {
         }
     }
 
+    /// Eine Mitteilung sofort, ohne Zeitplan: etwas ist gerade passiert, und
+    /// das Telefon steckt in der Tasche. Eigene Kennung, damit `clear()` sie
+    /// nicht mit den Countdown-Warnungen abräumt.
+    static func note(title: String, body: String) {
+        Task {
+            guard await requestPermission() else { return }
+            let content = UNMutableNotificationContent()
+            content.title = title
+            content.body = body
+            content.sound = .default
+            try? await center.add(UNNotificationRequest(identifier: "radpendler.note.\(UUID().uuidString)",
+                                                        content: content, trigger: nil))
+        }
+    }
+
     static func clear() async {
         let mine = await center.pendingNotificationRequests()
             .map(\.identifier).filter { $0.hasPrefix(prefix) }

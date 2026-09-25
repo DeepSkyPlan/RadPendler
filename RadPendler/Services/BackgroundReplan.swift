@@ -102,14 +102,22 @@ enum BackgroundReplan {
 
     // MARK: Nachstellen
 
+    /// Einer statt einer je Wecken: `MapKitRouter` und `CompositeRouter`
+    /// haben Zwischenspeicher, und ein frisch gebauter Planer hat leere.
+    @MainActor private static let planner = TripPlanner()
+
     @MainActor static func run() async {
         guard let question = remembered else { return }
         let settings = live?() ?? AppSettings()
         guard let origin = settings.origin, let destination = settings.destination else { return }
         let target: PlanTarget = question.isArrival ? .arriveBy(question.date ?? .now)
                                                     : .departAfter(question.date ?? .now)
-        let result = await TripPlanner().plan(PlanRequest(origin: origin, destination: destination,
-                                                          target: target, settings: settings.snapshot))
+        // Nur die Kategorie, auf die der Countdown zählt — und derselbe
+        // Planer wie beim letzten Wecken, damit seine Zwischenspeicher das
+        // Wecken überleben.
+        let result = await Self.planner.plan(PlanRequest(origin: origin, destination: destination,
+                                                         target: target, settings: settings.snapshot),
+                                             only: TravelMode(rawValue: question.mode))
         guard !Task.isCancelled, let option = option(for: question, in: result.options) else { return }
         await Alarm.schedule(for: option, alerts: settings.alertsOn ? settings.alertMinutes : [])
     }

@@ -64,13 +64,16 @@ struct HelpView: View {
                         "Solche Stellen merkt sich die App. Ab der nächsten Fahrt erkennt sie den Halt dort wieder, und die Ampel zählt auch beim Planen mit.",
                         "Dabei zählt jede Aufzeichnung auch, wo sie ohne Halt durchgekommen ist. Eine gelernte Kreuzung kostet beim Planen deshalb nicht den eingestellten Mittelwert, sondern das, was sie dich im Schnitt wirklich gekostet hat — über alle Vorbeifahrten, nicht nur über die Male mit Rot.",
                         "Die Uhr zeigt dieselben Zahlen, solange das iPhone in Reichweite ist — sie rechnet nichts selbst.",
+                        "„Pause“ hält die Fahrt an: die Uhr steht, die Ortung ist so lange aus, und die Pause zählt weder zur Fahrzeit noch als Halt. „Weiter“ nimmt sie wieder auf. Das ist auch der Knopf, der während einer Fahrt am meisten Strom spart.",
+                        "Stehst du lange an derselben Stelle und ist dort keine Ampel, beendet sich die Aufzeichnung von selbst und zählt bis zum Anfang des Stillstands — der Fall „angekommen und vergessen, auf beenden zu tippen“. Ab wann, steht in den Einstellungen; „aus“ schaltet es ab.",
+                        "Eine Fahrt beginnt quer. Stellst du es während der Fahrt um, gilt das ab dann für jede.",
                         "Die Ortung läuft nur zwischen „Fahrt“ und „Fahrt beenden“, auch in der Tasche (iOS zeigt dabei die blaue Leiste). Danach hört sie auf.",
                     ])
                     section("Gefahrene Fahrten", "list.bullet.rectangle", [
                         "Menü → Fahrten: alle Aufzeichnungen, nach Jahren und Monaten. Die Überschrift eines Monats zeigt Kilometer, Schnitt und Ampelhalts dieses Monats.",
                         "Eine Fahrt antippen zeigt die gefahrene Linie, jede Zahl dazu und die längsten Halte. Die geplante Route liegt dünn und grau daneben — der Unterschied ist die eigentliche Auskunft.",
                         "Darunter: das Höhenprofil der Fahrt, und was angekündigt war — Ampeln und Schnitt gegen das, was daraus wurde.",
-                        "Die Zahlen jeder Fahrt gehen über deine eigene iCloud auf deine anderen Geräte; die gefahrene Linie bleibt auf dem Gerät, auf dem sie aufgezeichnet wurde. Nach links wischen löscht eine Fahrt — auf diesem Gerät.",
+                        "Die Zahlen jeder Fahrt gehen über deine eigene iCloud auf deine anderen Geräte, die gefahrene Linie seit 1.3 ebenfalls — in deine private CloudKit-Datenbank, die außer dir niemand lesen kann. Nach links wischen löscht eine Fahrt — auf diesem Gerät.",
                     ])
                     section("Aktualisieren", "arrow.down", [
                         "Seite nach unten ziehen und loslassen. Einen Knopf dafür gibt es nicht mehr.",

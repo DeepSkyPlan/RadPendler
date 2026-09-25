@@ -137,11 +137,29 @@ final class PlanModel {
     }
 
     /// Pull-to-refresh: run and stay in flight until the plan is in, so the
-    /// spinner lives as long as the search does.
+    /// spinner lives as long as the search does. **Immer**: wer von Hand
+    /// nachfragt, will eine neue Antwort, auch wenn die alte noch frisch ist.
     func refreshAndWait(settings: AppSettings) async {
-        refresh(settings: settings)
+        refresh(settings: settings, force: true)
         await task?.value
     }
+
+    /// Woran eine Planung hängt — die beiden Adressen, die Frage und die
+    /// Wertkopie der Einstellungen. Ist alles davon gleich geblieben, kommt
+    /// dieselbe Antwort heraus.
+    private struct Mark: Equatable {
+        var origin: Place
+        var destination: Place
+        var when: When
+        var settings: PlanSettings
+    }
+
+    private var lastMark: Mark?
+    /// So lange gilt eine Antwort als frisch genug, um sie nicht zu
+    /// wiederholen. Eine volle Planung sind gut zwei Dutzend Anfragen; sie
+    /// zweimal in derselben Minute für dieselbe Frage zu stellen, ist
+    /// verschenkter Strom. Von Hand nachfragen (`force`) geht immer.
+    static let reuseWithin: TimeInterval = 60
 
     /// What the wrist picked, applied here. The watch shows the phone's plan,
     /// so a choice made there means the same trip as a choice made here.
@@ -200,15 +218,24 @@ final class PlanModel {
                                         isArrival: when.isArrival))
     }
 
-    func refresh(settings: AppSettings) {
-        task?.cancel()
+    func refresh(settings: AppSettings, force: Bool = false) {
         guard let origin = settings.origin, let destination = settings.destination else {
+            task?.cancel()
             needsAddresses = true
             result = PlanResult()
             isLoading = false
+            lastMark = nil
             return
         }
         needsAddresses = false
+        // Dieselbe Frage, gerade erst beantwortet: die Antwort steht schon da.
+        let mark = Mark(origin: origin, destination: destination, when: when, settings: settings.snapshot)
+        if !force, mark == lastMark, !options.isEmpty,
+           let lastRun, Date.now.timeIntervalSince(lastRun) < Self.reuseWithin {
+            return
+        }
+        task?.cancel()
+        lastMark = mark
         let target: PlanTarget = switch when {
         case .departNow: .departAfter(.now)
         case .departAt(let d): .departAfter(d)
