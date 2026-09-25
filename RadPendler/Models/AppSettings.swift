@@ -533,13 +533,19 @@ struct PlanSettings: Equatable {
     /// Strecke nach seinen eigenen Aufzeichnungen bräuchte.
     ///
     /// Die Rechnung aus Strecke, Rolltempo, Ampelzahl und Wartezeit ist eine
-    /// Rechnung; der gemessene Schnitt ist eine Messung. Im Zweifel gewinnt
-    /// die Messung — und „im Zweifel" heißt hier: wenn die Rechnung schneller
-    /// ist als die Messung. Langsamer darf sie sein, dafür gibt es Gründe
-    /// (viele Ampeln, viele Höhenmeter), die der pauschale Schnitt nicht kennt.
+    /// Rechnung; der gemessene Schnitt ist eine Messung — **und die Messung
+    /// gewinnt**, in beide Richtungen. Sie ist langsamer als die Rechnung?
+    /// Dann ist die Rechnung zu optimistisch. Sie ist schneller? Dann fährt
+    /// dieser Mensch schneller, als die Rechnung glaubt, und niemand will
+    /// eine Ankunft angesagt bekommen, die zehn Minuten zu spät ist.
+    ///
+    /// Was die Rechnung dabei kann und der Schnitt nicht — Ampeln und
+    /// Höhenmeter dieser einen Linie — entscheidet weiter, **welche** Linie
+    /// die schnellste ist: die Rollen werden über `computedTime` vergeben.
+    /// Der Schnitt sagt, wie lange es dauert, nicht, wo es langgeht.
     func realistic(_ computed: TimeInterval, meters: Double) -> TimeInterval {
         guard let kmh = measuredOverallKmh, kmh > 0, meters > 0 else { return computed }
-        return Swift.max(computed, (meters / (kmh / 3.6)).rounded())
+        return (meters / (kmh / 3.6)).rounded()
     }
 
     /// Dieselbe Rechnung für alle, die nur die eine Einstellung haben und

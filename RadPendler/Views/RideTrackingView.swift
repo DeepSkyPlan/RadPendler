@@ -417,8 +417,8 @@ struct RideTrackingView: View {
 /// Was von einer laufenden Fahrt noch übrig ist: Strecke, Ampeln, Zeit.
 ///
 /// Gerechnet wie beim Planen — Strecke durch das rollende Tempo plus die
-/// Wartezeit für die Ampeln, die noch kommen —, und mit derselben Gegenprobe:
-/// schneller als der eigene gemessene Schnitt wird auch hier niemand.
+/// Wartezeit für die Ampeln, die noch kommen —, und mit derselben Regel: wo
+/// es einen gemessenen Schnitt gibt, gilt der.
 struct RideRemaining: Equatable {
     var meters: Double
     var signals: Int
@@ -430,7 +430,9 @@ struct RideRemaining: Equatable {
         var seconds = p.metersLeft / rolling + Double(p.signalsLeft * settings.signalWaitSeconds)
         if settings.measuredRides >= AppSettings.calibrationRides,
            let kmh = settings.measuredOverallKmh, kmh > 0 {
-            seconds = Swift.max(seconds, p.metersLeft / (kmh / 3.6))
+            // Dieselbe Regel wie beim Planen: die Messung gewinnt, auch wenn
+            // sie die schnellere ist.
+            seconds = p.metersLeft / (kmh / 3.6)
         }
         return RideRemaining(meters: p.metersLeft, signals: p.signalsLeft, seconds: seconds.rounded())
     }

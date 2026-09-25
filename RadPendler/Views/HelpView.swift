@@ -79,7 +79,7 @@ struct HelpView: View {
                     ])
                     section("Was die App voraussetzt", "info.circle", [
                         "Fahrzeiten mit dem Rad rechnen sich aus der rollenden Geschwindigkeit plus Wartezeit je Ampelkreuzung plus fünf Sekunden je Höhenmeter — Tempo und Wartezeit stehen in den Einstellungen. Wo eigene Fahrten eine Kreuzung schon kennen, gilt deren gemessene Zeit statt der eingestellten.",
-                        "Beide Werte schreibt die App nach jeder Fahrt selbst fort, aus dem Median der letzten Fahrten. Und sie rechnet sich nicht schneller, als du bist: liegt die Rechnung unter deinem gemessenen Tür-zu-Tür-Schnitt, gilt der Schnitt.",
+                        "Beide Werte schreibt die App nach jeder Fahrt selbst fort, aus dem Median der letzten Fahrten. Und sobald es genug Fahrten gibt, gilt für die angezeigte Radzeit dein gemessener Tür-zu-Tür-Schnitt — ob er langsamer oder schneller ist als die Rechnung. Welche der Linien die schnellste ist, entscheidet weiter die Rechnung: nur sie kennt den Unterschied zwischen zwei und dreißig Ampeln.",
                         "Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet; S-Bahn und Regionalzug zuerst, U-Bahn und Tram nur als markierte Alternative.",
                         "Fixpunkte (Einstellungen) sind Orte, über die die Strecke führen soll; Verbindungen ohne sie werden ausgegraut und nie empfohlen.",
                         "Alle Zeiten ohne Gewähr.",

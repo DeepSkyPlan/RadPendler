@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.3 (Build 36) — elf Funde von der Testfahrt
+
+- **Die Karte zeigt den Weg, auf den die Pfeile zeigen.** Wird unterwegs neu geplant, stand
+  bisher weiter die alte Linie da, während Pfeil und Abweichung längst gegen die neue
+  rechneten. Die ursprüngliche Linie liegt ab der ersten Neuplanung dünn und grau daneben.
+- **Abbiegepfeil grün und erst 250 m vor der Abbiegung**, Abweichung rot. Rot heißt auf
+  diesem Bildschirm ab jetzt genau eine Sache: du bist neben der Route.
+- **Während der Fahrt steht da, was noch kommt**: Reststrecke, Restzeit, Ankunftszeit und
+  die Ampeln, die noch vor dir liegen. In der Leiste dieselbe Zahl statt des Countdowns —
+  wann du losgehen sollst, ist beantwortet, sobald du fährst.
+- **Die Ampelzeile zählt „gehalten von geplant"** und läuft sekündlich mit, solange du
+  stehst. Auf der Karte liegen die Ampeln der Route als Punkte — und nur die.
+- **Die App misst sich selbst nach.** Nach jeder Fahrt schreibt sie aus dem Median der
+  letzten acht Radfahrten das rollende Tempo in die Einstellungen und aus den gelernten
+  Ampeln die Wartezeit je Ampel, mit dem Anteil daneben, der sie erklärt: „an 38 % der
+  Ampeln gehalten". Und **gibt es genug gemessene Fahrten, ist dein Schnitt die angezeigte
+  Fahrzeit** — auch wenn er schneller ist als die Rechnung. Welche Linie die schnellste
+  ist, entscheidet weiterhin die Rechnung.
+- **In den Fahrten**: die geplante Linie dünn neben der gefahrenen, das Höhenprofil unter
+  der Straßenart, und zwei Vergleiche — Ampeln und Schnitt gegen das, was angekündigt war.
+- **„Sonstiges" war ein Fehler in der Zuordnung.** Eine Zeile der BRouter-Tabelle ist eine
+  Strecke, keine Stelle — bis zu zwei Kilometer lang. Damit lagen 38 % der gefahrenen Meter
+  zu weit von jedem Stützpunkt entfernt und zählten als „sonstiges", obwohl die Straße
+  bekannt war.
+- **Die Ausrichtung am Lenker bleibt am Lenker**: was du im Fahrtmodus wählst, gilt ab dann
+  für jede Fahrt. Nach „Fahrt beenden" dreht sich die App wieder wie jede andere.
+- **Gelernte Ampeln rechnen mit ihrer gemessenen Zeit** statt mit dem Pauschalwert, und jede
+  Aufzeichnung zählt dafür auch, wo sie ohne Halt durchgekommen ist. Vorher wuchs die
+  geplante Radzeit mit jeder Fahrt, weil jede neue Ampeln lernte und keine je billiger
+  wurde. Der erste und der letzte Stillstand einer Fahrt sind dabei keine Ampel mehr — das
+  ist die eigene Haustür, nicht eine Kreuzung. Und die Detailseite schreibt die Ampelzeit
+  neben die Ampelzahl, damit die Fahrzeit nachrechenbar ist.
+
 ## 1.3 (Build 35) — weniger, dafür deutlicher
 
 - **Keine namenlosen „Alternative"-Kästen mehr.** Drei- bis fünfmal „Alternative"
