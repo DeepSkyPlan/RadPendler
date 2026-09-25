@@ -88,12 +88,16 @@ struct Ride: Codable, Identifiable, Equatable {
     /// festgehalten, weil die Planung von morgen eine andere ist.
     var plannedMeters: Double?
     var plannedSignals: Int?
+    /// Gewollte Pausen: was zwischen „Pause" und „Weiter" lag. Zählt weder
+    /// zur Fahrzeit noch in den Schnitt — sonst wäre jede Einkehr eine
+    /// langsame Fahrt. Ältere Dateien kennen das Feld nicht; dort ist es 0.
+    var pausedSeconds: TimeInterval = 0
     var pointCount: Int = 0
     /// Metres per kind of road, attributed to the route that was planned.
     /// nil where nobody classified the route — Apple's lines carry no tags.
     var mix: RoadMix?
 
-    var seconds: TimeInterval { max(0, ended.timeIntervalSince(started)) }
+    var seconds: TimeInterval { max(0, ended.timeIntervalSince(started) - pausedSeconds) }
     /// Door to door, standing time included.
     var averageKmh: Double { seconds > 0 ? meters / seconds * 3.6 : 0 }
     /// While rolling — the number that says how fast one rides, as opposed to

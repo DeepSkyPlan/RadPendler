@@ -67,12 +67,18 @@ struct TripPlanner {
     /// Reihenfolge aus den Einstellungen. Steht das Rad dort oben, steht es
     /// nach einer Sekunde auf dem Bildschirm und die Bahn kommt nach — vorher
     /// stand alles auf „sucht …", bis der langsamste Dienst geantwortet hatte.
-    func plan(_ req: PlanRequest,
+    /// `only` fragt **eine** Kategorie und lässt die anderen drei ungefragt.
+    /// Dafür gibt es genau einen Fall: die im Hintergrund geweckte App stellt
+    /// ihre Warnungen auf die Verbindung nach, auf die der Countdown zählt —
+    /// und holte bis 1.3 dafür drei Radrouten, eine Autoroute, sechzehn
+    /// Bahnhofspaare und die Regenvorhersage mit, die kein Mensch je sah.
+    func plan(_ req: PlanRequest, only: TravelMode? = nil,
               onProgress: (@MainActor @Sendable (PlanResult) -> Void)? = nil) async -> PlanResult {
-        async let bike = capture { try await bikeOptions(req) }
-        async let car = capture { try await carOptions(req) }
-        async let transit = capture { try await transitOptions(req) }
-        async let bikeTransit = capture { try await bikeTransitOptions(req) }
+        let wanted = { (mode: TravelMode) in only == nil || only == mode }
+        async let bike = capture(wanted(.bike)) { try await bikeOptions(req) }
+        async let car = capture(wanted(.car)) { try await carOptions(req) }
+        async let transit = capture(wanted(.transit)) { try await transitOptions(req) }
+        async let bikeTransit = capture(wanted(.bikeTransit)) { try await bikeTransitOptions(req) }
 
         var result = PlanResult()
         // Dieselbe Liste, die auch die Kästen anordnet: was oben steht, wird
@@ -97,7 +103,13 @@ struct TripPlanner {
         }
 
         // Der Regen zum Schluss, in **einer** Anfrage für alle Möglichkeiten.
-        // Je Modus zu fragen wären vier Anfragen für dieselbe Auskunft.
+        // Je Modus zu fragen wären vier Anfragen für dieselbe Auskunft. Für
+        // die geweckte App gar nicht: sie stellt eine Weckzeit nach, und dafür
+        // ist es gleich, ob es regnet.
+        guard only == nil else {
+            Self.settle(&result, req)
+            return result
+        }
         do {
             try await attachRain(&result.options)
         } catch {
@@ -118,12 +130,17 @@ struct TripPlanner {
         }
         let penalty = req.settings.transferPenalty
         let order = req.settings.modeOrder
-        result.options.sort { ranking($0, $1, penalty: penalty, order: order) }
+        // `arrival`: bei „um 9 da sein" gewinnt die **späteste Abfahrt**, nicht
+        // die früheste Ankunft. Ohne das stand der Zug um 7:40 über dem um
+        // 8:20, obwohl beide rechtzeitig ankommen.
+        result.options.sort { ranking($0, $1, penalty: penalty, arrival: req.isArrival, order: order) }
         result.recommendation = recommend(result.options, penalty: penalty, order: order,
                                           rainSwitch: req.settings.rainSwitchLevel)
     }
 
-    private func capture(_ work: () async throws -> [TripOption]) async -> Result<[TripOption], Error> {
+    private func capture(_ wanted: Bool = true,
+                         _ work: () async throws -> [TripOption]) async -> Result<[TripOption], Error> {
+        guard wanted else { return .success([]) }
         do { return .success(try await work()) } catch { return .failure(error) }
     }
 
@@ -188,7 +205,11 @@ struct TripPlanner {
         return picked.enumerated().map { index, entry in
             let (c, variants) = entry
             let ride = c.time(req.settings)
-            let leave = req.arriveBy.map { $0.addingTimeInterval(-ride) } ?? req.earliestLeave
+            // Nie vor „frühestens los": eine Zielzeit, die schon vorbei ist,
+            // ergab bisher eine Abfahrt in der Vergangenheit und einen
+            // Countdown, der rückwärts lief.
+            let leave = req.arriveBy.map { Swift.max($0.addingTimeInterval(-ride), req.earliestLeave) }
+                ?? req.earliestLeave
             let leg = Leg(kind: .bike, fromName: req.origin.shortName, toName: req.destination.shortName,
                           departure: leave, arrival: leave.addingTimeInterval(ride),
                           distance: c.route.distance, coordinates: c.route.coordinates)

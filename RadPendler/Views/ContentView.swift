@@ -18,6 +18,10 @@ struct ContentView: View {
     @State private var model = PlanModel()
     /// Welche der vier Einstellungsseiten offen ist; nil heißt keine.
     @State private var settingsPage: SettingsPage?
+    /// Der Stand der Einstellungen, als die Seite aufging. Beim Zumachen wird
+    /// verglichen: wer nur nachgesehen hat, bekommt keine neue Suche — die
+    /// kostet ein halbes Dutzend Anfragen und wirft die Auswahl weg.
+    @State private var settingsMark: SettingsMark?
     @State private var showHelp = false
     @State private var showMenu = false
     @State private var showRides = false
@@ -47,6 +51,18 @@ struct ContentView: View {
             case .rest: "gearshape"
             }
         }
+    }
+
+    /// Alles, woran eine Planung hängt: die Wertkopie der Einstellungen und
+    /// die beiden Adressen, die nicht darin stehen.
+    struct SettingsMark: Equatable {
+        var plan: PlanSettings
+        var origin: Place?
+        var destination: Place?
+    }
+
+    private var settingsNow: SettingsMark {
+        SettingsMark(plan: settings.snapshot, origin: settings.origin, destination: settings.destination)
     }
 
     enum PlaceField: Identifiable {
@@ -117,7 +133,10 @@ struct ContentView: View {
                 await Alarm.schedule(for: model.activeCountdown,
                                      alerts: settings.alertsOn ? settings.alertMinutes : [])
             }
-            .sheet(item: $settingsPage, onDismiss: refresh) { page in
+            .onChange(of: settingsPage) { _, page in
+                if page != nil { settingsMark = settingsNow }
+            }
+            .sheet(item: $settingsPage, onDismiss: refreshIfSettingsChanged) { page in
                 switch page {
                 case .addresses: AddressSettingsView()
                 case .navigation: NavigationSettingsView()
@@ -146,6 +165,9 @@ struct ContentView: View {
                 // What the wrist picks is what the phone shows — the watch is
                 // a second screen onto one plan, not a second plan.
                 WatchLink.shared.onChoice = { [model] choice in model.apply(choice) }
+                // Beendet sich eine Fahrt von selbst, muss dasselbe passieren
+                // wie beim Tippen auf „Fahrt beenden" — nur sieht es niemand.
+                tracker.onAutoStop = { afterRide() }
                 model.applyDefaultWhen(settings: settings)
                 refresh()
             }
@@ -168,20 +190,7 @@ struct ContentView: View {
             RideTrackingView(options: model.options, selectedID: model.selected?.id,
                              onStop: {
                                  tracker.stop()
-                                 // Where this ride stood — and where it rolled
-                                 // straight through — is what the next one
-                                 // knows: the junctions no map has, and what
-                                 // the known ones really cost.
-                                 settings.learn(stops: tracker.meter.stops,
-                                                track: tracker.meter.points,
-                                                junctions: tracker.meter.signals)
-                                 // Und was sie über das Tempo dieses Fahrers
-                                 // weiß, steht ab jetzt in den Einstellungen.
-                                 settings.calibrate(from: rides.rides)
-                                 // Die Fahrt ist vorbei: die App dreht sich
-                                 // wieder wie jede andere.
-                                 settings.orientation = .auto
-                                 settings.orientation.apply()
+                                 afterRide()
                              })
         } else if isTwoColumn {
             HStack(alignment: .top, spacing: 0) {
@@ -258,7 +267,9 @@ struct ContentView: View {
                      ends: [settings.origin?.coordinate, settings.destination?.coordinate].compactMap { $0 },
                      onSelect: { select($0) },
                      lastRun: model.lastRun, loading: model.isLoading,
-                     onRefresh: refresh)
+                     // Ein Tipp auf den Zeitstempel ist eine Ansage: neu
+                     // fragen, auch wenn die Antwort noch frisch wäre.
+                     onRefresh: { model.refresh(settings: settings, force: true) })
             .frame(minHeight: 150, maxHeight: .infinity)
             .clipShape(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
             .overlay {
@@ -331,6 +342,7 @@ struct ContentView: View {
                       signalSeconds: TimeInterval(settings.signalStopSeconds),
                       replanOffRouteMeters: settings.replanOffRouteMeters,
                       replanOffRouteMinutes: settings.replanOffRouteMinutes,
+                      autoStopMinutes: settings.autoStopMinutes,
                       plannedSignals: planned)
     }
 
@@ -431,6 +443,33 @@ struct ContentView: View {
 
     private func refresh() {
         model.refresh(settings: settings)
+    }
+
+    /// Nur, wenn sich wirklich etwas geändert hat. Die Ausrichtung, die
+    /// Hilfetexte und alles, was nur die Anzeige betrifft, stehen nicht in der
+    /// Wertkopie — dafür wird nichts neu geholt.
+    private func refreshIfSettingsChanged() {
+        let mark = settingsMark
+        settingsMark = nil
+        guard mark == nil || mark != settingsNow else { return }
+        refresh()
+    }
+
+    /// Was nach jeder Fahrt passiert, egal wer sie beendet hat: nachmessen,
+    /// dazulernen, die Ausrichtung wieder freigeben.
+    private func afterRide() {
+        // Where this ride stood — and where it rolled straight through — is
+        // what the next one knows: the junctions no map has, and what the
+        // known ones really cost.
+        settings.learn(stops: tracker.meter.stops,
+                       track: tracker.meter.points,
+                       junctions: tracker.meter.signals)
+        // Und was sie über das Tempo dieses Fahrers weiß, steht ab jetzt in
+        // den Einstellungen.
+        settings.calibrate(from: rides.rides)
+        // Die Fahrt ist vorbei: die App dreht sich wieder wie jede andere.
+        settings.orientation = .auto
+        settings.orientation.apply()
     }
 
     private func select(_ id: TripOption.ID) {

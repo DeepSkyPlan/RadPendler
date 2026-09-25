@@ -70,7 +70,11 @@ final class RideStore {
         rides.append(ride)
         tracks[ride.id] = track
         if let data = try? JSONEncoder().encode(track) {
-            try? data.write(to: trackFile(ride.id), options: .atomic)
+            // Eine gefahrene Linie ist der Weg von der Haustür zur Arbeit.
+            // Ohne Schutzklasse ist sie auf einem gesperrten, aber gebooteten
+            // Gerät lesbar; `unlessOpen` und nicht `complete`, weil während
+            // einer Aufzeichnung geschrieben wird, auch mit gesperrtem Schirm.
+            try? data.write(to: trackFile(ride.id), options: [.atomic, .completeFileProtectionUnlessOpen])
         }
         write()
         // Und die Linie zu den anderen Geräten. Ohne Container ein stiller
@@ -111,7 +115,7 @@ final class RideStore {
         guard let fetched = await TrackCloud.shared.download(ride.id) else { return nil }
         tracks[ride.id] = fetched
         if let data = try? JSONEncoder().encode(fetched) {
-            try? data.write(to: url, options: .atomic)
+            try? data.write(to: url, options: [.atomic, .completeFileProtectionUnlessOpen])
         }
         return fetched
     }
@@ -167,7 +171,10 @@ final class RideStore {
         let step = (track.points.count + maxInterruptedPoints - 1) / maxInterruptedPoints
         var kept = stride(from: 0, to: track.points.count, by: step).map { track.points[$0] }
         if let last = track.points.last, kept.last != last { kept.append(last) }
-        return RideTrack(id: track.id, points: kept, stops: track.stops)
+        // Die geplante Linie bleibt: sie ist ohnehin ausgedünnt, und gerade
+        // bei einer abgebrochenen Fahrt ist der Vergleich „geplant gegen
+        // gefahren" das Interessante.
+        return RideTrack(id: track.id, points: kept, stops: track.stops, planned: track.planned)
     }
 
     /// Written while recording, so a ride does not die with the process.
@@ -184,7 +191,7 @@ final class RideStore {
             guard let rideData = try? JSONEncoder().encode(ride),
                   let trackData = try? JSONEncoder().encode(track),
                   let blob = try? JSONEncoder().encode(Interrupted(ride: rideData, track: trackData)) else { return }
-            try? blob.write(to: url, options: .atomic)
+            try? blob.write(to: url, options: [.atomic, .completeFileProtectionUnlessOpen])
         }
     }
 

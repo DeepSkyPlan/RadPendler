@@ -231,7 +231,11 @@ struct CountdownBox: View {
             if compact { pill(left, gone: gone) } else { content(left, gone: gone) }
         }
         .onChange(of: Int((left ?? 0) / 60)) { _, _ in beep(left) }
-        .task {
+        // `id`: ohne etwas zu zählen tickt hier nichts. Die Uhr lief bisher
+        // auch dann sekündlich, wenn gar keine Verbindung ausgewählt war —
+        // sechzig folgenlose Neuauswertungen je Minute im Leerlauf.
+        .task(id: option?.id) {
+            guard option != nil else { return }
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
                 now = .now

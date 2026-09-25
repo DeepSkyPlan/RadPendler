@@ -26,9 +26,17 @@ struct RideLive: Codable, Equatable {
     var signalStops: Int
     var otherStops: Int
     var signalWaitTotal: TimeInterval
+    /// Was an gewollten Pausen schon zusammengekommen ist, laufende
+    /// eingeschlossen. Optional, damit eine ältere Uhr eine neuere Nachricht
+    /// noch lesen kann — ein fehlender Schlüssel ist dann einfach 0.
+    var pausedSeconds: TimeInterval?
+    /// Ob gerade pausiert wird. Die Uhr sagt es, sonst steht dort eine Zeit,
+    /// die nicht läuft, und niemand weiß, warum.
+    var paused: Bool?
 
-    /// Door to door, standing time included: the number one rides against.
-    var seconds: TimeInterval { max(0, at.timeIntervalSince(started)) }
+    /// Door to door, standing time included — aber ohne die Pausen: wer
+    /// zwanzig Minuten beim Bäcker steht, ist deshalb nicht langsamer gefahren.
+    var seconds: TimeInterval { max(0, at.timeIntervalSince(started) - (pausedSeconds ?? 0)) }
     var averageKmh: Double { seconds > 0 ? meters / seconds * 3.6 : 0 }
     var movingKmh: Double { movingSeconds > 0 ? meters / movingSeconds * 3.6 : 0 }
     var signalWaitAverage: TimeInterval {

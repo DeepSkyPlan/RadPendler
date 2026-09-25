@@ -166,7 +166,7 @@ final class RadarLabelTests: XCTestCase {
         }
         let plain = bbox(0), wide = bbox(RadarTileOverlay.margin)
         XCTAssertEqual(pixels(0), 256)
-        XCTAssertEqual(pixels(RadarTileOverlay.margin), 384)
+        XCTAssertEqual(pixels(RadarTileOverlay.margin), Double(256 + 2 * RadarTileOverlay.margin))
         let mppPlain = (plain[2] - plain[0]) / pixels(0)
         let mppWide = (wide[2] - wide[0]) / pixels(RadarTileOverlay.margin)
         XCTAssertEqual(mppPlain, mppWide, accuracy: 0.001, "gleiche Meter je Pixel, nur mehr davon")

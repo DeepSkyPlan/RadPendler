@@ -143,21 +143,38 @@ struct RoadPoint: Codable, Equatable {
     /// Nearest road point to a coordinate, searching forward from `from`.
     /// A ride runs along the route, so the last match is where the next one
     /// starts — scanning the whole list per step would be quadratic.
+    ///
+    /// **Findet der Vorwärtslauf nichts, wird einmal die ganze Liste
+    /// durchgesehen.** Der Vorwärtslauf bricht ab, sobald er sich vom besten
+    /// Punkt wieder entfernt; er kann deshalb nur finden, was *vor* einem
+    /// liegt. Nach einer Neuplanung mitten in der Fahrt hängen die Stützpunkte
+    /// des neuen Wegs hinten an der Liste, und alles davon lag außerhalb
+    /// seiner Reichweite — der Rest der Fahrt wurde als „sonstiges" verbucht,
+    /// obwohl jede Straße bekannt war. Dasselbe gilt, wer ein Stück zurück
+    /// fährt oder abkürzt und wieder auf die Linie kommt.
     static func nearest(_ points: [RoadPoint], to c: CLLocationCoordinate2D,
                         from: Int) -> (index: Int, cls: RoadClass)? {
         guard !points.isEmpty else { return nil }
+        if let hit = scan(points, to: c, from: Swift.max(0, from - 5), earlyOut: true) { return hit }
+        return scan(points, to: c, from: 0, earlyOut: false)
+    }
+
+    /// Der eigentliche Durchlauf. `earlyOut` bricht ab, sobald es wieder
+    /// weiter weg geht — das ist der Regelfall und kostet ein paar Dutzend
+    /// Vergleiche statt einiger hundert.
+    private static func scan(_ points: [RoadPoint], to c: CLLocationCoordinate2D,
+                             from: Int, earlyOut: Bool) -> (index: Int, cls: RoadClass)? {
         let mPerDegLat = 111_320.0
         let mPerDegLon = mPerDegLat * cos(c.latitude * .pi / 180)
-        let lo = Swift.max(0, from - 5)
         var best: (Int, Double)?
-        var i = lo
+        var i = from
         while i < points.count {
             let dx = (points[i].lon - c.longitude) * mPerDegLon
             let dy = (points[i].lat - c.latitude) * mPerDegLat
             let d2 = dx * dx + dy * dy
             if best == nil || d2 < best!.1 { best = (i, d2) }
             // Clearly moving away again, and far enough past the best: stop.
-            if let best, d2 > best.1, i > best.0 + 40 { break }
+            if earlyOut, let best, d2 > best.1, i > best.0 + 40 { break }
             i += 1
         }
         guard let best, best.1 <= matchRadius * matchRadius else { return nil }

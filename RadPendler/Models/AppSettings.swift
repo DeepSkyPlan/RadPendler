@@ -138,8 +138,21 @@ final class AppSettings {
     /// festgestellt hat, will das bei jeder Fahrt — und danach wieder eine App,
     /// die sich dreht wie jede andere. Deshalb zwei Werte: dieser gilt ab
     /// „Fahrt starten", `orientation` geht am Ende auf „Automatisch" zurück.
-    var rideOrientation: OrientationLock = .auto {
+    ///
+    /// Voreingestellt **quer**: am Lenker liegt das Telefon quer, und die
+    /// Karte hat dort die Breite, die sie braucht. Wer während einer Fahrt auf
+    /// den Knopf tippt, stellt es um, und dabei bleibt es auch beim nächsten
+    /// Mal — das hier ist nur der Anfang.
+    var rideOrientation: OrientationLock = .landscape {
         didSet { defaults.set(rideOrientation.rawValue, forKey: "rideOrientationLock") }
+    }
+
+    /// Ab wann ein Halt, an dem keine Ampel steht, die Aufzeichnung von selbst
+    /// beendet — in Minuten; 0 schaltet es ab. Der Regelfall ist nicht die
+    /// Pause, sondern das vergessene „Fahrt beenden": das Telefon liegt auf
+    /// dem Schreibtisch und ortet weiter.
+    var autoStopMinutes: Double = 10 {
+        didSet { defaults.set(autoStopMinutes, forKey: "autoStopMinutes") }
     }
 
     /// Der Tür-zu-Tür-Schnitt der letzten aufgezeichneten Radfahrten, und der
@@ -246,6 +259,15 @@ final class AppSettings {
         assign(\.optionsPerMode, defaults.object(forKey: "optionsPerMode") as? Int ?? optionsPerMode)
         assign(\.rideOrientation, (defaults.string(forKey: "rideOrientationLock"))
             .flatMap(OrientationLock.init(rawValue:)) ?? rideOrientation)
+        // Einmalig, für alle, die schon eine Fassung vor 1.4 hatten: dort war
+        // „automatisch" die Voreinstellung und stand deshalb bei jedem, der
+        // nie etwas eingestellt hat. Wer es danach wieder auf „automatisch"
+        // stellt, behält das — der Merker wird nur einmal gesetzt.
+        if !defaults.bool(forKey: "rideStartsLandscape") {
+            defaults.set(true, forKey: "rideStartsLandscape")
+            if rideOrientation == .auto { rideOrientation = .landscape }
+        }
+        assign(\.autoStopMinutes, defaults.object(forKey: "autoStopMinutes") as? Double ?? autoStopMinutes)
         assign(\.measuredOverallKmh, defaults.object(forKey: "measuredOverallKmh") as? Double)
         assign(\.measuredMovingKmh, defaults.object(forKey: "measuredMovingKmh") as? Double)
         assign(\.measuredRides, defaults.object(forKey: "measuredRides") as? Int ?? measuredRides)
@@ -515,8 +537,15 @@ struct PlanSettings: Equatable {
     }
 
     /// Riding time plus the expected wait at the route's traffic lights.
+    ///
+    /// Die Gegenprobe aus den eigenen Fahrten gilt auch hier — aber nur in
+    /// **eine** Richtung. Das sind die Zubringer zum Bahnhof: rechnet die App
+    /// sie schneller, als dieser Fahrer wirklich fährt, steht er auf dem
+    /// Bahnsteig und sieht die Rücklichter. Umgekehrt kostet ein zu
+    /// vorsichtiger Zubringer nur ein paar Minuten früher losgehen.
     func rideTime(_ r: StreetRoute) -> TimeInterval {
-        bikeTime(r.distance) + signalWait(signals: r.signals, learned: r.learnedSignals)
+        let computed = bikeTime(r.distance) + signalWait(signals: r.signals, learned: r.learnedSignals)
+        return Swift.max(computed, realistic(computed, meters: r.distance))
     }
 
     /// Was die Ampeln einer Route an Zeit kosten.

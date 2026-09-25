@@ -146,7 +146,8 @@ struct RideRow: View {
             HStack(spacing: 5) {
                 Chip(text: Fmt.km(ride.meters), symbol: "ruler")
                 Chip(text: Fmt.kmh(ride.averageKmh), symbol: "speedometer")
-                Chip(text: "\(ride.signalStops)", icon: AnyView(TrafficLightIcon()))
+                Chip(text: ride.plannedSignals.map { "\(ride.signalStops)/\($0)" } ?? "\(ride.signalStops)",
+                     icon: AnyView(TrafficLightIcon()))
                 if ride.signalStops > 0 {
                     Chip(text: Fmt.clock(ride.signalWaitTotal), symbol: "hourglass")
                 }
@@ -207,7 +208,7 @@ struct RideMapCard: View {
                 // einen Speicher, der für die ganze App ein Megabyte hat.
                 ContentUnavailableView("Keine Linie",
                                        systemImage: "map",
-                                       description: Text("Diese Fahrt wurde auf einem anderen Gerät aufgezeichnet. Die Zahlen reisen mit, die gefahrene Linie bleibt dort."))
+                                       description: Text("Die Zahlen dieser Fahrt sind da, die gefahrene Linie nicht: entweder wurde sie vor 1.3 auf einem anderen Gerät aufgezeichnet, oder sie ist gerade nicht aus iCloud zu holen."))
             } else {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -248,11 +249,16 @@ struct RideFacts: View {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
                 fact("Fahrzeit", Fmt.clock(ride.seconds), .primary)
                 fact("Strecke", Fmt.km(ride.meters), .primary)
-                fact("Ø gesamt", Fmt.kmh(ride.averageKmh), Theme.accent)
+                fact(ride.plannedAverageKmh == nil ? "Ø gesamt" : "Ø gesamt / Plan",
+                     ride.plannedAverageKmh.map { "\(Self.number(ride.averageKmh)) / \(Self.number($0))" }
+                         ?? Fmt.kmh(ride.averageKmh),
+                     ride.plannedAverageKmh.map { ride.averageKmh >= $0 ? Color.green : .orange } ?? Theme.accent)
                 fact("Ø rollend", Fmt.kmh(ride.movingKmh), RideColors.color(ride.movingKmh))
                 fact("Spitze", Fmt.kmh(ride.maxKmh), RideColors.color(ride.maxKmh))
                 fact("gestanden", Fmt.clock(ride.standingSeconds), .orange)
-                fact("Ampelhalts", "\(ride.signalStops)", .yellow)
+                fact(ride.plannedSignals == nil ? "Ampelhalts" : "Ampeln / Plan",
+                     ride.plannedSignals.map { "\(ride.signalStops)/\($0)" } ?? "\(ride.signalStops)",
+                     .yellow)
                 fact("Ampelwartezeit", Fmt.clock(ride.signalWaitTotal), .yellow)
                 fact("Ø je Ampel", ride.signalStops == 0 ? "–" : Fmt.clock(ride.signalWaitAverage), .yellow)
             }
@@ -268,20 +274,6 @@ struct RideFacts: View {
             if let profile = ElevationProfile.from(track?.points ?? []) {
                 ElevationProfileView(profile: profile)
             }
-            // Was angekündigt war, neben dem, was daraus wurde. Die beiden
-            // Zeilen sind das Urteil über die App, nicht über den Fahrer.
-            if ride.plannedSignals != nil || ride.plannedAverageKmh != nil {
-                HStack(spacing: 8) {
-                    if let planned = ride.plannedSignals {
-                        compare("Ampeln", "\(ride.signalStops)", "geplant \(planned)",
-                                ride.signalStops <= planned)
-                    }
-                    if let planned = ride.plannedAverageKmh {
-                        compare("Ø gesamt", Fmt.kmh(ride.averageKmh), "geplant \(Fmt.kmh(planned))",
-                                ride.averageKmh >= planned)
-                    }
-                }
-            }
             if let off = ride.deviationSeconds {
                 // The one comparison that judges the app rather than the rider.
                 Label(off <= 0 ? "\(Fmt.clock(-off)) schneller als geplant"
@@ -296,26 +288,12 @@ struct RideFacts: View {
         .card()
     }
 
-    /// Gemessen gegen angekündigt: die Zahl groß, das Versprechen klein
-    /// darunter, und ein Farbton, der sagt, auf welcher Seite man steht.
-    private func compare(_ title: String, _ value: String, _ planned: String, _ good: Bool) -> some View {
-        VStack(spacing: 0) {
-            Text(title)
-                .font(.system(size: 10, design: .rounded))
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.system(.subheadline, design: .rounded, weight: .bold))
-                .monospacedDigit()
-                .foregroundStyle(good ? .green : .orange)
-            Text(planned)
-                .font(.system(size: 10, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
-        .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: Theme.innerCorner))
-        .accessibilityElement(children: .combine)
+    /// Zwei Geschwindigkeiten in ein Feld: ohne die Einheit, die im Titel
+    /// steht. „13,2 / 14,7" ist in einem Drittel Bildschirmbreite lesbar,
+    /// „13,2 km/h / 14,7 km/h" nicht.
+    static func number(_ kmh: Double) -> String {
+        guard kmh.isFinite, kmh >= 0 else { return "–" }
+        return kmh.formatted(.number.precision(.fractionLength(1)))
     }
 
     private func fact(_ title: String, _ value: String, _ tint: Color) -> some View {

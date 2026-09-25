@@ -237,7 +237,10 @@ struct RideTrackingView: View {
                     }
                 }
             }
-            stopButton
+            HStack(spacing: 8) {
+                pauseButton
+                stopButton
+            }
         }
         .padding(12)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
@@ -256,7 +259,11 @@ struct RideTrackingView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Spacer(minLength: 0)
-            if tracker.meter.isStanding {
+            if tracker.isPaused {
+                Label("Pause", systemImage: "pause.circle.fill")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundStyle(.orange)
+            } else if tracker.meter.isStanding {
                 Label("steht", systemImage: "pause.circle.fill")
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundStyle(.orange)
@@ -296,11 +303,40 @@ struct RideTrackingView: View {
             .padding(.vertical, 4)
             .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: Theme.innerCorner))
             VStack(spacing: 6) {
-                tile("Ø", Fmt.kmh(tracker.averageKmh(at: now)), tint: Theme.accent)
+                averageTile(now: now)
                 tile("Strecke", Fmt.km(tracker.meter.meters), tint: .primary)
             }
             .frame(maxWidth: .infinity)
         }
+    }
+
+    /// Der gefahrene Schnitt und der geplante in **einem** Feld: „13,2 / 14,7
+    /// Plan". Zwei Felder nebeneinander waren zweimal dieselbe Frage, und die
+    /// interessante Antwort ist ohnehin der Unterschied. Grün, solange man
+    /// schneller ist als angekündigt.
+    private func averageTile(now: Date) -> some View {
+        let measured = tracker.averageKmh(at: now)
+        let planned = tracker.plannedAverageKmh
+        let ahead = planned.map { measured >= $0 } ?? true
+        return VStack(spacing: -1) {
+            Text(planned == nil ? "Ø" : "Ø / Plan")
+                .font(.system(size: 10, design: .rounded))
+                .foregroundStyle(.secondary)
+            Text(planned.map { "\(Fmt.kmh(measured)) / \(($0).formatted(.number.precision(.fractionLength(1))))" }
+                 ?? Fmt.kmh(measured))
+                .font(.system(.subheadline, design: .rounded, weight: .bold))
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .foregroundStyle(planned == nil ? Theme.accent : (ahead ? .green : .orange))
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
+        .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: Theme.innerCorner))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(planned.map { "Schnitt \(Fmt.kmh(measured)), geplant \(Fmt.kmh($0))" }
+                            ?? "Schnitt \(Fmt.kmh(measured))")
     }
 
     /// The count the whole recording is for.
@@ -382,6 +418,26 @@ struct RideTrackingView: View {
         }
         .padding(.horizontal, 10).padding(.vertical, 7)
         .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: Theme.innerCorner))
+    }
+
+    /// Eine gewollte Unterbrechung: Einkauf, Kaffee, Panne. Die Uhr steht,
+    /// die Ortung auch — die Pause zählt weder zur Fahrzeit noch als Halt,
+    /// und der Empfänger bleibt so lange aus. Das ist zugleich der einzige
+    /// Knopf dieses Bildschirms, der wirklich Strom spart.
+    private var pauseButton: some View {
+        Button {
+            if tracker.isPaused { tracker.resume() } else { tracker.pause() }
+        } label: {
+            Label(tracker.isPaused ? "Weiter" : "Pause",
+                  systemImage: tracker.isPaused ? "play.circle.fill" : "pause.circle.fill")
+                .font(.system(.subheadline, design: .rounded, weight: .bold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Theme.gradient(tracker.isPaused ? LegKind.bike.color : .orange), in: Capsule())
+                .foregroundStyle(.white)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(tracker.isPaused ? "Fahrt fortsetzen" : "Fahrt anhalten")
     }
 
     private var stopButton: some View {
@@ -485,6 +541,7 @@ struct RideArrivalPill: View {
 struct RideSummarySheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(RideStore.self) private var store
+    @Environment(RideTracker.self) private var tracker
     var ride: Ride
     @State private var track: RideTrack?
 
@@ -492,6 +549,13 @@ struct RideSummarySheet: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
+                    if tracker.stoppedByItself {
+                        Label("Von selbst beendet: du standst lange an derselben Stelle, und dort ist keine Ampel. Gezählt wurde bis zum Anfang des Stillstands.",
+                              systemImage: "stopwatch")
+                            .font(.system(size: 12, design: .rounded))
+                            .foregroundStyle(.orange)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                     RideFacts(ride: ride, track: track)
                     RideMapCard(ride: ride)
                         .frame(height: 260)
