@@ -756,10 +756,12 @@ struct BikeCandidate {
         s.bikeTime(route.distance) + signalWait(s) + climbTime
     }
 
-    /// Ob die gemessene Zahl die gerechnete geschlagen hat — dann steht das
-    /// auch auf der Detailseite, sonst ist es eine Zeit ohne Herkunft.
+    /// Ob die Zeit aus der Messung kommt und nicht aus der Rechnung — dann
+    /// steht das auch auf der Detailseite, sonst ist es eine Zahl ohne
+    /// Herkunft. In beide Richtungen: der gemessene Schnitt darf auch
+    /// schneller sein als die Rechnung.
     func measuredWins(_ s: PlanSettings) -> Bool {
-        time(s) > computedTime(s) + 30
+        abs(time(s) - computedTime(s)) > 30
     }
 
     /// Was die Ampeln dieser Linie kosten — gemessen, wo gemessen wurde.
@@ -769,8 +771,10 @@ struct BikeCandidate {
     }
 
     /// Mittelweg: time plus half the disturbance, converted to riding time.
+    /// Wie bei `fastest` die gerechnete Zeit — hier wird verglichen, nicht
+    /// angezeigt.
     func balancedScore(_ s: PlanSettings) -> Double {
-        time(s) + 0.5 * (stats?.disturbance ?? 0) / s.bikeSpeedMps
+        computedTime(s) + 0.5 * (stats?.disturbance ?? 0) / s.bikeSpeedMps
     }
 
     /// schnellst = least riding time (traffic lights included), ruhigst =
@@ -834,7 +838,13 @@ struct BikeCandidate {
     /// hat; die namenlosen Linien hängen hinten an, die schnellste zuerst.
     static func pick(_ candidates: [BikeCandidate], settings s: PlanSettings) -> [(BikeCandidate, [BikeVariant])] {
         let all = levelled(distinct(candidates))
-        guard let fastest = all.indices.min(by: { all[$0].time(s) < all[$1].time(s) }) else { return [] }
+        // `computedTime`, nicht `time`: die angezeigte Fahrzeit kommt aus dem
+        // gemessenen Schnitt, und der kennt nur die Länge. Welche von drei
+        // Linien die schnellste ist, entscheidet die Rechnung — sie ist die
+        // einzige, die Ampeln und Höhenmeter auseinanderhält. Ohne das wäre
+        // „schnellst" immer dieselbe Linie wie „kürzest".
+        guard let fastest = all.indices.min(by: { all[$0].computedTime(s) < all[$1].computedTime(s) })
+        else { return [] }
         let quiet: Int, balanced: Int, lowTraffic: Int
         if all.contains(where: { $0.stats != nil }) {
             quiet = all.indices.min { (all[$0].stats?.disturbance ?? .infinity) < (all[$1].stats?.disturbance ?? .infinity) }!

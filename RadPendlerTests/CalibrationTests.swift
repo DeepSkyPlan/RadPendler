@@ -64,7 +64,7 @@ final class CalibrationTests: XCTestCase {
 
     // MARK: Die Gegenprobe beim Planen
 
-    func testTheMeasuredAverageWinsWhenTheSumIsTooOptimistic() {
+    func testTheMeasuredAverageWins() {
         var s = PlanSettings(bikeSpeedKmh: 29)
         s.signalWaitSeconds = 20
         let route = StreetRoute(distance: 20_000, expectedTravelTime: 0, coordinates: [])
@@ -80,16 +80,40 @@ final class CalibrationTests: XCTestCase {
         XCTAssertTrue(c.measuredWins(s))
     }
 
-    func testAMeasuredAverageDoesNotMakeASlowRouteFaster() {
+    /// In beide Richtungen: wer schneller ist, als die Rechnung glaubt, soll
+    /// keine Ankunft angesagt bekommen, die zehn Minuten zu spät ist.
+    func testTheMeasuredAverageAlsoWinsWhenItIsFaster() {
         var s = PlanSettings(bikeSpeedKmh: 15)
         s.signalWaitSeconds = 60
         s.measuredOverallKmh = 25
         let c = BikeCandidate(source: "safety",
                               route: StreetRoute(distance: 10_000, expectedTravelTime: 0, coordinates: []),
                               stats: BikeRouteStats(signals: 20, crossings: [], mainRoadMeters: 0))
-        XCTAssertEqual(c.time(s), c.computedTime(s), accuracy: 1,
-                       "viele Ampeln sind ein Grund, den der pauschale Schnitt nicht kennt")
-        XCTAssertFalse(c.measuredWins(s))
+        XCTAssertGreaterThan(c.computedTime(s), c.time(s))
+        XCTAssertEqual(c.time(s), 10_000 / (25 / 3.6), accuracy: 1)
+        XCTAssertTrue(c.measuredWins(s))
+    }
+
+    /// Der Schnitt sagt, wie lange es dauert — nicht, wo es langgeht. Sonst
+    /// wäre „schnellst" immer dieselbe Linie wie „kürzest".
+    func testTheRolesAreStillDecidedByTheCalculation() {
+        var s = PlanSettings(bikeSpeedKmh: 25)
+        s.signalWaitSeconds = 30
+        s.measuredOverallKmh = 18
+        s.optionsPerMode = 5
+        // Kurz mit vielen Ampeln gegen etwas länger mit fast keinen.
+        let short = BikeCandidate(source: "fastbike",
+                                  route: StreetRoute(distance: 10_000, expectedTravelTime: 0, coordinates: []),
+                                  stats: BikeRouteStats(signals: 30, crossings: [], mainRoadMeters: 8_000))
+        let round = BikeCandidate(source: "trekking",
+                                  route: StreetRoute(distance: 11_000, expectedTravelTime: 0, coordinates: []),
+                                  stats: BikeRouteStats(signals: 2, crossings: [], mainRoadMeters: 500))
+        XCTAssertEqual(short.time(s), 10_000 / (18 / 3.6), accuracy: 1, "angezeigt wird die Messung")
+        let picked = BikeCandidate.pick([short, round], settings: s)
+        let fastest = picked.first { $0.1.contains(.fastest) }
+        XCTAssertEqual(fastest?.0.source, "trekking", "dreißig Ampeln sind fünfzehn Minuten")
+        let shortest = picked.first { $0.1.contains(.shortest) }
+        XCTAssertEqual(shortest?.0.source, "fastbike")
     }
 
     // MARK: Ampeln in Zahlen
@@ -154,11 +178,15 @@ final class CalibrationTests: XCTestCase {
         // 5 km bei 20 km/h sind 15 min, dazu vier Ampeln à 30 s.
         XCTAssertEqual(left.seconds, 900 + 120, accuracy: 1)
         XCTAssertEqual(left.signals, 4)
-        // Und auch hier gewinnt die Messung, wenn sie langsamer ist.
+        // Und auch hier gewinnt die Messung — langsamer …
         s.measuredRides = 5
         s.measuredOverallKmh = 12
         let slower = try XCTUnwrap(RideRemaining.from(progress: p, settings: s))
         XCTAssertEqual(slower.seconds, 5_000 / (12 / 3.6), accuracy: 1)
+        // … wie schneller.
+        s.measuredOverallKmh = 30
+        let faster = try XCTUnwrap(RideRemaining.from(progress: p, settings: s))
+        XCTAssertEqual(faster.seconds, 5_000 / (30 / 3.6), accuracy: 1)
     }
 
     func testNothingLeftWhenNothingWasPlanned() {

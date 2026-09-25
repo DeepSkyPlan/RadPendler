@@ -183,10 +183,12 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
 - **Die App misst sich selbst nach.** `AppSettings.calibrate(from:)` läuft nach jeder
   beendeten Fahrt und schreibt aus dem Median der letzten acht Radfahrten (ab drei)
   `bikeSpeedKmh` und, aus den gelernten Ampeln, `signalWaitSeconds`. Daneben steht
-  `measuredOverallKmh` — der Tür-zu-Tür-Schnitt, mit dem `PlanSettings.realistic` jede
-  gerechnete Radzeit gegenprüft: **im Zweifel gewinnt die Messung**, und Zweifel heißt,
-  dass die Rechnung schneller ist als die Messung. Langsamer darf sie sein, dafür gibt es
-  Gründe (Ampeln, Höhenmeter), die ein pauschaler Schnitt nicht kennt.
+  `measuredOverallKmh` — der Tür-zu-Tür-Schnitt. **Gibt es ihn, ist er die angezeigte
+  Radfahrzeit** (`PlanSettings.realistic`), in beide Richtungen: auch wenn er schneller
+  ist als die Rechnung. Die Rechnung bleibt trotzdem nötig — sie vergibt die **Rollen**
+  (`BikeCandidate.computedTime` in `pick` und `balancedScore`), denn nur sie kennt den
+  Unterschied zwischen zwei und dreißig Ampeln. Wer hier `time` statt `computedTime`
+  einsetzt, macht „schnellst" zur Zwillingsschwester von „kürzest".
 - Radgeschwindigkeit ist die **rollende** Geschwindigkeit (29 km/h) plus die Wartezeit je
   Ampelkreuzung plus 5 s je Höhenmeter; zusammen ergibt das seine gemessenen ~21 km/h.
   Die Wartezeit sind 20 s je Kreuzung, die nur die Karte kennt — und an jeder Kreuzung,
