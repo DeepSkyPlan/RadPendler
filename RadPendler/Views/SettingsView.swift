@@ -251,13 +251,15 @@ struct ModeSettingsView: View {
                             value: $settings.bikeStationBufferMinutes, in: 0...10)
                     Stepper("Wartezeit je Ampel: \(settings.signalWaitSeconds) s",
                             value: $settings.signalWaitSeconds, in: 0...90, step: 5)
+                    MeasuredSpeedRow()
+                    MeasuredSignalRow()
                     Stepper(value: $settings.maxBikeToStationKm, in: 1...10, step: 0.5) {
                         Text("Radweg zum Bahnhof: bis \(settings.maxBikeToStationKm.formatted(.number.precision(.fractionLength(0...1)))) km")
                     }
                 } header: {
                     Text("Fahrrad")
                 } footer: {
-                    Text("Fahrgeschwindigkeit = Tempo beim Rollen, ohne Halte. Die Fahrzeit ist Strecke ÷ Fahrgeschwindigkeit plus die Wartezeit je Ampelkreuzung (inkl. Anfahren); daraus ergibt sich der angezeigte Schnitt „Ø … km/h“. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung auf der Strecke addiert — außer an den Kreuzungen, die deine eigenen Fahrten schon kennen: die kosten, was dort gemessen wurde. Für die ganze Strecke gibt es bis zu drei Routen: kürzest, Mittelweg und ruhigst (wenig Ampeln, wenig Hauptstraßen). Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet.")
+                    Text("Beide Werte schreibt die App nach jeder aufgezeichneten Fahrt selbst fort — aus dem Median der letzten Fahrten, sobald es genug davon gibt. Von Hand gestellt gelten sie bis zur nächsten Fahrt. Fahrgeschwindigkeit = Tempo beim Rollen, ohne Halte. Die Fahrzeit ist Strecke ÷ Fahrgeschwindigkeit plus die Wartezeit je Ampelkreuzung (inkl. Anfahren); daraus ergibt sich der angezeigte Schnitt „Ø … km/h“. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung auf der Strecke addiert — außer an den Kreuzungen, die deine eigenen Fahrten schon kennen: die kosten, was dort gemessen wurde. Für die ganze Strecke gibt es bis zu drei Routen: kürzest, Mittelweg und ruhigst (wenig Ampeln, wenig Hauptstraßen). Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet.")
                 }
                 Section {
                     Picker("Fahrplan", selection: $settings.timetableSource) {
@@ -725,5 +727,57 @@ final class AddressCompleter: NSObject, MKLocalSearchCompleterDelegate {
 
     func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
         results = []
+    }
+}
+
+
+/// Was die App über das Tempo dieses Fahrers gemessen hat. Sie schreibt daraus
+/// die Fahrgeschwindigkeit fort; hier steht, woher die Zahl kommt.
+struct MeasuredSpeedRow: View {
+    @Environment(AppSettings.self) private var settings
+
+    var body: some View {
+        if settings.measuredRides >= AppSettings.calibrationRides,
+           let moving = settings.measuredMovingKmh, let overall = settings.measuredOverallKmh {
+            VStack(alignment: .leading, spacing: 1) {
+                Label("Gemessen aus \(settings.measuredRides) Fahrten", systemImage: "speedometer")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                Text("rollend \(Fmt.kmh(moving)) · Tür zu Tür \(Fmt.kmh(overall))")
+                    .font(.system(size: 11, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+        } else {
+            Label("Noch keine gemessenen Fahrten", systemImage: "speedometer")
+                .font(.system(size: 13, design: .rounded))
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+/// Und was an seinen Ampeln wirklich passiert: wie oft er hält und wie lange.
+/// Daraus wird die Wartezeit je Ampel — der Anteil steht dabei, weil er die
+/// Zahl erklärt: wer an jeder dritten Ampel eine halbe Minute steht, wartet je
+/// Ampel zehn Sekunden.
+struct MeasuredSignalRow: View {
+    @Environment(AppSettings.self) private var settings
+
+    var body: some View {
+        if let m = settings.signalMeasurement, m.passes >= AppSettings.signalCalibrationPasses {
+            let share = Int((Double(m.stops) / Double(m.passes) * 100).rounded())
+            let perStop = m.stops > 0 ? m.wait / Double(m.stops) : 0
+            VStack(alignment: .leading, spacing: 1) {
+                Label("An \(share) % der Ampeln gehalten", systemImage: "light.beacon.max")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                Text("Ø \(Fmt.clock(perStop)) je Halt · Ø \(Fmt.clock(m.wait / Double(m.passes))) je Ampel · \(m.passes) Vorbeifahrten")
+                    .font(.system(size: 11, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+        }
     }
 }

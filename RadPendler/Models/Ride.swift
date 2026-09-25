@@ -11,9 +11,26 @@ struct RidePoint: Codable, Equatable {
     /// Metres per second — what the receiver said, or the step divided by its
     /// seconds where it said nothing.
     var v: Double
+    /// Höhe über dem Meer, in Metern. nil heißt **unbekannt**, nicht flach:
+    /// der Empfänger sagt sie nur, wenn er sie hat, und die Fassungen vor dem
+    /// Höhenprofil haben sie nie mitgeschrieben.
+    var h: Double?
 
     var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: lat, longitude: lon) }
     var kmh: Double { v * 3.6 }
+}
+
+/// Eine Ecke einer geplanten Linie. Zwei Zahlen, weil mehr nicht gebraucht
+/// wird: die geplante Route liegt neben der gefahrenen auf der Karte, damit man
+/// sieht, wo man anders gefahren ist.
+struct TrackPoint: Codable, Equatable {
+    var lat: Double
+    var lon: Double
+
+    var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: lat, longitude: lon) }
+
+    init(lat: Double, lon: Double) { (self.lat, self.lon) = (lat, lon) }
+    init(_ c: CLLocationCoordinate2D) { self.init(lat: c.latitude, lon: c.longitude) }
 }
 
 /// A standstill long enough to be worth counting. Whether it was a red light
@@ -37,8 +54,13 @@ struct RideTrack: Codable, Equatable {
     var id: UUID
     var points: [RidePoint] = []
     var stops: [RideStop] = []
+    /// Die Linie, die geplant war, als die Fahrt begann — ausgedünnt auf das,
+    /// was man auf einer Karte unterscheiden kann. Sie liegt hinterher dünn
+    /// neben der gefahrenen: der Unterschied ist die eigentliche Auskunft.
+    var planned: [TrackPoint] = []
 
     var coordinates: [CLLocationCoordinate2D] { points.map(\.coordinate) }
+    var plannedCoordinates: [CLLocationCoordinate2D] { planned.map(\.coordinate) }
 }
 
 /// A ride that happened, as the list remembers it. Everything here is a fact
@@ -61,6 +83,11 @@ struct Ride: Codable, Identifiable, Equatable {
     /// How long the plan said it would take, for the one comparison that is
     /// actually interesting: was the app right? nil when nothing was planned.
     var plannedSeconds: TimeInterval?
+    /// Wie lang die geplante Strecke war und wie viele Ampeln auf ihr gezählt
+    /// wurden. Beides nil, wenn nichts geplant war — und beides hier
+    /// festgehalten, weil die Planung von morgen eine andere ist.
+    var plannedMeters: Double?
+    var plannedSignals: Int?
     var pointCount: Int = 0
     /// Metres per kind of road, attributed to the route that was planned.
     /// nil where nobody classified the route — Apple's lines carry no tags.
@@ -80,6 +107,11 @@ struct Ride: Codable, Identifiable, Equatable {
     var travelMode: TravelMode? { TravelMode(rawValue: mode) }
     /// Minutes off the plan; negative means faster than announced.
     var deviationSeconds: TimeInterval? { plannedSeconds.map { seconds - $0 } }
+    /// Der Schnitt, den der Plan versprochen hat — Tür zu Tür, wie `averageKmh`.
+    var plannedAverageKmh: Double? {
+        guard let s = plannedSeconds, s > 0, let m = plannedMeters, m > 0 else { return nil }
+        return m / s * 3.6
+    }
 }
 
 // MARK: Grouping

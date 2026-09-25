@@ -17,11 +17,18 @@ struct RideMeter {
         var speed: Double = -1
         /// Metres of horizontal uncertainty; negative means the fix is invalid.
         var accuracy: Double = 5
+        /// Höhe über dem Meer, in Metern …
+        var altitude: Double = 0
+        /// … und wie sicher sie ist. Negativ heißt: gar nicht. Die Höhe ist
+        /// das Unsicherste, was ein Empfänger liefert; ohne diese Schranke
+        /// ergäbe das Profil einer flachen Strecke ein Gebirge.
+        var verticalAccuracy: Double = -1
 
         static func == (a: Fix, b: Fix) -> Bool {
             a.coordinate.latitude == b.coordinate.latitude
                 && a.coordinate.longitude == b.coordinate.longitude
                 && a.time == b.time && a.speed == b.speed && a.accuracy == b.accuracy
+                && a.altitude == b.altitude && a.verticalAccuracy == b.verticalAccuracy
         }
     }
 
@@ -47,6 +54,8 @@ struct RideMeter {
     /// Under this the line does not move; recording it anyway would fill the
     /// track with the receiver's own noise while standing at a light.
     static let minStep = 4.0
+    /// Schlechter als das ist die Höhe geraten und kommt nicht in die Linie.
+    static let maxVerticalAccuracy = 20.0
     /// … but a point every two seconds regardless, so a slow stretch still
     /// has a line and the times stay attached to it.
     static let maxPointGap: TimeInterval = 2.0
@@ -91,6 +100,31 @@ struct RideMeter {
     var otherStops: Int { stops.count - signalStops }
     var signalWaitTotal: TimeInterval { stops.filter(\.atSignal).reduce(0) { $0 + $1.seconds } }
     var isStanding: Bool { standingSince != nil }
+
+    /// Wie lange der laufende Stillstand schon dauert. Ein Halt zählt erst,
+    /// wenn er vorbei ist — beim Hinsehen steht man aber noch, und eine
+    /// Wartezeit, die erst beim Losfahren um eine Minute springt, ist keine
+    /// Anzeige, sondern ein Rätsel.
+    func standingSeconds(at now: Date) -> TimeInterval {
+        guard let since = standingSince else { return 0 }
+        return max(0, now.timeIntervalSince(since))
+    }
+
+    /// Ob der laufende Stillstand nach denselben Regeln eine Ampel ist, nach
+    /// denen er am Ende gezählt wird — einschließlich der Regel, dass ein
+    /// Stillstand ab `signalSeconds` überall eine Ampel ist. Er wird es also
+    /// im Stehen, und genau dann springt die Anzeige von „gestanden" auf
+    /// „gewartet".
+    func standingAtSignal(at now: Date) -> Bool {
+        guard standingAfterRiding, let at = standingAt else { return false }
+        return nearSignal(at) || standingSeconds(at: now) >= signalSeconds
+    }
+
+    /// Ampelhalts und Wartezeit **einschließlich** des laufenden Halts.
+    func liveSignals(at now: Date) -> (stops: Int, wait: TimeInterval) {
+        guard standingAtSignal(at: now) else { return (signalStops, signalWaitTotal) }
+        return (signalStops + 1, signalWaitTotal + standingSeconds(at: now))
+    }
 
     func seconds(at now: Date) -> TimeInterval {
         guard let started else { return 0 }
@@ -171,8 +205,10 @@ struct RideMeter {
             guard moved >= Self.minStep || fix.time.timeIntervalSince(last.time) >= Self.maxPointGap else { return }
         }
         lastPoint = fix
+        let height = fix.verticalAccuracy >= 0 && fix.verticalAccuracy <= Self.maxVerticalAccuracy
+            ? fix.altitude : nil
         points.append(RidePoint(lat: fix.coordinate.latitude, lon: fix.coordinate.longitude,
-                                t: fix.time, v: currentSpeed))
+                                t: fix.time, v: currentSpeed, h: height))
     }
 
     /// Standing starts under `stopSpeed` and ends over `goSpeed`. A gap ends a
@@ -239,15 +275,22 @@ struct RideMeter {
         }
     }
 
+    /// Die geplante Linie, so wie sie beim Start der Fahrt aussah. Liegt
+    /// hinterher dünn neben der gefahrenen.
+    var plannedLine: [CLLocationCoordinate2D] = []
+
     /// Everything measured, as the two records that get stored.
     func result(id: UUID, origin: String, destination: String, mode: String,
-                plannedSeconds: TimeInterval?, end: Date) -> (Ride, RideTrack) {
+                plannedSeconds: TimeInterval?, end: Date,
+                plannedMeters: Double? = nil, plannedSignals: Int? = nil) -> (Ride, RideTrack) {
         let ride = Ride(id: id, started: started ?? end, ended: end,
                         origin: origin, destination: destination, mode: mode,
                         meters: meters, movingSeconds: movingSeconds, maxKmh: maxSpeed * 3.6,
                         signalStops: signalStops, otherStops: otherStops,
                         signalWaitTotal: signalWaitTotal, plannedSeconds: plannedSeconds,
+                        plannedMeters: plannedMeters, plannedSignals: plannedSignals,
                         pointCount: points.count, mix: mix.isEmpty ? nil : mix)
-        return (ride, RideTrack(id: id, points: points, stops: stops))
+        return (ride, RideTrack(id: id, points: points, stops: stops,
+                                planned: Geo.thinned(plannedLine).map(TrackPoint.init)))
     }
 }

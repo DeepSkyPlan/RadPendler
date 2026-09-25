@@ -10,6 +10,9 @@ import SwiftUI
 struct ContentView: View {
     @Environment(AppSettings.self) private var settings
     @Environment(RideTracker.self) private var tracker
+    /// Nur für das Nachmessen am Ende einer Fahrt: die abgelegten Fahrten sind
+    /// die Quelle für Tempo und Ampelwartezeit.
+    @Environment(RideStore.self) private var rides
     @Environment(\.horizontalSizeClass) private var widthClass
     @Environment(\.verticalSizeClass) private var heightClass
     @State private var model = PlanModel()
@@ -87,13 +90,19 @@ struct ContentView: View {
                 // to count to — grey then, so the row does not jump about.
                 // A tap switches it off; the warnings go with it.
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { model.toggleCountdown() } label: {
-                        CountdownBox(option: model.activeCountdown,
-                                     alerts: settings.alertsOn ? settings.alertMinutes : [],
-                                     compact: true, stopped: model.countdownStopped)
+                    // Während einer Fahrt sagt die Leiste nicht mehr, wann man
+                    // losgehen soll — sie sagt, wann man ankommt.
+                    if tracker.isRecording {
+                        RideArrivalPill()
+                    } else {
+                        Button { model.toggleCountdown() } label: {
+                            CountdownBox(option: model.activeCountdown,
+                                         alerts: settings.alertsOn ? settings.alertMinutes : [],
+                                         compact: true, stopped: model.countdownStopped)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(model.countdownOption == nil && !model.countdownStopped)
                     }
-                    .buttonStyle(.plain)
-                    .disabled(model.countdownOption == nil && !model.countdownStopped)
                 }
                 // iOS 26 packs neighbouring bar items into one glass capsule;
                 // the countdown is its own pill, not part of the menu button.
@@ -166,6 +175,13 @@ struct ContentView: View {
                                  settings.learn(stops: tracker.meter.stops,
                                                 track: tracker.meter.points,
                                                 junctions: tracker.meter.signals)
+                                 // Und was sie über das Tempo dieses Fahrers
+                                 // weiß, steht ab jetzt in den Einstellungen.
+                                 settings.calibrate(from: rides.rides)
+                                 // Die Fahrt ist vorbei: die App dreht sich
+                                 // wieder wie jede andere.
+                                 settings.orientation = .auto
+                                 settings.orientation.apply()
                              })
         } else if isTwoColumn {
             HStack(alignment: .top, spacing: 0) {
@@ -300,16 +316,22 @@ struct ContentView: View {
         // learned ones are the point: the crossing that is only a light in
         // practice is exactly the one no map has.
         let signals = planned + settings.learnedSignals.map(\.coordinate)
+        // Am Lenker gilt, was am Lenker zuletzt galt — nicht, wie die App
+        // sich sonst dreht.
+        settings.rideOrientation.apply()
         tracker.start(subject: RideTracker.Subject(origin: settings.origin?.shortName ?? "Start",
                                                    destination: settings.destination?.shortName ?? "Ziel",
                                                    mode: option.mode.rawValue,
-                                                   plannedSeconds: option.duration),
+                                                   plannedSeconds: option.duration,
+                                                   plannedMeters: option.totalDistance,
+                                                   plannedSignals: planned.count),
                       signals: signals,
                       route: RideTrackingView.route(of: model.options, selected: option.id),
                       roadPoints: option.bikeRoute?.roadPoints ?? [],
                       signalSeconds: TimeInterval(settings.signalStopSeconds),
                       replanOffRouteMeters: settings.replanOffRouteMeters,
-                      replanOffRouteMinutes: settings.replanOffRouteMinutes)
+                      replanOffRouteMinutes: settings.replanOffRouteMinutes,
+                      plannedSignals: planned)
     }
 
     @ViewBuilder private var rainNote: some View {

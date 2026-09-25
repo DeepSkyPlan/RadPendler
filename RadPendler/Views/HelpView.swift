@@ -53,6 +53,10 @@ struct HelpView: View {
                         "Der grüne Knopf rechts neben der gewählten Fahrt zeichnet auf, was du wirklich fährst: Strecke, Geschwindigkeit, Ampelhalts.",
                         "Oben im roten Band steht, was als Nächstes kommt und in wie vielen Metern. Die Kurven rechnet die App aus der geplanten Linie — es sind Hinweise, keine Navigation, und sie sagt nichts an.",
                         "Die große Zahl ist dein aktuelles Tempo, in der Farbe, in der die Linie gerade gezeichnet wird. Der Pfeil auf der Karte zeigt immer dahin, wo du hinfährst.",
+                        "Der Abbiegepfeil ist grün und kommt erst 250 m vor der Abbiegung — ein Pfeil, der zwei Kilometer lang „rechts“ sagt, sieht man nicht mehr an, wenn es so weit ist. Rot ist nur eines: dass du neben der Route bist.",
+                        "Unten steht, was noch kommt: Reststrecke, Restzeit und die Uhrzeit der Ankunft. Oben in der Leiste stehen dieselben zwei Zahlen statt des Countdowns — losgehen musst du nicht mehr.",
+                        "Die Ampelzeile zählt „gehalten von geplant“ und läuft sekündlich mit, solange du stehst; die gelben Punkte auf der Karte sind die Ampeln, die die Planung kennt.",
+                        "Die Ausrichtung, die du im Fahrtmodus wählst, gilt ab dann für jede Fahrt. Nach „Fahrt beenden“ dreht sich die App wieder wie jede andere.",
                         "Nach Zoomen oder Schieben kommt die Karte 30 Sekunden später von selbst zu dir zurück. Der Knopf oben links schaltet das Folgen von Hand.",
                         "Der Knopf daneben hält die Ausrichtung fest — automatisch, hochkant, querformat. Am Lenker will man keine Karte, die sich in der Kurve dreht.",
                         "Die Karte geht auf ganze Seite und folgt dir; die gefahrene Linie färbt sich nach Tempo — rot unter 8, grün über 26 km/h. Ein Wisch über die Karte löst das Folgen, der Knopf oben links schaltet es wieder ein.",
@@ -64,7 +68,8 @@ struct HelpView: View {
                     ])
                     section("Gefahrene Fahrten", "list.bullet.rectangle", [
                         "Menü → Fahrten: alle Aufzeichnungen, nach Jahren und Monaten. Die Überschrift eines Monats zeigt Kilometer, Schnitt und Ampelhalts dieses Monats.",
-                        "Eine Fahrt antippen zeigt die gefahrene Linie, jede Zahl dazu und die längsten Halte.",
+                        "Eine Fahrt antippen zeigt die gefahrene Linie, jede Zahl dazu und die längsten Halte. Die geplante Route liegt dünn und grau daneben — der Unterschied ist die eigentliche Auskunft.",
+                        "Darunter: das Höhenprofil der Fahrt, und was angekündigt war — Ampeln und Schnitt gegen das, was daraus wurde.",
                         "Die Zahlen jeder Fahrt gehen über deine eigene iCloud auf deine anderen Geräte; die gefahrene Linie bleibt auf dem Gerät, auf dem sie aufgezeichnet wurde. Nach links wischen löscht eine Fahrt — auf diesem Gerät.",
                     ])
                     section("Aktualisieren", "arrow.down", [
@@ -74,6 +79,7 @@ struct HelpView: View {
                     ])
                     section("Was die App voraussetzt", "info.circle", [
                         "Fahrzeiten mit dem Rad rechnen sich aus der rollenden Geschwindigkeit plus Wartezeit je Ampelkreuzung plus fünf Sekunden je Höhenmeter — Tempo und Wartezeit stehen in den Einstellungen. Wo eigene Fahrten eine Kreuzung schon kennen, gilt deren gemessene Zeit statt der eingestellten.",
+                        "Beide Werte schreibt die App nach jeder Fahrt selbst fort, aus dem Median der letzten Fahrten. Und sie rechnet sich nicht schneller, als du bist: liegt die Rechnung unter deinem gemessenen Tür-zu-Tür-Schnitt, gilt der Schnitt.",
                         "Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet; S-Bahn und Regionalzug zuerst, U-Bahn und Tram nur als markierte Alternative.",
                         "Fixpunkte (Einstellungen) sind Orte, über die die Strecke führen soll; Verbindungen ohne sie werden ausgegraut und nie empfohlen.",
                         "Alle Zeiten ohne Gewähr.",

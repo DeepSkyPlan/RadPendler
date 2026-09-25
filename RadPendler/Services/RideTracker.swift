@@ -23,6 +23,11 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         var destination: String
         var mode: String
         var plannedSeconds: TimeInterval?
+        /// Was der Plan versprochen hat: Länge und Ampeln. Beides wandert in
+        /// die gespeicherte Fahrt, damit sich hinterher vergleichen lässt,
+        /// was angekündigt und was gefahren wurde.
+        var plannedMeters: Double?
+        var plannedSignals: Int?
     }
 
     private(set) var subject: Subject?
@@ -84,6 +89,31 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// The lit junctions this ride is being judged against — handed to the map
     /// so they can be seen while riding, not only afterwards.
     private(set) var signals: [CLLocationCoordinate2D] = []
+    /// Davon die Ampeln der **geplanten Route**. Nur sie gehören auf die Karte
+    /// und in die Zählung „soundsoviel von soundsoviel": `signals` enthält
+    /// zusätzlich alles, was dieser Fahrer irgendwo gelernt hat, und das sind
+    /// quer durch die Stadt ein paar hundert Punkte.
+    private(set) var plannedSignals: [CLLocationCoordinate2D] = []
+    /// Die Linie, mit der die Fahrt begonnen hat. Sie bleibt, auch wenn
+    /// unterwegs neu geplant wird — auf der Karte liegt sie dann dünn neben
+    /// der neuen, und hinterher neben der gefahrenen.
+    private(set) var originalRoute: [CLLocationCoordinate2D] = []
+    /// Wie weit jede geplante Ampel vom Anfang der Route entfernt liegt,
+    /// aufsteigend. Damit ist „wie viele kommen noch" ein Vergleich und keine
+    /// Suche über die halbe Stadt.
+    private var signalStations: [Double] = []
+
+    /// Wie weit es noch ist und was davon noch kommt. Einmal je Ortung
+    /// gerechnet, nicht je Bild.
+    struct Progress: Equatable {
+        var metersLeft: Double
+        var signalsLeft: Int
+        var signalsPassed: Int
+        var plannedSignals: Int
+        var plannedMeters: Double
+    }
+
+    private(set) var progress: Progress?
 
     /// Wo die geplante Linie liegt, solange man nicht auf ihr ist — nil,
     /// solange man auf ihr fährt. Treibt den Pfeil und das Herauszoomen.
@@ -108,13 +138,15 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                roadPoints: [RoadPoint] = [],
                signalSeconds: TimeInterval = RideMeter.defaultSignalSeconds,
                replanOffRouteMeters: Double = OffRoute.replanMeters,
-               replanOffRouteMinutes: Double = 0) {
+               replanOffRouteMinutes: Double = 0,
+               plannedSignals: [CLLocationCoordinate2D] = []) {
         guard !isRecording else { return }
         self.signalSeconds = signalSeconds
         self.replanOffRouteMeters = replanOffRouteMeters
         self.replanOffRouteMinutes = replanOffRouteMinutes
         self.roadPoints = roadPoints
         plannedRoute = route
+        originalRoute = route
         routeLengths = TurnGuide.cumulative(route)
         routeIndex = 0
         turns = TurnGuide.steps(on: route)
@@ -126,6 +158,9 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         replanTask?.cancel()
         replanTask = nil
         self.signals = signals
+        self.plannedSignals = plannedSignals
+        signalStations = Self.stations(of: plannedSignals, on: route, cum: routeLengths)
+        progress = Self.progress(travelled: 0, cum: routeLengths, stations: signalStations)
         switch manager.authorizationStatus {
         case .notDetermined:
             pending = (subject, signals)
@@ -170,6 +205,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         meter.signals = signals
         meter.signalSeconds = signalSeconds
         meter.roadPoints = roadPoints
+        meter.plannedLine = originalRoute
         // Only now, and only for as long as the ride lasts.
         manager.allowsBackgroundLocationUpdates = true
         manager.showsBackgroundLocationIndicator = true
@@ -188,7 +224,9 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         meter.finish(at: end)
         let (ride, track) = meter.result(id: subject.id, origin: subject.origin,
                                          destination: subject.destination, mode: subject.mode,
-                                         plannedSeconds: subject.plannedSeconds, end: end)
+                                         plannedSeconds: subject.plannedSeconds, end: end,
+                                         plannedMeters: subject.plannedMeters,
+                                         plannedSignals: subject.plannedSignals)
         self.subject = nil
         applyIdleTimer()
         // A ride of thirty seconds is a tap on the wrong button, not a commute.
@@ -254,7 +292,8 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         let fixes = locations.map {
             RideMeter.Fix(coordinate: $0.coordinate, time: $0.timestamp,
-                          speed: $0.speed, accuracy: $0.horizontalAccuracy)
+                          speed: $0.speed, accuracy: $0.horizontalAccuracy,
+                          altitude: $0.altitude, verticalAccuracy: $0.verticalAccuracy)
         }
         let courses = locations.map(\.course)
         Task { @MainActor in self.accept(fixes, courses) }
@@ -271,6 +310,9 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                                       cum: routeLengths, from: routeIndex) {
                 routeIndex = n.index
                 nextTurn = (n.step, n.meters)
+                let next = Self.progress(travelled: routeLengths[Swift.min(n.index, routeLengths.count - 1)],
+                                         cum: routeLengths, stations: signalStations)
+                if progress != next { progress = next }
             }
             updateDetour(at: last.coordinate)
         }
@@ -301,7 +343,9 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
             if let subject {
                 store.saveInterrupted(meter.result(id: subject.id, origin: subject.origin,
                                                    destination: subject.destination, mode: subject.mode,
-                                                   plannedSeconds: subject.plannedSeconds, end: now))
+                                                   plannedSeconds: subject.plannedSeconds, end: now,
+                                                   plannedMeters: subject.plannedMeters,
+                                                   plannedSignals: subject.plannedSignals))
             }
         }
     }
@@ -360,6 +404,11 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         routeLengths = TurnGuide.cumulative(route.coordinates)
         routeIndex = 0
         turns = TurnGuide.steps(on: route.coordinates)
+        // Die Ampeln der alten Route liegen auf der neuen woanders — oder gar
+        // nicht mehr. Gezählt wird ab hier gegen den neuen Weg; was schon
+        // gemessen wurde, bleibt gemessen.
+        signalStations = Self.stations(of: plannedSignals, on: route.coordinates, cum: routeLengths)
+        progress = Self.progress(travelled: 0, cum: routeLengths, stations: signalStations)
         nextTurn = nil
         if detour != nil { detour = nil }
         offSince = nil
@@ -367,6 +416,34 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         // Die Beläge des neuen Wegs kommen hinten dran. Zugeordnet wird nach
         // Nähe mit einem mitlaufenden Index — was schon zugeordnet ist, bleibt.
         meter.roadPoints += route.roadPoints
+    }
+
+    /// Wo auf der Route jede Ampel liegt, in Metern vom Anfang — nur die, die
+    /// überhaupt auf ihr liegen. `RouteAnalyzer` hat sie schon einmal der
+    /// Linie zugeordnet; hier geht es nur noch um die Reihenfolge, also reicht
+    /// der nächste Punkt der Linie.
+    nonisolated static func stations(of signals: [CLLocationCoordinate2D],
+                                     on route: [CLLocationCoordinate2D], cum: [Double]) -> [Double] {
+        guard route.count > 1, cum.count == route.count else { return [] }
+        var out: [Double] = []
+        for s in signals {
+            var best = (d: Double.infinity, at: 0.0)
+            for (i, c) in route.enumerated() {
+                let d = c.distance(to: s)
+                if d < best.d { best = (d, cum[i]) }
+            }
+            guard best.d <= OffRoute.offMeters else { continue }
+            out.append(best.at)
+        }
+        return out.sorted()
+    }
+
+    nonisolated static func progress(travelled: Double, cum: [Double], stations: [Double]) -> Progress {
+        let total = cum.last ?? 0
+        let passed = stations.filter { $0 <= travelled + 20 }.count
+        return Progress(metersLeft: Swift.max(0, total - travelled),
+                        signalsLeft: stations.count - passed, signalsPassed: passed,
+                        plannedSignals: stations.count, plannedMeters: total)
     }
 
     /// Bearing of the last stretch actually ridden, for the fixes that carry

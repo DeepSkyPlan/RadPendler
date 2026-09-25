@@ -162,13 +162,15 @@ struct RideRow: View {
 
 /// One ride: the map of the way taken, and every number that was measured.
 struct RideDetailView: View {
+    @Environment(RideStore.self) private var store
     var ride: Ride
+    @State private var track: RideTrack?
 
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
                 RideMapCard(ride: ride).frame(height: 300)
-                RideFacts(ride: ride)
+                RideFacts(ride: ride, track: track)
                 StopList(ride: ride)
             }
             .padding(Theme.gutter)
@@ -176,6 +178,9 @@ struct RideDetailView: View {
         .background(Theme.background)
         .navigationTitle(ride.started.formatted(.dateTime.day().month().year().hour().minute()))
         .navigationBarTitleDisplayMode(.inline)
+        // Die Linie wird ohnehin für die Karte geholt; das Höhenprofil liest
+        // aus derselben.
+        .task { track = await store.track(for: ride) }
     }
 }
 
@@ -191,7 +196,10 @@ struct RideMapCard: View {
         ZStack(alignment: .bottomLeading) {
             if let track, track.points.count > 1 {
                 RouteMapView(options: [], selectedID: nil, radarFrames: [], radarTime: nil,
-                             track: track.points, trackStops: track.stops)
+                             track: track.points, trackStops: track.stops,
+                             // Die geplante Linie dünn daneben: der Unterschied
+                             // ist die eigentliche Auskunft einer Fahrt.
+                             plannedLine: track.plannedCoordinates)
                 SpeedLegend().padding(8)
             } else if searched {
                 // The numbers of every ride reach every device; the line stays
@@ -219,6 +227,8 @@ struct RideMapCard: View {
 /// Every number of one ride, in the order they matter.
 struct RideFacts: View {
     var ride: Ride
+    /// Für das Höhenprofil; ohne sie fehlt nur das Profil.
+    var track: RideTrack? = nil
 
     var body: some View {
         VStack(spacing: 10) {
@@ -255,6 +265,23 @@ struct RideFacts: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            if let profile = ElevationProfile.from(track?.points ?? []) {
+                ElevationProfileView(profile: profile)
+            }
+            // Was angekündigt war, neben dem, was daraus wurde. Die beiden
+            // Zeilen sind das Urteil über die App, nicht über den Fahrer.
+            if ride.plannedSignals != nil || ride.plannedAverageKmh != nil {
+                HStack(spacing: 8) {
+                    if let planned = ride.plannedSignals {
+                        compare("Ampeln", "\(ride.signalStops)", "geplant \(planned)",
+                                ride.signalStops <= planned)
+                    }
+                    if let planned = ride.plannedAverageKmh {
+                        compare("Ø gesamt", Fmt.kmh(ride.averageKmh), "geplant \(Fmt.kmh(planned))",
+                                ride.averageKmh >= planned)
+                    }
+                }
+            }
             if let off = ride.deviationSeconds {
                 // The one comparison that judges the app rather than the rider.
                 Label(off <= 0 ? "\(Fmt.clock(-off)) schneller als geplant"
@@ -267,6 +294,28 @@ struct RideFacts: View {
         }
         .padding(14)
         .card()
+    }
+
+    /// Gemessen gegen angekündigt: die Zahl groß, das Versprechen klein
+    /// darunter, und ein Farbton, der sagt, auf welcher Seite man steht.
+    private func compare(_ title: String, _ value: String, _ planned: String, _ good: Bool) -> some View {
+        VStack(spacing: 0) {
+            Text(title)
+                .font(.system(size: 10, design: .rounded))
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.system(.subheadline, design: .rounded, weight: .bold))
+                .monospacedDigit()
+                .foregroundStyle(good ? .green : .orange)
+            Text(planned)
+                .font(.system(size: 10, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
+        .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: Theme.innerCorner))
+        .accessibilityElement(children: .combine)
     }
 
     private func fact(_ title: String, _ value: String, _ tint: Color) -> some View {
@@ -331,5 +380,125 @@ private struct StopList: View {
             }
         }
         .task { stops = await store.track(for: ride)?.stops ?? [] }
+    }
+}
+
+
+/// Das Höhenprofil einer Fahrt: die geglättete Höhe über der Strecke.
+///
+/// Die Höhe ist das Unsicherste, was ein Empfänger liefert — einzelne Fixe
+/// springen um zehn Meter, auch auf einer Ebene. Deshalb wird über ein Fenster
+/// von `window` Punkten gemittelt, bevor irgendetwas gezeichnet oder gezählt
+/// wird: ungeglättet summiert eine flache Pendelstrecke ein Gebirge.
+struct ElevationProfile: Equatable {
+    /// Höhe je Punkt, geglättet …
+    var heights: [Double]
+    /// … und wie weit der Punkt vom Start entfernt ist.
+    var distances: [Double]
+    var ascent: Double
+    var lowest: Double
+    var highest: Double
+
+    static let window = 9
+    /// Unter so vielen Punkten mit Höhe ist es kein Profil, sondern ein Strich.
+    static let minPoints = 20
+    /// Und so viel muss es am Stück bergauf gehen, bevor es als Anstieg zählt.
+    /// Glätten allein reicht nicht: ein Rauschen von ±8 m bleibt auch als
+    /// Mittel über neun Punkte ein Zickzack, und die Summe seiner Aufwärtsstücke
+    /// ist auf einer Ebene dreistellig. Dasselbe Verfahren, das BRouter
+    /// „filtered ascend" nennt.
+    static let ascentThreshold = 5.0
+
+    /// Alles Bergauf, das diesen Namen verdient: gezählt wird erst, wenn es
+    /// seit dem letzten Tiefpunkt um mehr als `ascentThreshold` hochgegangen
+    /// ist.
+    static func filteredAscent(_ heights: [Double]) -> Double {
+        guard var reference = heights.first else { return 0 }
+        var ascent = 0.0
+        for h in heights.dropFirst() {
+            if h > reference + ascentThreshold {
+                ascent += h - reference
+                reference = h
+            } else if h < reference {
+                reference = h
+            }
+        }
+        return ascent
+    }
+
+    static func from(_ points: [RidePoint]) -> ElevationProfile? {
+        let usable = points.filter { $0.h != nil }
+        guard usable.count >= minPoints else { return nil }
+        let raw = usable.map { $0.h! }
+        var heights: [Double] = []
+        heights.reserveCapacity(raw.count)
+        for i in raw.indices {
+            let lo = Swift.max(0, i - window / 2), hi = Swift.min(raw.count - 1, i + window / 2)
+            heights.append(raw[lo...hi].reduce(0, +) / Double(hi - lo + 1))
+        }
+        var distances: [Double] = [0]
+        for (a, b) in zip(usable, usable.dropFirst()) {
+            distances.append(distances[distances.count - 1] + a.coordinate.distance(to: b.coordinate))
+        }
+        let ascent = filteredAscent(heights)
+        return ElevationProfile(heights: heights, distances: distances, ascent: ascent,
+                                lowest: heights.min() ?? 0, highest: heights.max() ?? 0)
+    }
+}
+
+/// Eine flache Kurve unter der Straßenart — dieselbe Breite, dieselbe Sprache:
+/// was war unter dem Rad, und wie oft ging es dabei bergauf.
+struct ElevationProfileView: View {
+    var profile: ElevationProfile
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 4) {
+                Text("Höhe")
+                    .font(.system(size: 10, design: .rounded))
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                Text("+\(Int(profile.ascent.rounded())) m · \(Int(profile.lowest.rounded()))–\(Int(profile.highest.rounded())) m")
+                    .font(.system(size: 10, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
+            GeometryReader { geo in
+                let path = curve(in: geo.size)
+                ZStack {
+                    path.fill(LinearGradient(colors: [Theme.accent.opacity(0.35), Theme.accent.opacity(0.05)],
+                                             startPoint: .top, endPoint: .bottom))
+                    line(in: geo.size).stroke(Theme.accent, style: StrokeStyle(lineWidth: 1.5, lineJoin: .round))
+                }
+            }
+            .frame(height: 44)
+            .accessibilityElement()
+            .accessibilityLabel("Höhenprofil, \(Int(profile.ascent.rounded())) Höhenmeter bergauf")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Die Fläche unter der Kurve …
+    private func curve(in size: CGSize) -> Path {
+        var p = line(in: size)
+        p.addLine(to: CGPoint(x: size.width, y: size.height))
+        p.addLine(to: CGPoint(x: 0, y: size.height))
+        p.closeSubpath()
+        return p
+    }
+
+    /// … und die Kurve selbst. Mindestens zehn Meter Spanne, sonst macht die
+    /// Skalierung aus einem Meter Rauschen ein Mittelgebirge.
+    private func line(in size: CGSize) -> Path {
+        var p = Path()
+        let total = profile.distances.last ?? 0
+        guard total > 0, size.width > 0 else { return p }
+        let span = Swift.max(10, profile.highest - profile.lowest)
+        for (i, h) in profile.heights.enumerated() {
+            let x = profile.distances[i] / total * size.width
+            let y = size.height - (h - profile.lowest) / span * size.height
+            if i == 0 { p.move(to: CGPoint(x: x, y: y)) } else { p.addLine(to: CGPoint(x: x, y: y)) }
+        }
+        return p
     }
 }

@@ -462,6 +462,10 @@ final class PlannerTests: XCTestCase {
         settings.destination = to
         settings.workPlace = to
         settings.homePlace = from
+        // Dasselbe gilt für die gemessenen Schnitte: sie stehen erst da, wenn
+        // Fahrten sie ergeben haben.
+        settings.measuredMovingKmh = 24
+        settings.measuredOverallKmh = 20
         let saved = Set((UserDefaults.standard.persistentDomain(forName: suite) ?? [:]).keys)
         XCTAssertFalse(saved.isEmpty, "the settings must write something, or this test proves nothing")
         // `settingsKeys`, not `keys`: the rides travel in the same store but
