@@ -180,6 +180,13 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   (`TravelMode.defaultOrder`, `BikeVariant.defaultOrder`, `CarVariant.defaultOrder`,
   `rainSwitchLevel = .light`) — Änderungen an der Logik müssen die Listen respektieren,
   nicht die alten festen Reihenfolgen.
+- **Die App misst sich selbst nach.** `AppSettings.calibrate(from:)` läuft nach jeder
+  beendeten Fahrt und schreibt aus dem Median der letzten acht Radfahrten (ab drei)
+  `bikeSpeedKmh` und, aus den gelernten Ampeln, `signalWaitSeconds`. Daneben steht
+  `measuredOverallKmh` — der Tür-zu-Tür-Schnitt, mit dem `PlanSettings.realistic` jede
+  gerechnete Radzeit gegenprüft: **im Zweifel gewinnt die Messung**, und Zweifel heißt,
+  dass die Rechnung schneller ist als die Messung. Langsamer darf sie sein, dafür gibt es
+  Gründe (Ampeln, Höhenmeter), die ein pauschaler Schnitt nicht kennt.
 - Radgeschwindigkeit ist die **rollende** Geschwindigkeit (29 km/h) plus die Wartezeit je
   Ampelkreuzung plus 5 s je Höhenmeter; zusammen ergibt das seine gemessenen ~21 km/h.
   Die Wartezeit sind 20 s je Kreuzung, die nur die Karte kennt — und an jeder Kreuzung,
@@ -218,6 +225,19 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   ab 200 m und fünfzehn Sekunden am Stück daneben, oder nach einer eingestellten Zahl
   Minuten — was zuerst eintritt). Sie ändert nur den Weg nach vorn; gemessen bleibt, was
   gemessen wurde.
+- **Eine Zeile der BRouter-Tabelle ist eine Strecke, kein Punkt.** Bis zu zwei Kilometer
+  lang. `BRouterClient.roads` legt sie deshalb entlang der Linie aus und setzt alle
+  `RoadPoint.spacing` (40 m) einen Stützpunkt. Vorher lag ein Stützpunkt je Zeile da, und
+  38,5 % der Meter der Testroute waren weiter als `RoadPoint.matchRadius` von jedem
+  entfernt — die Aufzeichnung schrieb sie als „sonstiges" gut, obwohl die Straße bekannt
+  war. Das war der Grund für die 30 % „sonstiges" der Testfahrt vom 25.09.
+- **Höhen kommen aus dem Empfänger, nicht aus dem Router**: `RidePoint.h`, nur wenn
+  `verticalAccuracy` ≤ 20 m. `ElevationProfile` glättet über neun Punkte **und** zählt
+  Anstieg erst ab `ascentThreshold` (5 m) — Glätten allein macht aus ±8 m Rauschen auf
+  einer Ebene ein dreistelliges Höhenmeterkonto.
+- **Was geplant war, steht in der Fahrt**: `Ride.plannedMeters`, `plannedSignals`,
+  `plannedSeconds` und `RideTrack.planned` (die ausgedünnte Linie). Alles optional, alles
+  aus der Zeit der Planung — die Planung von morgen ist eine andere.
 - **Ein Halt ab `signalStopSeconds` (30 s) ist eine Ampel**, auch ohne Kartendaten, und
   wird als `LearnedSignal` behalten. Gelernte Ampeln wirken in zwei Richtungen zurück:
   in `RideMeter.signals` der nächsten Fahrt und über `TripPlanner.withLearned` in
@@ -236,6 +256,27 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   später auf „Fahrt beenden". Über die 30-Sekunden-Regel wurde daraus eine gelernte Ampel,
   die jede spätere Planung verlängerte. Kennt die Karte am Ende der Fahrt dort eine Ampel,
   bleibt es eine (`RideMeter.close(since:until:ending:)`).
+- **Die Karte zeigt im Fahrtmodus `tracker.plannedRoute`, nicht die Linie der
+  Möglichkeit** (`RouteMapView.guidedLine`, gezeichnet von `updateGuideLines`). Eine
+  Neuplanung unterwegs ändert keine `TripOption` — vorher zeigte die Karte deshalb weiter
+  die alte Linie, während Pfeil und Abweichung schon gegen die neue rechneten. Die
+  ursprüngliche Linie liegt ab der ersten Neuplanung dünn und grau daneben
+  (`plannedLine`), und solange `guidedLine` gesetzt ist, zeichnet `drawRoutes` weder
+  Streckenlinien noch Planampeln — sonst läge alles doppelt übereinander.
+- **Abbiegepfeil grün, Abweichung rot, und der Pfeil erst 250 m vorher**
+  (`RideTrackingView.announceMeters`). Rot ist auf diesem Bildschirm reserviert für „du
+  bist falsch"; ein Pfeil, der die halbe Strecke lang dasteht, wird zu Tapete und nimmt
+  der Karte die obersten hundert Punkte.
+- **Die Fahrtansicht zeigt, was noch kommt**: `RideTracker.progress` (Reststrecke,
+  Ampeln davor/danach) wird je Ortung aus `routeIndex`, `routeLengths` und
+  `signalStations` gerechnet, `RideRemaining` macht daraus Zeit und Ankunft — mit
+  demselben Modell wie die Planung, einschließlich der Gegenprobe gegen den gemessenen
+  Schnitt. Dieselbe Zahl steht während einer Fahrt in der Werkzeugleiste statt des
+  Countdowns (`RideArrivalPill`).
+- **Die Ausrichtung im Fahrtmodus ist `rideOrientation`, nicht `orientation`.** Sie wird
+  beim Start der Fahrt angewendet und bleibt für die nächste stehen; am Ende geht
+  `orientation` auf `.auto`. Vorher blieb die ganze App hochkant, nur weil sie es am
+  Lenker einmal sein sollte.
 - **Der Pfeil der Fahrtansicht dreht sich um `Kurs − Blickrichtung der Karte`.** Beim
   Folgen dreht sich die Karte selbst in den Kurs; wer den Pfeil zusätzlich um den Kurs
   dreht, zeigt doppelt daneben. Erster Befund der ersten Testfahrt.

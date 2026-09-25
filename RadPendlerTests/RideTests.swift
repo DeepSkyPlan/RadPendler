@@ -140,6 +140,36 @@ final class RideTests: XCTestCase {
         XCTAssertEqual(m.signalStops, 0, "das ist das Ziel, keine Kreuzung")
     }
 
+    /// Die Wartezeit soll mitlaufen, solange man steht — nicht erst beim
+    /// Losfahren um eine Minute springen.
+    func testTheWaitAtALightCountsUpWhileStanding() {
+        var m = RideMeter()
+        m.signals = [east(95)]
+        for i in 0...19 { m.add(fix(Double(i) * 5, Double(i), speed: 5)) }
+        for i in 20...40 { m.add(fix(95, Double(i), speed: 0.1)) }
+        XCTAssertEqual(m.signalStops, 0, "der Halt ist noch nicht abgeschlossen")
+        let live = m.liveSignals(at: start.addingTimeInterval(40))
+        XCTAssertEqual(live.stops, 1)
+        XCTAssertEqual(live.wait, 21, accuracy: 1.5)
+        XCTAssertTrue(m.standingAtSignal(at: start.addingTimeInterval(40)))
+        // Und vor der ersten Kurbelumdrehung zählt auch das Stehen nicht mit.
+        var home = RideMeter()
+        for i in 0...40 { home.add(fix(0, Double(i), speed: 0)) }
+        XCTAssertFalse(home.standingAtSignal(at: start.addingTimeInterval(40)))
+        XCTAssertEqual(home.liveSignals(at: start.addingTimeInterval(40)).stops, 0)
+    }
+
+    /// Die Höhe kommt nur in die Linie, wenn der Empfänger sie auch kennt.
+    func testHeightsOnlyEnterTheLineWhenTheyAreWorthSomething() {
+        var m = RideMeter()
+        m.add(RideMeter.Fix(coordinate: east(0), time: start, speed: 5, accuracy: 5,
+                            altitude: 37, verticalAccuracy: 4))
+        m.add(RideMeter.Fix(coordinate: east(20), time: start.addingTimeInterval(4), speed: 5, accuracy: 5,
+                            altitude: 999, verticalAccuracy: -1))
+        XCTAssertEqual(m.points.first?.h, 37)
+        XCTAssertNil(m.points.last?.h, "eine Höhe ohne Genauigkeit ist keine Höhe")
+    }
+
     func testTheSignalRadiusIsGenerousButNotEndless() {
         var m = RideMeter()
         m.signals = [base]

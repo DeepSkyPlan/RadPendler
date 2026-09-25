@@ -25,6 +25,30 @@ enum Geo {
     /// A decoded polyline delta must fit in the five-times-five bits the format
     /// allows; without the limit the accumulator can be driven past `Int`.
     static let maxPolylineShift = 32
+
+    /// Eine Linie auf das, was man auf einer Karte unterscheiden kann: jeder
+    /// Punkt, der weiter als `step` vom zuletzt behaltenen entfernt liegt,
+    /// plus der letzte. Für die geplante Linie, die neben der gefahrenen
+    /// gespeichert wird — 1 300 Punkte sind 40 kB JSON je Fahrt, 300 sind 9.
+    static func thinned(_ coords: [CLLocationCoordinate2D], step: Double = 25) -> [CLLocationCoordinate2D] {
+        // Eigene flache Rechnung: `Geo` liegt im geteilten Teil, und die Uhr
+        // hat die Erweiterung auf `CLLocationCoordinate2D` nicht.
+        func apart(_ a: CLLocationCoordinate2D, _ b: CLLocationCoordinate2D) -> Double {
+            let mPerDegLat = 111_320.0
+            let dy = (b.latitude - a.latitude) * mPerDegLat
+            let dx = (b.longitude - a.longitude) * mPerDegLat * cos(a.latitude * .pi / 180)
+            return (dx * dx + dy * dy).squareRoot()
+        }
+        var out: [CLLocationCoordinate2D] = []
+        for c in coords where valid(c) {
+            guard let last = out.last else { out.append(c); continue }
+            if apart(last, c) >= step { out.append(c) }
+        }
+        if let last = coords.last(where: valid), let kept = out.last, apart(kept, last) > 0 {
+            out.append(last)
+        }
+        return out
+    }
 }
 
 

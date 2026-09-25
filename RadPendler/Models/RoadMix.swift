@@ -135,6 +135,10 @@ struct RoadPoint: Codable, Equatable {
     /// a detour, a wrong turn, a shortcut through a courtyard. Honest answer:
     /// "sonstiges".
     static let matchRadius = 60.0
+    /// So dicht werden die Stützpunkte entlang der Route gelegt. Enger als
+    /// `matchRadius`, sonst hat die Zuordnung Löcher mitten auf einer Straße,
+    /// die jeder kennt — siehe `BRouterClient.roads`.
+    static let spacing = 40.0
 
     /// Nearest road point to a coordinate, searching forward from `from`.
     /// A ride runs along the route, so the last match is where the next one

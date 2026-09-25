@@ -134,6 +134,31 @@ final class AppSettings {
         didSet { defaults.set(orientation.rawValue, forKey: "orientationLock") }
     }
 
+    /// Womit eine **Fahrt** anfängt. Wer das Telefon einmal am Lenker
+    /// festgestellt hat, will das bei jeder Fahrt — und danach wieder eine App,
+    /// die sich dreht wie jede andere. Deshalb zwei Werte: dieser gilt ab
+    /// „Fahrt starten", `orientation` geht am Ende auf „Automatisch" zurück.
+    var rideOrientation: OrientationLock = .auto {
+        didSet { defaults.set(rideOrientation.rawValue, forKey: "rideOrientationLock") }
+    }
+
+    /// Der Tür-zu-Tür-Schnitt der letzten aufgezeichneten Radfahrten, und der
+    /// rollende dazu. Aus ihnen kommen `bikeSpeedKmh` und `signalWaitSeconds`,
+    /// und der erste ist beim Planen die Probe aufs Exempel: rechnet die App
+    /// eine Fahrzeit aus, die schneller ist als das, was dieser Fahrer auf
+    /// dieser Art Strecke wirklich fährt, gewinnt die Messung.
+    var measuredOverallKmh: Double? = nil {
+        didSet { defaults.set(measuredOverallKmh, forKey: "measuredOverallKmh") }
+    }
+    var measuredMovingKmh: Double? = nil {
+        didSet { defaults.set(measuredMovingKmh, forKey: "measuredMovingKmh") }
+    }
+    /// Aus wie vielen Fahrten die beiden Zahlen stammen. Unter
+    /// `Self.calibrationRides` ist noch nichts gemessen, sondern geraten.
+    var measuredRides: Int = 0 {
+        didSet { defaults.set(measuredRides, forKey: "measuredRides") }
+    }
+
     /// 29 km/h rolling + 20 s per signalised junction reproduces the user's
     /// measured ~21 km/h door-to-door on the Berlin commute it was built for.
     static let defaultBikeSpeedKmh = 29.0
@@ -219,6 +244,11 @@ final class AppSettings {
         assign(\.replanOffRouteMinutes,
                defaults.object(forKey: "replanOffRouteMinutes") as? Double ?? replanOffRouteMinutes)
         assign(\.optionsPerMode, defaults.object(forKey: "optionsPerMode") as? Int ?? optionsPerMode)
+        assign(\.rideOrientation, (defaults.string(forKey: "rideOrientationLock"))
+            .flatMap(OrientationLock.init(rawValue:)) ?? rideOrientation)
+        assign(\.measuredOverallKmh, defaults.object(forKey: "measuredOverallKmh") as? Double)
+        assign(\.measuredMovingKmh, defaults.object(forKey: "measuredMovingKmh") as? Double)
+        assign(\.measuredRides, defaults.object(forKey: "measuredRides") as? Int ?? measuredRides)
         loadedOnce = true
     }
 
@@ -253,6 +283,67 @@ final class AppSettings {
         }
         guard list != learnedSignals else { return }
         learnedSignals = list
+    }
+
+    /// So viele Fahrten müssen es sein, bevor gemessene Werte die
+    /// eingestellten ablösen. Eine einzelne Fahrt ist Wetter, Wind und ein
+    /// Zug, der vor der Schranke stand.
+    static let calibrationRides = 3
+    /// Und so viele werden angeschaut. Mehr wäre das Rad von vorletztem
+    /// Winter; weniger schwankt mit jedem Regentag.
+    static let calibrationWindow = 8
+
+    /// Was die App über diesen Fahrer weiß, aus seinen eigenen Fahrten:
+    /// rollendes Tempo und Tür-zu-Tür-Schnitt. Der Median, nicht der
+    /// Mittelwert — eine Fahrt mit Platten darf den Schnitt nicht kippen.
+    ///
+    /// Das rollende Tempo landet in `bikeSpeedKmh`, also in der Einstellung,
+    /// die der Nutzer auch selbst stellen kann: er soll sehen, womit gerechnet
+    /// wird. Der Tür-zu-Tür-Schnitt bleibt daneben stehen, weil er beim Planen
+    /// die Gegenprobe ist.
+    func calibrate(from rides: [Ride], mode: TravelMode = .bike) {
+        let relevant = rides
+            .filter { $0.travelMode == mode && $0.meters >= 2_000 && $0.movingSeconds > 60 }
+            .sorted { $0.started > $1.started }
+            .prefix(Self.calibrationWindow)
+        guard relevant.count >= Self.calibrationRides else { return }
+        let moving = Self.median(relevant.map(\.movingKmh))
+        let overall = Self.median(relevant.map(\.averageKmh))
+        measuredRides = relevant.count
+        measuredMovingKmh = moving
+        measuredOverallKmh = overall
+        // Die Einstellung folgt der Messung, gerundet auf das, was der
+        // Stepper hergibt.
+        let speed = (moving).rounded()
+        if speed >= 10, speed <= 45, speed != bikeSpeedKmh { bikeSpeedKmh = speed }
+        // Und die Ampelwartezeit folgt dem, was an Ampeln wirklich gewartet
+        // wurde — siehe `signalMeasurement`.
+        if let m = signalMeasurement, m.passes >= Self.signalCalibrationPasses {
+            let seconds = Int((m.wait / Double(m.passes) / 5).rounded() * 5)
+            let clamped = Swift.min(90, Swift.max(0, seconds))
+            if clamped != signalWaitSeconds { signalWaitSeconds = clamped }
+        }
+    }
+
+    static func median(_ values: [Double]) -> Double {
+        let s = values.sorted()
+        guard !s.isEmpty else { return 0 }
+        return s.count % 2 == 1 ? s[s.count / 2] : (s[s.count / 2 - 1] + s[s.count / 2]) / 2
+    }
+
+    /// So viele Vorbeifahrten braucht es, bevor der gemessene Ampelschnitt den
+    /// eingestellten ablöst. Zwei Pendelfahrten über zwanzig Kreuzungen.
+    static let signalCalibrationPasses = 40
+
+    /// Was an den Ampeln dieses Fahrers wirklich passiert: wie oft er an
+    /// einer stand, wie oft er durchkam, und wie lange er zusammen gewartet
+    /// hat. Aus den gelernten Kreuzungen — die zählen beides mit.
+    var signalMeasurement: (passes: Int, stops: Int, wait: TimeInterval)? {
+        guard !learnedSignals.isEmpty else { return nil }
+        let passes = learnedSignals.reduce(0) { $0 + $1.passCount }
+        guard passes > 0 else { return nil }
+        return (passes, learnedSignals.reduce(0) { $0 + $1.stops },
+                learnedSignals.reduce(0) { $0 + $1.totalWait })
     }
 
     /// Back to what the app ships with — one button beats four drags.
@@ -349,7 +440,8 @@ final class AppSettings {
                      carVariantOrder: carVariantOrder, optionsPerMode: optionsPerMode,
                      rainSwitchLevel: rainSwitchLevel,
                      bikeLineStatus: bikeLines.status, timetableSource: timetableSource,
-                     learnedSignals: learnedSignals)
+                     learnedSignals: learnedSignals,
+                     measuredOverallKmh: measuredRides >= Self.calibrationRides ? measuredOverallKmh : nil)
     }
 
     private func save(_ place: Place?, _ key: String) {
@@ -390,6 +482,9 @@ struct PlanSettings: Equatable {
     /// OpenStreetMap knows before a route is judged — and they bring their
     /// measured wait, where the mapped ones only get `signalWaitSeconds`.
     var learnedSignals: [LearnedSignal] = []
+    /// Der gemessene Tür-zu-Tür-Schnitt dieses Fahrers, aus seinen
+    /// aufgezeichneten Fahrten. nil, solange es zu wenige sind.
+    var measuredOverallKmh: Double? = nil
     /// Beyond this, the whole way by bike is a curiosity rather than a plan:
     /// its box moves to the end of the row and the OpenStreetMap corridor gets
     /// too big to ask Overpass for.
@@ -432,6 +527,19 @@ struct PlanSettings: Equatable {
     /// übrigen kennt nur die Karte, und die kosten ihn.
     func signalWait(signals: Int, learned: [LearnedSignal] = []) -> TimeInterval {
         Self.signalWait(signals: signals, learned: learned, flat: TimeInterval(signalWaitSeconds))
+    }
+
+    /// Die Gegenprobe zur gerechneten Fahrzeit: was dieser Fahrer auf dieser
+    /// Strecke nach seinen eigenen Aufzeichnungen bräuchte.
+    ///
+    /// Die Rechnung aus Strecke, Rolltempo, Ampelzahl und Wartezeit ist eine
+    /// Rechnung; der gemessene Schnitt ist eine Messung. Im Zweifel gewinnt
+    /// die Messung — und „im Zweifel" heißt hier: wenn die Rechnung schneller
+    /// ist als die Messung. Langsamer darf sie sein, dafür gibt es Gründe
+    /// (viele Ampeln, viele Höhenmeter), die der pauschale Schnitt nicht kennt.
+    func realistic(_ computed: TimeInterval, meters: Double) -> TimeInterval {
+        guard let kmh = measuredOverallKmh, kmh > 0, meters > 0 else { return computed }
+        return Swift.max(computed, (meters / (kmh / 3.6)).rounded())
     }
 
     /// Dieselbe Rechnung für alle, die nur die eine Einstellung haben und

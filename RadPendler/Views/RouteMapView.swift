@@ -28,6 +28,14 @@ struct RouteMapView: UIViewRepresentable {
     /// this rider has learned. Afterwards one can see where one stood; ahead
     /// of time one wants to see what is coming.
     var signals: [CLLocationCoordinate2D] = []
+    /// Die Linie, der **gerade** gefolgt wird. Während einer Fahrt ist das
+    /// nicht die Linie der Möglichkeit: wird unterwegs neu geplant, ändert
+    /// sich der Weg, und die Karte muss den neuen zeigen — sonst zeigt der
+    /// Pfeil auf eine Straße, die auf der Karte nicht eingezeichnet ist.
+    var guidedLine: [CLLocationCoordinate2D] = []
+    /// Die Linie, die einmal geplant war: dünn und grau daneben. Während einer
+    /// Fahrt nach einer Neuplanung, hinterher neben der gefahrenen.
+    var plannedLine: [CLLocationCoordinate2D] = []
     /// Where the rider is now; drawn as a heading arrow, not as a pin.
     var rider: CLLocationCoordinate2D? = nil
     /// Degrees from north, negative when unknown.
@@ -83,6 +91,16 @@ struct RouteMapView: UIViewRepresentable {
         var emphasized = true
         /// Belongs to a trip that misses the fixed points.
         var dimmed = false
+    }
+
+    /// Die Linie, der gerade gefolgt wird, und die, die einmal geplant war.
+    /// Eigene Klasse, damit sie nicht mit den Linien der Möglichkeiten
+    /// zusammen gelöscht wird: die eine ändert sich mit jeder Neuplanung, die
+    /// anderen nur mit einem neuen Plan.
+    final class GuideLine: MKPolyline {
+        var kind: LegKind = .bike
+        /// Die alte Linie — dünn, grau, gestrichelt.
+        var faded = false
     }
 
     final class Pin: MKPointAnnotation {
@@ -308,6 +326,7 @@ struct RouteMapView: UIViewRepresentable {
         static let fitInsets = UIEdgeInsets(top: 50, left: 30, bottom: 110, right: 30)
         private var routeKey = ""
         private var planKey = ""
+        private var guideKey = ""
         private var radar: [Date: RadarTileOverlay] = [:]
         private var renderers: [Date: MKTileOverlayRenderer] = [:]
         private var shownRadar: Date?
@@ -356,12 +375,43 @@ struct RouteMapView: UIViewRepresentable {
                     zoomToRoutes(map, view)
                 }
             }
+            updateGuideLines(map, view)
             fitEnds(map, view)
             updateRadar(map, view)
             updateRider(map, view)
             updateTrack(map, view)
             updateLive(map, view)
             updateRideSignals(map, view)
+        }
+
+        /// Die Linie, der gerade gefolgt wird, und die ursprüngliche dünn
+        /// daneben. Beide leben außerhalb des Plans: eine Neuplanung während
+        /// der Fahrt ändert keine Möglichkeit, nur den Weg nach vorn — und
+        /// vorher zeigte die Karte trotzdem weiter die alte Linie, während die
+        /// Pfeile schon auf die neue zeigten.
+        private func updateGuideLines(_ map: MKMapView, _ view: RouteMapView) {
+            let key = Self.lineKey(view.guidedLine) + "|" + Self.lineKey(view.plannedLine)
+            guard key != guideKey else { return }
+            guideKey = key
+            map.removeOverlays(map.overlays.filter { $0 is GuideLine })
+            if view.plannedLine.count > 1 {
+                let old = GuideLine(coordinates: view.plannedLine, count: view.plannedLine.count)
+                old.faded = true
+                map.addOverlay(old, level: .aboveRoads)
+            }
+            if view.guidedLine.count > 1 {
+                let now = GuideLine(coordinates: view.guidedLine, count: view.guidedLine.count)
+                now.kind = .bike
+                map.addOverlay(now, level: .aboveRoads)
+            }
+        }
+
+        /// Genug, um „dieselbe Linie" von „eine andere" zu unterscheiden, ohne
+        /// tausend Punkte zu vergleichen.
+        static func lineKey(_ line: [CLLocationCoordinate2D]) -> String {
+            guard let first = line.first, let last = line.last else { return "0" }
+            return String(format: "%d;%.5f,%.5f;%.5f,%.5f", line.count,
+                          first.latitude, first.longitude, last.latitude, last.longitude)
         }
 
         /// Solange es noch keine Route gibt: auf Start und Ziel einpassen.
@@ -609,25 +659,30 @@ struct RouteMapView: UIViewRepresentable {
                 $0 is OptionLabel || ($0 as? SignalDot)?.fromPlan == true
             })
             let selected = view.options.first { $0.id == view.selectedID }
-            // Unselected options faint underneath, the selected one on top.
-            let ordered = view.options.filter { $0.id != selected?.id } + (selected.map { [$0] } ?? [])
-            for option in ordered {
-                for leg in option.legs where leg.coordinates.count > 1 {
-                    let line = LegLine(coordinates: leg.coordinates, count: leg.coordinates.count)
-                    line.kind = leg.kind
-                    line.emphasized = selected == nil || option.id == selected?.id
-                    line.dimmed = !option.passesWaypoints
-                    map.addOverlay(line, level: .aboveRoads)
+            // Während einer Fahrt zeichnet `updateGuideLines` den Weg — dann
+            // hier keine zweite Linie und keine zweite Ampelreihe darüber.
+            let riding = view.guidedLine.count > 1
+            if !riding {
+                // Unselected options faint underneath, the selected one on top.
+                let ordered = view.options.filter { $0.id != selected?.id } + (selected.map { [$0] } ?? [])
+                for option in ordered {
+                    for leg in option.legs where leg.coordinates.count > 1 {
+                        let line = LegLine(coordinates: leg.coordinates, count: leg.coordinates.count)
+                        line.kind = leg.kind
+                        line.emphasized = selected == nil || option.id == selected?.id
+                        line.dimmed = !option.passesWaypoints
+                        map.addOverlay(line, level: .aboveRoads)
+                    }
                 }
+                addLabels(map, view.options, selected: selected?.id)
+                // Lit junctions of the chosen route — where the waiting happens.
+                if let points = selected?.bikeRoute?.stats?.signalPoints ?? selected?.carRoute?.signalPoints {
+                    map.addAnnotations(points.map { c in
+                        let d = SignalDot(); d.coordinate = c; d.title = "Ampel"; return d
+                    })
+                }
+                if let selected { addLegBadges(map, selected) }
             }
-            addLabels(map, view.options, selected: selected?.id)
-            // Lit junctions of the chosen route — where the waiting happens.
-            if let points = selected?.bikeRoute?.stats?.signalPoints ?? selected?.carRoute?.signalPoints {
-                map.addAnnotations(points.map { c in
-                    let d = SignalDot(); d.coordinate = c; d.title = "Ampel"; return d
-                })
-            }
-            if let selected { addLegBadges(map, selected) }
             guard let trip = selected ?? view.options.first, let first = trip.legs.first, let last = trip.legs.last else { return }
             var pins: [Pin] = []
             let start = Pin(); start.coordinate = first.coordinates.first ?? CLLocationCoordinate2D()
@@ -813,6 +868,15 @@ struct RouteMapView: UIViewRepresentable {
                 r.lineWidth = 7
                 r.lineCap = .round
                 r.lineJoin = .round
+                return r
+            }
+            if let line = overlay as? GuideLine {
+                let r = MKPolylineRenderer(polyline: line)
+                r.strokeColor = line.faded ? UIColor.systemGray.withAlphaComponent(0.65)
+                                           : line.kind.uiColor.withAlphaComponent(0.95)
+                r.lineWidth = line.faded ? 2.5 : 5
+                if line.faded { r.lineDashPattern = [4, 5] }
+                r.lineCap = .round
                 return r
             }
             if let line = overlay as? LegLine {

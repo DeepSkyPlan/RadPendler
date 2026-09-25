@@ -38,7 +38,7 @@ struct RideTrackingView: View {
                 HStack(alignment: .top, spacing: 8) {
                     VStack(alignment: .leading, spacing: 8) {
                         banner
-                        controls(settings: $settings.orientation)
+                        controls(settings: $settings.rideOrientation)
                         Spacer(minLength: 0)
                     }
                     Spacer(minLength: 0)
@@ -48,7 +48,7 @@ struct RideTrackingView: View {
             } else {
                 VStack(spacing: 8) {
                     banner
-                    controls(settings: $settings.orientation)
+                    controls(settings: $settings.rideOrientation)
                     Spacer(minLength: 0)
                     panel
                 }
@@ -82,7 +82,14 @@ struct RideTrackingView: View {
     private var map: some View {
         RouteMapView(options: options, selectedID: selectedID, radarFrames: [], radarTime: nil,
                      track: tracker.meter.points, trackStops: tracker.meter.stops,
-                     signals: tracker.signals,
+                     // Nur die Ampeln **dieser** Route: `tracker.signals` hat
+                     // zusätzlich alles Gelernte quer durch die Stadt.
+                     signals: tracker.plannedSignals,
+                     guidedLine: tracker.plannedRoute,
+                     // Nach einer Neuplanung liegt die ursprüngliche Linie dünn
+                     // daneben — sonst wüsste niemand, dass sich etwas geändert
+                     // hat.
+                     plannedLine: tracker.replans > 0 ? tracker.originalRoute : [],
                      rider: tracker.here, course: tracker.course, following: following,
                      showBoth: tracker.detour?.nearest,
                      onPan: {
@@ -91,7 +98,7 @@ struct RideTrackingView: View {
                      },
                      // Room for the turn banner, so MapKit's compass does not
                      // end up behind it.
-                     topInset: tracker.nextTurn == nil && tracker.detour == nil ? 0 : 96)
+                     topInset: !showsTurn && tracker.detour == nil ? 0 : 96)
             .ignoresSafeArea()
     }
 
@@ -99,7 +106,18 @@ struct RideTrackingView: View {
     /// Abbiegung liegt auf einer Straße, auf der man nicht ist. Dann zählt nur,
     /// wo die Route liegt, und das sagt ein Pfeil.
     @ViewBuilder private var banner: some View {
-        if tracker.detour != nil { detourBanner } else { turnBanner }
+        if tracker.detour != nil { detourBanner } else if showsTurn { turnBanner }
+    }
+
+    /// So kurz vor einer Abbiegung steht der Pfeil da — und keinen Meter
+    /// früher. Ein Pfeil, der zwei Kilometer lang „rechts" sagt, ist kein
+    /// Hinweis, sondern Tapete: man sieht ihn nicht mehr an, wenn es so weit
+    /// ist. Und er nimmt der Karte die obersten hundert Punkte.
+    static let announceMeters = 250.0
+
+    private var showsTurn: Bool {
+        guard let next = tracker.nextTurn else { return false }
+        return next.meters <= Self.announceMeters
     }
 
     /// Der Pfeil zeigt **auf der Karte**, nicht nach Norden. Die Karte ist in
@@ -132,7 +150,10 @@ struct RideTrackingView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.gradient(.orange), in: RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
+            // Rot: das hier ist das Einzige auf diesem Bildschirm, das
+            // bedeutet „du bist falsch". Der Abbiegepfeil ist grün, weil er
+            // das Gegenteil sagt.
+            .background(Theme.gradient(.red), in: RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
             .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
             .accessibilityElement(children: .combine)
             .accessibilityLabel("\(Fmt.km(detour.meters)) neben der Route, Richtung \(Self.compass(detour.bearing))")
@@ -169,7 +190,7 @@ struct RideTrackingView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.gradient(.red), in: RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
+            .background(Theme.gradient(LegKind.bike.color), in: RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
             .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
             .accessibilityElement(children: .combine)
             .accessibilityLabel("Nächste Abbiegung \(next.step.turn.title) in \(Fmt.km(next.meters))")
@@ -211,6 +232,9 @@ struct RideTrackingView: View {
                     clock(now: context.date)
                     numbers(now: context.date)
                     signalRow(now: context.date)
+                    if let left = remaining {
+                        arrivalRow(left, now: context.date)
+                    }
                 }
             }
             stopButton
@@ -285,19 +309,28 @@ struct RideTrackingView: View {
     /// wartet man, im Stau und vor der eigenen Haustür auch, und auf einer
     /// Pendelfahrt ist der Unterschied genau das, was man wissen will.
     private func signalRow(now: Date) -> some View {
-        let stops = tracker.meter.signalStops
-        let total = tracker.meter.signalWaitTotal
+        // Einschließlich des Halts, an dem man **gerade** steht: eine
+        // Wartezeit, die erst beim Losfahren um eine Minute springt, ist keine
+        // Anzeige. Sekündlich, weil der Kasten ohnehin sekündlich tickt.
+        let live = tracker.meter.liveSignals(at: now)
+        let stops = live.stops
+        let total = live.wait
+        let planned = tracker.progress?.plannedSignals ?? 0
         let standing = max(0, tracker.meter.seconds(at: now) - tracker.meter.movingSeconds)
         return HStack(spacing: 8) {
             TrafficLightIcon()
             VStack(alignment: .leading, spacing: 0) {
-                Text("\(stops) Ampelhalt\(stops == 1 ? "" : "s")")
+                // „3/9": gehalten von geplant. Ohne Plan bleibt es bei der Zahl.
+                Text(planned > 0 ? "\(stops)/\(planned) Ampeln"
+                                 : "\(stops) Ampelhalt\(stops == 1 ? "" : "s")")
                     .font(.system(.subheadline, design: .rounded, weight: .bold))
                     .monospacedDigit()
+                    .contentTransition(.numericText())
                 Text(stops == 0 ? "noch keine Wartezeit"
                      : "\(Fmt.clock(total)) gewartet · Ø \(Fmt.clock(total / Double(stops)))")
                     .font(.system(size: 11, design: .rounded))
                     .monospacedDigit()
+                    .contentTransition(.numericText())
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
@@ -311,6 +344,40 @@ struct RideTrackingView: View {
                      : "gestanden")
                     .font(.system(size: 11, design: .rounded))
                     .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 10).padding(.vertical, 7)
+        .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: Theme.innerCorner))
+    }
+
+    /// Was noch kommt: Strecke, Restzeit, Ankunft. Gerechnet wird mit
+    /// demselben Modell wie beim Planen — Strecke durch Rolltempo plus
+    /// Wartezeit für die Ampeln, die noch vor einem liegen.
+    var remaining: RideRemaining? {
+        RideRemaining.from(progress: tracker.progress, settings: settings)
+    }
+
+    private func arrivalRow(_ left: RideRemaining, now: Date) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "flag.checkered")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(LegKind.bike.color)
+            VStack(alignment: .leading, spacing: 0) {
+                Text("noch \(Fmt.duration(left.seconds))")
+                    .font(.system(.subheadline, design: .rounded, weight: .bold))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                Text("\(Fmt.km(left.meters))\(left.signals > 0 ? " · \(left.signals) Ampeln" : "")")
+                    .font(.system(size: 11, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+            VStack(alignment: .trailing, spacing: 0) {
+                Text(Fmt.time(now.addingTimeInterval(left.seconds)))
+                    .font(.system(.subheadline, design: .rounded, weight: .bold))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                Text("Ankunft").font(.system(size: 11, design: .rounded)).foregroundStyle(.secondary)
             }
         }
         .padding(.horizontal, 10).padding(.vertical, 7)
@@ -347,22 +414,89 @@ struct RideTrackingView: View {
     }
 }
 
+/// Was von einer laufenden Fahrt noch übrig ist: Strecke, Ampeln, Zeit.
+///
+/// Gerechnet wie beim Planen — Strecke durch das rollende Tempo plus die
+/// Wartezeit für die Ampeln, die noch kommen —, und mit derselben Gegenprobe:
+/// schneller als der eigene gemessene Schnitt wird auch hier niemand.
+struct RideRemaining: Equatable {
+    var meters: Double
+    var signals: Int
+    var seconds: TimeInterval
+
+    static func from(progress: RideTracker.Progress?, settings: AppSettings) -> RideRemaining? {
+        guard let p = progress, p.plannedMeters > 0, p.metersLeft > 10 else { return nil }
+        let rolling = Swift.max(5.0, settings.bikeSpeedKmh) / 3.6
+        var seconds = p.metersLeft / rolling + Double(p.signalsLeft * settings.signalWaitSeconds)
+        if settings.measuredRides >= AppSettings.calibrationRides,
+           let kmh = settings.measuredOverallKmh, kmh > 0 {
+            seconds = Swift.max(seconds, p.metersLeft / (kmh / 3.6))
+        }
+        return RideRemaining(meters: p.metersLeft, signals: p.signalsLeft, seconds: seconds.rounded())
+    }
+}
+
+/// Während einer Fahrt steht in der Leiste nicht mehr, wann man losgehen soll
+/// — man ist los. Statt dessen: wie lange es noch dauert und wann man da ist.
+///
+/// Eigene Uhr statt `TimelineView`, aus demselben Grund wie beim Countdown:
+/// ein `TimelineView` in einer Werkzeugleiste legt die Leiste bei jedem Takt
+/// neu aus und dreht den Hauptthread mit voller Bildrate im Kreis.
+struct RideArrivalPill: View {
+    @Environment(RideTracker.self) private var tracker
+    @Environment(AppSettings.self) private var settings
+    @State private var now = Date.now
+
+    var body: some View {
+        let left = RideRemaining.from(progress: tracker.progress, settings: settings)
+        HStack(spacing: 4) {
+            Image(systemName: "flag.checkered")
+                .font(.system(size: 9, weight: .bold))
+            Text(left.map { Fmt.duration($0.seconds) } ?? "läuft")
+                .font(.system(size: 14, weight: .heavy, design: .rounded))
+                .monospacedDigit()
+                .contentTransition(.numericText(countsDown: true))
+            if let left {
+                Text(Fmt.time(now.addingTimeInterval(left.seconds)))
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .padding(.horizontal, 3).padding(.vertical, 0.5)
+                    .background(.white.opacity(0.25), in: RoundedRectangle(cornerRadius: 3))
+            }
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 8).padding(.vertical, 4)
+        .background(Theme.gradient(LegKind.bike.color), in: Capsule())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(left.map { "Noch \(Fmt.duration($0.seconds)), Ankunft \(Fmt.time(now.addingTimeInterval($0.seconds)))" }
+                            ?? "Fahrt läuft")
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                now = .now
+            }
+        }
+    }
+}
+
 /// What the ride was, right after it ended — the one moment one actually wants
 /// to read the numbers.
 struct RideSummarySheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(RideStore.self) private var store
     var ride: Ride
+    @State private var track: RideTrack?
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
-                    RideFacts(ride: ride)
+                    RideFacts(ride: ride, track: track)
                     RideMapCard(ride: ride)
                         .frame(height: 260)
                 }
                 .padding(Theme.gutter)
             }
+            .task { track = await store.track(for: ride) }
             .background(Theme.background)
             .navigationTitle("Angekommen")
             .navigationBarTitleDisplayMode(.inline)

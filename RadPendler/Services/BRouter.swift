@@ -45,7 +45,7 @@ struct BRouterClient {
         let length = Double(props["track-length"] as? String ?? "") ?? 0
         let time = Double(props["total-time"] as? String ?? "") ?? 0
         guard points.count > 1 else { throw BRouterError.malformed }
-        let roads = Self.roads(props["messages"] as? [[String]])
+        let roads = Self.roads(props["messages"] as? [[String]], along: coords)
         return StreetRoute(distance: length, expectedTravelTime: time, coordinates: points,
                            mix: roads.mix, roadPoints: roads.points,
                            ascent: Self.ascent(props: props, coordinates: coords))
@@ -77,20 +77,50 @@ struct BRouterClient {
     /// the OpenStreetMap tags of the way it runs on. The first row names the
     /// columns, and the names are what is looked up — the order has changed
     /// between BRouter versions before.
-    static func roads(_ messages: [[String]]?) -> (mix: RoadMix, points: [RoadPoint]) {
+    ///
+    /// **Eine Zeile ist kein Punkt, sondern eine Strecke.** BRouter fasst eine
+    /// Straße zusammen, solange sich ihre Merkmale nicht ändern: der Median
+    /// einer Pendelstrecke liegt bei 14 m, das längste Stück der gemessenen
+    /// 33-km-Route bei 2 082 m. Legte man nur den einen Punkt jeder Zeile ab,
+    /// läge über ein Drittel der gefahrenen Meter weiter als
+    /// `RoadPoint.matchRadius` von jedem Stützpunkt entfernt — und die
+    /// Aufzeichnung schriebe sie als „sonstiges" gut, obwohl die Straße bekannt
+    /// ist. (Auf der Testroute: 38,5 % der Meter.) Deshalb wird jede Zeile
+    /// entlang der Linie ausgelegt und alle `RoadPoint.spacing` Meter ein
+    /// Stützpunkt gesetzt.
+    static func roads(_ messages: [[String]]?,
+                      along coordinates: [[Double]] = []) -> (mix: RoadMix, points: [RoadPoint]) {
         guard let messages, let header = messages.first,
               let distanceColumn = header.firstIndex(of: "Distance"),
               let tagColumn = header.firstIndex(of: "WayTags") else { return (RoadMix(), []) }
         let lonColumn = header.firstIndex(of: "Longitude")
         let latColumn = header.firstIndex(of: "Latitude")
+        let line = Geo.validated(coordinates.filter { $0.count >= 2 }
+            .map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) })
+        let cum = TurnGuide.cumulative(line)
         var mix = RoadMix()
         var points: [RoadPoint] = []
+        var travelled = 0.0
         for row in messages.dropFirst() {
             guard row.count > max(distanceColumn, tagColumn),
                   let metres = Double(row[distanceColumn]) else { continue }
             let cls = RoadClass.from(wayTags: row[tagColumn])
             mix.add(metres, to: cls)
-            // The coordinates come as integer micro-degrees.
+            let from = travelled
+            travelled += metres
+            // Die Linie kennen wir: dann wird die Strecke auf ihr ausgelegt.
+            if line.count > 1, cum.last ?? 0 > 0 {
+                var s = from
+                while s < travelled {
+                    if let c = Self.point(at: s, on: line, cum: cum) {
+                        points.append(RoadPoint(lat: c.latitude, lon: c.longitude, cls: cls))
+                    }
+                    s += RoadPoint.spacing
+                }
+                continue
+            }
+            // Ohne Linie bleibt der eine Punkt der Zeile. Die Koordinaten
+            // kommen als ganzzahlige Mikrograd.
             guard let lonColumn, let latColumn, row.count > max(lonColumn, latColumn),
                   let lon = Double(row[lonColumn]), let lat = Double(row[latColumn]) else { continue }
             let c = CLLocationCoordinate2D(latitude: lat / 1_000_000, longitude: lon / 1_000_000)
@@ -98,6 +128,21 @@ struct BRouterClient {
             points.append(RoadPoint(lat: c.latitude, lon: c.longitude, cls: cls))
         }
         return (mix, points)
+    }
+
+    /// Der Punkt `s` Meter vom Anfang der Linie. Linear zwischen den Ecken —
+    /// bei Stützpunkten alle paar Meter ist das die Straße selbst.
+    static func point(at s: Double, on line: [CLLocationCoordinate2D],
+                      cum: [Double]) -> CLLocationCoordinate2D? {
+        guard line.count > 1, cum.count == line.count, let total = cum.last, total > 0 else { return line.first }
+        let s = Swift.min(Swift.max(s, 0), total)
+        var i = (cum.firstIndex { $0 > s } ?? cum.count) - 1
+        i = Swift.min(Swift.max(i, 0), line.count - 2)
+        let span = cum[i + 1] - cum[i]
+        guard span > 0 else { return line[i] }
+        let f = (s - cum[i]) / span
+        return CLLocationCoordinate2D(latitude: line[i].latitude + (line[i + 1].latitude - line[i].latitude) * f,
+                                      longitude: line[i].longitude + (line[i + 1].longitude - line[i].longitude) * f)
     }
 
     enum BRouterError: LocalizedError {

@@ -164,6 +164,9 @@ struct BikeRouteInfo {
     var roadPoints: [RoadPoint] = []
     /// Summierter Anstieg in Metern; nil, wenn der Router keine Höhen kennt.
     var ascent: Double? = nil
+    /// Gesetzt, wenn nicht die Rechnung die Fahrzeit bestimmt hat, sondern der
+    /// gemessene Schnitt dieses Fahrers — dann soll das auch dastehen.
+    var measuredKmh: Double? = nil
 
     /// Already in the order the user put the variants in; the first is the one
     /// that decides what the box says. Leer heißt: diese Linie ist in keiner

@@ -198,7 +198,9 @@ struct TripPlanner {
                                     bikeRoute: BikeRouteInfo(variants: variants, stats: c.stats, source: c.source,
                                                              mix: c.route.mix,
                                                              roadPoints: c.route.roadPoints,
-                                                             ascent: c.route.ascent))
+                                                             ascent: c.route.ascent,
+                                                             measuredKmh: c.measuredWins(req.settings)
+                                                                 ? req.settings.measuredOverallKmh : nil))
             // Only the route that matches the user's first choice is the one
             // the recommendation weighs; the others are alternatives.
             option.isPreferredVariant = index == 0
@@ -742,9 +744,22 @@ struct BikeCandidate {
     }
 
     /// Riding time at the configured speed, the expected wait at lights, and
-    /// what the climbing costs.
+    /// what the climbing costs — und darunter nie schneller, als dieser Fahrer
+    /// laut seinen eigenen Fahrten wirklich ist.
     func time(_ s: PlanSettings) -> TimeInterval {
+        s.realistic(computedTime(s), meters: route.distance)
+    }
+
+    /// Die reine Rechnung, ohne die Gegenprobe. Getrennt, damit sich zeigen
+    /// lässt, welche der beiden Zahlen gewonnen hat.
+    func computedTime(_ s: PlanSettings) -> TimeInterval {
         s.bikeTime(route.distance) + signalWait(s) + climbTime
+    }
+
+    /// Ob die gemessene Zahl die gerechnete geschlagen hat — dann steht das
+    /// auch auf der Detailseite, sonst ist es eine Zeit ohne Herkunft.
+    func measuredWins(_ s: PlanSettings) -> Bool {
+        time(s) > computedTime(s) + 30
     }
 
     /// Was die Ampeln dieser Linie kosten — gemessen, wo gemessen wurde.

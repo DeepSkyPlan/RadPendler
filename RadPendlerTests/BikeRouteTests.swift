@@ -68,6 +68,33 @@ final class BikeRouteTests: XCTestCase {
         XCTAssertEqual(r.coordinates.last!.latitude, 52.391, accuracy: 0.002)
     }
 
+    /// Eine Zeile der BRouter-Tabelle ist eine **Strecke**, kein Punkt: bis zu
+    /// zwei Kilometer lang. Wurde nur ihr einer Punkt abgelegt, lag über ein
+    /// Drittel der gefahrenen Meter weiter als `RoadPoint.matchRadius` von
+    /// jedem Stützpunkt entfernt — und die Fahrt schrieb sie als „sonstiges"
+    /// gut, obwohl die Straße bekannt war.
+    func testEveryMetreOfARouteFindsItsRoadClass() throws {
+        let url = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "brouter_safety_route", withExtension: "json"))
+        let r = try BRouterClient.parse(Data(contentsOf: url))
+        let cum = TurnGuide.cumulative(r.coordinates)
+        let total = try XCTUnwrap(cum.last)
+        var matched = 0, samples = 0
+        var index = 0
+        var s = 0.0
+        while s < total {
+            guard let c = BRouterClient.point(at: s, on: r.coordinates, cum: cum) else { break }
+            samples += 1
+            if let hit = RoadPoint.nearest(r.roadPoints, to: c, from: index) {
+                index = hit.index
+                matched += 1
+            }
+            s += 25
+        }
+        XCTAssertGreaterThan(samples, 1000)
+        XCTAssertGreaterThan(Double(matched) / Double(samples), 0.99,
+                             "wer auf der geplanten Linie fährt, fährt nicht auf „sonstiges“")
+    }
+
     private func candidate(_ name: String, km: Double, signals: Int, crossings: Int, mainKm: Double) -> BikeCandidate {
         BikeCandidate(source: name, route: StreetRoute(distance: km * 1000, expectedTravelTime: 0, coordinates: []),
                       stats: BikeRouteStats(signals: signals, crossings: Array(repeating: "B 1", count: crossings),
