@@ -9,6 +9,10 @@ struct StreetRoute {
     var coordinates: [CLLocationCoordinate2D]
     /// Signalised junctions on the route, once known from OpenStreetMap.
     var signals = 0
+    /// Von diesen Kreuzungen die, an denen dieser Fahrer schon gemessen hat.
+    /// Sie sind in `signals` mitgezählt und kosten ihre gemessene Zeit statt
+    /// des eingestellten Mittelwerts.
+    var learnedSignals: [LearnedSignal] = []
     /// Metres per road class, where the router said — BRouter does, Apple
     /// does not. Empty means nobody told us, not that the route is all main road.
     var mix = RoadMix()

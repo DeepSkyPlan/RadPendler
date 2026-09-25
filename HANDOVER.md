@@ -180,8 +180,12 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   (`TravelMode.defaultOrder`, `BikeVariant.defaultOrder`, `CarVariant.defaultOrder`,
   `rainSwitchLevel = .light`) — Änderungen an der Logik müssen die Listen respektieren,
   nicht die alten festen Reihenfolgen.
-- Radgeschwindigkeit ist die **rollende** Geschwindigkeit (29 km/h) plus 20 s je Ampelkreuzung;
-  zusammen ergibt das seine gemessenen ~21 km/h.
+- Radgeschwindigkeit ist die **rollende** Geschwindigkeit (29 km/h) plus die Wartezeit je
+  Ampelkreuzung plus 5 s je Höhenmeter; zusammen ergibt das seine gemessenen ~21 km/h.
+  Die Wartezeit sind 20 s je Kreuzung, die nur die Karte kennt — und an jeder Kreuzung,
+  an der eigene Fahrten schon gemessen haben, das Gemessene (`PlanSettings.signalWait`,
+  `LearnedSignal.expectedWait`). Wer hier etwas ändert, ändert die angezeigte Fahrzeit
+  jeder Radroute: die Detailseite schreibt die Ampelzeit deshalb neben die Ampelzahl.
 - **S-Bahn und Regionalzug zuerst** (festes Radabteil), U-Bahn und Tram nur als markierte
   Alternative, nie empfohlen, solange es eine S/RE-Verbindung gibt.
 - Rad + Bahn ist der Normalfall bei schlechtem Wetter; bei Trockenheit gewinnt das Rad.
@@ -217,9 +221,21 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
 - **Ein Halt ab `signalStopSeconds` (30 s) ist eine Ampel**, auch ohne Kartendaten, und
   wird als `LearnedSignal` behalten. Gelernte Ampeln wirken in zwei Richtungen zurück:
   in `RideMeter.signals` der nächsten Fahrt und über `TripPlanner.withLearned` in
-  `RoadData.signals`, also in die Ampelzahl und damit in die Radzeit jeder Route.
+  `RoadData.learned`, also in die Ampelzahl **und** in die Wartezeit jeder Route.
   `RouteAnalyzer` fasst Signalknoten innerhalb von 60 m zusammen — eine gelernte Ampel
-  auf einer gemappten zählt deshalb nicht doppelt.
+  auf einer gemappten zählt deshalb nicht doppelt, und von beiden gewinnt die gemessene.
+- **Jede Aufzeichnung zählt auch die Vorbeifahrten ohne Halt** (`AppSettings.learn`
+  bekommt Linie und Kreuzungen, nicht nur die Halte). Ohne sie wäre der Mittelwert einer
+  gelernten Ampel der Mittelwert der Male, an denen man gewartet hat — eine Ampel, die
+  jede zweite Fahrt grün ist, kostete das Doppelte. `LearnedSignal.prior` (3 Vorbeifahrten
+  mit dem eingestellten Mittelwert) hält die erste Beobachtung davon ab, alles zu
+  entscheiden. Einträge aus der Zeit davor haben `passes == nil`; für sie war jede
+  Vorbeifahrt ein Halt, und sie werden mit jeder neuen Fahrt ehrlicher.
+- **Der erste und der letzte Stillstand einer Fahrt sind keine Ampel.** Das ist die eigene
+  Haustür: man steht in der Einfahrt, oder man ist angekommen und tippt eine halbe Minute
+  später auf „Fahrt beenden". Über die 30-Sekunden-Regel wurde daraus eine gelernte Ampel,
+  die jede spätere Planung verlängerte. Kennt die Karte am Ende der Fahrt dort eine Ampel,
+  bleibt es eine (`RideMeter.close(since:until:ending:)`).
 - **Der Pfeil der Fahrtansicht dreht sich um `Kurs − Blickrichtung der Karte`.** Beim
   Folgen dreht sich die Karte selbst in den Kurs; wer den Pfeil zusätzlich um den Kurs
   dreht, zeigt doppelt daneben. Erster Befund der ersten Testfahrt.

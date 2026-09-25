@@ -29,6 +29,11 @@ struct RoadData {
 
     var signals: [CLLocationCoordinate2D]
     var roads: [Road]
+    /// Kreuzungen, an denen dieser Fahrer schon gemessen hat — gehalten oder
+    /// durchgefahren. Sie kommen nicht aus Overpass und liegen deshalb neben
+    /// den Ampeln der Karte, nicht zwischen ihnen: eine zwischengespeicherte
+    /// Antwort bleibt, was der Server geschickt hat.
+    var learned: [LearnedSignal] = []
 
     /// Overpass JSON: signal nodes via `out skel`, roads via `convert … out geom`.
     static func parse(_ data: Data) throws -> RoadData {
@@ -395,6 +400,10 @@ struct BikeRouteStats: Equatable {
     var mainRoadMeters: Double
     /// Where the lit junctions are, for drawing them on the map.
     var signalPoints: [CLLocationCoordinate2D] = []
+    /// Von diesen Kreuzungen die, an denen dieser Fahrer schon gemessen hat.
+    /// Sie sind in `signals` mitgezählt und stehen hier noch einmal, weil sie
+    /// ihre eigene Wartezeit mitbringen — siehe `PlanSettings.signalWait`.
+    var learnedSignals: [LearnedSignal] = []
 
     /// Metre-equivalent of noise and stress: a crossing is as bad as 300 m
     /// beside a main road, a traffic light as 100 m.
@@ -490,28 +499,40 @@ enum RouteAnalyzer {
             main += cum[i + 1] - cum[i]
         }
 
-        // Signalised junctions.
+        // Signalised junctions. What the map knows and what the rider has
+        // measured goes through the same sieve: it counts where it sits on
+        // this route, not where it came from.
         let routeGrid = SegmentGrid(zip(r, r.dropFirst()).map { ($0, $1) }, cell: 100)
-        var signalHits: [(s: Double, c: CLLocationCoordinate2D)] = []
-        for c in data.signals {
+        var signalHits: [(s: Double, c: CLLocationCoordinate2D, learned: LearnedSignal?)] = []
+        func collect(_ c: CLLocationCoordinate2D, _ learned: LearnedSignal?) {
             let p = flat.point(c)
-            guard inBox(p) else { continue }
+            guard inBox(p) else { return }
             var best = (d: Double.infinity, s: 0.0)
             for i in routeGrid.candidates(near: p, radius: 15) {
                 let d = pointSegment(p, r[i], r[i + 1])
                 if d < best.d { best = (d, cum[i]) }
             }
-            if best.d < 15 { signalHits.append((best.s, c)) }
+            if best.d < 15 { signalHits.append((best.s, c, learned)) }
         }
-        // One junction can carry several signal nodes: keep the first of each cluster.
-        var junctions: [CLLocationCoordinate2D] = []
+        for c in data.signals { collect(c, nil) }
+        for l in data.learned { collect(l.coordinate, l) }
+        // One junction can carry several signal nodes: keep the first of each
+        // cluster. Measured beats mapped — the same junction seen from both
+        // sides is one junction, and the one with seconds on it is the one
+        // that knows what it costs.
+        var junctions: [(c: CLLocationCoordinate2D, learned: LearnedSignal?)] = []
         var last = -Double.infinity
         for hit in signalHits.sorted(by: { $0.s < $1.s }) {
-            if hit.s - last > 60 { junctions.append(hit.c) }
+            if hit.s - last > 60 {
+                junctions.append((hit.c, hit.learned))
+            } else if junctions.last?.learned == nil, let l = hit.learned {
+                junctions[junctions.count - 1].learned = l
+            }
             last = hit.s
         }
         return BikeRouteStats(signals: junctions.count, crossings: crossings.map(\.name),
-                              mainRoadMeters: main, signalPoints: junctions)
+                              mainRoadMeters: main, signalPoints: junctions.map(\.c),
+                              learnedSignals: junctions.compactMap(\.learned))
     }
 
     static func pointSegment(_ p: SIMD2<Double>, _ a: SIMD2<Double>, _ b: SIMD2<Double>) -> Double {

@@ -97,9 +97,10 @@ final class AppSettings {
     /// that only behave like one.
     var signalStopSeconds: Int = 30 { didSet { defaults.set(signalStopSeconds, forKey: "signalStopSeconds") } }
 
-    /// Junctions where the rider actually waited. Learned from the recorded
+    /// Junctions this rider has ridden through. Learned from the recorded
     /// rides and used from the next one on — for recognising a red light, and
-    /// for the bike times, where every junction costs `signalWaitSeconds`.
+    /// for the bike times, where such a junction costs what it was measured to
+    /// cost instead of `signalWaitSeconds`.
     var learnedSignals: [LearnedSignal] = [] {
         didSet { defaults.set(try? JSONEncoder().encode(learnedSignals), forKey: "learnedSignals") }
     }
@@ -221,12 +222,34 @@ final class AppSettings {
         loadedOnce = true
     }
 
-    /// One wait, remembered. Called for every stop a finished ride counted as
-    /// a red light — including the ones no map knew about.
-    func learn(_ stops: [RideStop]) {
+    /// Was eine beendete Fahrt über die Kreuzungen auf ihr weiß: an welchen
+    /// gewartet wurde, und an welchen eben nicht.
+    ///
+    /// Das zweite ist so wichtig wie das erste. Zählt man nur die Halte, ist
+    /// der Mittelwert einer Ampel der Mittelwert der Male, an denen man
+    /// gewartet hat — eine Ampel, die jede zweite Fahrt grün ist, kostete
+    /// dann das Doppelte dessen, was sie wirklich kostet. Deshalb zählt jede
+    /// Kreuzung, an der die aufgezeichnete Linie vorbeikam, eine Vorbeifahrt.
+    ///
+    /// `junctions` sind die Kreuzungen der geplanten Route — die aus
+    /// OpenStreetMap und die schon gelernten.
+    func learn(stops: [RideStop], track: [RidePoint] = [], junctions: [CLLocationCoordinate2D] = []) {
         var list = learnedSignals
         for stop in stops where stop.atSignal {
             list = LearnedSignal.recording(list, at: stop.coordinate, waited: stop.seconds)
+        }
+        // Eine Kreuzung, eine Vorbeifahrt. Die Liste kommt aus zwei Quellen —
+        // den Ampeln der geplanten Route und den gelernten — und dieselbe
+        // Kreuzung steht deshalb oft zweimal darin; zweimal gezählt hielte sie
+        // für halb so teuer, wie sie ist.
+        var counted = stops.filter(\.atSignal).map(\.coordinate)
+        for j in junctions {
+            // An dieser Kreuzung wurde gerade gehalten — der Halt hat seine
+            // Vorbeifahrt schon mitgebracht.
+            guard !counted.contains(where: { $0.distance(to: j) <= LearnedSignal.mergeRadius }) else { continue }
+            guard track.contains(where: { $0.coordinate.distance(to: j) <= LearnedSignal.passRadius }) else { continue }
+            counted.append(j)
+            list = LearnedSignal.passing(list, at: j)
         }
         guard list != learnedSignals else { return }
         learnedSignals = list
@@ -363,9 +386,9 @@ struct PlanSettings: Equatable {
     /// is shown with a warning rather than hidden.
     var bikeLineStatus: [String: Bool] = [:]
     var timetableSource: TimetableSource = .automatic
-    /// Junctions this rider has waited at. They join the ones OpenStreetMap
-    /// knows before a route is judged — a light the map does not have still
-    /// costs `signalWaitSeconds`.
+    /// Junctions this rider has ridden through. They join the ones
+    /// OpenStreetMap knows before a route is judged — and they bring their
+    /// measured wait, where the mapped ones only get `signalWaitSeconds`.
     var learnedSignals: [LearnedSignal] = []
     /// Beyond this, the whole way by bike is a curiosity rather than a plan:
     /// its box moves to the end of the row and the OpenStreetMap corridor gets
@@ -398,7 +421,24 @@ struct PlanSettings: Equatable {
 
     /// Riding time plus the expected wait at the route's traffic lights.
     func rideTime(_ r: StreetRoute) -> TimeInterval {
-        bikeTime(r.distance) + Double(r.signals * signalWaitSeconds)
+        bikeTime(r.distance) + signalWait(signals: r.signals, learned: r.learnedSignals)
+    }
+
+    /// Was die Ampeln einer Route an Zeit kosten.
+    ///
+    /// Wo dieser Fahrer schon gemessen hat, gilt das Gemessene: eine Kreuzung,
+    /// an der zwanzig Vorbeifahrten zusammen vier Minuten gekostet haben,
+    /// kostet zwölf Sekunden und nicht den eingestellten Mittelwert. Alle
+    /// übrigen kennt nur die Karte, und die kosten ihn.
+    func signalWait(signals: Int, learned: [LearnedSignal] = []) -> TimeInterval {
+        Self.signalWait(signals: signals, learned: learned, flat: TimeInterval(signalWaitSeconds))
+    }
+
+    /// Dieselbe Rechnung für alle, die nur die eine Einstellung haben und
+    /// nicht die ganze Kopie — die Anzeige zum Beispiel.
+    static func signalWait(signals: Int, learned: [LearnedSignal], flat: TimeInterval) -> TimeInterval {
+        let measured = learned.reduce(0) { $0 + $1.expectedWait(default: flat) }
+        return measured + Double(max(0, signals - learned.count)) * flat
     }
 }
 

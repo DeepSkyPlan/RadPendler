@@ -56,8 +56,9 @@ struct HelpView: View {
                         "Nach Zoomen oder Schieben kommt die Karte 30 Sekunden später von selbst zu dir zurück. Der Knopf oben links schaltet das Folgen von Hand.",
                         "Der Knopf daneben hält die Ausrichtung fest — automatisch, hochkant, querformat. Am Lenker will man keine Karte, die sich in der Kurve dreht.",
                         "Die Karte geht auf ganze Seite und folgt dir; die gefahrene Linie färbt sich nach Tempo — rot unter 8, grün über 26 km/h. Ein Wisch über die Karte löst das Folgen, der Knopf oben links schaltet es wieder ein.",
-                        "Ein Halt zählt ab fünf Sekunden Stillstand. Als Ampelhalt zählt er, wenn er an einer Ampelkreuzung der geplanten Route liegt — oder wenn er länger als 30 Sekunden dauert, denn so lange steht niemand ohne Grund. Die Schwelle steht in den Einstellungen.",
-                        "Solche Stellen merkt sich die App. Ab der nächsten Fahrt erkennt sie den Halt dort wieder, und die Ampel zählt auch beim Planen mit — sie macht die Radzeit auf dieser Strecke ehrlicher.",
+                        "Ein Halt zählt ab fünf Sekunden Stillstand. Als Ampelhalt zählt er, wenn er an einer Ampelkreuzung der geplanten Route liegt — oder wenn er länger als 30 Sekunden dauert, denn so lange steht niemand ohne Grund. Die Schwelle steht in den Einstellungen. Das Stehen vor der ersten Kurbelumdrehung und das Stehen nach der Ankunft zählen nie als Ampel: das ist die eigene Haustür, keine Kreuzung.",
+                        "Solche Stellen merkt sich die App. Ab der nächsten Fahrt erkennt sie den Halt dort wieder, und die Ampel zählt auch beim Planen mit.",
+                        "Dabei zählt jede Aufzeichnung auch, wo sie ohne Halt durchgekommen ist. Eine gelernte Kreuzung kostet beim Planen deshalb nicht den eingestellten Mittelwert, sondern das, was sie dich im Schnitt wirklich gekostet hat — über alle Vorbeifahrten, nicht nur über die Male mit Rot.",
                         "Die Uhr zeigt dieselben Zahlen, solange das iPhone in Reichweite ist — sie rechnet nichts selbst.",
                         "Die Ortung läuft nur zwischen „Fahrt“ und „Fahrt beenden“, auch in der Tasche (iOS zeigt dabei die blaue Leiste). Danach hört sie auf.",
                     ])
@@ -72,7 +73,7 @@ struct HelpView: View {
                         "Unten steht, von wann der Stand ist.",
                     ])
                     section("Was die App voraussetzt", "info.circle", [
-                        "Fahrzeiten mit dem Rad rechnen sich aus der rollenden Geschwindigkeit plus Wartezeit je Ampelkreuzung — beides in den Einstellungen.",
+                        "Fahrzeiten mit dem Rad rechnen sich aus der rollenden Geschwindigkeit plus Wartezeit je Ampelkreuzung plus fünf Sekunden je Höhenmeter — Tempo und Wartezeit stehen in den Einstellungen. Wo eigene Fahrten eine Kreuzung schon kennen, gilt deren gemessene Zeit statt der eingestellten.",
                         "Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet; S-Bahn und Regionalzug zuerst, U-Bahn und Tram nur als markierte Alternative.",
                         "Fixpunkte (Einstellungen) sind Orte, über die die Strecke führen soll; Verbindungen ohne sie werden ausgegraut und nie empfohlen.",
                         "Alle Zeiten ohne Gewähr.",

@@ -247,12 +247,13 @@ struct TripPlanner {
 
     /// Why a route has no traffic-light count: too long to ask Overpass for,
     /// or Overpass simply did not answer.
-    /// OpenStreetMap's lit junctions plus the ones this rider has been stopped
-    /// at. `RouteAnalyzer` merges signal nodes within 60 m, so a learned light
-    /// sitting on top of a mapped one does not count twice.
+    /// OpenStreetMap's lit junctions plus the ones this rider has ridden
+    /// through. `RouteAnalyzer` merges signal nodes within 60 m, so a learned
+    /// light sitting on top of a mapped one does not count twice — and where
+    /// the two are the same junction, the measured one wins.
     static func withLearned(_ data: RoadData?, _ settings: PlanSettings) -> RoadData? {
         guard var data, !settings.learnedSignals.isEmpty else { return data }
-        data.signals += settings.learnedSignals.map(\.coordinate)
+        data.learned = settings.learnedSignals
         return data
     }
 
@@ -410,7 +411,13 @@ struct TripPlanner {
         let rides = (firstLegs + lastLegs).compactMap { $0 }
         if !rides.isEmpty, let data = try? await roads.data(covering: rides.flatMap(\.coordinates)) {
             let withSignals = { (r: StreetRoute?) -> StreetRoute? in
-                r.map { var r = $0; r.signals = RouteAnalyzer.analyze(r.coordinates, roads: data).signals; return r }
+                r.map { r in
+                    var r = r
+                    let st = RouteAnalyzer.analyze(r.coordinates, roads: data)
+                    r.signals = st.signals
+                    r.learnedSignals = st.learnedSignals
+                    return r
+                }
             }
             firstLegs = firstLegs.map(withSignals)
             lastLegs = lastLegs.map(withSignals)
@@ -737,7 +744,13 @@ struct BikeCandidate {
     /// Riding time at the configured speed, the expected wait at lights, and
     /// what the climbing costs.
     func time(_ s: PlanSettings) -> TimeInterval {
-        s.bikeTime(route.distance) + Double((stats?.signals ?? route.signals) * s.signalWaitSeconds) + climbTime
+        s.bikeTime(route.distance) + signalWait(s) + climbTime
+    }
+
+    /// Was die Ampeln dieser Linie kosten — gemessen, wo gemessen wurde.
+    func signalWait(_ s: PlanSettings) -> TimeInterval {
+        s.signalWait(signals: stats?.signals ?? route.signals,
+                     learned: stats?.learnedSignals ?? route.learnedSignals)
     }
 
     /// Mittelweg: time plus half the disturbance, converted to riding time.

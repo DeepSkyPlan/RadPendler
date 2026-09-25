@@ -81,6 +81,11 @@ struct RideMeter {
     private var lastPoint: Fix?
     private var standingSince: Date?
     private var standingAt: CLLocationCoordinate2D?
+    /// Hat der Fahrer überhaupt schon einmal getreten?
+    private var moved = false
+    /// War das schon so, als dieser Stillstand begann? Nur dann kann er eine
+    /// Ampel sein — siehe `close`.
+    private var standingAfterRiding = false
 
     var signalStops: Int { stops.filter(\.atSignal).count }
     var otherStops: Int { stops.count - signalStops }
@@ -127,6 +132,7 @@ struct RideMeter {
             if currentSpeed >= Self.stopSpeed {
                 meters += step
                 movingSeconds += dt
+                moved = true
                 attribute(step, at: fix.coordinate)
             }
             maxSpeed = Swift.max(maxSpeed, currentSpeed)
@@ -181,25 +187,40 @@ struct RideMeter {
         if standingSince == nil, currentSpeed < Self.stopSpeed {
             standingSince = lastFix?.time ?? fix.time
             standingAt = fix.coordinate
+            standingAfterRiding = moved
         } else if let since = standingSince, currentSpeed > Self.goSpeed {
             close(since: since, until: fix.time)
         }
     }
 
-    private mutating func close(since: Date, until: Date) {
+    /// Ein Stillstand wird zum Halt — und manchmal zur Ampel.
+    ///
+    /// Zwei Stillstände sind die eigene Haustür und keine Kreuzung: der vor
+    /// der ersten Kurbelumdrehung (man steht in der Einfahrt und sucht die
+    /// Handschuhe) und der, den erst das Ende der Fahrt schließt (man ist
+    /// angekommen und tippt eine halbe Minute später auf „Fahrt beenden").
+    /// Über die Dreißig-Sekunden-Regel wurde daraus bisher eine Ampel, die es
+    /// dort nie gab — und die von da an jede Planung verlängerte.
+    ///
+    /// Die Regel gilt nur für *diese* Regel: steht am Ende der Fahrt eine
+    /// Ampel, die die Karte kennt, war es eine Ampel. Vor dem Losfahren
+    /// dagegen nie — an einer Ampel wartet man erst, wenn man unterwegs ist.
+    private mutating func close(since: Date, until: Date, ending: Bool = false) {
         let seconds = until.timeIntervalSince(since)
         if seconds >= Self.minStop, let at = standingAt {
+            let atSignal = standingAfterRiding
+                && (nearSignal(at) || (!ending && seconds >= signalSeconds))
             stops.append(RideStop(lat: at.latitude, lon: at.longitude, start: since,
-                                  seconds: seconds,
-                                  atSignal: nearSignal(at) || seconds >= signalSeconds))
+                                  seconds: seconds, atSignal: atSignal))
         }
         standingSince = nil
         standingAt = nil
+        standingAfterRiding = false
     }
 
     /// The last standstill has no fix to end it — the ride ends instead.
     mutating func finish(at end: Date) {
-        if let since = standingSince { close(since: since, until: end) }
+        if let since = standingSince { close(since: since, until: end, ending: true) }
         currentSpeed = 0
     }
 
