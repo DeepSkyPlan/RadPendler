@@ -47,7 +47,7 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     func place(for location: CLLocation) async -> Place {
         let c = location.coordinate
         guard let mark = try? await CLGeocoder().reverseGeocodeLocation(location).first else {
-            return Place(name: "Mein Standort", latitude: c.latitude, longitude: c.longitude)
+            return Place(name: L("Mein Standort"), latitude: c.latitude, longitude: c.longitude)
         }
         return Self.place(from: mark, at: c)
     }
@@ -55,7 +55,7 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     /// Placemark → Place, kept apart from the geocoder so it can be tested.
     nonisolated static func place(from mark: CLPlacemark, at c: CLLocationCoordinate2D) -> Place {
         let street = [mark.thoroughfare, mark.subThoroughfare].compactMap { $0 }.joined(separator: " ")
-        let title = street.isEmpty ? (mark.name ?? mark.locality ?? "Mein Standort") : street
+        let title = street.isEmpty ? (mark.name ?? mark.locality ?? L("Mein Standort")) : street
         return Place(name: [title, [mark.postalCode, mark.locality].compactMap { $0 }.joined(separator: " ")]
                         .filter { !$0.isEmpty }.joined(separator: ", "),
                      latitude: c.latitude, longitude: c.longitude,
@@ -95,7 +95,7 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     enum LocationError: LocalizedError {
         case refused
         var errorDescription: String? {
-            "Ortung ist für RadPendler nicht erlaubt — in den iOS-Einstellungen unter Datenschutz freigeben."
+            L("Ortung ist für RadPendler nicht erlaubt — in den iOS-Einstellungen unter Datenschutz freigeben.")
         }
     }
 }

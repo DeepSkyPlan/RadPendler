@@ -18,9 +18,9 @@ struct RidesView: View {
         NavigationStack {
             Group {
                 if store.rides.isEmpty {
-                    ContentUnavailableView("Noch keine Fahrt",
+                    ContentUnavailableView(L("Noch keine Fahrt"),
                                            systemImage: "figure.outdoor.cycle",
-                                           description: Text("Auf der Hauptseite eine Verbindung wählen und „Fahrt aufzeichnen“ antippen. Was aufgezeichnet wurde, steht danach hier."))
+                                           description: Text(L("Auf der Hauptseite eine Verbindung wählen und „Fahrt aufzeichnen“ antippen. Was aufgezeichnet wurde, steht danach hier.")))
                 } else {
                     list
                 }
@@ -39,10 +39,10 @@ struct RidesView: View {
                 }
             }
             .task { cloudTrouble = await TrackCloud.shared.lastFailure }
-            .navigationTitle("Fahrten")
+            .navigationTitle(L("Fahrten"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button(L("Fertig")) { dismiss() } }
             }
         }
     }
@@ -56,7 +56,7 @@ struct RidesView: View {
                         ForEach(month.rides) { ride in
                             NavigationLink { RideDetailView(ride: ride) } label: { RideRow(ride: ride) }
                                 .swipeActions {
-                                    Button("Löschen", systemImage: "trash", role: .destructive) {
+                                    Button(L("Löschen"), systemImage: "trash", role: .destructive) {
                                         pendingDelete = ride
                                     }
                                 }
@@ -68,18 +68,18 @@ struct RidesView: View {
             }
         }
         .listStyle(.plain)
-        .confirmationDialog("Fahrt löschen?", isPresented: Binding(get: { pendingDelete != nil },
+        .confirmationDialog(L("Fahrt löschen?"), isPresented: Binding(get: { pendingDelete != nil },
                                                                   set: { if !$0 { pendingDelete = nil } }),
                             titleVisibility: .visible) {
-            Button("Löschen", role: .destructive) {
+            Button(L("Löschen"), role: .destructive) {
                 if let ride = pendingDelete { store.delete(ride) }
                 pendingDelete = nil
             }
-            Button("Behalten", role: .cancel) { pendingDelete = nil }
+            Button(L("Behalten"), role: .cancel) { pendingDelete = nil }
         } message: {
             // The list is merged between devices, so a gap has to be made on
             // each of them — sagen statt hinterher erklären.
-            Text("Auf diesem Gerät. Andere Geräte behalten sie, bis du sie auch dort löschst.")
+            Text(L("Auf diesem Gerät. Andere Geräte behalten sie, bis du sie auch dort löschst."))
         }
     }
 }
@@ -93,7 +93,8 @@ private struct YearHeader: View {
                 .font(.system(.headline, design: .rounded, weight: .heavy))
                 .foregroundStyle(.primary)
             Spacer(minLength: 0)
-            Text("\(Fmt.km(year.meters)) · \(year.rides.count) \(year.rides.count == 1 ? "Fahrt" : "Fahrten") · Ø \(Fmt.kmh(year.averageKmh))")
+            Text(L(year.rides.count == 1 ? "%@ · %d Fahrt · Ø %@" : "%@ · %d Fahrten · Ø %@",
+                   Fmt.km(year.meters), year.rides.count, Fmt.kmh(year.averageKmh)))
                 .font(.system(size: 11, design: .rounded))
                 .foregroundStyle(.secondary)
         }
@@ -111,7 +112,8 @@ private struct MonthHeader: View {
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
                 .foregroundStyle(Theme.accent)
             Spacer(minLength: 0)
-            Text("\(month.rides.count)× · \(Fmt.km(month.meters)) · Ø \(Fmt.kmh(month.averageKmh)) · \(month.signalStops) Ampeln")
+            Text(L("%d× · %@ · Ø %@ · %d Ampeln", month.rides.count, Fmt.km(month.meters),
+                   Fmt.kmh(month.averageKmh), month.signalStops))
                 .font(.system(size: 11, design: .rounded))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
@@ -206,9 +208,9 @@ struct RideMapCard: View {
                 // The numbers of every ride reach every device; the line stays
                 // where it was drawn. Eighty Kilobyte je Fahrt passen nicht in
                 // einen Speicher, der für die ganze App ein Megabyte hat.
-                ContentUnavailableView("Keine Linie",
+                ContentUnavailableView(L("Keine Linie"),
                                        systemImage: "map",
-                                       description: Text("Die Zahlen dieser Fahrt sind da, die gefahrene Linie nicht: entweder wurde sie vor 1.3 auf einem anderen Gerät aufgezeichnet, oder sie ist gerade nicht aus iCloud zu holen."))
+                                       description: Text(L("Die Zahlen dieser Fahrt sind da, die gefahrene Linie nicht: entweder wurde sie vor 1.3 auf einem anderen Gerät aufgezeichnet, oder sie ist gerade nicht aus iCloud zu holen.")))
             } else {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -247,24 +249,24 @@ struct RideFacts: View {
                     .foregroundStyle(.secondary)
             }
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
-                fact("Fahrzeit", Fmt.clock(ride.seconds), .primary)
-                fact("Strecke", Fmt.km(ride.meters), .primary)
-                fact(ride.plannedAverageKmh == nil ? "Ø gesamt" : "Ø gesamt / Plan",
+                fact(L("Fahrzeit"), Fmt.clock(ride.seconds), .primary)
+                fact(L("Strecke"), Fmt.km(ride.meters), .primary)
+                fact(ride.plannedAverageKmh == nil ? L("Ø gesamt") : L("Ø gesamt / Plan"),
                      ride.plannedAverageKmh.map { "\(Self.number(ride.averageKmh)) / \(Self.number($0))" }
                          ?? Fmt.kmh(ride.averageKmh),
                      ride.plannedAverageKmh.map { ride.averageKmh >= $0 ? Color.green : .orange } ?? Theme.accent)
-                fact("Ø rollend", Fmt.kmh(ride.movingKmh), RideColors.color(ride.movingKmh))
-                fact("Spitze", Fmt.kmh(ride.maxKmh), RideColors.color(ride.maxKmh))
-                fact("gestanden", Fmt.clock(ride.standingSeconds), .orange)
-                fact(ride.plannedSignals == nil ? "Ampelhalts" : "Ampeln / Plan",
+                fact(L("Ø rollend"), Fmt.kmh(ride.movingKmh), RideColors.color(ride.movingKmh))
+                fact(L("Spitze"), Fmt.kmh(ride.maxKmh), RideColors.color(ride.maxKmh))
+                fact(L("gestanden"), Fmt.clock(ride.standingSeconds), .orange)
+                fact(ride.plannedSignals == nil ? L("Ampelhalts") : L("Ampeln / Plan"),
                      ride.plannedSignals.map { "\(ride.signalStops)/\($0)" } ?? "\(ride.signalStops)",
                      .yellow)
-                fact("Ampelwartezeit", Fmt.clock(ride.signalWaitTotal), .yellow)
-                fact("Ø je Ampel", ride.signalStops == 0 ? "–" : Fmt.clock(ride.signalWaitAverage), .yellow)
+                fact(L("Ampelwartezeit"), Fmt.clock(ride.signalWaitTotal), .yellow)
+                fact(L("Ø je Ampel"), ride.signalStops == 0 ? "–" : Fmt.clock(ride.signalWaitAverage), .yellow)
             }
             if let mix = ride.mix, !mix.isEmpty {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("Worauf gefahren")
+                    Text(L("Worauf gefahren"))
                         .font(.system(size: 10, design: .rounded))
                         .foregroundStyle(.secondary)
                     RoadMixBar(mix: mix)
@@ -276,8 +278,8 @@ struct RideFacts: View {
             }
             if let off = ride.deviationSeconds {
                 // The one comparison that judges the app rather than the rider.
-                Label(off <= 0 ? "\(Fmt.clock(-off)) schneller als geplant"
-                               : "\(Fmt.clock(off)) länger als geplant",
+                Label(off <= 0 ? L("%@ schneller als geplant", Fmt.clock(-off))
+                               : L("%@ länger als geplant", Fmt.clock(off)),
                       systemImage: off <= 0 ? "checkmark.circle" : "clock.badge.exclamationmark")
                     .font(.system(size: 12, design: .rounded))
                     .foregroundStyle(off <= 0 ? .green : .orange)
@@ -328,7 +330,7 @@ private struct StopList: View {
         Group {
             if !stops.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Halte")
+                    Text(L("Halte"))
                         .font(.system(.subheadline, design: .rounded, weight: .bold))
                     ForEach(stops.sorted { $0.seconds > $1.seconds }.prefix(12)) { stop in
                         HStack(spacing: 8) {
@@ -339,7 +341,7 @@ private struct StopList: View {
                                     .font(.system(size: 12))
                                     .foregroundStyle(.secondary)
                             }
-                            Text(stop.atSignal ? "Ampel" : "Halt")
+                            Text(stop.atSignal ? L("Ampel") : L("Halt"))
                                 .font(.system(size: 13, design: .rounded))
                             Text(Fmt.time(stop.start))
                                 .font(.system(size: 11, design: .rounded))
@@ -432,7 +434,7 @@ struct ElevationProfileView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 4) {
-                Text("Höhe")
+                Text(L("Höhe"))
                     .font(.system(size: 10, design: .rounded))
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 0)
@@ -451,7 +453,7 @@ struct ElevationProfileView: View {
             }
             .frame(height: 44)
             .accessibilityElement()
-            .accessibilityLabel("Höhenprofil, \(Int(profile.ascent.rounded())) Höhenmeter bergauf")
+            .accessibilityLabel(L("Höhenprofil, %d Höhenmeter bergauf", Int(profile.ascent.rounded())))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

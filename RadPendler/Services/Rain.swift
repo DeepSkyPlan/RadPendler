@@ -30,11 +30,11 @@ enum RainLevel: Int, Comparable {
 
     var label: String {
         switch self {
-        case .dry: "trocken"
-        case .possible: "Schauer möglich"
-        case .light: "leichter Regen"
-        case .rain: "Regen"
-        case .heavy: "starker Regen"
+        case .dry: L("trocken")
+        case .possible: L("Schauer möglich")
+        case .light: L("leichter Regen")
+        case .rain: L("Regen")
+        case .heavy: L("starker Regen")
         }
     }
 
@@ -86,10 +86,10 @@ struct RainAssessment {
     }
 
     var summary: String {
-        guard hasData else { return "keine Regendaten" }
+        guard hasData else { return L("keine Regendaten") }
         switch level {
         case .dry: return maxProbability > 0 ? "trocken (\(maxProbability) %)" : "trocken"
-        case .possible: return "Schauer möglich (\(maxProbability) %)"
+        case .possible: return L("Schauer möglich (%d %%)", maxProbability)
         default:
             let from = firstWet.map { " ab \($0.formatted(date: .omitted, time: .shortened))" } ?? ""
             return "\(level.label)\(from), bis \(String(format: "%.1f", maxMillimetres)) mm/15 min"
@@ -152,7 +152,7 @@ struct RainService {
 
     enum RainError: LocalizedError {
         case malformed
-        var errorDescription: String? { "Wetterdaten: unerwartete Antwort" }
+        var errorDescription: String? { L("Wetterdaten: unerwartete Antwort") }
     }
 
     func readings(for samples: [RainSample]) async throws -> [RainReading] {

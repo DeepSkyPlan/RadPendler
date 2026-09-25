@@ -37,10 +37,10 @@ struct ContentView: View {
         var id: Self { self }
         var title: String {
             switch self {
-            case .addresses: "Adressen"
-            case .navigation: "Navigation"
-            case .modes: "Verkehrsmittel"
-            case .rest: "Einstellungen"
+            case .addresses: L("Adressen")
+            case .navigation: L("Navigation")
+            case .modes: L("Verkehrsmittel")
+            case .rest: L("Einstellungen")
             }
         }
         var symbol: String {
@@ -155,7 +155,7 @@ struct ContentView: View {
                 refresh()
             }) { field in
                 NavigationStack {
-                    AddressSearchView(title: field == .origin ? "Start" : "Ziel",
+                    AddressSearchView(title: field == .origin ? L("Start") : L("Ziel"),
                                       offersLocation: field == .origin) { place in
                         if field == .origin { settings.origin = place } else { settings.destination = place }
                     }
@@ -179,8 +179,8 @@ struct ContentView: View {
         if model.needsAddresses {
             VStack(spacing: 10) {
                 header
-                ContentUnavailableView("Start und Ziel wählen", systemImage: "mappin.and.ellipse",
-                                       description: Text("Oben auf die beiden Zeilen tippen. Die Adressen bleiben auf diesem Gerät."))
+                ContentUnavailableView(L("Start und Ziel wählen"), systemImage: "mappin.and.ellipse",
+                                       description: Text(L("Oben auf die beiden Zeilen tippen. Die Adressen bleiben auf diesem Gerät.")))
                 Spacer(minLength: 0)
             }
             .padding(.vertical, 6)
@@ -367,16 +367,18 @@ struct ContentView: View {
             Image(systemName: "line.3.horizontal")
                 .font(.system(size: 15, weight: .semibold))
         }
-        .accessibilityLabel("Menü")
+        .accessibilityLabel(L("Menü"))
         .popover(isPresented: $showMenu) {
             VStack(alignment: .leading, spacing: 0) {
-                menuRow("Fahrten", "list.bullet.rectangle") { showRides = true }
+                menuRow(L("Fahrten"), "list.bullet.rectangle") { showRides = true }
                 Divider().padding(.leading, 44)
                 ForEach(SettingsPage.allCases) { page in
                     menuRow(page.title, page.symbol) { settingsPage = page }
                     Divider().padding(.leading, 44)
                 }
-                menuRow("Anleitung", "questionmark.circle") { showHelp = true }
+                menuRow(L("Anleitung"), "questionmark.circle") { showHelp = true }
+                Divider()
+                languageRow
                 Divider().padding(.top, 6)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("RadPendler \(Self.version)")
@@ -385,7 +387,7 @@ struct ContentView: View {
                     // Names only. The links this text used to carry live in
                     // the settings, where there is room for them to look like
                     // links instead of like grey lines in a footer.
-                    Text("Datenquellen: VBB · Transitous/MOTIS · Apple Karten · BRouter und OpenStreetMap · DWD · Open-Meteo")
+                    Text(L("Datenquellen: VBB · Transitous/MOTIS · Apple Karten · BRouter und OpenStreetMap · DWD · Open-Meteo"))
                         .font(Self.sourceFont)
                         .padding(.top, 5)
                 }
@@ -400,6 +402,33 @@ struct ContentView: View {
             .frame(width: 280)
             .presentationCompactAdaptation(.popover)
         }
+    }
+
+    /// Die Sprache, als Zeile im Menü. Sie steht hier und nicht in den
+    /// Einstellungen, weil sie dort niemand suchen würde, der die App gerade
+    /// nicht lesen kann: das Menü ist drei Fähnchen weit von jedem Zustand
+    /// entfernt.
+    ///
+    /// Die Wirkung ist sofort — siehe `AppLanguage`.
+    @ViewBuilder private var languageRow: some View {
+        @Bindable var settings = settings
+        HStack(spacing: 10) {
+            Image(systemName: "globe")
+                .font(.system(size: 15))
+                .frame(width: 22)
+            Picker("", selection: $settings.language) {
+                ForEach(AppLanguage.allCases) { lang in
+                    Text("\(lang.flag)  \(lang.title)").tag(lang)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            Spacer(minLength: 0)
+        }
+        .font(.system(.body, design: .rounded))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .onChange(of: settings.language) { _, _ in showMenu = false }
     }
 
     /// Same size as the copyright lines above it, but slanted — and therefore
@@ -506,8 +535,8 @@ private struct RouteHeader: View {
             HStack(alignment: .center, spacing: 10) {
                 rail
                 VStack(alignment: .leading, spacing: 10) {
-                    field(origin, placeholder: "Start wählen", field: .origin)
-                    field(destination, placeholder: "Ziel wählen", field: .destination)
+                    field(origin, placeholder: L("Start wählen"), field: .origin)
+                    field(destination, placeholder: L("Ziel wählen"), field: .destination)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Button {
@@ -521,7 +550,7 @@ private struct RouteHeader: View {
                         .frame(width: 32, height: 32)
                         .background(Theme.accent.opacity(0.12), in: Circle())
                 }
-                .accessibilityLabel("Richtung tauschen")
+                .accessibilityLabel(L("Richtung tauschen"))
                 ArrivalToggle(when: $when, onChange: onWhenChange)
             }
             WhenPicker(when: $when, presets: presets, prepMinutes: prepMinutes, onChange: onWhenChange)
@@ -577,9 +606,9 @@ private struct RouteHeader: View {
             .exclusively(before: TapGesture().onEnded { onEdit(field) }))
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
-        .accessibilityLabel((field == .origin ? "Start: " : "Ziel: ") + (place?.name ?? "nicht gesetzt"))
+        .accessibilityLabel((field == .origin ? L("Start: ") : L("Ziel: ")) + (place?.name ?? L("nicht gesetzt")))
         .accessibilityAction { onEdit(field) }
-        .accessibilityAction(named: "Pendelstrecke einsetzen", onQuickCommute)
+        .accessibilityAction(named: L("Pendelstrecke einsetzen"), onQuickCommute)
     }
 }
 
@@ -591,8 +620,8 @@ private struct ArrivalToggle: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            item("Abfahrt", arrival: false)
-            item("Ankunft", arrival: true)
+            item(L("Abfahrt"), arrival: false)
+            item(L("Ankunft"), arrival: true)
         }
         .frame(width: 74)
     }
@@ -647,7 +676,7 @@ private struct WhenPicker: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 if !when.isArrival {
-                    chip("Jetzt", active: when == .departNow) { set(.departNow) }
+                    chip(L("Jetzt"), active: when == .departNow) { set(.departNow) }
                 }
                 ForEach(chips, id: \.self) { p in
                     chip(p.title, active: matches(p)) { set(stamp(p.date())) }
@@ -656,23 +685,23 @@ private struct WhenPicker: View {
                     custom = when.date ?? .now.addingTimeInterval(1800)
                     showPicker = true
                 }
-                Chip(text: "\(prepMinutes) min Rüstzeit", symbol: "figure.walk.departure")
+                Chip(text: L("%d min Rüstzeit", prepMinutes), symbol: "figure.walk.departure")
             }
             .padding(.horizontal, 2)
         }
         .sheet(isPresented: $showPicker) {
             NavigationStack {
-                DatePicker(when.isArrival ? "Ankunft" : "Abfahrt", selection: $custom)
+                DatePicker(when.isArrival ? L("Ankunft") : L("Abfahrt"), selection: $custom)
                     .datePickerStyle(.graphical)
                     .padding()
-                    .navigationTitle(when.isArrival ? "Wann da sein?" : "Wann losgehen?")
+                    .navigationTitle(when.isArrival ? L("Wann da sein?") : L("Wann losgehen?"))
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
-                            Button("Übernehmen") { set(stamp(custom)); showPicker = false }
+                            Button(L("Übernehmen")) { set(stamp(custom)); showPicker = false }
                         }
                         ToolbarItem(placement: .cancellationAction) {
-                            Button("Abbrechen") { showPicker = false }
+                            Button(L("Abbrechen")) { showPicker = false }
                         }
                     }
             }
@@ -701,7 +730,7 @@ private struct WhenPicker: View {
 
     private var customLabel: String {
         if let d = when.date, isCustom { return Fmt.time(d) }
-        return "Zeit"
+        return L("Zeit")
     }
 
     private func chip(_ title: String, symbol: String? = nil, active: Bool, action: @escaping () -> Void) -> some View {

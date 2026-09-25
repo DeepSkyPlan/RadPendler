@@ -73,7 +73,7 @@ struct ModeStrip: View {
             UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
         })
         .accessibilityLabel("\(mode.title): \(option.map { Fmt.duration($0.duration) } ?? "keine Verbindung")")
-        .accessibilityHint(count > 1 ? "Nochmal tippen für die nächste von \(count) Möglichkeiten, lang drücken für die beste" : "")
+        .accessibilityHint(count > 1 ? L("Nochmal tippen für die nächste von %d Möglichkeiten, lang drücken für die beste", count) : "")
     }
 
     /// Rad + Bahn is the one mode that is two things, so it gets both symbols;
@@ -118,14 +118,14 @@ struct ModeStrip: View {
     /// Bike routes say which variant they are, connections when they leave.
     private func caption(_ mode: TravelMode, _ option: TripOption?) -> String {
         guard let option else {
-            if model.isLoading { return "sucht …" }
+            if model.isLoading { return L("sucht …") }
             return model.result.failures[mode] != nil ? "Fehler" : "nichts"
         }
         if let bike = option.bikeRoute { return bike.shortTitle }
         if let car = option.carRoute { return car.variants.first?.title ?? Fmt.km(option.totalDistance) }
         if option.transitLegs.isEmpty { return Fmt.km(option.totalDistance) }
-        return option.transfers == 0 ? "ab \(Fmt.time(option.leave))"
-                                     : "\(Fmt.time(option.leave)) · \(option.transfers)×"
+        return option.transfers == 0 ? L("ab %@", Fmt.time(option.leave))
+                                     : L("%@ · %d×", Fmt.time(option.leave), option.transfers)
     }
 }
 
@@ -154,7 +154,7 @@ struct SelectedTripBar: View {
         } label: {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
-                    Text("\(Fmt.time(option.leave)) → \(Fmt.time(option.arrival))")
+                    Text(L("%@ → %@", Fmt.time(option.leave), Fmt.time(option.arrival)))
                         .display(.subheadline, weight: .semibold)
                         .monospacedDigit()
                         .fixedSize()
@@ -174,7 +174,7 @@ struct SelectedTripBar: View {
                         .foregroundStyle(.tertiary)
                 }
                 HStack(spacing: 5) {
-                    Chip(text: "los \(Fmt.time(option.getReady))", symbol: "alarm")
+                    Chip(text: L("los %@", Fmt.time(option.getReady)), symbol: "alarm")
                     Chip(text: Fmt.km(option.totalDistance), symbol: "ruler")
                     if let signals = option.bikeRoute?.stats?.signals ?? option.carRoute?.signals {
                         Chip(text: "\(signals)", icon: AnyView(TrafficLightIcon()))
@@ -183,7 +183,7 @@ struct SelectedTripBar: View {
                     // Höhenmeter sind eine Auskunft — „flach" —, deshalb steht
                     // die Zahl auch dann da.
                     if let ascent = option.bikeRoute?.ascent {
-                        Chip(text: "\(Int(ascent.rounded())) hm", symbol: "arrow.up.forward")
+                        Chip(text: L("%d hm", Int(ascent.rounded())), symbol: "arrow.up.forward")
                     }
                     if let t = option.transferText {
                         Chip(text: t, symbol: option.transfers == 0 ? "arrow.forward" : "arrow.triangle.swap",
@@ -225,13 +225,13 @@ struct SelectedTripBar: View {
             return Note(text: rain.summary, symbol: rain.level.symbol, tint: rain.level.color)
         }
         if option.bikeCarriageUnclear {
-            return Note(text: "Rad ungeklärt", symbol: "questionmark.circle", tint: .orange)
+            return Note(text: L("Rad ungeklärt"), symbol: "questionmark.circle", tint: .orange)
         }
         if option.isAlternative {
-            return Note(text: "U-Bahn/Tram", symbol: "arrow.triangle.branch", tint: .orange)
+            return Note(text: L("U-Bahn/Tram"), symbol: "arrow.triangle.branch", tint: .orange)
         }
         if !option.passesWaypoints {
-            return Note(text: "ohne Fixpunkte", symbol: "point.topleft.down.to.point.bottomright.curvepath",
+            return Note(text: L("ohne Fixpunkte"), symbol: "point.topleft.down.to.point.bottomright.curvepath",
                         tint: .secondary)
         }
         if model.result.failures[option.mode] != nil {
@@ -252,7 +252,7 @@ struct RecordButton: View {
             VStack(spacing: 1) {
                 Image(systemName: "record.circle")
                     .font(.system(size: 19, weight: .semibold))
-                Text("Fahrt")
+                Text(L("Fahrt"))
                     .font(.system(size: 9, weight: .bold, design: .rounded))
             }
             .foregroundStyle(.white)
@@ -261,6 +261,6 @@ struct RecordButton: View {
                                                                    style: .continuous))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Fahrt aufzeichnen")
+        .accessibilityLabel(L("Fahrt aufzeichnen"))
     }
 }

@@ -14,12 +14,12 @@ enum RoadClass: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .main: "Hauptstraße"
-        case .side: "Nebenstraße"
-        case .cycleway: "Radweg"
-        case .path: "Weg"
-        case .footway: "Fußweg"
-        case .other: "sonstiges"
+        case .main: L("Hauptstraße")
+        case .side: L("Nebenstraße")
+        case .cycleway: L("Radweg")
+        case .path: L("Weg")
+        case .footway: L("Fußweg")
+        case .other: L("sonstiges")
         }
     }
 

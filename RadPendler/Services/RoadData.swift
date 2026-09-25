@@ -52,7 +52,7 @@ struct RoadData {
             // A road in a tunnel is not something the rider crosses.
             if let t = tags["tunnel"], !t.isEmpty, t != "no" { continue }
             let ref = tags["ref"].flatMap { $0.isEmpty ? nil : $0.replacingOccurrences(of: ";", with: "/") }
-            let name = [ref, tags["name"].flatMap { $0.isEmpty ? nil : $0 }].compactMap { $0 }.first ?? "Hauptstraße"
+            let name = [ref, tags["name"].flatMap { $0.isEmpty ? nil : $0 }].compactMap { $0 }.first ?? L("Hauptstraße")
             let points = Geo.validated(coords.filter { $0.count >= 2 }
                 .map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) })
             guard points.count >= 2 else { continue }
@@ -66,8 +66,8 @@ struct RoadData {
         case corridorTooBig
         var errorDescription: String? {
             switch self {
-            case .malformed: "OpenStreetMap-Daten: unerwartete Antwort"
-            case .corridorTooBig: "Strecke zu lang für die Ampelzählung (OpenStreetMap)"
+            case .malformed: L("OpenStreetMap-Daten: unerwartete Antwort")
+            case .corridorTooBig: L("Strecke zu lang für die Ampelzählung (OpenStreetMap)")
             }
         }
     }

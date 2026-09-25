@@ -171,7 +171,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
             manager.requestWhenInUseAuthorization()
             return
         case .denied, .restricted:
-            failure = "Ortung ist für RadPendler nicht erlaubt — in den iOS-Einstellungen freigeben."
+            failure = L("Ortung ist für RadPendler nicht erlaubt — in den iOS-Einstellungen freigeben.")
             return
         default: break
         }
@@ -394,8 +394,8 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
             stop(at: since)
             stoppedByItself = true
             onAutoStop?()
-            Alarm.note(title: "Fahrt beendet",
-                       body: "Du standst länger als \(Int(autoStopSeconds / 60)) Minuten an derselben Stelle — die Aufzeichnung ist gespeichert.")
+            Alarm.note(title: L("Fahrt beendet"),
+                       body: L("Du standst länger als %d Minuten an derselben Stelle — die Aufzeichnung ist gespeichert.", Int(autoStopSeconds / 60)))
             return
         }
         pushToWatch()
@@ -538,7 +538,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
             guard self.isRecording else { return }
             // A single failed fix is normal in a tunnel; only a refusal matters.
             if (error as? CLError)?.code == .denied {
-                self.failure = "Ortung ist für RadPendler nicht erlaubt — in den iOS-Einstellungen freigeben."
+                self.failure = L("Ortung ist für RadPendler nicht erlaubt — in den iOS-Einstellungen freigeben.")
                 self.stop()
             }
         }
@@ -551,7 +551,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
             case .notDetermined: return
             case .denied, .restricted:
                 self.pending = nil
-                self.failure = "Ortung ist für RadPendler nicht erlaubt — in den iOS-Einstellungen freigeben."
+                self.failure = L("Ortung ist für RadPendler nicht erlaubt — in den iOS-Einstellungen freigeben.")
             default:
                 self.pending = nil
                 self.begin(subject, signals)

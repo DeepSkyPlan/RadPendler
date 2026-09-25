@@ -109,14 +109,14 @@ actor TrackCloud {
     /// Netzfehler zählt nicht dazu — der nächste Versuch kann klappen.
     /// In einem Satz, der in der Fahrtenliste Platz hat.
     static func reason(_ error: Error) -> String {
-        guard let ck = error as? CKError else { return "Die Linien reisen gerade nicht in deine iCloud." }
+        guard let ck = error as? CKError else { return L("Die Linien reisen gerade nicht in deine iCloud.") }
         switch ck.code {
-        case .notAuthenticated: return "Die Linien bleiben auf dem Gerät: keine Apple-ID angemeldet."
-        case .quotaExceeded: return "Die Linien bleiben auf dem Gerät: dein iCloud-Speicher ist voll."
-        case .networkUnavailable, .networkFailure: return "Die Linien reisen, sobald wieder Netz da ist."
+        case .notAuthenticated: return L("Die Linien bleiben auf dem Gerät: keine Apple-ID angemeldet.")
+        case .quotaExceeded: return L("Die Linien bleiben auf dem Gerät: dein iCloud-Speicher ist voll.")
+        case .networkUnavailable, .networkFailure: return L("Die Linien reisen, sobald wieder Netz da ist.")
         case .invalidArguments, .serverRejectedRequest, .constraintViolation:
-            return "Die Linien reisen nicht: iCloud kennt den Datensatztyp nicht (Schema nicht übernommen)."
-        default: return "Die Linien reisen gerade nicht in deine iCloud (\(ck.code))."
+            return L("Die Linien reisen nicht: iCloud kennt den Datensatztyp nicht (Schema nicht übernommen).")
+        default: return L("Die Linien reisen gerade nicht in deine iCloud (%@).", String(describing: ck.code))
         }
     }
 

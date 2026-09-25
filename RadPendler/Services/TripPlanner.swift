@@ -113,7 +113,7 @@ struct TripPlanner {
         do {
             try await attachRain(&result.options)
         } catch {
-            result.rainFailure = "Regenvorhersage nicht verfügbar: \(error.localizedDescription)"
+            result.rainFailure = L("Regenvorhersage nicht verfügbar: %@", error.localizedDescription)
         }
         Self.settle(&result, req)
         return result
@@ -165,7 +165,7 @@ struct TripPlanner {
             case .fastest: requests.append(("fastbike", .fastbike, 0))
             case .shortest: requests.append(("shortest", .shortest, 0))
             case .quiet: requests.append(("safety", .safety, 0))
-            case .lowTraffic: requests.append(("verkehrsarm", .lowTraffic, 0))
+            case .lowTraffic: requests.append((L("verkehrsarm"), .lowTraffic, 0))
             }
         }
         // Höchstens so viele Anfragen gleichzeitig an BRouter. Der öffentliche
@@ -263,7 +263,7 @@ struct TripPlanner {
     /// nicht nur Genauigkeit.
     static func bikeNote(roadData: RoadData?, brouterMissing: Bool, km: Double,
                          settings: PlanSettings) -> String? {
-        if brouterMissing { return "Nur die Route von Apple Karten — BRouter antwortet gerade nicht" }
+        if brouterMissing { return L("Nur die Route von Apple Karten — BRouter antwortet gerade nicht") }
         guard roadData == nil else { return nil }
         return noRoadDataNote(km: km, settings: settings)
     }
@@ -282,8 +282,8 @@ struct TripPlanner {
 
     static func noRoadDataNote(km: Double, settings: PlanSettings) -> String {
         km > settings.longTripKm
-            ? "Ampeln und Hauptstraßen auf dieser Länge nicht gezählt"
-            : "Ampeln und Hauptstraßen unbekannt — OpenStreetMap antwortete nicht, wird im Hintergrund nachgeholt"
+            ? L("Ampeln und Hauptstraßen auf dieser Länge nicht gezählt")
+            : L("Ampeln und Hauptstraßen unbekannt — OpenStreetMap antwortete nicht, wird im Hintergrund nachgeholt")
     }
 
     func carOptions(_ req: PlanRequest) async throws -> [TripOption] {
@@ -309,7 +309,7 @@ struct TripPlanner {
             let leg = Leg(kind: .car, fromName: req.origin.shortName, toName: req.destination.shortName,
                           departure: leave, arrival: leave.addingTimeInterval(drive),
                           distance: c.route.distance, coordinates: c.route.coordinates)
-            let note = parking > 0 ? "inkl. \(req.settings.parkingMinutes) min Parkplatzsuche" : "Fahrzeit laut Apple Karten mit Verkehrslage"
+            let note = parking > 0 ? L("inkl. %d min Parkplatzsuche", req.settings.parkingMinutes) : L("Fahrzeit laut Apple Karten mit Verkehrslage")
             var option = TripOption(mode: .car, legs: [leg], prep: req.settings.prep, note: note,
                                     carRoute: CarRouteInfo(variants: variants, signals: c.stats?.signals,
                                                            signalPoints: c.stats?.signalPoints ?? []))
@@ -394,7 +394,7 @@ struct TripPlanner {
                 return l
             }
             return TripOption(mode: .bikeTransit, legs: decided, prep: s.prep,
-                              note: "Fahrten von Transitous; Radzeiten nach deren Schätzung")
+                              note: L("Fahrten von Transitous; Radzeiten nach deren Schätzung"))
         }
         return BikeTransitComposer.rank(options, preferred: 3, alternatives: 1,
                                         penalty: s.transferPenalty, arrival: req.isArrival)
@@ -570,20 +570,21 @@ struct TripPlanner {
         if let pick = dry.min(by: { ranking($0, $1, penalty: penalty, order: order) }) {
             let reason = pick.mode == .bike
                 ? "Radstrecke \(pick.rain?.summary ?? "ohne Regendaten")"
-                : "trocken und mit der Bahn schneller als die ganze Strecke per Rad"
+                : L("trocken und mit der Bahn schneller als die ganze Strecke per Rad")
             return Recommendation(optionID: pick.id, reason: reason)
         }
         if let pick = bikeTransit
             .min(by: { (level($0), arrival($0)) < (level($1), arrival($1)) }) {
             let wet = options.first(where: preferredBike)?.rain?.summary
             return Recommendation(optionID: pick.id,
-                                  reason: "Regen auf der Radstrecke\(wet.map { " (\($0))" } ?? "") — Rad in die Bahn")
+                                  reason: L("Regen auf der Radstrecke%@ — Rad in die Bahn",
+                                            wet.map { " (\($0))" } ?? ""))
         }
         // No connection that takes the bike: fall back in the user's own order,
         // minus bike + rail, which just had its turn.
         for mode in order where mode != .bikeTransit {
             if let pick = options.filter({ $0.mode == mode }).min(by: { arrival($0) < arrival($1) }) {
-                return Recommendation(optionID: pick.id, reason: "keine Verbindung mit Radmitnahme gefunden")
+                return Recommendation(optionID: pick.id, reason: L("keine Verbindung mit Radmitnahme gefunden"))
             }
         }
         return nil
@@ -594,8 +595,8 @@ struct TripPlanner {
         case noBikeRoute
         var errorDescription: String? {
             switch self {
-            case .noStations(let km): "Kein Bahnhof mit Radmitnahme im Umkreis von \(Int(km)) km"
-            case .noBikeRoute: "Keine Radroute gefunden (Apple Karten und BRouter)"
+            case .noStations(let km): L("Kein Bahnhof mit Radmitnahme im Umkreis von %d km", Int(km))
+            case .noBikeRoute: L("Keine Radroute gefunden (Apple Karten und BRouter)")
             }
         }
     }
@@ -639,7 +640,7 @@ enum BikeTransitComposer {
             return l
         }
         return TripOption(mode: .bikeTransit, legs: [first] + decided + [last], prep: s.prep,
-                          note: "\(s.bikeStationBufferMinutes) min Puffer je Bahnhof fürs Rad")
+                          note: L("%d min Puffer je Bahnhof fürs Rad", s.bikeStationBufferMinutes))
     }
 
     /// The best S-Bahn/regional connections, plus U-Bahn/tram ones only as the
@@ -881,7 +882,7 @@ struct BikeCandidate {
         } else {
             quiet = all.firstIndex { $0.source == "safety" } ?? fastest
             balanced = all.firstIndex { $0.source == "trekking" } ?? fastest
-            lowTraffic = all.firstIndex { $0.source == "verkehrsarm" } ?? quiet
+            lowTraffic = all.firstIndex { $0.source == L("verkehrsarm") } ?? quiet
         }
         let shortest = all.indices.min { all[$0].route.distance < all[$1].route.distance }!
         // **Nur die obersten Rollen der eigenen Reihenfolge.** Namenlose

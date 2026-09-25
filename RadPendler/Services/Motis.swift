@@ -63,7 +63,7 @@ struct MotisClient {
         var errorDescription: String? {
             switch self {
             case .server(let code, let body): "Transitous: HTTP \(code) \(foreignText(body))"
-            case .malformed: "Transitous: unerwartete Antwort"
+            case .malformed: L("Transitous: unerwartete Antwort")
             }
         }
     }

@@ -26,13 +26,24 @@ final class WatchModel {
 
     private let link = PhoneLink()
 
+    /// Die Uhr hat keine eigene Sprachwahl: sie zeigt den Plan des Telefons
+    /// und spricht deshalb dessen Sprache. Ohne Angabe (ältere Fassung auf dem
+    /// Telefon) bleibt es bei dem, was die Uhr selbst eingestellt hat.
+    private static func speak(_ language: String?) {
+        AppLanguage.current = language.flatMap(AppLanguage.init(rawValue:)) ?? .system
+    }
+
     init() {
         snapshot = PhoneLink.cached()
         live = Self.fresh(PhoneLink.cachedRide())
         chosenMode = UserDefaults.standard.string(forKey: "chosenMode")
         chosenIndex = UserDefaults.standard.integer(forKey: "chosenIndex")
+        Self.speak(snapshot?.language)
         link.onPlan = { [weak self] plan in
-            Task { @MainActor in self?.snapshot = plan }
+            Task { @MainActor in
+                Self.speak(plan.language)
+                self?.snapshot = plan
+            }
         }
         link.onRide = { [weak self] ride in
             Task { @MainActor in self?.live = Self.fresh(ride) }

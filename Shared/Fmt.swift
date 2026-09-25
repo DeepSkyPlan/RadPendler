@@ -1,8 +1,12 @@
 import Foundation
 
 enum Fmt {
+    /// Alles hier formatiert in der **gewählten** Sprache, nicht in der des
+    /// Telefons: „1,5 km" gegen „1.5 km", „13:05" gegen „1:05 pm".
+    static var locale: Locale { AppLanguage.locale }
+
     static func time(_ d: Date) -> String {
-        d.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))
+        d.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(locale))
     }
 
     static func duration(_ t: TimeInterval) -> String {
@@ -12,7 +16,7 @@ enum Fmt {
 
     static func km(_ meters: Double) -> String {
         meters < 1000 ? "\(Int(meters.rounded())) m"
-            : (meters / 1000).formatted(.number.precision(.fractionLength(1))) + " km"
+            : (meters / 1000).formatted(.number.precision(.fractionLength(1)).locale(locale)) + " km"
     }
 
     static func delay(_ t: TimeInterval) -> String? {
@@ -26,10 +30,10 @@ extension Fmt {
     /// The plan stamp on the map and the one on the watch read from here.
     static func age(_ seconds: TimeInterval) -> String {
         let s = Int(max(seconds, 0).rounded())
-        if s < 60 { return "gerade eben" }
+        if s < 60 { return L("gerade eben") }
         let m = s / 60
-        if m < 60 { return "vor \(m) min" }
-        return m % 60 == 0 ? "vor \(m / 60) h" : String(format: "vor %d:%02d h", m / 60, m % 60)
+        if m < 60 { return L("vor %d min", m) }
+        return m % 60 == 0 ? L("vor %d h", m / 60) : String(format: L("vor %d:%02d h"), m / 60, m % 60)
     }
 }
 
@@ -38,7 +42,7 @@ extension Fmt {
     /// rounded 21 says nothing about whether today was better than yesterday.
     static func kmh(_ kmh: Double) -> String {
         guard kmh.isFinite, kmh >= 0 else { return "– km/h" }
-        return kmh.formatted(.number.precision(.fractionLength(1))) + " km/h"
+        return kmh.formatted(.number.precision(.fractionLength(1)).locale(locale)) + " km/h"
     }
 
     /// A stopwatch, not a duration: "3:07", "1:12:40". Seconds matter while a

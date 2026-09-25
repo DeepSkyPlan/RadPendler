@@ -40,10 +40,10 @@ enum Countdown {
         /// it is no longer counting down to anything — it is telling you to move.
         func caption(overdue: Bool) -> String {
             switch self {
-            case .idle: "KEINE ABFAHRT"
-            case .gone: "ABGEFAHREN"
-            case .go: overdue ? "LOSGEHEN" : "LOS IN"
-            default: "LOS IN"
+            case .idle: L("KEINE ABFAHRT")
+            case .gone: L("ABGEFAHREN")
+            case .go: overdue ? L("LOSGEHEN") : L("LOS IN")
+            default: L("LOS IN")
             }
         }
     }
@@ -63,7 +63,7 @@ enum Countdown {
     /// Seconds below ten minutes, then round minutes, then hours.
     static func text(_ left: TimeInterval) -> String {
         let s = Int(left.rounded())
-        guard s >= 0 else { return "jetzt" }
+        guard s >= 0 else { return L("jetzt") }
         if s < 600 { return String(format: "%d:%02d", s / 60, s % 60) }
         let m = s / 60
         return m < 60 ? "\(m) min" : String(format: "%d:%02d h", m / 60, m % 60)

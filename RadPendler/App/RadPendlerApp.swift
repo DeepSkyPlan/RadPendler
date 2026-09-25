@@ -18,6 +18,9 @@ struct RadPendlerApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                // Wechselt die Sprache, baut SwiftUI den Baum neu auf — und
+                // `L(…)` liest dann aus dem anderen Verzeichnis.
+                .id(settings.language)
                 .environment(settings)
                 .environment(rides)
                 .environment(tracker)

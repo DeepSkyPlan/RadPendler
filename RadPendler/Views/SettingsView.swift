@@ -23,7 +23,7 @@ private struct Page<Content: View>: View {
                 .navigationTitle(title)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } }
+                    ToolbarItem(placement: .confirmationAction) { Button(L("Fertig")) { dismiss() } }
                 }
                 // Asking iOS every time the sheet opens, so the hint disappears
                 // as soon as the permission is granted somewhere else.
@@ -62,7 +62,7 @@ struct Hint: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(text)
                     .lineLimit(open ? nil : 2)
-                Text(open ? "weniger" : "mehr")
+                Text(open ? L("weniger") : L("mehr"))
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
                     .foregroundStyle(Theme.accent)
             }
@@ -71,7 +71,7 @@ struct Hint: View {
             .onTapGesture { withAnimation(.snappy(duration: 0.2)) { open.toggle() } }
             .accessibilityElement(children: .combine)
             .accessibilityLabel(text)
-            .accessibilityHint(open ? "Tippen zum Zuklappen" : "Tippen für den ganzen Text")
+            .accessibilityHint(open ? L("Tippen zum Zuklappen") : L("Tippen für den ganzen Text"))
         }
     }
 }
@@ -83,25 +83,25 @@ struct AddressSettingsView: View {
 
     var body: some View {
         @Bindable var settings = settings
-        Page(title: "Adressen") {
+        Page(title: L("Adressen")) {
                 Section {
                     NavigationLink {
-                        AddressSearchView(title: "Start", offersLocation: true) { settings.origin = $0 }
+                        AddressSearchView(title: L("Start"), offersLocation: true) { settings.origin = $0 }
                     } label: {
-                        LabeledContent("Start", value: settings.origin?.withArea ?? "nicht gesetzt")
+                        LabeledContent(L("Start"), value: settings.origin?.withArea ?? L("nicht gesetzt"))
                     }
                     NavigationLink {
-                        AddressSearchView(title: "Ziel") { settings.destination = $0 }
+                        AddressSearchView(title: L("Ziel")) { settings.destination = $0 }
                     } label: {
-                        LabeledContent("Ziel", value: settings.destination?.withArea ?? "nicht gesetzt")
+                        LabeledContent(L("Ziel"), value: settings.destination?.withArea ?? L("nicht gesetzt"))
                     }
-                    Button("Beide Adressen löschen", role: .destructive) { settings.clearPlaces() }
+                    Button(L("Beide Adressen löschen"), role: .destructive) { settings.clearPlaces() }
                 } header: {
-                    Text("Adressen")
+                    Text(L("Adressen"))
                 } footer: {
                     Hint(CloudStore.shared.available
-                         ? "Die App wird ohne Adressen ausgeliefert. Start, Ziel, die benutzten Adressen und alle Einstellungen gleichen sich über deine iCloud mit deinen anderen Geräten ab. Zum Planen gehen die Koordinaten von Start und Ziel an die Dienste, die die Strecke rechnen (VBB, Transitous, BRouter, Apple Karten, Open-Meteo) — ohne Namen und ohne Adresstext. Sonst verlässt nichts davon deine Geräte und deine iCloud."
-                         : "Die App wird ohne Adressen ausgeliefert. Start und Ziel bleiben nur auf diesem Gerät gespeichert. Mit einem angemeldeten iCloud-Konto gleichen sie sich mit deinen anderen Geräten ab.")
+                         ? L("Die App wird ohne Adressen ausgeliefert. Start, Ziel, die benutzten Adressen und alle Einstellungen gleichen sich über deine iCloud mit deinen anderen Geräten ab. Zum Planen gehen die Koordinaten von Start und Ziel an die Dienste, die die Strecke rechnen (VBB, Transitous, BRouter, Apple Karten, Open-Meteo) — ohne Namen und ohne Adresstext. Sonst verlässt nichts davon deine Geräte und deine iCloud.")
+                         : L("Die App wird ohne Adressen ausgeliefert. Start und Ziel bleiben nur auf diesem Gerät gespeichert. Mit einem angemeldeten iCloud-Konto gleichen sie sich mit deinen anderen Geräten ab."))
                 }
                 Section {
                     ForEach(PlaceRole.allCases, id: \.self) { role in
@@ -109,28 +109,28 @@ struct AddressSettingsView: View {
                             AddressSearchView(title: role.title, offersLocation: true) { settings.setPlace($0, for: role) }
                         } label: {
                             LabeledContent {
-                                Text(settings.place(for: role)?.withArea ?? "nicht gesetzt")
+                                Text(settings.place(for: role)?.withArea ?? L("nicht gesetzt"))
                             } label: {
                                 Label(role.title, systemImage: role.symbol)
                             }
                         }
                     }
                     if settings.homePlace != nil || settings.workPlace != nil {
-                        Button("Beide vergessen", role: .destructive) {
+                        Button(L("Beide vergessen"), role: .destructive) {
                             settings.homePlace = nil
                             settings.workPlace = nil
                         }
                     }
-                    DatePicker("Bei der Arbeit sein um", selection: Binding(
+                    DatePicker(L("Bei der Arbeit sein um"), selection: Binding(
                         get: { DeparturePreset.clock(settings.workArrivalMinutes / 60, settings.workArrivalMinutes % 60).date() },
                         set: { d in
                             let c = Calendar.current.dateComponents([.hour, .minute], from: d)
                             settings.workArrivalMinutes = (c.hour ?? 9) * 60 + (c.minute ?? 0)
                         }), displayedComponents: .hourAndMinute)
                 } header: {
-                    Text("Zuhause und Arbeit")
+                    Text(L("Zuhause und Arbeit"))
                 } footer: {
-                    Hint("Diese zwei bekommen überall ein Zeichen — in der Adresssuche, in der Liste der benutzten Adressen und oben auf der Hauptseite — und stehen in der Suche ganz oben. Fahrten zur Arbeit starten mit „Ankunft um …“, Fahrten nach Hause mit „Abfahrt jetzt“; von Hand umschaltbar.")
+                    Hint(L("Diese zwei bekommen überall ein Zeichen — in der Adresssuche, in der Liste der benutzten Adressen und oben auf der Hauptseite — und stehen in der Suche ganz oben. Fahrten zur Arbeit starten mit „Ankunft um …“, Fahrten nach Hause mit „Abfahrt jetzt“; von Hand umschaltbar."))
                 }
                 Section {
                     ForEach(settings.waypoints, id: \.self) { p in
@@ -138,17 +138,17 @@ struct AddressSettingsView: View {
                     }
                     .onDelete { settings.waypoints.remove(atOffsets: $0) }
                     NavigationLink {
-                        AddressSearchView(title: "Fixpunkt") { settings.waypoints.append($0) }
+                        AddressSearchView(title: L("Fixpunkt")) { settings.waypoints.append($0) }
                     } label: {
-                        Label("Fixpunkt hinzufügen", systemImage: "plus.circle")
+                        Label(L("Fixpunkt hinzufügen"), systemImage: "plus.circle")
                     }
                     if settings.waypoints.count > 1 {
-                        Toggle("Alle Fixpunkte verlangen", isOn: $settings.requireAllWaypoints)
+                        Toggle(L("Alle Fixpunkte verlangen"), isOn: $settings.requireAllWaypoints)
                     }
                 } header: {
-                    Text("Fixpunkte")
+                    Text(L("Fixpunkte"))
                 } footer: {
-                    Hint("Punkte, über die die Strecke führen soll, z. B. „S Ostkreuz“ oder „Berlin Hauptbahnhof“. Verbindungen, die nicht daran vorbeikommen, werden ausgegraut ans Ende gestellt und nie empfohlen. Ohne Fixpunkte gilt keine Einschränkung.")
+                    Hint(L("Punkte, über die die Strecke führen soll, z. B. „S Ostkreuz“ oder „Berlin Hauptbahnhof“. Verbindungen, die nicht daran vorbeikommen, werden ausgegraut ans Ende gestellt und nie empfohlen. Ohne Fixpunkte gilt keine Einschränkung."))
                 }
         }
     }
@@ -161,18 +161,18 @@ struct NavigationSettingsView: View {
 
     var body: some View {
         @Bindable var settings = settings
-        Page(title: "Navigation") {
+        Page(title: L("Navigation")) {
                 Section {
-                    Stepper("Rüstzeit: \(settings.prepMinutes) min", value: $settings.prepMinutes, in: 0...30)
+                    Stepper(L("Rüstzeit: %d min", settings.prepMinutes), value: $settings.prepMinutes, in: 0...30)
                 } footer: {
-                    Hint("Zeit vom Planen bis zum Losgehen. Gilt für jedes Verkehrsmittel.")
+                    Hint(L("Zeit vom Planen bis zum Losgehen. Gilt für jedes Verkehrsmittel."))
                 }
                 Section {
-                    Stepper("Umstieg zählt wie \(settings.transferPenaltyMinutes) min", value: $settings.transferPenaltyMinutes, in: 0...30)
+                    Stepper(L("Umstieg zählt wie %d min", settings.transferPenaltyMinutes), value: $settings.transferPenaltyMinutes, in: 0...30)
                 } header: {
-                    Text("Umsteigen")
+                    Text(L("Umsteigen"))
                 } footer: {
-                    Hint("Beim Sortieren und Empfehlen wird jeder Umstieg wie so viele Minuten längere Fahrt gewertet. Eine direkte Verbindung gewinnt also, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.")
+                    Hint(L("Beim Sortieren und Empfehlen wird jeder Umstieg wie so viele Minuten längere Fahrt gewertet. Eine direkte Verbindung gewinnt also, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt."))
                 }
                 Section {
                     ForEach(settings.departurePresets, id: \.self) { p in
@@ -187,28 +187,28 @@ struct NavigationSettingsView: View {
                             }
                         }
                     } label: {
-                        Label("Zeitpunkt hinzufügen", systemImage: "plus.circle")
+                        Label(L("Zeitpunkt hinzufügen"), systemImage: "plus.circle")
                     }
                 } header: {
-                    Text("Startzeiten")
+                    Text(L("Startzeiten"))
                 } footer: {
-                    Hint("Diese Vorschläge stehen oben neben „Jetzt“ zur Wahl — relativ („in 15 min“) oder als Uhrzeit („um 8 Uhr“, heute oder morgen).")
+                    Hint(L("Diese Vorschläge stehen oben neben „Jetzt“ zur Wahl — relativ („in 15 min“) oder als Uhrzeit („um 8 Uhr“, heute oder morgen)."))
                 }
                 Section {
-                    Stepper("Puffer vor der Abfahrt: \(settings.departureBufferMinutes) min",
+                    Stepper(L("Puffer vor der Abfahrt: %d min", settings.departureBufferMinutes),
                             value: $settings.departureBufferMinutes, in: 0...30)
-                    Stepper("Puffer vor der Ankunft: \(settings.arrivalBufferMinutes) min",
+                    Stepper(L("Puffer vor der Ankunft: %d min", settings.arrivalBufferMinutes),
                             value: $settings.arrivalBufferMinutes, in: 0...30)
                 } header: {
-                    Text("Puffer")
+                    Text(L("Puffer"))
                 } footer: {
-                    Hint("Der Abfahrtspuffer verschiebt das Losgehen nach vorn, der Ankunftspuffer lässt die Verbindung früher ankommen. Beide zählen nicht zur angezeigten Fahrzeit.")
+                    Hint(L("Der Abfahrtspuffer verschiebt das Losgehen nach vorn, der Ankunftspuffer lässt die Verbindung früher ankommen. Beide zählen nicht zur angezeigten Fahrzeit."))
                 }
                 Section {
-                    Toggle("Warnung vor dem Losgehen", isOn: $settings.alertsOn)
+                    Toggle(L("Warnung vor dem Losgehen"), isOn: $settings.alertsOn)
                     if settings.alertsOn {
                         ForEach([15, 10, 5, 3, 1], id: \.self) { m in
-                            Toggle("\(m) min vorher", isOn: Binding(
+                            Toggle(L("%d min vorher", m), isOn: Binding(
                                 get: { settings.alertMinutes.contains(m) },
                                 set: { on in
                                     if on { settings.alertMinutes = (settings.alertMinutes + [m]).sorted(by: >) }
@@ -221,19 +221,19 @@ struct NavigationSettingsView: View {
                                     UIApplication.shared.open(url)
                                 }
                             } label: {
-                                Label("Mitteilungen sind aus — in den iOS-Einstellungen erlauben",
+                                Label(L("Mitteilungen sind aus — in den iOS-Einstellungen erlauben"),
                                       systemImage: "bell.slash")
                                     .foregroundStyle(.orange)
                             }
                         }
                     }
                 } header: {
-                    Text("Countdown")
+                    Text(L("Countdown"))
                 } footer: {
-                    Hint("Der Countdown oben rechts zählt bis zum Losgehen für Bahn und Bus — und bei „Ankunft um …“ für jede Fahrt. Warnungen kommen als Mitteilung, auch wenn die App zu ist; bei offener App zusätzlich als Ton.")
+                    Hint(L("Der Countdown oben rechts zählt bis zum Losgehen für Bahn und Bus — und bei „Ankunft um …“ für jede Fahrt. Warnungen kommen als Mitteilung, auch wenn die App zu ist; bei offener App zusätzlich als Ton."))
                 }
-                Section("Auto") {
-                    Stepper("Parkplatzsuche: \(settings.parkingMinutes) min", value: $settings.parkingMinutes, in: 0...30)
+                Section(L("Auto")) {
+                    Stepper(L("Parkplatzsuche: %d min", settings.parkingMinutes), value: $settings.parkingMinutes, in: 0...30)
                 }
         }
     }
@@ -246,63 +246,63 @@ struct ModeSettingsView: View {
 
     var body: some View {
         @Bindable var settings = settings
-        Page(title: "Verkehrsmittel") {
+        Page(title: L("Verkehrsmittel")) {
                 Section {
-                    Picker("Möglichkeiten je Verkehrsmittel", selection: $settings.optionsPerMode) {
+                    Picker(L("Möglichkeiten je Verkehrsmittel"), selection: $settings.optionsPerMode) {
                         ForEach(1...3, id: \.self) { n in Text("\(n)").tag(n) }
                     }
                     NavigationLink {
-                        PriorityList(title: "Verkehrsmittel", items: $settings.modeOrder,
-                                     footer: "Von oben nach unten: was gewinnt, wenn zwei Fahrten fast gleichzeitig ankommen. Dieselbe Reihenfolge ordnet die vier Kästen auf der Hauptseite, entscheidet, welcher nach einer Suche geöffnet ist, und in welcher Folge sie sich füllen — das Oberste steht zuerst da, der Rest kommt nach.",
+                        PriorityList(title: L("Verkehrsmittel"), items: $settings.modeOrder,
+                                     footer: L("Von oben nach unten: was gewinnt, wenn zwei Fahrten fast gleichzeitig ankommen. Dieselbe Reihenfolge ordnet die vier Kästen auf der Hauptseite, entscheidet, welcher nach einer Suche geöffnet ist, und in welcher Folge sie sich füllen — das Oberste steht zuerst da, der Rest kommt nach."),
                                      label: \.title, symbol: \.symbol)
                     } label: {
-                        LabeledContent("Verkehrsmittel", value: settings.modeOrder.map(\.short).joined(separator: " › "))
+                        LabeledContent(L("Verkehrsmittel"), value: settings.modeOrder.map(\.short).joined(separator: " › "))
                     }
                     NavigationLink {
-                        PriorityList(title: "Radrouten", items: $settings.bikeVariantOrder,
+                        PriorityList(title: L("Radrouten"), items: $settings.bikeVariantOrder,
                                      footer: "Die obersten so vieler, wie oben eingestellt — die erste wird vorgeschlagen, die anderen erreicht ein Tipp auf den Kasten. Was weiter unten steht, wird gar nicht erst berechnet und spart die Anfrage.\n\n„wenig Autos“ und „wenig Halts“ beantworten zwei verschiedene Fragen: die erste, wie lange man neben fahrenden Autos fährt, die zweite, wie oft man ihretwegen anhalten muss. Die kürzeste Strecke ist selten beides.",
                                      label: \.title, symbol: \.symbol)
                     } label: {
-                        LabeledContent("Radrouten", value: settings.bikeVariantOrder.first?.title ?? "")
+                        LabeledContent(L("Radrouten"), value: settings.bikeVariantOrder.first?.title ?? "")
                     }
                     NavigationLink {
-                        PriorityList(title: "Autorouten", items: $settings.carVariantOrder,
-                                     footer: "Dasselbe fürs Auto. Apple Karten liefert meist zwei oder drei Linien; welche davon oben steht, entscheidet diese Liste.",
+                        PriorityList(title: L("Autorouten"), items: $settings.carVariantOrder,
+                                     footer: L("Dasselbe fürs Auto. Apple Karten liefert meist zwei oder drei Linien; welche davon oben steht, entscheidet diese Liste."),
                                      label: \.title, symbol: { _ in nil })
                     } label: {
-                        LabeledContent("Autorouten", value: settings.carVariantOrder.first?.title ?? "")
+                        LabeledContent(L("Autorouten"), value: settings.carVariantOrder.first?.title ?? "")
                     }
-                    Picker("Rad in die Bahn ab", selection: $settings.rainSwitchLevel) {
+                    Picker(L("Rad in die Bahn ab"), selection: $settings.rainSwitchLevel) {
                         ForEach([RainLevel.possible, .light, .rain, .heavy], id: \.self) { level in
                             Text(level.label).tag(level)
                         }
                     }
-                    Button("Zurück auf Werkseinstellung") { settings.resetPriorities() }
+                    Button(L("Zurück auf Werkseinstellung")) { settings.resetPriorities() }
                 } header: {
-                    Text("Vorlieben")
+                    Text(L("Vorlieben"))
                 } footer: {
-                    Hint("Womit die App plant, wenn sie die Wahl hat. Ab dem gewählten Regen wird nicht mehr die ganze Strecke geradelt, sondern das Rad in die Bahn gestellt — „starker Regen“ heißt also praktisch immer fahren.")
+                    Hint(L("Womit die App plant, wenn sie die Wahl hat. Ab dem gewählten Regen wird nicht mehr die ganze Strecke geradelt, sondern das Rad in die Bahn gestellt — „starker Regen“ heißt also praktisch immer fahren."))
                 }
                 Section {
                     Stepper(value: $settings.bikeSpeedKmh, in: 10...45, step: 1) {
-                        Text("Rolltempo ohne Ampeln: \(Int(settings.bikeSpeedKmh)) km/h")
+                        Text(L("Rolltempo ohne Ampeln: %d km/h", Int(settings.bikeSpeedKmh)))
                     }
-                    Stepper("Puffer am Bahnhof: \(settings.bikeStationBufferMinutes) min",
+                    Stepper(L("Puffer am Bahnhof: %d min", settings.bikeStationBufferMinutes),
                             value: $settings.bikeStationBufferMinutes, in: 0...10)
-                    Stepper("Wartezeit je Ampel: \(settings.signalWaitSeconds) s",
+                    Stepper(L("Wartezeit je Ampel: %d s", settings.signalWaitSeconds),
                             value: $settings.signalWaitSeconds, in: 0...90, step: 5)
                     MeasuredSpeedRow()
                     MeasuredSignalRow()
                     Stepper(value: $settings.maxBikeToStationKm, in: 1...10, step: 0.5) {
-                        Text("Radweg zum Bahnhof: bis \(settings.maxBikeToStationKm.formatted(.number.precision(.fractionLength(0...1)))) km")
+                        Text(L("Radweg zum Bahnhof: bis %@ km", settings.maxBikeToStationKm.formatted(.number.precision(.fractionLength(0...1)))))
                     }
                 } header: {
-                    Text("Fahrrad")
+                    Text(L("Fahrrad"))
                 } footer: {
-                    Hint("Zwei verschiedene Geschwindigkeiten, und sie tun Verschiedenes. Das Rolltempo ist das Tempo beim Fahren, ohne Halte: daraus plus der Wartezeit je Ampelkreuzung und den Höhenmetern rechnet die App jede Linie durch — es entscheidet also, welche Linie die schnellste ist. Der Gesamtschnitt ist die Messung deiner eigenen Fahrten, Tür zu Tür, mit allen Ampeln und Halten darin — er entscheidet, wie lange es dauert. Wäre die Rechnung schneller als dein gemessener Gesamtschnitt, gilt der Gesamtschnitt; auch bei den Zubringern zum Bahnhof, dort aber nur, wenn er die vorsichtigere Zahl ist. Beide Werte schreibt die App nach jeder aufgezeichneten Fahrt selbst fort, aus dem Median der letzten Fahrten, sobald es genug davon gibt; von Hand gestellt gelten sie bis zur nächsten Fahrt. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung addiert — außer an den Kreuzungen, die deine eigenen Fahrten schon kennen: die kosten, was dort gemessen wurde. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet.")
+                    Hint(L("Zwei verschiedene Geschwindigkeiten, und sie tun Verschiedenes. Das Rolltempo ist das Tempo beim Fahren, ohne Halte: daraus plus der Wartezeit je Ampelkreuzung und den Höhenmetern rechnet die App jede Linie durch — es entscheidet also, welche Linie die schnellste ist. Der Gesamtschnitt ist die Messung deiner eigenen Fahrten, Tür zu Tür, mit allen Ampeln und Halten darin — er entscheidet, wie lange es dauert. Wäre die Rechnung schneller als dein gemessener Gesamtschnitt, gilt der Gesamtschnitt; auch bei den Zubringern zum Bahnhof, dort aber nur, wenn er die vorsichtigere Zahl ist. Beide Werte schreibt die App nach jeder aufgezeichneten Fahrt selbst fort, aus dem Median der letzten Fahrten, sobald es genug davon gibt; von Hand gestellt gelten sie bis zur nächsten Fahrt. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung addiert — außer an den Kreuzungen, die deine eigenen Fahrten schon kennen: die kosten, was dort gemessen wurde. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet."))
                 }
                 Section {
-                    Picker("Fahrplan", selection: $settings.timetableSource) {
+                    Picker(L("Fahrplan"), selection: $settings.timetableSource) {
                         ForEach(TimetableSource.allCases) { Text($0.title).tag($0) }
                     }
                     Link(destination: URL(string: "https://transitous.org/sources/")!) {
@@ -312,23 +312,23 @@ struct ModeSettingsView: View {
                         Label("openstreetmap.org/copyright", systemImage: "arrow.up.right.square")
                     }
                 } header: {
-                    Text("Fahrplanquelle")
+                    Text(L("Fahrplanquelle"))
                 } footer: {
-                    Hint("„Automatisch“ fragt den VBB, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link.")
+                    Hint(L("„Automatisch“ fragt den VBB, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link."))
                 }
                 Section {
                     NavigationLink {
                         BikeLinesView()
                     } label: {
-                        LabeledContent("Fahrradmitnahme") {
+                        LabeledContent(L("Fahrradmitnahme")) {
                             let open = settings.bikeLines.filter { $0.allowed == nil }.count
-                            Text(settings.bikeLines.isEmpty ? "noch keine Linie"
-                                 : (open == 0 ? "alle geklärt" : "\(open) offen"))
+                            Text(settings.bikeLines.isEmpty ? L("noch keine Linie")
+                                 : (open == 0 ? L("alle geklärt") : L("%d offen", open)))
                                 .foregroundStyle(open > 0 ? .orange : .secondary)
                         }
                     }
                 } footer: {
-                    Hint("Welche Linien das Rad mitnehmen, weißt du besser als jeder Fahrplan. Die Liste füllt sich mit den Linien, die in gefundenen Verbindungen vorkommen; was die Auskunft selbst zusichert, steht schon auf „ja“. Solange eine Linie offen ist, wird die Fahrt trotzdem vorgeschlagen — mit dem Hinweis, dass die Mitnahme ungeklärt ist.")
+                    Hint(L("Welche Linien das Rad mitnehmen, weißt du besser als jeder Fahrplan. Die Liste füllt sich mit den Linien, die in gefundenen Verbindungen vorkommen; was die Auskunft selbst zusichert, steht schon auf „ja“. Solange eine Linie offen ist, wird die Fahrt trotzdem vorgeschlagen — mit dem Hinweis, dass die Mitnahme ungeklärt ist."))
                 }
         }
     }
@@ -341,87 +341,87 @@ struct SettingsView: View {
 
     var body: some View {
         @Bindable var settings = settings
-        Page(title: "Einstellungen") {
+        Page(title: L("Einstellungen")) {
                 Section {
-                    Picker("Ausrichtung", selection: $settings.orientation) {
+                    Picker(L("Ausrichtung"), selection: $settings.orientation) {
                         ForEach(OrientationLock.allCases, id: \.self) { o in
                             Label(o.title, systemImage: o.symbol).tag(o)
                         }
                     }
                     .onChange(of: settings.orientation) { settings.orientation.apply() }
-                    Picker("Neu berechnen ab", selection: $settings.replanOffRouteMeters) {
-                        Text("aus").tag(0.0)
+                    Picker(L("Neu berechnen ab"), selection: $settings.replanOffRouteMeters) {
+                        Text(L("aus")).tag(0.0)
                         ForEach([100.0, 200.0, 500.0, 1000.0], id: \.self) { m in
-                            Text("\(Int(m)) m neben der Route").tag(m)
+                            Text(L("%d m neben der Route", Int(m))).tag(m)
                         }
                     }
-                    Picker("… oder nach", selection: $settings.replanOffRouteMinutes) {
-                        Text("aus").tag(0.0)
+                    Picker(L("… oder nach"), selection: $settings.replanOffRouteMinutes) {
+                        Text(L("aus")).tag(0.0)
                         ForEach([1.0, 2.0, 5.0, 10.0], id: \.self) { m in
-                            Text("\(Int(m)) min daneben").tag(m)
+                            Text(L("%d min daneben", Int(m))).tag(m)
                         }
                     }
-                    Stepper("Ampelhalt ab \(settings.signalStopSeconds) s",
+                    Stepper(L("Ampelhalt ab %d s", settings.signalStopSeconds),
                             value: $settings.signalStopSeconds, in: 10...120, step: 5)
-                    Picker("Bildschirm abdunkeln nach", selection: $settings.rideDimSeconds) {
-                        Text("aus").tag(0.0)
+                    Picker(L("Bildschirm abdunkeln nach"), selection: $settings.rideDimSeconds) {
+                        Text(L("aus")).tag(0.0)
                         ForEach([15.0, 30.0, 60.0, 120.0], id: \.self) { s in
-                            Text("\(Int(s)) s ohne Berührung").tag(s)
+                            Text(L("%d s ohne Berührung", Int(s))).tag(s)
                         }
                     }
-                    Picker("Von selbst beenden nach", selection: $settings.autoStopMinutes) {
-                        Text("aus").tag(0.0)
+                    Picker(L("Von selbst beenden nach"), selection: $settings.autoStopMinutes) {
+                        Text(L("aus")).tag(0.0)
                         ForEach([5.0, 10.0, 15.0, 20.0, 30.0], id: \.self) { m in
-                            Text("\(Int(m)) min Halt").tag(m)
+                            Text(L("%d min Halt", Int(m))).tag(m)
                         }
                     }
                     HStack {
-                        Label("Gelernte Ampeln", systemImage: "light.beacon.max")
+                        Label(L("Gelernte Ampeln"), systemImage: "light.beacon.max")
                         Spacer()
                         Text("\(settings.learnedSignals.count)")
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
                     }
                     if !settings.learnedSignals.isEmpty {
-                        Button("Gelernte Ampeln vergessen", role: .destructive) {
+                        Button(L("Gelernte Ampeln vergessen"), role: .destructive) {
                             settings.learnedSignals = []
                         }
                     }
                 } header: {
-                    Text("Fahrt aufzeichnen")
+                    Text(L("Fahrt aufzeichnen"))
                 } footer: {
-                    Hint("„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — Eine Fahrt beginnt quer, oder so, wie du es während der letzten Fahrt zuletzt eingestellt hast; der Knopf dafür steht oben links auf dem Fahrtbildschirm. — Steht die Aufzeichnung länger als eingestellt an derselben Stelle und ist dort keine bekannte Ampel, beendet sie sich selbst und zählt bis zum Anfang des Stillstands; das ist der Fall „angekommen und vergessen, auf beenden zu tippen“. Eine gewollte Unterbrechung ist der Knopf „Pause“ auf dem Fahrtbildschirm: er hält die Uhr an und schaltet die Ortung so lange ab, und die Pause zählt weder zur Fahrzeit noch als Halt. — Während einer Aufzeichnung bleibt der Bildschirm an, bis du die Fahrt beendest; das kostet Strom und ist so gewollt. Er wird aber dunkel, solange du ihn nicht anfasst — und beim ersten Antippen wieder hell, ebenso wenn eine Abbiegung ansteht oder du neben der Route bist. Das ist während einer Fahrt der größte Posten auf der Stromrechnung, größer als die Ortung. — Verlässt du die Route, zeigt ein Pfeil zurück. Neu berechnet wird, was zuerst eintritt: die eingestellte Entfernung (und dann erst nach ein paar Sekunden am Stück, damit ein Bogen um eine Baustelle keine Neuplanung auslöst) oder die eingestellte Zeit, egal wie weit — wer im Kreis um einen gesperrten Weg fährt, kommt nie weit genug weg. Beides „aus“ lässt es beim Pfeil. — Wer länger als die eingestellte Zeit steht, stand an einer Ampel, auch wenn keine Karte dort eine kennt — nur das Stehen vor dem Losfahren und nach dem Ankommen zählt nie, das ist die eigene Haustür. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein. Mitgezählt wird auch, wo eine Aufzeichnung ohne Halt durchkam: eine gelernte Kreuzung kostet beim Planen ihre gemessene Zeit über alle Vorbeifahrten, nicht den eingestellten Mittelwert. Sie bleiben auf deinen Geräten und in deiner iCloud.")
+                    Hint(L("„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — Eine Fahrt beginnt quer, oder so, wie du es während der letzten Fahrt zuletzt eingestellt hast; der Knopf dafür steht oben links auf dem Fahrtbildschirm. — Steht die Aufzeichnung länger als eingestellt an derselben Stelle und ist dort keine bekannte Ampel, beendet sie sich selbst und zählt bis zum Anfang des Stillstands; das ist der Fall „angekommen und vergessen, auf beenden zu tippen“. Eine gewollte Unterbrechung ist der Knopf „Pause“ auf dem Fahrtbildschirm: er hält die Uhr an und schaltet die Ortung so lange ab, und die Pause zählt weder zur Fahrzeit noch als Halt. — Während einer Aufzeichnung bleibt der Bildschirm an, bis du die Fahrt beendest; das kostet Strom und ist so gewollt. Er wird aber dunkel, solange du ihn nicht anfasst — und beim ersten Antippen wieder hell, ebenso wenn eine Abbiegung ansteht oder du neben der Route bist. Das ist während einer Fahrt der größte Posten auf der Stromrechnung, größer als die Ortung. — Verlässt du die Route, zeigt ein Pfeil zurück. Neu berechnet wird, was zuerst eintritt: die eingestellte Entfernung (und dann erst nach ein paar Sekunden am Stück, damit ein Bogen um eine Baustelle keine Neuplanung auslöst) oder die eingestellte Zeit, egal wie weit — wer im Kreis um einen gesperrten Weg fährt, kommt nie weit genug weg. Beides „aus“ lässt es beim Pfeil. — Wer länger als die eingestellte Zeit steht, stand an einer Ampel, auch wenn keine Karte dort eine kennt — nur das Stehen vor dem Losfahren und nach dem Ankommen zählt nie, das ist die eigene Haustür. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein. Mitgezählt wird auch, wo eine Aufzeichnung ohne Halt durchkam: eine gelernte Kreuzung kostet beim Planen ihre gemessene Zeit über alle Vorbeifahrten, nicht den eingestellten Mittelwert. Sie bleiben auf deinen Geräten und in deiner iCloud."))
                 }
                 Section {
                     // Kontakt als Seite, nicht als Adresse: eine Adresse im
                     // Programm ist eine Adresse, die jeder mitliest.
                     Link(destination: URL(string: "https://deepskyplan.github.io/radpendler-app/#support")!) {
-                        Label("Hilfe und Rückmeldung", systemImage: "questionmark.circle")
+                        Label(L("Hilfe und Rückmeldung"), systemImage: "questionmark.circle")
                     }
                     Link(destination: URL(string: "https://deepskyplan.github.io/radpendler-privacy/")!) {
-                        Label("Datenschutz", systemImage: "hand.raised")
+                        Label(L("Datenschutz"), systemImage: "hand.raised")
                     }
                     Link(destination: URL(string: "https://github.com/DeepSkyPlan/RadPendler")!) {
-                        Label("Quelltext auf GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+                        Label(L("Quelltext auf GitHub"), systemImage: "chevron.left.forwardslash.chevron.right")
                     }
                 } header: {
-                    Text("Hilfe und Rechtliches")
+                    Text(L("Hilfe und Rechtliches"))
                 } footer: {
-                    Hint("Fragen, Fehler und Vorschläge gehen über die Support-Seite. Dort steht auch, was dabei hilft: Gerät, Version, Strecke und was die App gezeigt hat.")
+                    Hint(L("Fragen, Fehler und Vorschläge gehen über die Support-Seite. Dort steht auch, was dabei hilft: Gerät, Version, Strecke und was die App gezeigt hat."))
                 }
                 Section {
                     Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"))")
                 } header: {
-                    Text("Daten, Rechte und Version")
+                    Text(L("Daten, Rechte und Version"))
                 } footer: {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Fahrplan und Echtzeit: VBB Verkehrsverbund Berlin-Brandenburg (HAFAS-Fahrinfo).")
-                        Text("Karten, Adresssuche und Autorouten: Apple Karten. © Apple Inc. und Mitwirkende.")
-                        Text("Radrouten: BRouter (brouter.de), auf Basis von OpenStreetMap.")
-                        Text("Ampeln, Straßen und Kartendaten: © OpenStreetMap-Mitwirkende, ODbL 1.0, abgefragt über die Overpass API.")
-                        Text("Regenradar und Niederschlagsvorhersage: Deutscher Wetterdienst (DWD), Datenlizenz Deutschland – Namensnennung 2.0.")
-                        Text("Regen entlang der Strecke: Open-Meteo.com, CC BY 4.0, auf Basis von DWD ICON-D2.")
-                        Text("© 2026 AK. Alle Zeiten ohne Gewähr.")
+                        Text(L("Fahrplan und Echtzeit: VBB Verkehrsverbund Berlin-Brandenburg (HAFAS-Fahrinfo)."))
+                        Text(L("Karten, Adresssuche und Autorouten: Apple Karten. © Apple Inc. und Mitwirkende."))
+                        Text(L("Radrouten: BRouter (brouter.de), auf Basis von OpenStreetMap."))
+                        Text(L("Ampeln, Straßen und Kartendaten: © OpenStreetMap-Mitwirkende, ODbL 1.0, abgefragt über die Overpass API."))
+                        Text(L("Regenradar und Niederschlagsvorhersage: Deutscher Wetterdienst (DWD), Datenlizenz Deutschland – Namensnennung 2.0."))
+                        Text(L("Regen entlang der Strecke: Open-Meteo.com, CC BY 4.0, auf Basis von DWD ICON-D2."))
+                        Text(L("© 2026 AK. Alle Zeiten ohne Gewähr."))
                     }
                 }
         }
@@ -439,19 +439,19 @@ struct BikeLinesView: View {
         List {
             Section {
                 HStack {
-                    TextField("Linie, z. B. RE 7", text: $newLine)
+                    TextField(L("Linie, z. B. RE 7"), text: $newLine)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.characters)
                         .onSubmit(add)
-                    Button("Hinzufügen", action: add)
+                    Button(L("Hinzufügen"), action: add)
                         .disabled(newLine.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             } footer: {
-                Hint("Für Linien, die noch in keiner Verbindung vorkamen.")
+                Hint(L("Für Linien, die noch in keiner Verbindung vorkamen."))
             }
             if settings.bikeLines.isEmpty {
                 Section {
-                    Text("Noch keine Linie. Sobald die App eine Verbindung mit Bahn oder Bus findet, stehen deren Linien hier.")
+                    Text(L("Noch keine Linie. Sobald die App eine Verbindung mit Bahn oder Bus findet, stehen deren Linien hier."))
                         .font(.footnote).foregroundStyle(.secondary)
                 }
             } else {
@@ -467,28 +467,28 @@ struct BikeLinesView: View {
                             Picker("", selection: Binding(
                                 get: { line.allowed },
                                 set: { settings.setBikeLine(line.name, allowed: $0) })) {
-                                Text("Rad ja").tag(Bool?.some(true))
-                                Text("Rad nein").tag(Bool?.some(false))
-                                Text("offen").tag(Bool?.none)
+                                Text(L("Rad ja")).tag(Bool?.some(true))
+                                Text(L("Rad nein")).tag(Bool?.some(false))
+                                Text(L("offen")).tag(Bool?.none)
                             }
                             .pickerStyle(.menu)
                             .labelsHidden()
                             .tint(line.allowed == nil ? .orange : .secondary)
                         }
                         .swipeActions {
-                            Button("Löschen", role: .destructive) {
+                            Button(L("Löschen"), role: .destructive) {
                                 settings.bikeLines.removeAll { $0.name == line.name }
                             }
                         }
                     }
                 } header: {
-                    Text("Gesehene Linien")
+                    Text(L("Gesehene Linien"))
                 } footer: {
-                    Hint("„offen“ heißt: die Verbindung wird weiter vorgeschlagen, aber mit dem Hinweis, dass die Mitnahme ungeklärt ist. „Rad nein“ nimmt sie aus den Rad + Bahn-Vorschlägen heraus.")
+                    Hint(L("„offen“ heißt: die Verbindung wird weiter vorgeschlagen, aber mit dem Hinweis, dass die Mitnahme ungeklärt ist. „Rad nein“ nimmt sie aus den Rad + Bahn-Vorschlägen heraus."))
                 }
             }
         }
-        .navigationTitle("Fahrradmitnahme")
+        .navigationTitle(L("Fahrradmitnahme"))
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -608,8 +608,8 @@ struct AddressSearchView: View {
                                 .frame(width: 26, height: 26)
                                 .background(Theme.accent, in: Circle())
                             VStack(alignment: .leading, spacing: 1) {
-                                Text(here?.shortName ?? "Mein Standort").foregroundStyle(.primary)
-                                Text(locating ? "wird bestimmt …" : (here?.areaLine ?? "dort, wo du gerade bist"))
+                                Text(here?.shortName ?? L("Mein Standort")).foregroundStyle(.primary)
+                                Text(locating ? L("wird bestimmt …") : (here?.areaLine ?? L("dort, wo du gerade bist")))
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                             if here != nil {
@@ -622,9 +622,9 @@ struct AddressSearchView: View {
                     }
                     .disabled(locating)
                 } header: {
-                    Text("Vorschlag")
+                    Text(L("Vorschlag"))
                 } footer: {
-                    Hint("Wird einmal abgefragt und in eine Adresse übersetzt. Die App folgt dir nicht.")
+                    Hint(L("Wird einmal abgefragt und in eine Adresse übersetzt. Die App folgt dir nicht."))
                 }
             }
             if !named.isEmpty {
@@ -646,17 +646,17 @@ struct AddressSearchView: View {
                 }
             }
             if !known.isEmpty {
-                Section("Schon benutzt") {
+                Section(L("Schon benutzt")) {
                     ForEach(known) { use in
                         Button { pick(use.place) } label: { row(use) }
                             .swipeActions {
-                                Button("Vergessen", role: .destructive) { settings.forget(use) }
+                                Button(L("Vergessen"), role: .destructive) { settings.forget(use) }
                             }
                     }
                 }
             }
             if !completer.results.isEmpty {
-                Section(known.isEmpty ? "" : "Suche") {
+                Section(known.isEmpty ? "" : L("Suche")) {
                     ForEach(completer.results, id: \.self) { r in
                         Button {
                             Task { await resolve(r) }
@@ -683,14 +683,14 @@ struct AddressSearchView: View {
             here = found
             if query.isEmpty { query = found.withArea }
         }
-        .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Adresse oder Ort")
+        .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: L("Adresse oder Ort"))
         .onChange(of: query) { completer.query = query }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .overlay {
             if !offersLocation, named.isEmpty, known.isEmpty, completer.results.isEmpty, query.isEmpty {
-                ContentUnavailableView("Noch keine Adresse", systemImage: "magnifyingglass",
-                                       description: Text("Tippen, um zu suchen. Was einmal gewählt wurde, steht beim nächsten Mal oben — je öfter benutzt, desto weiter oben."))
+                ContentUnavailableView(L("Noch keine Adresse"), systemImage: "magnifyingglass",
+                                       description: Text(L("Tippen, um zu suchen. Was einmal gewählt wurde, steht beim nächsten Mal oben — je öfter benutzt, desto weiter oben.")))
             }
         }
     }
@@ -744,7 +744,7 @@ struct AddressSearchView: View {
     private func resolve(_ r: MKLocalSearchCompletion) async {
         do {
             let response = try await MKLocalSearch(request: MKLocalSearch.Request(completion: r)).start()
-            guard let item = response.mapItems.first else { error = "Adresse nicht gefunden"; return }
+            guard let item = response.mapItems.first else { error = L("Adresse nicht gefunden"); return }
             let mark = item.placemark
             let area = [mark.postalCode, mark.locality].compactMap { $0 }.joined(separator: " ")
             let name = area.isEmpty ? [r.title, r.subtitle].filter { !$0.isEmpty }.joined(separator: ", ")
@@ -792,15 +792,15 @@ struct MeasuredSpeedRow: View {
         if settings.measuredRides >= AppSettings.calibrationRides,
            let moving = settings.measuredMovingKmh, let overall = settings.measuredOverallKmh {
             VStack(alignment: .leading, spacing: 3) {
-                Label("Gemessen aus \(settings.measuredRides) Fahrten", systemImage: "speedometer")
+                Label(L("Gemessen aus %d Fahrten", settings.measuredRides), systemImage: "speedometer")
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
-                row("Gesamtschnitt", Fmt.kmh(overall), "Tür zu Tür, mit Ampeln und Halten — damit wird die Fahrzeit gerechnet")
-                row("Rolltempo", Fmt.kmh(moving), "nur die fahrende Zeit — daraus kommt die Einstellung darüber")
+                row(L("Gesamtschnitt"), Fmt.kmh(overall), L("Tür zu Tür, mit Ampeln und Halten — damit wird die Fahrzeit gerechnet"))
+                row(L("Rolltempo"), Fmt.kmh(moving), L("nur die fahrende Zeit — daraus kommt die Einstellung darüber"))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
         } else {
-            Label("Noch keine gemessenen Fahrten", systemImage: "speedometer")
+            Label(L("Noch keine gemessenen Fahrten"), systemImage: "speedometer")
                 .font(.system(size: 13, design: .rounded))
                 .foregroundStyle(.secondary)
         }
@@ -837,9 +837,9 @@ struct MeasuredSignalRow: View {
             let share = Int((Double(m.stops) / Double(m.passes) * 100).rounded())
             let perStop = m.stops > 0 ? m.wait / Double(m.stops) : 0
             VStack(alignment: .leading, spacing: 1) {
-                Label("An \(share) % der Ampeln gehalten", systemImage: "light.beacon.max")
+                Label(L("An %d %% der Ampeln gehalten", share), systemImage: "light.beacon.max")
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
-                Text("Ø \(Fmt.clock(perStop)) je Halt · Ø \(Fmt.clock(m.wait / Double(m.passes))) je Ampel · \(m.passes) Vorbeifahrten")
+                Text(L("Ø %@ je Halt · Ø %@ je Ampel · %d Vorbeifahrten", Fmt.clock(perStop), Fmt.clock(m.wait / Double(m.passes)), m.passes))
                     .font(.system(size: 11, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(.secondary)

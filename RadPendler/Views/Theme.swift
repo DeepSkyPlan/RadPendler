@@ -250,7 +250,7 @@ struct CountdownBox: View {
             Image(systemName: stopped ? "alarm.waves.left.and.right.fill" : (gone ? "figure.walk.departure" : "alarm.fill"))
                 .font(.system(size: 9, weight: .bold))
                 .symbolVariant(stopped ? .slash : .none)
-            Text(stopped ? "aus" : (left.map(Self.text) ?? "–"))
+            Text(stopped ? L("aus") : (left.map(Self.text) ?? "–"))
                 .font(.system(size: 14, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .contentTransition(.numericText(countsDown: true))
@@ -286,21 +286,21 @@ struct CountdownBox: View {
                     Text(Fmt.time(option.leave)).font(.system(size: 9.5, design: .rounded))
                 }
             } else if let option {
-                Text("ab \(Fmt.time(option.leave))").font(.system(size: 9.5, design: .rounded))
+                Text(L("ab %@", Fmt.time(option.leave))).font(.system(size: 9.5, design: .rounded))
             }
         }
         .foregroundStyle(left == nil ? AnyShapeStyle(Color.secondary) : AnyShapeStyle(Color.white))
         .padding(.vertical, 7).padding(.horizontal, 6)
         .frame(maxWidth: .infinity)
         .background(Self.box(left, gone: gone), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .accessibilityLabel(left.map { "Losgehen in \(Self.text($0))" } ?? "Keine feste Abfahrt")
+        .accessibilityLabel(left.map { L("Losgehen in %@", Self.text($0)) } ?? L("Keine feste Abfahrt"))
     }
 
     /// Green, amber, orange, red, dark red. The steps live in `Countdown`,
     /// so the watch colours the same minute the same way.
     private func accessibility(_ left: TimeInterval?) -> String {
-        if stopped { return "Countdown ausgeschaltet" }
-        return left.map { "Losgehen in \(Self.text($0))" } ?? "Keine feste Abfahrt"
+        if stopped { return L("Countdown ausgeschaltet") }
+        return left.map { L("Losgehen in %@", Self.text($0)) } ?? L("Keine feste Abfahrt")
     }
 
     static func box(_ left: TimeInterval?, gone: Bool = false) -> AnyShapeStyle {

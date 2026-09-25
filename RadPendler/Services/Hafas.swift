@@ -45,7 +45,7 @@ struct HafasClient {
         var errorDescription: String? {
             switch self {
             case .server(let code, let text): "VBB-Auskunft: \(foreignText(text)) (\(code))"
-            case .malformed: "VBB-Auskunft: unerwartete Antwort"
+            case .malformed: L("VBB-Auskunft: unerwartete Antwort")
             }
         }
     }

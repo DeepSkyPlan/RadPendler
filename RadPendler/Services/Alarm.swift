@@ -92,7 +92,7 @@ enum Alarm {
             let fire = go.addingTimeInterval(-Double(m) * 60)
             guard fire.timeIntervalSince(now) > 1 else { return nil }
             let content = UNMutableNotificationContent()
-            content.title = m == 0 ? "Jetzt los" : "In \(m) min los"
+            content.title = m == 0 ? L("Jetzt los") : L("In %d min los", m)
             content.body = body(option)
             content.sound = .default
             content.interruptionLevel = m == 0 ? .timeSensitive : .active

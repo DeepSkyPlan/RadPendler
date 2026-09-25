@@ -28,8 +28,10 @@ final class AlarmTests: XCTestCase {
         let delays = requests.compactMap { ($0.trigger as? UNTimeIntervalNotificationTrigger)?.timeInterval }
         // Getting ready is 900 s away, so the warnings land 300, 600, 840 and 900 s from now.
         XCTAssertEqual(delays, [300, 600, 840, 900])
-        XCTAssertEqual(requests.first?.content.title, "In 10 min los")
-        XCTAssertEqual(requests.last?.content.title, "Jetzt los")
+        // Gegen `L(…)`, nicht gegen den deutschen Wortlaut: steht die App auf
+        // Englisch, ist „Leave in 10 min" genauso richtig.
+        XCTAssertEqual(requests.first?.content.title, L("In %d min los", 10))
+        XCTAssertEqual(requests.last?.content.title, L("Jetzt los"))
     }
 
     func testMinutesAlreadyGoneAreSkipped() {
@@ -46,7 +48,7 @@ final class AlarmTests: XCTestCase {
 
     func testBodyNamesModeTimesAndTheTrain() {
         XCTAssertEqual(Alarm.body(trip()),
-                       "Rad + Bahn \(Fmt.time(now.addingTimeInterval(1200))) → \(Fmt.time(now.addingTimeInterval(3000)))"
+                       "\(TravelMode.bikeTransit.title) \(Fmt.time(now.addingTimeInterval(1200))) → \(Fmt.time(now.addingTimeInterval(3000)))"
                        + " · S7 ab S Beispielstadt \(Fmt.time(now.addingTimeInterval(1900)))")
     }
 
@@ -55,6 +57,7 @@ final class AlarmTests: XCTestCase {
                               legs: [Leg(kind: .bike, fromName: "a", toName: "b",
                                          departure: now, arrival: now.addingTimeInterval(3540))],
                               prep: 300)
-        XCTAssertEqual(Alarm.body(bike), "Fahrrad \(Fmt.time(now)) → \(Fmt.time(now.addingTimeInterval(3540)))")
+        XCTAssertEqual(Alarm.body(bike),
+                       "\(TravelMode.bike.title) \(Fmt.time(now)) → \(Fmt.time(now.addingTimeInterval(3540)))")
     }
 }

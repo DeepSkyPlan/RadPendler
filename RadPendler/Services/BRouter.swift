@@ -164,7 +164,7 @@ struct BRouterClient {
         var errorDescription: String? {
             switch self {
             case .server(let s): "BRouter: \(foreignText(s))"
-            case .malformed: "BRouter: unerwartete Antwort"
+            case .malformed: L("BRouter: unerwartete Antwort")
             }
         }
     }

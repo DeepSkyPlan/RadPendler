@@ -50,7 +50,7 @@ struct Place: Codable, Equatable, Hashable {
 enum PlaceRole: String, CaseIterable {
     case home, work
 
-    var title: String { self == .home ? "Zuhause" : "Arbeit" }
+    var title: String { self == .home ? L("Zuhause") : L("Arbeit") }
     var symbol: String { self == .home ? "house.fill" : "briefcase.fill" }
 }
 

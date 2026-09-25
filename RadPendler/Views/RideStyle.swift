@@ -55,7 +55,7 @@ struct SpeedLegend: View {
         .padding(.horizontal, 7).padding(.vertical, 4)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Farbskala der Geschwindigkeit, rot unter 8 bis grün über 26 km/h")
+        .accessibilityLabel(L("Farbskala der Geschwindigkeit, rot unter 8 bis grün über 26 km/h"))
     }
 }
 
