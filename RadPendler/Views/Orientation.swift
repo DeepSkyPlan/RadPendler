@@ -104,6 +104,6 @@ struct OrientationButton: View {
                 .background(lock == .auto ? AnyShapeStyle(.regularMaterial)
                                           : AnyShapeStyle(Theme.gradient(Theme.accent)), in: Circle())
         }
-        .accessibilityLabel("Ausrichtung: \(lock.title). Tippen für \(lock.next.title).")
+        .accessibilityLabel(L("Ausrichtung: %@. Tippen für %@.", lock.title, lock.next.title))
     }
 }

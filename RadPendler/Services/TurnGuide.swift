@@ -31,14 +31,14 @@ enum TurnGuide {
 
         var title: String {
             switch self {
-            case .sharpLeft: "scharf links"
-            case .left: "links"
-            case .slightLeft: "halb links"
-            case .straight: "geradeaus"
-            case .slightRight: "halb rechts"
-            case .right: "rechts"
-            case .sharpRight: "scharf rechts"
-            case .arrive: "Ziel"
+            case .sharpLeft: L("scharf links")
+            case .left: L("links")
+            case .slightLeft: L("halb links")
+            case .straight: L("geradeaus")
+            case .slightRight: L("halb rechts")
+            case .right: L("rechts")
+            case .sharpRight: L("scharf rechts")
+            case .arrive: L("Ziel")
             }
         }
 

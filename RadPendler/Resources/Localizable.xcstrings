@@ -1,0 +1,4835 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    " und ": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " and "
+          }
+        }
+      }
+    },
+    "%@ ab": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "from %@"
+          }
+        }
+      }
+    },
+    "%@ an Hauptstraßen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ on main roads"
+          }
+        }
+      }
+    },
+    "%@ gewartet · Ø %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ waiting · avg %@"
+          }
+        }
+      }
+    },
+    "%@ länger als geplant": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ longer than planned"
+          }
+        }
+      }
+    },
+    "%@ neben der Route, Richtung %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ off the route, heading %@"
+          }
+        }
+      }
+    },
+    "%@ schneller als geplant": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ faster than planned"
+          }
+        }
+      }
+    },
+    "%@ · %d Wege": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · %d routes"
+          }
+        }
+      }
+    },
+    "%@ · %d×": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · %d×"
+          }
+        }
+      }
+    },
+    "%@ · %d× um": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · %d×"
+          }
+        }
+      }
+    },
+    "%@ · direkt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · direct"
+          }
+        }
+      }
+    },
+    "%@ · Ø %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · avg %@"
+          }
+        }
+      }
+    },
+    "%@ — und zugleich %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ — and at the same time %@"
+          }
+        }
+      }
+    },
+    "%@ → %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ → %@"
+          }
+        }
+      }
+    },
+    "%d Ampeln": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d lights"
+          }
+        }
+      }
+    },
+    "%d Ampeln · %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d lights · %@"
+          }
+        }
+      }
+    },
+    "%d Hauptstraßen queren": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d main roads to cross"
+          }
+        }
+      }
+    },
+    "%d hm": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d m climb"
+          }
+        }
+      }
+    },
+    "%d m neben der Route": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d m off the route"
+          }
+        }
+      }
+    },
+    "%d min Halt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d min standing"
+          }
+        }
+      }
+    },
+    "%d min Puffer je Bahnhof fürs Rad": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d min buffer per station for the bike"
+          }
+        }
+      }
+    },
+    "%d min Rüstzeit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d min preparation"
+          }
+        }
+      }
+    },
+    "%d min daneben": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d min off the route"
+          }
+        }
+      }
+    },
+    "%d min vorher": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d min before"
+          }
+        }
+      }
+    },
+    "%d offen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d open"
+          }
+        }
+      }
+    },
+    "%d s ohne Berührung": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d s without a touch"
+          }
+        }
+      }
+    },
+    "%d von %d": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d of %d"
+          }
+        }
+      }
+    },
+    "%d/%d Ampeln": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d/%d lights"
+          }
+        }
+      }
+    },
+    "%d× quer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d crossings"
+          }
+        }
+      }
+    },
+    "%d× umsteigen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d changes"
+          }
+        }
+      }
+    },
+    "%d× · %@ · Ø %@ · %d Ampeln": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d× · %@ · avg %@ · %d lights"
+          }
+        }
+      }
+    },
+    "1× umsteigen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 change"
+          }
+        }
+      }
+    },
+    "ABGEFAHREN": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DEPARTED"
+          }
+        }
+      }
+    },
+    "Abbrechen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        }
+      }
+    },
+    "Abfahrt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Departure"
+          }
+        }
+      }
+    },
+    "Abfahrt oder Ankunft": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Departure or arrival"
+          }
+        }
+      }
+    },
+    "Abspielen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Play"
+          }
+        }
+      }
+    },
+    "Adresse nicht gefunden": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Address not found"
+          }
+        }
+      }
+    },
+    "Adresse oder Ort": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Address or place"
+          }
+        }
+      }
+    },
+    "Adressen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Addresses"
+          }
+        }
+      }
+    },
+    "Aktualisieren": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refreshing"
+          }
+        }
+      }
+    },
+    "Alle Fixpunkte verlangen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Require every fixed point"
+          }
+        }
+      }
+    },
+    "Alle Zeiten ohne Gewähr.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All times without guarantee."
+          }
+        }
+      }
+    },
+    "Alternative": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alternative"
+          }
+        }
+      }
+    },
+    "Alternative mit U-Bahn/Tram — kein festes Radabteil": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alternative by metro/tram — no dedicated bike space"
+          }
+        }
+      }
+    },
+    "Ampel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Light"
+          }
+        }
+      }
+    },
+    "Ampelhalt ab %d s": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Counts as a light from %d s"
+          }
+        }
+      }
+    },
+    "Ampelhalts": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Light stops"
+          }
+        }
+      }
+    },
+    "Ampeln / Plan": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lights / plan"
+          }
+        }
+      }
+    },
+    "Ampeln unbekannt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lights unknown"
+          }
+        }
+      }
+    },
+    "Ampeln und Hauptstraßen auf dieser Länge nicht gezählt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traffic lights and main roads not counted over this distance"
+          }
+        }
+      }
+    },
+    "Ampeln und Hauptstraßen unbekannt — OpenStreetMap antwortete nicht, wird im Hintergrund nachgeholt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traffic lights and main roads unknown — OpenStreetMap did not answer; retried in the background"
+          }
+        }
+      }
+    },
+    "Ampeln, Straßen und Kartendaten: © OpenStreetMap-Mitwirkende, ODbL 1.0, abgefragt über die Overpass API.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traffic lights, roads and map data: © OpenStreetMap contributors, ODbL 1.0, queried through the Overpass API."
+          }
+        }
+      }
+    },
+    "Ampelwartezeit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time at lights"
+          }
+        }
+      }
+    },
+    "An %d %% der Ampeln gehalten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stopped at %d %% of the lights"
+          }
+        }
+      }
+    },
+    "Angekommen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrived"
+          }
+        }
+      }
+    },
+    "Anhalten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause"
+          }
+        }
+      }
+    },
+    "Ankunft": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrival"
+          }
+        }
+      }
+    },
+    "Anleitung": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guide"
+          }
+        }
+      }
+    },
+    "Antippen öffnet die Route im Detail — Zeitstrahl mit Bahnsteigen, Verspätungen und Radabschnitten.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap it to open the route in detail — a timeline with platforms, delays and bike legs."
+          }
+        }
+      }
+    },
+    "Arbeit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Work"
+          }
+        }
+      }
+    },
+    "Auf der Hauptseite eine Verbindung wählen und „Fahrt aufzeichnen“ antippen. Was aufgezeichnet wurde, steht danach hier.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick a trip on the main screen and tap “Record ride”. Whatever was recorded shows up here."
+          }
+        }
+      }
+    },
+    "Auf der Karte einer gefahrenen Fahrt sind die Ampeln gelb markiert und tragen ihre Wartezeit; andere Halte stehen klein und grau daneben.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On the map of a recorded ride the traffic lights are marked yellow and carry their waiting time; other stops sit beside them, small and grey."
+          }
+        }
+      }
+    },
+    "Auf diesem Gerät. Andere Geräte behalten sie, bis du sie auch dort löschst.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On this device. Other devices keep it until you delete it there too."
+          }
+        }
+      }
+    },
+    "Ausrichtung": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Orientation"
+          }
+        }
+      }
+    },
+    "Ausrichtung: %@. Tippen für %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Orientation: %@. Tap for %@."
+          }
+        }
+      }
+    },
+    "Auto": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Car"
+          }
+        }
+      }
+    },
+    "Automatisch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic"
+          }
+        }
+      }
+    },
+    "Autoroute: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Car route: %@"
+          }
+        }
+      }
+    },
+    "Autorouten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Car routes"
+          }
+        }
+      }
+    },
+    "BRouter: unerwartete Antwort": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BRouter: unexpected response"
+          }
+        }
+      }
+    },
+    "Behalten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep"
+          }
+        }
+      }
+    },
+    "Bei der Arbeit sein um": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Be at work by"
+          }
+        }
+      }
+    },
+    "Beide Adressen löschen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete both addresses"
+          }
+        }
+      }
+    },
+    "Beide Werte schreibt die App nach jeder Fahrt selbst fort, aus dem Median der letzten Fahrten. Und sobald es genug Fahrten gibt, gilt für die angezeigte Radzeit dein gemessener Tür-zu-Tür-Schnitt — ob er langsamer oder schneller ist als die Rechnung. Welche der Linien die schnellste ist, entscheidet weiter die Rechnung: nur sie kennt den Unterschied zwischen zwei und dreißig Ampeln.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The app keeps both values up to date after every ride, from the median of the recent ones. And as soon as there are enough rides, the bike time shown comes from your measured door-to-door average — whether it is slower or faster than the calculation. Which of the routes is the fastest is still decided by the calculation: only it knows the difference between two and thirty traffic lights."
+          }
+        }
+      }
+    },
+    "Beide vergessen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forget both"
+          }
+        }
+      }
+    },
+    "Beim Rad gibt es „verkehrsarm“ zusätzlich zu „ruhigst“: „ruhigst“ zählt auch Ampeln und Querungen, „verkehrsarm“ fragt nur, wo die Autos sind.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For bikes there is “low traffic” next to “quietest”: “quietest” also counts lights and crossings, “low traffic” only asks where the cars are."
+          }
+        }
+      }
+    },
+    "Beim Sortieren und Empfehlen wird jeder Umstieg wie so viele Minuten längere Fahrt gewertet. Eine direkte Verbindung gewinnt also, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When sorting and recommending, every change counts as this many extra minutes of travel. A direct connection therefore wins unless the one with a change arrives more than that earlier."
+          }
+        }
+      }
+    },
+    "Berechnet %@. Tippen für neu berechnen.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Computed %@. Tap to plan again."
+          }
+        }
+      }
+    },
+    "Bildschirm abdunkeln nach": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dim the screen after"
+          }
+        }
+      }
+    },
+    "Bus & Bahn": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transit"
+          }
+        }
+      }
+    },
+    "Countdown": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Countdown"
+          }
+        }
+      }
+    },
+    "Countdown ausgeschaltet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Countdown switched off"
+          }
+        }
+      }
+    },
+    "Dabei zählt jede Aufzeichnung auch, wo sie ohne Halt durchgekommen ist. Eine gelernte Kreuzung kostet beim Planen deshalb nicht den eingestellten Mittelwert, sondern das, was sie dich im Schnitt wirklich gekostet hat — über alle Vorbeifahrten, nicht nur über die Male mit Rot.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every recording also counts where it got through without stopping. A learned junction therefore costs the plan not the configured average, but what it has really cost you on average — across every pass, not only the ones with a red light."
+          }
+        }
+      }
+    },
+    "Darunter: das Höhenprofil der Fahrt, und was angekündigt war — Ampeln und Schnitt gegen das, was daraus wurde.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Below that: the elevation profile of the ride, and what was announced — lights and average against what came of it."
+          }
+        }
+      }
+    },
+    "Das plant alles neu — auch die Warnungen werden auf den neuen Fahrplan gesetzt. Findet die Suche nichts, bleiben die alten Warnungen scharf.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That plans everything again — the warnings are set to the new timetable as well. If the search finds nothing, the old warnings stay armed."
+          }
+        }
+      }
+    },
+    "Dasselbe fürs Auto. Apple Karten liefert meist zwei oder drei Linien; welche davon oben steht, entscheidet diese Liste.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The same for the car. Apple Maps usually offers two or three routes; this list decides which one comes first."
+          }
+        }
+      }
+    },
+    "Daten, Rechte und Version": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data, rights and version"
+          }
+        }
+      }
+    },
+    "Datenquellen: VBB · Transitous/MOTIS · Apple Karten · BRouter und OpenStreetMap · DWD · Open-Meteo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data: VBB · Transitous/MOTIS · Apple Maps · BRouter and OpenStreetMap · DWD · Open-Meteo"
+          }
+        }
+      }
+    },
+    "Datenschutz": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privacy"
+          }
+        }
+      }
+    },
+    "Der Abbiegepfeil ist grün und kommt erst 250 m vor der Abbiegung — ein Pfeil, der zwei Kilometer lang „rechts“ sagt, sieht man nicht mehr an, wenn es so weit ist. Rot ist nur eines: dass du neben der Route bist.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The turn arrow is green and only appears 250 m before the turn — an arrow that says “right” for two kilometres is no longer looked at when the moment comes. Red means one thing only: you are off the route."
+          }
+        }
+      }
+    },
+    "Der Abfahrtspuffer verschiebt das Losgehen nach vorn, der Ankunftspuffer lässt die Verbindung früher ankommen. Beide zählen nicht zur angezeigten Fahrzeit.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The departure buffer moves setting off earlier, the arrival buffer makes the trip arrive earlier. Neither counts towards the travel time shown."
+          }
+        }
+      }
+    },
+    "Der Countdown oben rechts zählt bis zum Losgehen für Bahn und Bus — und bei „Ankunft um …“ für jede Fahrt. Warnungen kommen als Mitteilung, auch wenn die App zu ist; bei offener App zusätzlich als Ton.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The countdown at the top right counts down to setting off for trains and buses — and with “arrive by …” for every trip. Warnings arrive as notifications even when the app is closed; with the app open there is a sound as well."
+          }
+        }
+      }
+    },
+    "Der Knopf daneben hält die Ausrichtung fest — automatisch, hochkant, querformat. Am Lenker will man keine Karte, die sich in der Kurve dreht.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The button beside it locks the orientation — automatic, portrait, landscape. On a handlebar nobody wants a map that turns in a corner."
+          }
+        }
+      }
+    },
+    "Der Pfeil daneben dreht die Richtung um.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The arrow beside them swaps the direction."
+          }
+        }
+      }
+    },
+    "Der Schalter unten links auf der Karte zeigt das DWD-Radar. Rechts steht, welche Minute zu sehen ist — „jetzt 14:48“, „in 25 min 15:10“. Ein kleiner Kreisel daneben heißt: Bilder laden noch.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The switch at the bottom left of the map shows the DWD radar. On the right it says which minute you are looking at — “now 14:48”, “in 25 min 15:10”. A small spinner beside it means frames are still loading."
+          }
+        }
+      }
+    },
+    "Der gelbe Stern steht an dem, was die App empfiehlt.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The yellow star marks what the app recommends."
+          }
+        }
+      }
+    },
+    "Der grüne Knopf rechts neben der gewählten Fahrt zeichnet auf, was du wirklich fährst: Strecke, Geschwindigkeit, Ampelhalts.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The green button beside the chosen trip records what you actually ride: distance, speed, stops at lights."
+          }
+        }
+      }
+    },
+    "Der rote Kasten erscheint nur, wenn es eine feste Abfahrt gibt: bei Bahn und Bus, oder wenn eine Ankunftszeit gesetzt ist.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The red box only appears when there is a fixed departure: for trains and buses, or when an arrival time is set."
+          }
+        }
+      }
+    },
+    "Die Ampelzeile zählt „gehalten von geplant“ und läuft sekündlich mit, solange du stehst; die gelben Punkte auf der Karte sind die Ampeln, die die Planung kennt.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The traffic-light line counts “stopped of planned” and ticks along by the second while you stand; the yellow dots on the map are the lights the plan knows about."
+          }
+        }
+      }
+    },
+    "Die App wird ohne Adressen ausgeliefert. Start und Ziel bleiben nur auf diesem Gerät gespeichert. Mit einem angemeldeten iCloud-Konto gleichen sie sich mit deinen anderen Geräten ab.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The app ships without addresses. Start and destination stay on this device only. With an iCloud account signed in they sync with your other devices."
+          }
+        }
+      }
+    },
+    "Die App wird ohne Adressen ausgeliefert. Start, Ziel, die benutzten Adressen und alle Einstellungen gleichen sich über deine iCloud mit deinen anderen Geräten ab. Zum Planen gehen die Koordinaten von Start und Ziel an die Dienste, die die Strecke rechnen (VBB, Transitous, BRouter, Apple Karten, Open-Meteo) — ohne Namen und ohne Adresstext. Sonst verlässt nichts davon deine Geräte und deine iCloud.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The app ships without addresses. Start, destination, the addresses you have used and all settings sync with your other devices through your own iCloud. For planning, the coordinates of start and destination go to the services that compute the route (VBB, Transitous, BRouter, Apple Maps, Open-Meteo) — without any name or address text. Nothing else leaves your devices and your iCloud."
+          }
+        }
+      }
+    },
+    "Die Aufzeichnung wird gespeichert und die Ortung hört auf.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The recording is saved and location tracking stops."
+          }
+        }
+      }
+    },
+    "Die Ausrichtung, die du im Fahrtmodus wählst, gilt ab dann für jede Fahrt. Nach „Fahrt beenden“ dreht sich die App wieder wie jede andere.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The orientation you pick while riding applies to every ride from then on. After “End ride” the app turns like any other again."
+          }
+        }
+      }
+    },
+    "Die Karte geht auf ganze Seite und folgt dir; die gefahrene Linie färbt sich nach Tempo — rot unter 8, grün über 26 km/h. Ein Wisch über die Karte löst das Folgen, der Knopf oben links schaltet es wieder ein.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The map takes the whole screen and follows you; the track is coloured by speed — red below 8, green above 26 km/h. A swipe across the map releases the following, the button at the top left switches it back on."
+          }
+        }
+      }
+    },
+    "Die Linien bleiben auf dem Gerät: dein iCloud-Speicher ist voll.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tracks stay on this device: your iCloud storage is full."
+          }
+        }
+      }
+    },
+    "Die Linien bleiben auf dem Gerät: keine Apple-ID angemeldet.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tracks stay on this device: no Apple ID signed in."
+          }
+        }
+      }
+    },
+    "Die Linien reisen gerade nicht in deine iCloud (%@).": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your tracks are not reaching iCloud right now (%@)."
+          }
+        }
+      }
+    },
+    "Die Linien reisen gerade nicht in deine iCloud.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your tracks are not reaching iCloud right now."
+          }
+        }
+      }
+    },
+    "Die Linien reisen nicht: iCloud kennt den Datensatztyp nicht (Schema nicht übernommen).": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tracks are not travelling: iCloud does not know the record type (schema not deployed)."
+          }
+        }
+      }
+    },
+    "Die Linien reisen, sobald wieder Netz da ist.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your tracks will travel as soon as there is a connection again."
+          }
+        }
+      }
+    },
+    "Die Ortung läuft nur zwischen „Fahrt“ und „Fahrt beenden“, auch in der Tasche (iOS zeigt dabei die blaue Leiste). Danach hört sie auf.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Location tracking runs only between “Ride” and “End ride”, including in your pocket (iOS shows the blue bar meanwhile). Afterwards it stops."
+          }
+        }
+      }
+    },
+    "Die Rüstzeit ist die Zeit vom Blick auf die App bis zum Losgehen; sie steckt in „los …“.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparation time is the time between looking at the app and walking out; it is included in “leave …”."
+          }
+        }
+      }
+    },
+    "Die Uhr zeigt dieselben Zahlen, solange das iPhone in Reichweite ist — sie rechnet nichts selbst.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The watch shows the same numbers as long as the iPhone is in range — it computes nothing itself."
+          }
+        }
+      }
+    },
+    "Die Warnungen (Einstellungen → Countdown) kommen als Mitteilung aufs Sperrbild, auch wenn die App zu ist; bei offener App zusätzlich als Ton.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The warnings (Settings → Countdown) arrive as notifications on the lock screen, even when the app is closed; with the app open there is a sound as well."
+          }
+        }
+      }
+    },
+    "Die Zahlen dieser Fahrt sind da, die gefahrene Linie nicht: entweder wurde sie vor 1.3 auf einem anderen Gerät aufgezeichnet, oder sie ist gerade nicht aus iCloud zu holen.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The numbers of this ride are here, the track is not: either it was recorded on another device before 1.3, or it cannot be fetched from iCloud right now."
+          }
+        }
+      }
+    },
+    "Die Zahlen jeder Fahrt gehen über deine eigene iCloud auf deine anderen Geräte, die gefahrene Linie seit 1.3 ebenfalls — in deine private CloudKit-Datenbank, die außer dir niemand lesen kann. Nach links wischen löscht eine Fahrt — auf diesem Gerät.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The numbers of every ride travel to your other devices through your own iCloud, and since 1.3 the track does too — into your private CloudKit database, which nobody but you can read. Swipe left to delete a ride — on this device."
+          }
+        }
+      }
+    },
+    "Die Zeile darunter": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The line below"
+          }
+        }
+      }
+    },
+    "Die gewählte Fahrt liegt farbig oben, die anderen blass darunter. Ein Tipp auf ein Schild in der Karte wählt diese Fahrt.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The chosen trip is drawn in colour on top, the others pale below. Tapping a label on the map selects that trip."
+          }
+        }
+      }
+    },
+    "Die große Zahl ist dein aktuelles Tempo, in der Farbe, in der die Linie gerade gezeichnet wird. Der Pfeil auf der Karte zeigt immer dahin, wo du hinfährst.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The large number is your current speed, in the colour the line is being drawn in. The arrow on the map always points the way you are heading."
+          }
+        }
+      }
+    },
+    "Die vier Boxen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The four boxes"
+          }
+        }
+      }
+    },
+    "Diese Vorschläge stehen oben neben „Jetzt“ zur Wahl — relativ („in 15 min“) oder als Uhrzeit („um 8 Uhr“, heute oder morgen).": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "These choices sit next to “Now” at the top — relative (“in 15 min”) or as a clock time (“at 8”, today or tomorrow)."
+          }
+        }
+      }
+    },
+    "Diese zwei bekommen überall ein Zeichen — in der Adresssuche, in der Liste der benutzten Adressen und oben auf der Hauptseite — und stehen in der Suche ganz oben. Fahrten zur Arbeit starten mit „Ankunft um …“, Fahrten nach Hause mit „Abfahrt jetzt“; von Hand umschaltbar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "These two are marked everywhere — in the address search, in the list of used addresses and at the top of the main screen — and appear first in the search. Trips to work start with “arrive by …”, trips home with “leave now”; switchable by hand."
+          }
+        }
+      }
+    },
+    "Du": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You"
+          }
+        }
+      }
+    },
+    "Du standst länger als %d Minuten an derselben Stelle — die Aufzeichnung ist gespeichert.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You stood in the same spot for more than %d minutes — the recording has been saved."
+          }
+        }
+      }
+    },
+    "Ein Doppeltipp auf die Box setzt die Pendelstrecke ein: dein Standort als Start, Zuhause oder Arbeit als Ziel. Welches von beidem, entscheidet der Ort — und wenn keiner passt, die Uhrzeit.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A double tap on the box fills in your commute: your location as the start, home or work as the destination. Which of the two depends on where you are — and if neither fits, on the time of day."
+          }
+        }
+      }
+    },
+    "Ein Halt zählt ab fünf Sekunden Stillstand. Als Ampelhalt zählt er, wenn er an einer Ampelkreuzung der geplanten Route liegt — oder wenn er länger als 30 Sekunden dauert, denn so lange steht niemand ohne Grund. Die Schwelle steht in den Einstellungen. Das Stehen vor der ersten Kurbelumdrehung und das Stehen nach der Ankunft zählen nie als Ampel: das ist die eigene Haustür, keine Kreuzung.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A stop counts from five seconds of standing still. It counts as a stop at a light if it lies at a signalised junction of the planned route — or if it lasts longer than 30 seconds, because nobody stands that long for no reason. The threshold is in the settings. Standing before the first pedal stroke and standing after arriving never count as a light: that is your own front door, not a junction."
+          }
+        }
+      }
+    },
+    "Ein Tipp auf die Zeit springt zurück auf jetzt.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tapping the time jumps back to now."
+          }
+        }
+      }
+    },
+    "Ein Tipp wählt die Box aus, der nächste Tipp schaltet zur nächsten Möglichkeit. Die Punkte unter der Zeit zeigen, wie viele es sind.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One tap selects the box, the next tap steps to the next option. The dots below the time show how many there are."
+          }
+        }
+      }
+    },
+    "Eine Fahrt antippen zeigt die gefahrene Linie, jede Zahl dazu und die längsten Halte. Die geplante Route liegt dünn und grau daneben — der Unterschied ist die eigentliche Auskunft.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tapping a ride shows the track, every number belonging to it and the longest stops. The planned route lies thin and grey beside it — the difference is the real answer."
+          }
+        }
+      }
+    },
+    "Eine Fahrt beginnt quer. Stellst du es während der Fahrt um, gilt das ab dann für jede.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A ride starts in landscape. Change it during a ride and that is how every ride starts from then on."
+          }
+        }
+      }
+    },
+    "Einstellungen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
+          }
+        }
+      }
+    },
+    "Er zählt bis zum Losgehen — Abfahrt minus Rüstzeit —, unter 10 Minuten sekundengenau.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It counts down to setting off — departure minus preparation — and to the second below 10 minutes."
+          }
+        }
+      }
+    },
+    "Fahrplan": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timetable"
+          }
+        }
+      }
+    },
+    "Fahrplan und Echtzeit: VBB Verkehrsverbund Berlin-Brandenburg (HAFAS-Fahrinfo).": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timetable and real time: VBB Verkehrsverbund Berlin-Brandenburg (HAFAS Fahrinfo)."
+          }
+        }
+      }
+    },
+    "Fahrplanquelle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timetable source"
+          }
+        }
+      }
+    },
+    "Fahrrad": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bike"
+          }
+        }
+      }
+    },
+    "Fahrrad, Rad + Bahn, Auto, Bus & Bahn — jede Box zeigt die Fahrzeit und worum es sich handelt: bei Radrouten schnellst, kürzest, optimal oder ruhigst, bei Verbindungen die Abfahrt.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bike, bike + rail, car, transit — each box shows the travel time and what it is: for bike routes fastest, shortest, balanced or quietest; for connections the departure."
+          }
+        }
+      }
+    },
+    "Fahrradmitnahme": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bike carriage"
+          }
+        }
+      }
+    },
+    "Fahrradmitnahme möglich": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bikes allowed"
+          }
+        }
+      }
+    },
+    "Fahrradmitnahme ungeklärt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bike carriage unclear"
+          }
+        }
+      }
+    },
+    "Fahrradmitnahme ungeklärt: %@ — in den Einstellungen unter „Fahrradmitnahme“ festlegen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bike carriage unclear: %@ — set it under “Bike carriage” in the settings"
+          }
+        }
+      }
+    },
+    "Fahrt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ride"
+          }
+        }
+      }
+    },
+    "Fahrt anhalten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause the ride"
+          }
+        }
+      }
+    },
+    "Fahrt aufzeichnen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record ride"
+          }
+        }
+      }
+    },
+    "Fahrt beenden": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End ride"
+          }
+        }
+      }
+    },
+    "Fahrt beenden?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End the ride?"
+          }
+        }
+      }
+    },
+    "Fahrt beendet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ride ended"
+          }
+        }
+      }
+    },
+    "Fahrt fortsetzen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume the ride"
+          }
+        }
+      }
+    },
+    "Fahrt läuft": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ride in progress"
+          }
+        }
+      }
+    },
+    "Fahrt löschen?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete this ride?"
+          }
+        }
+      }
+    },
+    "Fahrten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rides"
+          }
+        }
+      }
+    },
+    "Fahrten von Transitous; Radzeiten nach deren Schätzung": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trips from Transitous; bike times are their estimate"
+          }
+        }
+      }
+    },
+    "Fahrzeit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ride time"
+          }
+        }
+      }
+    },
+    "Fahrzeit %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ride time %@"
+          }
+        }
+      }
+    },
+    "Fahrzeit laut Apple Karten mit Verkehrslage": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Travel time from Apple Maps, traffic included"
+          }
+        }
+      }
+    },
+    "Fahrzeiten mit dem Rad rechnen sich aus der rollenden Geschwindigkeit plus Wartezeit je Ampelkreuzung plus fünf Sekunden je Höhenmeter — Tempo und Wartezeit stehen in den Einstellungen. Wo eigene Fahrten eine Kreuzung schon kennen, gilt deren gemessene Zeit statt der eingestellten.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bike times come from the rolling speed plus the waiting time per signalised junction plus five seconds per metre of climb — speed and waiting time are in the settings. Where your own rides already know a junction, its measured time counts instead of the configured one."
+          }
+        }
+      }
+    },
+    "Farbskala der Geschwindigkeit, rot unter 8 bis grün über 26 km/h": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speed scale, red below 8 to green above 26 km/h"
+          }
+        }
+      }
+    },
+    "Fertig": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done"
+          }
+        }
+      }
+    },
+    "Fixpunkt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fixed point"
+          }
+        }
+      }
+    },
+    "Fixpunkt hinzufügen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a fixed point"
+          }
+        }
+      }
+    },
+    "Fixpunkte": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fixed points"
+          }
+        }
+      }
+    },
+    "Fixpunkte (Einstellungen) sind Orte, über die die Strecke führen soll; Verbindungen ohne sie werden ausgegraut und nie empfohlen.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fixed points (Settings) are places the route should pass; connections without them are greyed out and never recommended."
+          }
+        }
+      }
+    },
+    "Fragen, Fehler und Vorschläge gehen über die Support-Seite. Dort steht auch, was dabei hilft: Gerät, Version, Strecke und was die App gezeigt hat.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questions, bugs and ideas go through the support page. It also says what helps: device, version, route and what the app showed."
+          }
+        }
+      }
+    },
+    "Fußweg": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Footpath"
+          }
+        }
+      }
+    },
+    "Fällt aus": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelled"
+          }
+        }
+      }
+    },
+    "Für Linien, die noch in keiner Verbindung vorkamen.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For lines that have not appeared in a connection yet."
+          }
+        }
+      }
+    },
+    "Gefahrene Fahrten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rides you took"
+          }
+        }
+      }
+    },
+    "Gelbe Punkte sind vermutete Ampelkreuzungen der gewählten Radroute — aus OpenStreetMap und aus dem, was deine eigenen Fahrten gelernt haben.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yellow dots are presumed signalised junctions on the chosen bike route — from OpenStreetMap and from what your own rides have learned."
+          }
+        }
+      }
+    },
+    "Gelernte Ampeln": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Learned traffic lights"
+          }
+        }
+      }
+    },
+    "Gelernte Ampeln vergessen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forget learned traffic lights"
+          }
+        }
+      }
+    },
+    "Gemessen aus %d Fahrten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Measured from %d rides"
+          }
+        }
+      }
+    },
+    "Gesamtschnitt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Overall average"
+          }
+        }
+      }
+    },
+    "Gesehene Linien": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lines seen so far"
+          }
+        }
+      }
+    },
+    "Gl. %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pl. %@"
+          }
+        }
+      }
+    },
+    "Halt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop"
+          }
+        }
+      }
+    },
+    "Halte": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stops"
+          }
+        }
+      }
+    },
+    "Hauptstraße": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Main road"
+          }
+        }
+      }
+    },
+    "Hilfe und Rechtliches": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Help and legal"
+          }
+        }
+      }
+    },
+    "Hilfe und Rückmeldung": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Help and feedback"
+          }
+        }
+      }
+    },
+    "Hinzufügen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add"
+          }
+        }
+      }
+    },
+    "Hochkant": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Portrait"
+          }
+        }
+      }
+    },
+    "Höhe": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elevation"
+          }
+        }
+      }
+    },
+    "Höhenprofil, %d Höhenmeter bergauf": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elevation profile, %d metres of climbing"
+          }
+        }
+      }
+    },
+    "Im Detail einer Radroute zeigt ein Balken, wie viele Kilometer auf Hauptstraße, Nebenstraße, Radweg, Weg und Fußweg liegen. Derselbe Balken steht bei jeder aufgezeichneten Fahrt — dort für die Strecke, die du wirklich gefahren bist.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In the detail of a bike route a bar shows how many kilometres run on main roads, side streets, bike paths, tracks and footpaths. The same bar appears for every recorded ride — there for the way you actually rode."
+          }
+        }
+      }
+    },
+    "In %d min los": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave in %d min"
+          }
+        }
+      }
+    },
+    "Ist das Ziel die Arbeitsadresse (Einstellungen → Arbeitsweg), startet die Suche mit „Ankunft“, sonst mit „Abfahrt jetzt“.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If the destination is your work address (Settings → commute), the search starts with “Arrival”, otherwise with “Departure now”."
+          }
+        }
+      }
+    },
+    "Jetzt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Now"
+          }
+        }
+      }
+    },
+    "Jetzt los": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave now"
+          }
+        }
+      }
+    },
+    "KEINE ABFAHRT": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NO DEPARTURE"
+          }
+        }
+      }
+    },
+    "Karte": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Map"
+          }
+        }
+      }
+    },
+    "Karte folgt dir": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Map is following you"
+          }
+        }
+      }
+    },
+    "Karte folgt dir nicht, kommt in 30 Sekunden zurück": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Map is not following you, returns in 30 seconds"
+          }
+        }
+      }
+    },
+    "Karten, Adresssuche und Autorouten: Apple Karten. © Apple Inc. und Mitwirkende.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maps, address search and car routes: Apple Maps. © Apple Inc. and contributors."
+          }
+        }
+      }
+    },
+    "Kein Bahnhof mit Radmitnahme im Umkreis von %d km": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No station that takes bikes within %d km"
+          }
+        }
+      }
+    },
+    "Kein Plan": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No plan"
+          }
+        }
+      }
+    },
+    "Keine Linie": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No track"
+          }
+        }
+      }
+    },
+    "Keine Radroute gefunden (Apple Karten und BRouter)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No bike route found (Apple Maps and BRouter)"
+          }
+        }
+      }
+    },
+    "Keine feste Abfahrt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No fixed departure"
+          }
+        }
+      }
+    },
+    "LOS IN": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LEAVE IN"
+          }
+        }
+      }
+    },
+    "LOSGEHEN": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GO NOW"
+          }
+        }
+      }
+    },
+    "Lang drücken springt zurück auf die erste und damit beste Möglichkeit dieser Box.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press and hold to jump back to the first — and therefore best — option in that box."
+          }
+        }
+      }
+    },
+    "Langes Drücken irgendwo auf der Karte holt die ganze Strecke wieder ins Bild.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press and hold anywhere on the map to bring the whole route back into view."
+          }
+        }
+      }
+    },
+    "Linie, z. B. RE 7": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Line, e.g. RE 7"
+          }
+        }
+      }
+    },
+    "Linienführung und Fahrzeit von Apple Karten, Ampeln aus OpenStreetMap": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Route and time from Apple Maps, traffic lights from OpenStreetMap"
+          }
+        }
+      }
+    },
+    "Losgehen in %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave in %@"
+          }
+        }
+      }
+    },
+    "Löschen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        }
+      }
+    },
+    "Mein Standort": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "My location"
+          }
+        }
+      }
+    },
+    "Menü": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menu"
+          }
+        }
+      }
+    },
+    "Menü → Fahrten: alle Aufzeichnungen, nach Jahren und Monaten. Die Überschrift eines Monats zeigt Kilometer, Schnitt und Ampelhalts dieses Monats.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menu → Rides: every recording, by year and month. A month heading shows that month's kilometres, average and stops at lights."
+          }
+        }
+      }
+    },
+    "Mitteilungen sind aus — in den iOS-Einstellungen erlauben": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notifications are off — allow them in iOS Settings"
+          }
+        }
+      }
+    },
+    "Möglichkeiten je Verkehrsmittel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Options per mode"
+          }
+        }
+      }
+    },
+    "Nach Zoomen oder Schieben kommt die Karte 30 Sekunden später von selbst zu dir zurück. Der Knopf oben links schaltet das Folgen von Hand.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After zooming or panning the map comes back to you by itself 30 seconds later. The button at the top left switches following by hand."
+          }
+        }
+      }
+    },
+    "Navigation": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Navigation"
+          }
+        }
+      }
+    },
+    "Nebenstraße": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Side street"
+          }
+        }
+      }
+    },
+    "Neu berechnen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recalculate"
+          }
+        }
+      }
+    },
+    "Neu berechnen ab": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recalculate after"
+          }
+        }
+      }
+    },
+    "Noch %@, Ankunft %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ to go, arriving %@"
+          }
+        }
+      }
+    },
+    "Noch keine Adresse": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No address yet"
+          }
+        }
+      }
+    },
+    "Noch keine Fahrt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No rides yet"
+          }
+        }
+      }
+    },
+    "Noch keine Linie. Sobald die App eine Verbindung mit Bahn oder Bus findet, stehen deren Linien hier.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No lines yet. As soon as the app finds a connection by train or bus, its lines appear here."
+          }
+        }
+      }
+    },
+    "Noch keine gemessenen Fahrten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No measured rides yet"
+          }
+        }
+      }
+    },
+    "Nochmal tippen für die nächste von %d Möglichkeiten, lang drücken für die beste": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap again for the next of %d options, press and hold for the best one"
+          }
+        }
+      }
+    },
+    "Norden": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "north"
+          }
+        }
+      }
+    },
+    "Nordosten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "north-east"
+          }
+        }
+      }
+    },
+    "Nordwesten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "north-west"
+          }
+        }
+      }
+    },
+    "Nur die Route von Apple Karten — BRouter antwortet gerade nicht": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Maps route only — BRouter is not answering right now"
+          }
+        }
+      }
+    },
+    "Nächste Abbiegung %@ in %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next turn %@ in %@"
+          }
+        }
+      }
+    },
+    "Nächste Möglichkeit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next option"
+          }
+        }
+      }
+    },
+    "Oben auf die beiden Zeilen tippen und die Adresse suchen. Beide bleiben nur auf diesem Gerät.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the two lines at the top and search for the address. Both stay on this device only."
+          }
+        }
+      }
+    },
+    "Oben auf die beiden Zeilen tippen. Die Adressen bleiben auf diesem Gerät.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the two lines above. The addresses stay on this device."
+          }
+        }
+      }
+    },
+    "Oben im roten Band steht, was als Nächstes kommt und in wie vielen Metern. Die Kurven rechnet die App aus der geplanten Linie — es sind Hinweise, keine Navigation, und sie sagt nichts an.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The red banner at the top says what comes next and in how many metres. The turns are computed from the planned line — they are hints, not navigation, and nothing is spoken."
+          }
+        }
+      }
+    },
+    "OpenStreetMap-Daten: unerwartete Antwort": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenStreetMap data: unexpected response"
+          }
+        }
+      }
+    },
+    "Ortung ist für RadPendler nicht erlaubt — in den iOS-Einstellungen freigeben.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RadPendler is not allowed to use your location — enable it in iOS Settings."
+          }
+        }
+      }
+    },
+    "Ortung ist für RadPendler nicht erlaubt — in den iOS-Einstellungen unter Datenschutz freigeben.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RadPendler is not allowed to use your location — enable it under Privacy in iOS Settings."
+          }
+        }
+      }
+    },
+    "Osten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "east"
+          }
+        }
+      }
+    },
+    "Parkplatzsuche: %d min": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finding a parking space: %d min"
+          }
+        }
+      }
+    },
+    "Pause": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause"
+          }
+        }
+      }
+    },
+    "Pause · %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paused · %@"
+          }
+        }
+      }
+    },
+    "Pendelstrecke einsetzen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use my commute"
+          }
+        }
+      }
+    },
+    "Play läuft die Bilder durch; der lila Punkt zeigt, wo man zu dieser Minute auf der Strecke wäre.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Play runs through the frames; the purple dot shows where you would be on the route at that minute."
+          }
+        }
+      }
+    },
+    "Puffer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buffers"
+          }
+        }
+      }
+    },
+    "Puffer am Bahnhof: %d min": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buffer at the station: %d min"
+          }
+        }
+      }
+    },
+    "Puffer vor der Abfahrt: %d min": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buffer before departure: %d min"
+          }
+        }
+      }
+    },
+    "Puffer vor der Ankunft: %d min": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buffer before arrival: %d min"
+          }
+        }
+      }
+    },
+    "Punkte, über die die Strecke führen soll, z. B. „S Ostkreuz“ oder „Berlin Hauptbahnhof“. Verbindungen, die nicht daran vorbeikommen, werden ausgegraut ans Ende gestellt und nie empfohlen. Ohne Fixpunkte gilt keine Einschränkung.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Places the route should pass, e.g. “S Ostkreuz” or “Berlin Hauptbahnhof”. Connections that miss them are greyed out at the end and never recommended. Without fixed points nothing is restricted."
+          }
+        }
+      }
+    },
+    "Quelltext auf GitHub": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source code on GitHub"
+          }
+        }
+      }
+    },
+    "Querformat": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Landscape"
+          }
+        }
+      }
+    },
+    "Rad": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bike"
+          }
+        }
+      }
+    },
+    "Rad + Bahn": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bike + rail"
+          }
+        }
+      }
+    },
+    "Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet; S-Bahn und Regionalzug zuerst, U-Bahn und Tram nur als markierte Alternative.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bike + rail only takes trains the VBB service says carry bikes; suburban and regional trains first, metro and tram only as a marked alternative."
+          }
+        }
+      }
+    },
+    "Rad in die Bahn ab": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bike on the train from"
+          }
+        }
+      }
+    },
+    "Rad ja": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bike yes"
+          }
+        }
+      }
+    },
+    "Rad nein": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bike no"
+          }
+        }
+      }
+    },
+    "Rad ungeklärt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bike unclear"
+          }
+        }
+      }
+    },
+    "Rad+Bahn": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bike+rail"
+          }
+        }
+      }
+    },
+    "RadPendler auf dem iPhone öffnen — der Plan kommt von dort.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open RadPendler on the iPhone — the plan comes from there."
+          }
+        }
+      }
+    },
+    "Radarbilder werden geladen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading radar frames"
+          }
+        }
+      }
+    },
+    "Radroute: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bike route: %@"
+          }
+        }
+      }
+    },
+    "Radrouten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bike routes"
+          }
+        }
+      }
+    },
+    "Radrouten: BRouter (brouter.de), auf Basis von OpenStreetMap.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bike routes: BRouter (brouter.de), based on OpenStreetMap."
+          }
+        }
+      }
+    },
+    "Radweg": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bike path"
+          }
+        }
+      }
+    },
+    "Radweg zum Bahnhof: bis %@ km": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ride to the station: up to %@ km"
+          }
+        }
+      }
+    },
+    "Regen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "rain"
+          }
+        }
+      }
+    },
+    "Regen auf der Radstrecke%@ — Rad in die Bahn": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rain on the bike route%@ — bike goes on the train"
+          }
+        }
+      }
+    },
+    "Regen entlang der Strecke: Open-Meteo.com, CC BY 4.0, auf Basis von DWD ICON-D2.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rain along the route: Open-Meteo.com, CC BY 4.0, based on DWD ICON-D2."
+          }
+        }
+      }
+    },
+    "Regenradar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rain radar"
+          }
+        }
+      }
+    },
+    "Regenradar %@, %@. Tippen für jetzt.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rain radar %@, %@. Tap for now."
+          }
+        }
+      }
+    },
+    "Regenradar (DWD)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rain radar (DWD)"
+          }
+        }
+      }
+    },
+    "Regenradar und Niederschlagsvorhersage: Deutscher Wetterdienst (DWD), Datenlizenz Deutschland – Namensnennung 2.0.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rain radar and precipitation forecast: Deutscher Wetterdienst (DWD), Datenlizenz Deutschland – Namensnennung 2.0."
+          }
+        }
+      }
+    },
+    "Regenvorhersage nicht verfügbar: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rain forecast unavailable: %@"
+          }
+        }
+      }
+    },
+    "Richtung tauschen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Swap direction"
+          }
+        }
+      }
+    },
+    "Rolltempo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rolling speed"
+          }
+        }
+      }
+    },
+    "Rolltempo ohne Ampeln: %d km/h": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rolling speed without lights: %d km/h"
+          }
+        }
+      }
+    },
+    "Route von Apple Karten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Route from Apple Maps"
+          }
+        }
+      }
+    },
+    "Route von BRouter (%@)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Route from BRouter (%@)"
+          }
+        }
+      }
+    },
+    "Rüstzeit: %d min": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparation: %d min"
+          }
+        }
+      }
+    },
+    "Schauer möglich": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Showers possible"
+          }
+        }
+      }
+    },
+    "Schauer möglich (%d %%)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Showers possible (%d %%)"
+          }
+        }
+      }
+    },
+    "Schnitt %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Average %@"
+          }
+        }
+      }
+    },
+    "Schnitt %@, geplant %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Average %@, planned %@"
+          }
+        }
+      }
+    },
+    "Schon benutzt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Used before"
+          }
+        }
+      }
+    },
+    "Seite nach unten ziehen und loslassen. Einen Knopf dafür gibt es nicht mehr.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pull the page down and let go. There is no button for it any more."
+          }
+        }
+      }
+    },
+    "Sie zeigt die gewählte Fahrt: Abfahrt → Ankunft, die Abschnitte, Kilometer, Ampeln und wann es losgeht.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It shows the chosen trip: departure → arrival, the legs, kilometres, traffic lights and when to set off."
+          }
+        }
+      }
+    },
+    "Solche Stellen merkt sich die App. Ab der nächsten Fahrt erkennt sie den Halt dort wieder, und die Ampel zählt auch beim Planen mit.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The app remembers such places. From the next ride on it recognises the stop there, and that light counts when planning too."
+          }
+        }
+      }
+    },
+    "Spitze": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "top"
+          }
+        }
+      }
+    },
+    "Stand %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As of %@"
+          }
+        }
+      }
+    },
+    "Stand %@ · %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As of %@ · %@"
+          }
+        }
+      }
+    },
+    "Start": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start"
+          }
+        }
+      }
+    },
+    "Start und Ziel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start and destination"
+          }
+        }
+      }
+    },
+    "Start und Ziel wählen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose start and destination"
+          }
+        }
+      }
+    },
+    "Start wählen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose start"
+          }
+        }
+      }
+    },
+    "Start: ": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start: "
+          }
+        }
+      }
+    },
+    "Startzeiten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start times"
+          }
+        }
+      }
+    },
+    "Stehst du lange an derselben Stelle und ist dort keine Ampel, beendet sich die Aufzeichnung von selbst und zählt bis zum Anfang des Stillstands — der Fall „angekommen und vergessen, auf beenden zu tippen“. Ab wann, steht in den Einstellungen; „aus“ schaltet es ab.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If you stand in the same spot for a long time and there is no traffic light there, the recording ends by itself and counts up to the start of that standstill — the “arrived and forgot to tap end” case. After how long is in the settings; “off” switches it off."
+          }
+        }
+      }
+    },
+    "Strecke": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Distance"
+          }
+        }
+      }
+    },
+    "Strecke zu lang für die Ampelzählung (OpenStreetMap)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Route too long to count traffic lights (OpenStreetMap)"
+          }
+        }
+      }
+    },
+    "Suche": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search"
+          }
+        }
+      }
+    },
+    "Süden": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "south"
+          }
+        }
+      }
+    },
+    "Südosten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "south-east"
+          }
+        }
+      }
+    },
+    "Südwesten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "south-west"
+          }
+        }
+      }
+    },
+    "Tippen für den ganzen Text": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap for the full text"
+          }
+        }
+      }
+    },
+    "Tippen zum Zuklappen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap to collapse"
+          }
+        }
+      }
+    },
+    "Tippen, um zu suchen. Was einmal gewählt wurde, steht beim nächsten Mal oben — je öfter benutzt, desto weiter oben.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap to search. Whatever you picked once is at the top next time — the more often used, the further up."
+          }
+        }
+      }
+    },
+    "Transitous: unerwartete Antwort": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transitous: unexpected response"
+          }
+        }
+      }
+    },
+    "Tür zu Tür, mit Ampeln und Halten — damit wird die Fahrzeit gerechnet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Door to door, traffic lights and stops included — this is what the travel time is based on"
+          }
+        }
+      }
+    },
+    "U-Bahn/Tram": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metro/tram"
+          }
+        }
+      }
+    },
+    "Umsteigen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changing trains"
+          }
+        }
+      }
+    },
+    "Umstieg zählt wie %d min": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A change counts as %d min"
+          }
+        }
+      }
+    },
+    "Unten steht, von wann der Stand ist.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "At the bottom it says how old the result is."
+          }
+        }
+      }
+    },
+    "Unten steht, was noch kommt: Reststrecke, Restzeit und die Uhrzeit der Ankunft. Oben in der Leiste stehen dieselben zwei Zahlen statt des Countdowns — losgehen musst du nicht mehr.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Below you see what is left: distance, time and the arrival clock. The same two numbers stand in the toolbar in place of the countdown — there is nothing left to set off for."
+          }
+        }
+      }
+    },
+    "VBB-Auskunft: unerwartete Antwort": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VBB service: unexpected response"
+          }
+        }
+      }
+    },
+    "Vergessen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forget"
+          }
+        }
+      }
+    },
+    "Verkehrsmittel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modes"
+          }
+        }
+      }
+    },
+    "Version %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version %@"
+          }
+        }
+      }
+    },
+    "Von oben nach unten: was gewinnt, wenn zwei Fahrten fast gleichzeitig ankommen. Dieselbe Reihenfolge ordnet die vier Kästen auf der Hauptseite, entscheidet, welcher nach einer Suche geöffnet ist, und in welcher Folge sie sich füllen — das Oberste steht zuerst da, der Rest kommt nach.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Top to bottom: what wins when two trips arrive at nearly the same time. The same order arranges the four boxes on the main screen, decides which one is open after a search, and in which order they fill — the top one is there first, the rest follow."
+          }
+        }
+      }
+    },
+    "Von selbst beenden nach": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End by itself after"
+          }
+        }
+      }
+    },
+    "Von selbst beendet: du standst lange an derselben Stelle, und dort ist keine Ampel. Gezählt wurde bis zum Anfang des Stillstands.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ended by itself: you stood in the same spot for a long time, and there is no traffic light there. Counted up to the start of that standstill."
+          }
+        }
+      }
+    },
+    "Vorige Möglichkeit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previous option"
+          }
+        }
+      }
+    },
+    "Vorlieben": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preferences"
+          }
+        }
+      }
+    },
+    "Vorschlag": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suggestion"
+          }
+        }
+      }
+    },
+    "Vorschlag des iPhones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From the iPhone"
+          }
+        }
+      }
+    },
+    "Wann da sein?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrive when?"
+          }
+        }
+      }
+    },
+    "Wann losgehen?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave when?"
+          }
+        }
+      }
+    },
+    "Warnung vor dem Losgehen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warning before leaving"
+          }
+        }
+      }
+    },
+    "Wartezeit je Ampel: %d s": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting time per light: %d s"
+          }
+        }
+      }
+    },
+    "Was die App voraussetzt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What the app assumes"
+          }
+        }
+      }
+    },
+    "Weg": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Track"
+          }
+        }
+      }
+    },
+    "Weiter": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume"
+          }
+        }
+      }
+    },
+    "Weiterfahren": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep riding"
+          }
+        }
+      }
+    },
+    "Welche Linien das Rad mitnehmen, weißt du besser als jeder Fahrplan. Die Liste füllt sich mit den Linien, die in gefundenen Verbindungen vorkommen; was die Auskunft selbst zusichert, steht schon auf „ja“. Solange eine Linie offen ist, wird die Fahrt trotzdem vorgeschlagen — mit dem Hinweis, dass die Mitnahme ungeklärt ist.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You know better than any timetable which lines take bikes. The list fills with the lines that appear in the connections found; whatever the service itself guarantees is already set to “yes”. While a line is open the trip is still suggested — with the note that bike carriage is unclear."
+          }
+        }
+      }
+    },
+    "Westen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "west"
+          }
+        }
+      }
+    },
+    "Wetterdaten: unerwartete Antwort": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weather data: unexpected response"
+          }
+        }
+      }
+    },
+    "Wie das Telefon": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Match the phone"
+          }
+        }
+      }
+    },
+    "Wie?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How?"
+          }
+        }
+      }
+    },
+    "Wird einmal abgefragt und in eine Adresse übersetzt. Die App folgt dir nicht.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Asked once and turned into an address. The app does not follow you."
+          }
+        }
+      }
+    },
+    "Womit die App plant, wenn sie die Wahl hat. Ab dem gewählten Regen wird nicht mehr die ganze Strecke geradelt, sondern das Rad in die Bahn gestellt — „starker Regen“ heißt also praktisch immer fahren.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What the app plans with when it has a choice. From the selected rain level on, the bike goes on the train instead of riding the whole way — “heavy rain” therefore means riding almost always."
+          }
+        }
+      }
+    },
+    "Worauf gefahren": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Surface ridden"
+          }
+        }
+      }
+    },
+    "Zeit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time"
+          }
+        }
+      }
+    },
+    "Zeit vom Planen bis zum Losgehen. Gilt für jedes Verkehrsmittel.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time between planning and walking out. Applies to every mode."
+          }
+        }
+      }
+    },
+    "Zeitpunkt hinzufügen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a time"
+          }
+        }
+      }
+    },
+    "Ziel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Destination"
+          }
+        }
+      }
+    },
+    "Ziel wählen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose destination"
+          }
+        }
+      }
+    },
+    "Ziel: ": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Destination: "
+          }
+        }
+      }
+    },
+    "Zuhause": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home"
+          }
+        }
+      }
+    },
+    "Zuhause und Arbeit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home and work"
+          }
+        }
+      }
+    },
+    "Zurück auf Werkseinstellung": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back to factory settings"
+          }
+        }
+      }
+    },
+    "Zwei verschiedene Geschwindigkeiten, und sie tun Verschiedenes. Das Rolltempo ist das Tempo beim Fahren, ohne Halte: daraus plus der Wartezeit je Ampelkreuzung und den Höhenmetern rechnet die App jede Linie durch — es entscheidet also, welche Linie die schnellste ist. Der Gesamtschnitt ist die Messung deiner eigenen Fahrten, Tür zu Tür, mit allen Ampeln und Halten darin — er entscheidet, wie lange es dauert. Wäre die Rechnung schneller als dein gemessener Gesamtschnitt, gilt der Gesamtschnitt; auch bei den Zubringern zum Bahnhof, dort aber nur, wenn er die vorsichtigere Zahl ist. Beide Werte schreibt die App nach jeder aufgezeichneten Fahrt selbst fort, aus dem Median der letzten Fahrten, sobald es genug davon gibt; von Hand gestellt gelten sie bis zur nächsten Fahrt. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung addiert — außer an den Kreuzungen, die deine eigenen Fahrten schon kennen: die kosten, was dort gemessen wurde. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Two different speeds, and they do different things. The rolling speed is your speed while riding, without stops: from it, plus the waiting time per signalised junction and the metres of climb, the app works out every route — so it decides which route is the fastest. The overall average is the measurement of your own rides, door to door, with every light and stop in it — it decides how long it takes. If the calculation were faster than your measured overall average, the average wins; for the legs to the station too, but there only when it is the more cautious number. The app keeps both values up to date after every recorded ride, from the median of the recent ones, as soon as there are enough; set by hand they hold until the next ride. The waiting time per light is an average (roughly every second one is green) and is added per signalised junction — except at the junctions your own rides already know: those cost what was measured there. The buffer applies per station for pushing the bike, the lift and the platform. Bike + rail only takes trains the VBB service says carry bikes."
+          }
+        }
+      }
+    },
+    "ab %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "from %@"
+          }
+        }
+      }
+    },
+    "alle geklärt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "all settled"
+          }
+        }
+      }
+    },
+    "am seltensten wegen des Verkehrs anhalten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "stopping for traffic least often"
+          }
+        }
+      }
+    },
+    "andere Halte": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "other stops"
+          }
+        }
+      }
+    },
+    "angekommen · %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "arrived · %@"
+          }
+        }
+      }
+    },
+    "aus": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "off"
+          }
+        }
+      }
+    },
+    "die Mischung: zügig, wenig neben Autos, wenig Halts": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the mix: quick, little traffic beside you, few stops"
+          }
+        }
+      }
+    },
+    "die kürzeste Strecke, ganz gleich worüber": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the shortest way, whatever it runs on"
+          }
+        }
+      }
+    },
+    "die wenigsten Meter neben fahrenden Autos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the fewest metres beside moving cars"
+          }
+        }
+      }
+    },
+    "direkt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "direct"
+          }
+        }
+      }
+    },
+    "dort, wo du gerade bist": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "wherever you are right now"
+          }
+        }
+      }
+    },
+    "fertig machen %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "get ready %@"
+          }
+        }
+      }
+    },
+    "führt nicht über die Fixpunkte": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "does not pass your fixed points"
+          }
+        }
+      }
+    },
+    "gerade eben": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "just now"
+          }
+        }
+      }
+    },
+    "geradeaus": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "straight on"
+          }
+        }
+      }
+    },
+    "gestanden": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "standing"
+          }
+        }
+      }
+    },
+    "gestanden · %d sonst": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "standing · %d other"
+          }
+        }
+      }
+    },
+    "halb links": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "bear left"
+          }
+        }
+      }
+    },
+    "halb rechts": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "bear right"
+          }
+        }
+      }
+    },
+    "in %d h": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "in %d h"
+          }
+        }
+      }
+    },
+    "in %d h %d min": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "in %d h %d min"
+          }
+        }
+      }
+    },
+    "in %d min": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "in %d min"
+          }
+        }
+      }
+    },
+    "inkl. %d min Parkplatzsuche": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "incl. %d min to park"
+          }
+        }
+      }
+    },
+    "jetzt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "now"
+          }
+        }
+      }
+    },
+    "keine Fahrradmitnahme": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No bikes allowed"
+          }
+        }
+      }
+    },
+    "keine Regendaten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no rain data"
+          }
+        }
+      }
+    },
+    "keine Verbindung mit Radmitnahme gefunden": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no connection found that takes bikes"
+          }
+        }
+      }
+    },
+    "keine Wartezeit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no waiting time"
+          }
+        }
+      }
+    },
+    "kürzest": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "shortest"
+          }
+        }
+      }
+    },
+    "kürzeste Fahrzeit, Ampeln und Höhenmeter eingerechnet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "shortest time, traffic lights and climbing included"
+          }
+        }
+      }
+    },
+    "leichter Regen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "light rain"
+          }
+        }
+      }
+    },
+    "links": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "left"
+          }
+        }
+      }
+    },
+    "los %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "leave %@"
+          }
+        }
+      }
+    },
+    "los %@ · %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "leave %@ · %@"
+          }
+        }
+      }
+    },
+    "läuft": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "running"
+          }
+        }
+      }
+    },
+    "mehr": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "more"
+          }
+        }
+      }
+    },
+    "neben der Route": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "off the route"
+          }
+        }
+      }
+    },
+    "neben der Route — wird neu geplant": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "off the route — recalculating"
+          }
+        }
+      }
+    },
+    "neu berechnen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "plan again"
+          }
+        }
+      }
+    },
+    "nicht gesetzt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "not set"
+          }
+        }
+      }
+    },
+    "noch %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ to go"
+          }
+        }
+      }
+    },
+    "noch keine Linie": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no track yet"
+          }
+        }
+      }
+    },
+    "noch keine Wartezeit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no waiting time yet"
+          }
+        }
+      }
+    },
+    "nur die fahrende Zeit — daraus kommt die Einstellung darüber": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "only the time in motion — this is where the setting above comes from"
+          }
+        }
+      }
+    },
+    "offen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "open"
+          }
+        }
+      }
+    },
+    "ohne Fixpunkte": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no fixed points"
+          }
+        }
+      }
+    },
+    "optimal": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "balanced"
+          }
+        }
+      }
+    },
+    "rechts": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "right"
+          }
+        }
+      }
+    },
+    "rollend": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "rolling"
+          }
+        }
+      }
+    },
+    "scharf links": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sharp left"
+          }
+        }
+      }
+    },
+    "scharf rechts": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sharp right"
+          }
+        }
+      }
+    },
+    "schnellst": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fastest"
+          }
+        }
+      }
+    },
+    "sonstiges": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "other"
+          }
+        }
+      }
+    },
+    "starker Regen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "heavy rain"
+          }
+        }
+      }
+    },
+    "steht": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "standing"
+          }
+        }
+      }
+    },
+    "sucht …": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "searching …"
+          }
+        }
+      }
+    },
+    "trocken": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "dry"
+          }
+        }
+      }
+    },
+    "trocken und mit der Bahn schneller als die ganze Strecke per Rad": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "dry, and the train beats riding the whole way"
+          }
+        }
+      }
+    },
+    "um %d Uhr": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "at %d"
+          }
+        }
+      }
+    },
+    "um %d:%02d": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "at %d:%02d"
+          }
+        }
+      }
+    },
+    "umsteigen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "change"
+          }
+        }
+      }
+    },
+    "unterwegs · %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "under way · %@"
+          }
+        }
+      }
+    },
+    "verkehrsarm": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "low traffic"
+          }
+        }
+      }
+    },
+    "vor %d h": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d h ago"
+          }
+        }
+      }
+    },
+    "vor %d min": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d min ago"
+          }
+        }
+      }
+    },
+    "vor %d:%02d h": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d:%02d h ago"
+          }
+        }
+      }
+    },
+    "wenig Ampeln": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "few lights"
+          }
+        }
+      }
+    },
+    "wenig Autos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "few cars"
+          }
+        }
+      }
+    },
+    "wenig Halts": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "few stops"
+          }
+        }
+      }
+    },
+    "weniger": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "less"
+          }
+        }
+      }
+    },
+    "wird berechnet …": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "calculating …"
+          }
+        }
+      }
+    },
+    "wird bestimmt …": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "locating …"
+          }
+        }
+      }
+    },
+    "© 2026 AK. Alle Zeiten ohne Gewähr.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "© 2026 AK. All times without guarantee."
+          }
+        }
+      }
+    },
+    "ÖPNV": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transit"
+          }
+        }
+      }
+    },
+    "Ø": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "avg"
+          }
+        }
+      }
+    },
+    "Ø %@ je Halt · Ø %@ je Ampel · %d Vorbeifahrten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "avg %@ per stop · avg %@ per light · %d passes"
+          }
+        }
+      }
+    },
+    "Ø %d km/h": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "avg %d km/h"
+          }
+        }
+      }
+    },
+    "Ø / Plan": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "avg / plan"
+          }
+        }
+      }
+    },
+    "Ø gesamt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "avg overall"
+          }
+        }
+      }
+    },
+    "Ø gesamt / Plan": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "avg overall / plan"
+          }
+        }
+      }
+    },
+    "Ø je Ampel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "avg per light"
+          }
+        }
+      }
+    },
+    "Ø rollend": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "avg rolling"
+          }
+        }
+      }
+    },
+    "Übernehmen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apply"
+          }
+        }
+      }
+    },
+    "„Abfahrt“ sucht ab einer Startzeit — Jetzt oder eine der gespeicherten Startzeiten.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“Departure” searches from a start time — Now, or one of the saved start times."
+          }
+        }
+      }
+    },
+    "„Ankunft“ sucht rückwärts und bietet die zwei Zeiten an, die der Pendelweg wirklich hat: 9 Uhr hin, 19 Uhr zurück. Jede andere Zeit über das Uhr-Feld.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“Arrival” searches backwards and offers the two times a commute really has: 9 in the morning out, 7 in the evening back. Any other time through the clock field."
+          }
+        }
+      }
+    },
+    "„Automatisch“ fragt den VBB, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“Automatic” asks the VBB as long as start and destination lie in Berlin/Brandenburg — it is more accurate there and the only one that says which train takes bikes. Everything beyond that is answered by Transitous, a volunteer-run MOTIS instance on the nationwide DELFI dataset. Transitous plans bike and rail in one go and picks the stations itself. Where its data comes from is behind the link."
+          }
+        }
+      }
+    },
+    "„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — Eine Fahrt beginnt quer, oder so, wie du es während der letzten Fahrt zuletzt eingestellt hast; der Knopf dafür steht oben links auf dem Fahrtbildschirm. — Steht die Aufzeichnung länger als eingestellt an derselben Stelle und ist dort keine bekannte Ampel, beendet sie sich selbst und zählt bis zum Anfang des Stillstands; das ist der Fall „angekommen und vergessen, auf beenden zu tippen“. Eine gewollte Unterbrechung ist der Knopf „Pause“ auf dem Fahrtbildschirm: er hält die Uhr an und schaltet die Ortung so lange ab, und die Pause zählt weder zur Fahrzeit noch als Halt. — Während einer Aufzeichnung bleibt der Bildschirm an, bis du die Fahrt beendest; das kostet Strom und ist so gewollt. Er wird aber dunkel, solange du ihn nicht anfasst — und beim ersten Antippen wieder hell, ebenso wenn eine Abbiegung ansteht oder du neben der Route bist. Das ist während einer Fahrt der größte Posten auf der Stromrechnung, größer als die Ortung. — Verlässt du die Route, zeigt ein Pfeil zurück. Neu berechnet wird, was zuerst eintritt: die eingestellte Entfernung (und dann erst nach ein paar Sekunden am Stück, damit ein Bogen um eine Baustelle keine Neuplanung auslöst) oder die eingestellte Zeit, egal wie weit — wer im Kreis um einen gesperrten Weg fährt, kommt nie weit genug weg. Beides „aus“ lässt es beim Pfeil. — Wer länger als die eingestellte Zeit steht, stand an einer Ampel, auch wenn keine Karte dort eine kennt — nur das Stehen vor dem Losfahren und nach dem Ankommen zählt nie, das ist die eigene Haustür. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein. Mitgezählt wird auch, wo eine Aufzeichnung ohne Halt durchkam: eine gelernte Kreuzung kostet beim Planen ihre gemessene Zeit über alle Vorbeifahrten, nicht den eingestellten Mittelwert. Sie bleiben auf deinen Geräten und in deiner iCloud.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“Automatic” lets the screen turn with the phone; on a handlebar that is often in the way. — A ride starts in landscape, or however you last set it during a ride; the button for it is at the top left of the ride screen. — If the recording stands in the same spot for longer than set and there is no known traffic light there, it ends by itself and counts up to the start of that standstill; that is the “arrived and forgot to tap end” case. A deliberate break is the “Pause” button on the ride screen: it stops the clock and switches location tracking off meanwhile, and the break counts neither as ride time nor as a stop. — While recording, the screen stays on until you end the ride; that costs battery and is meant to. It does go dark while you are not touching it — and bright again at the first tap, and likewise when a turn is coming up or you are off the route. During a ride that is the largest item on the battery bill, larger than location tracking. — If you leave the route, an arrow points back. It recalculates at whichever comes first: the distance you set (and then only after a few seconds in a row, so that a detour around road works does not trigger a replan) or the time you set, however far away — riding in circles around a closed path never gets you far enough away. Both “off” leaves it at the arrow. — Anyone standing longer than the time set was standing at a traffic light, even where no map knows one — only standing before setting off and after arriving never counts, that is your own front door. The app remembers such places and counts them in next time. It also counts where a recording got through without stopping: a learned junction costs the plan its measured time across every pass, not the configured average. They stay on your devices and in your iCloud."
+          }
+        }
+      }
+    },
+    "„Pause“ hält die Fahrt an: die Uhr steht, die Ortung ist so lange aus, und die Pause zählt weder zur Fahrzeit noch als Halt. „Weiter“ nimmt sie wieder auf. Das ist auch der Knopf, der während einer Fahrt am meisten Strom spart.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“Pause” stops the ride: the clock stands still, location tracking is off meanwhile, and the break counts neither as ride time nor as a stop. “Resume” picks it up again. It is also the button that saves the most battery during a ride."
+          }
+        }
+      }
+    },
+    "„offen“ heißt: die Verbindung wird weiter vorgeschlagen, aber mit dem Hinweis, dass die Mitnahme ungeklärt ist. „Rad nein“ nimmt sie aus den Rad + Bahn-Vorschlägen heraus.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“Open” means the connection is still suggested, but with the note that bike carriage is unclear. “Bike no” takes it out of the bike + rail suggestions."
+          }
+        }
+      }
+    },
+    "… oder nach": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "… or after"
+          }
+        }
+      }
+    },
+    "→ %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "→ %@"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

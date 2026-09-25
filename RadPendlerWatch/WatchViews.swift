@@ -42,9 +42,9 @@ struct WatchHome: View {
             }
             .tabViewStyle(.verticalPage)
         } else {
-            ContentUnavailableView("Kein Plan",
+            ContentUnavailableView(L("Kein Plan"),
                                    systemImage: "iphone.slash",
-                                   description: Text("RadPendler auf dem iPhone öffnen — der Plan kommt von dort."))
+                                   description: Text(L("RadPendler auf dem iPhone öffnen — der Plan kommt von dort.")))
         }
     }
 }
@@ -66,8 +66,8 @@ struct RidePage: View {
                     head
                     clock(now: context.date)
                     HStack(spacing: 6) {
-                        tile("Ø", value: Fmt.kmh(live.averageKmh), tint: Color(hex: live.colorHex))
-                        tile("jetzt", value: live.running ? Fmt.kmh(live.currentKmh) : Fmt.km(live.meters),
+                        tile(L("Ø"), value: Fmt.kmh(live.averageKmh), tint: Color(hex: live.colorHex))
+                        tile(L("jetzt"), value: live.running ? Fmt.kmh(live.currentKmh) : Fmt.km(live.meters),
                              tint: .primary)
                     }
                     signals
@@ -104,8 +104,8 @@ struct RidePage: View {
                 .monospacedDigit()
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
-            Text(live.paused == true ? "Pause · \(Fmt.km(live.meters))"
-                 : (live.running ? "unterwegs · \(Fmt.km(live.meters))" : "angekommen · \(Fmt.km(live.meters))"))
+            Text(live.paused == true ? L("Pause · %@", Fmt.km(live.meters))
+                 : (live.running ? L("unterwegs · %@", Fmt.km(live.meters)) : L("angekommen · %@", Fmt.km(live.meters))))
                 .font(.system(size: 11, design: .rounded))
                 .foregroundStyle(.secondary)
         }
@@ -120,11 +120,11 @@ struct RidePage: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.yellow)
             VStack(alignment: .leading, spacing: 0) {
-                Text("\(live.signalStops) Ampelhalt\(live.signalStops == 1 ? "" : "s")")
+                Text(L(live.signalStops == 1 ? "%d Ampelhalt" : "%d Ampelhalts", live.signalStops))
                     .font(.system(size: 14, weight: .bold, design: .rounded))
                     .monospacedDigit()
-                Text(live.signalStops == 0 ? "keine Wartezeit"
-                     : "\(Fmt.clock(live.signalWaitTotal)) · Ø \(Fmt.clock(live.signalWaitAverage))")
+                Text(live.signalStops == 0 ? L("keine Wartezeit")
+                     : L("%@ · Ø %@", Fmt.clock(live.signalWaitTotal), Fmt.clock(live.signalWaitAverage)))
                     .font(.system(size: 11, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
@@ -137,14 +137,14 @@ struct RidePage: View {
 
     private func facts(now: Date) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            row("rollend", Fmt.kmh(live.movingKmh))
-            row("gestanden", Fmt.clock(live.standingSeconds))
-            if live.otherStops > 0 { row("andere Halte", "\(live.otherStops)") }
+            row(L("rollend"), Fmt.kmh(live.movingKmh))
+            row(L("gestanden"), Fmt.clock(live.standingSeconds))
+            if live.otherStops > 0 { row(L("andere Halte"), "\(live.otherStops)") }
             // The numbers come from the phone; when it is out of range they
             // stop being current, and saying so is the whole difference
             // between an old number and a wrong one.
             if now.timeIntervalSince(live.at) > 20 {
-                Text("Stand \(Fmt.age(now.timeIntervalSince(live.at)))")
+                Text(L("Stand %@", Fmt.age(now.timeIntervalSince(live.at))))
                     .font(.system(size: 10, design: .rounded))
                     .foregroundStyle(.orange)
             }
@@ -224,7 +224,7 @@ private struct CountdownPage: View {
                                startPoint: .top, endPoint: .bottom)
                     .ignoresSafeArea()
             }
-            .accessibilityLabel(left.map { "Losgehen in \(Countdown.text($0))" } ?? "Keine feste Abfahrt")
+            .accessibilityLabel(left.map { L("Losgehen in %@", Countdown.text($0)) } ?? L("Keine feste Abfahrt"))
         }
     }
 }
@@ -270,7 +270,7 @@ private struct TripPage: View {
                     Text("\(trip.modeTitle) · \(Fmt.duration(trip.duration))")
                         .font(.system(size: 14, weight: .bold, design: .rounded))
                         .foregroundStyle(Color(hex: trip.colorHex))
-                    Text("los \(Fmt.time(trip.getReady)) · \(Fmt.km(trip.meters))")
+                    Text(L("los %@ · %@", Fmt.time(trip.getReady), Fmt.km(trip.meters)))
                         .font(.system(size: 11, design: .rounded))
                         .foregroundStyle(.secondary)
                     if let rain = trip.rain {
@@ -301,7 +301,7 @@ private struct ModesPage: View {
                 }
             }
             if model.chosenMode != nil {
-                Button("Vorschlag des iPhones") {
+                Button(L("Vorschlag des iPhones")) {
                     model.followPhone()
                     onPick()
                 }
@@ -310,14 +310,14 @@ private struct ModesPage: View {
             TimelineView(.periodic(from: .now, by: 30)) { context in
                 VStack(alignment: .leading, spacing: 1) {
                     Text("\(plan.origin) → \(plan.destination)").lineLimit(1)
-                    Text("Stand \(Fmt.time(plan.computedAt)) · \(Fmt.age(context.date.timeIntervalSince(plan.computedAt)))")
+                    Text(L("Stand %@ · %@", Fmt.time(plan.computedAt), Fmt.age(context.date.timeIntervalSince(plan.computedAt))))
                 }
                 .font(.system(size: 10, design: .rounded))
                 .foregroundStyle(.secondary)
                 .listRowBackground(Color.clear)
             }
         }
-        .navigationTitle("Wie?")
+        .navigationTitle(L("Wie?"))
     }
 
     /// One category: its best time, how many ways it has, and whether it is the
@@ -335,7 +335,7 @@ private struct ModesPage: View {
                 Text(best.map { Fmt.duration($0.duration) } ?? "–")
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                     .monospacedDigit()
-                Text(own.count > 1 ? "\(plan.title(of: mode)) · \(own.count) Wege" : plan.title(of: mode))
+                Text(own.count > 1 ? L("%@ · %d Wege", plan.title(of: mode), own.count) : plan.title(of: mode))
                     .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer(minLength: 0)

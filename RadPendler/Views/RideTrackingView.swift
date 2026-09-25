@@ -106,11 +106,11 @@ struct RideTrackingView: View {
             withAnimation(.easeInOut) { following = true }
             pannedAt = nil
         }
-        .confirmationDialog("Fahrt beenden?", isPresented: $confirmStop, titleVisibility: .visible) {
-            Button("Fahrt beenden", role: .destructive, action: onStop)
-            Button("Weiterfahren", role: .cancel) {}
+        .confirmationDialog(L("Fahrt beenden?"), isPresented: $confirmStop, titleVisibility: .visible) {
+            Button(L("Fahrt beenden"), role: .destructive, action: onStop)
+            Button(L("Weiterfahren"), role: .cancel) {}
         } message: {
-            Text("Die Aufzeichnung wird gespeichert und die Ortung hört auf.")
+            Text(L("Die Aufzeichnung wird gespeichert und die Ortung hört auf."))
         }
     }
 
@@ -179,8 +179,8 @@ struct RideTrackingView: View {
                         .font(.system(size: 30, weight: .heavy, design: .rounded))
                         .monospacedDigit()
                         .contentTransition(.numericText())
-                    Text(detour.meters > OffRoute.replanMeters ? "neben der Route — wird neu geplant"
-                                                               : "neben der Route")
+                    Text(detour.meters > OffRoute.replanMeters ? L("neben der Route — wird neu geplant")
+                                                               : L("neben der Route"))
                         .font(.system(size: 15, weight: .bold, design: .rounded))
                         .opacity(0.9)
                         .lineLimit(1)
@@ -198,14 +198,14 @@ struct RideTrackingView: View {
             .background(Theme.gradient(.red), in: RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
             .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("\(Fmt.km(detour.meters)) neben der Route, Richtung \(Self.compass(detour.bearing))")
+            .accessibilityLabel(L("%@ neben der Route, Richtung %@", Fmt.km(detour.meters), Self.compass(detour.bearing)))
         }
     }
 
     /// Für die Ansage: aus Grad wird eine Himmelsrichtung. „Nordost" ist etwas,
     /// das man hören kann; „siebenundvierzig Grad" nicht.
     static func compass(_ degrees: Double) -> String {
-        let names = ["Norden", "Nordosten", "Osten", "Südosten", "Süden", "Südwesten", "Westen", "Nordwesten"]
+        let names = [L("Norden"), L("Nordosten"), L("Osten"), L("Südosten"), L("Süden"), L("Südwesten"), L("Westen"), L("Nordwesten")]
         let i = Int(((degrees.truncatingRemainder(dividingBy: 360) + 360) / 45).rounded()) % 8
         return names[i]
     }
@@ -235,7 +235,7 @@ struct RideTrackingView: View {
             .background(Theme.gradient(LegKind.bike.color), in: RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
             .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Nächste Abbiegung \(next.step.turn.title) in \(Fmt.km(next.meters))")
+            .accessibilityLabel(L("Nächste Abbiegung %@ in %@", next.step.turn.title, Fmt.km(next.meters)))
         }
     }
 
@@ -262,7 +262,7 @@ struct RideTrackingView: View {
                 .background(following ? AnyShapeStyle(Theme.gradient(Theme.accent))
                                       : AnyShapeStyle(.regularMaterial), in: Circle())
         }
-        .accessibilityLabel(following ? "Karte folgt dir" : "Karte folgt dir nicht, kommt in 30 Sekunden zurück")
+        .accessibilityLabel(following ? L("Karte folgt dir") : L("Karte folgt dir nicht, kommt in 30 Sekunden zurück"))
     }
 
     private var panel: some View {
@@ -302,11 +302,11 @@ struct RideTrackingView: View {
                 .minimumScaleFactor(0.7)
             Spacer(minLength: 0)
             if tracker.isPaused {
-                Label("Pause", systemImage: "pause.circle.fill")
+                Label(L("Pause"), systemImage: "pause.circle.fill")
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundStyle(.orange)
             } else if tracker.meter.isStanding {
-                Label("steht", systemImage: "pause.circle.fill")
+                Label(L("steht"), systemImage: "pause.circle.fill")
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundStyle(.orange)
             }
@@ -321,7 +321,7 @@ struct RideTrackingView: View {
             .minimumScaleFactor(0.5)
             .lineLimit(1)
             .frame(maxWidth: .infinity)
-            .accessibilityLabel("Fahrzeit \(Fmt.clock(tracker.seconds(at: now)))")
+            .accessibilityLabel(L("Fahrzeit %@", Fmt.clock(tracker.seconds(at: now))))
     }
 
     /// The current speed is the number one looks at while riding, so it gets
@@ -337,7 +337,7 @@ struct RideTrackingView: View {
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
                     .foregroundStyle(RideColors.color(tracker.meter.currentSpeed * 3.6))
-                Text("jetzt")
+                Text(L("jetzt"))
                     .font(.system(size: 10, design: .rounded))
                     .foregroundStyle(.secondary)
             }
@@ -346,7 +346,7 @@ struct RideTrackingView: View {
             .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: Theme.innerCorner))
             VStack(spacing: 6) {
                 averageTile(now: now)
-                tile("Strecke", Fmt.km(tracker.meter.meters), tint: .primary)
+                tile(L("Strecke"), Fmt.km(tracker.meter.meters), tint: .primary)
             }
             .frame(maxWidth: .infinity)
         }
@@ -361,7 +361,7 @@ struct RideTrackingView: View {
         let planned = tracker.plannedAverageKmh
         let ahead = planned.map { measured >= $0 } ?? true
         return VStack(spacing: -1) {
-            Text(planned == nil ? "Ø" : "Ø / Plan")
+            Text(planned == nil ? L("Ø") : L("Ø / Plan"))
                 .font(.system(size: 10, design: .rounded))
                 .foregroundStyle(.secondary)
             Text(planned.map { "\(Fmt.kmh(measured)) / \(($0).formatted(.number.precision(.fractionLength(1))))" }
@@ -377,8 +377,8 @@ struct RideTrackingView: View {
         .padding(.vertical, 6)
         .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: Theme.innerCorner))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(planned.map { "Schnitt \(Fmt.kmh(measured)), geplant \(Fmt.kmh($0))" }
-                            ?? "Schnitt \(Fmt.kmh(measured))")
+        .accessibilityLabel(planned.map { L("Schnitt %@, geplant %@", Fmt.kmh(measured), Fmt.kmh($0)) }
+                            ?? L("Schnitt %@", Fmt.kmh(measured)))
     }
 
     /// The count the whole recording is for.
@@ -399,13 +399,13 @@ struct RideTrackingView: View {
             TrafficLightIcon()
             VStack(alignment: .leading, spacing: 0) {
                 // „3/9": gehalten von geplant. Ohne Plan bleibt es bei der Zahl.
-                Text(planned > 0 ? "\(stops)/\(planned) Ampeln"
-                                 : "\(stops) Ampelhalt\(stops == 1 ? "" : "s")")
+                Text(planned > 0 ? L("%d/%d Ampeln", stops, planned)
+                                 : L(stops == 1 ? "%d Ampelhalt" : "%d Ampelhalts", stops))
                     .font(.system(.subheadline, design: .rounded, weight: .bold))
                     .monospacedDigit()
                     .contentTransition(.numericText())
-                Text(stops == 0 ? "noch keine Wartezeit"
-                     : "\(Fmt.clock(total)) gewartet · Ø \(Fmt.clock(total / Double(stops)))")
+                Text(stops == 0 ? L("noch keine Wartezeit")
+                     : L("%@ gewartet · Ø %@", Fmt.clock(total), Fmt.clock(total / Double(stops))))
                     .font(.system(size: 11, design: .rounded))
                     .monospacedDigit()
                     .contentTransition(.numericText())
@@ -418,8 +418,8 @@ struct RideTrackingView: View {
                     .monospacedDigit()
                     .contentTransition(.numericText())
                 Text(tracker.meter.otherStops > 0
-                     ? "gestanden · \(tracker.meter.otherStops) sonst"
-                     : "gestanden")
+                     ? L("gestanden · %d sonst", tracker.meter.otherStops)
+                     : L("gestanden"))
                     .font(.system(size: 11, design: .rounded))
                     .foregroundStyle(.secondary)
             }
@@ -441,7 +441,7 @@ struct RideTrackingView: View {
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(LegKind.bike.color)
             VStack(alignment: .leading, spacing: 0) {
-                Text("noch \(Fmt.duration(left.seconds))")
+                Text(L("noch %@", Fmt.duration(left.seconds)))
                     .font(.system(.subheadline, design: .rounded, weight: .bold))
                     .monospacedDigit()
                     .contentTransition(.numericText())
@@ -455,7 +455,7 @@ struct RideTrackingView: View {
                     .font(.system(.subheadline, design: .rounded, weight: .bold))
                     .monospacedDigit()
                     .contentTransition(.numericText())
-                Text("Ankunft").font(.system(size: 11, design: .rounded)).foregroundStyle(.secondary)
+                Text(L("Ankunft")).font(.system(size: 11, design: .rounded)).foregroundStyle(.secondary)
             }
         }
         .padding(.horizontal, 10).padding(.vertical, 7)
@@ -470,7 +470,7 @@ struct RideTrackingView: View {
         Button {
             if tracker.isPaused { tracker.resume() } else { tracker.pause() }
         } label: {
-            Label(tracker.isPaused ? "Weiter" : "Pause",
+            Label(tracker.isPaused ? L("Weiter") : L("Pause"),
                   systemImage: tracker.isPaused ? "play.circle.fill" : "pause.circle.fill")
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
                 .frame(maxWidth: .infinity)
@@ -479,12 +479,12 @@ struct RideTrackingView: View {
                 .foregroundStyle(.white)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(tracker.isPaused ? "Fahrt fortsetzen" : "Fahrt anhalten")
+        .accessibilityLabel(tracker.isPaused ? L("Fahrt fortsetzen") : L("Fahrt anhalten"))
     }
 
     private var stopButton: some View {
         Button { confirmStop = true } label: {
-            Label("Fahrt beenden", systemImage: "stop.circle.fill")
+            Label(L("Fahrt beenden"), systemImage: "stop.circle.fill")
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
@@ -552,7 +552,7 @@ struct RideArrivalPill: View {
         HStack(spacing: 4) {
             Image(systemName: "flag.checkered")
                 .font(.system(size: 9, weight: .bold))
-            Text(left.map { Fmt.duration($0.seconds) } ?? "läuft")
+            Text(left.map { Fmt.duration($0.seconds) } ?? L("läuft"))
                 .font(.system(size: 14, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .contentTransition(.numericText(countsDown: true))
@@ -567,8 +567,8 @@ struct RideArrivalPill: View {
         .padding(.horizontal, 8).padding(.vertical, 4)
         .background(Theme.gradient(LegKind.bike.color), in: Capsule())
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(left.map { "Noch \(Fmt.duration($0.seconds)), Ankunft \(Fmt.time(now.addingTimeInterval($0.seconds)))" }
-                            ?? "Fahrt läuft")
+        .accessibilityLabel(left.map { L("Noch %@, Ankunft %@", Fmt.duration($0.seconds), Fmt.time(now.addingTimeInterval($0.seconds))) }
+                            ?? L("Fahrt läuft"))
         .task {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
@@ -592,7 +592,7 @@ struct RideSummarySheet: View {
             ScrollView {
                 VStack(spacing: 14) {
                     if tracker.stoppedByItself {
-                        Label("Von selbst beendet: du standst lange an derselben Stelle, und dort ist keine Ampel. Gezählt wurde bis zum Anfang des Stillstands.",
+                        Label(L("Von selbst beendet: du standst lange an derselben Stelle, und dort ist keine Ampel. Gezählt wurde bis zum Anfang des Stillstands."),
                               systemImage: "stopwatch")
                             .font(.system(size: 12, design: .rounded))
                             .foregroundStyle(.orange)
@@ -606,10 +606,10 @@ struct RideSummarySheet: View {
             }
             .task { track = await store.track(for: ride) }
             .background(Theme.background)
-            .navigationTitle("Angekommen")
+            .navigationTitle(L("Angekommen"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button(L("Fertig")) { dismiss() } }
             }
         }
     }

@@ -58,10 +58,10 @@ struct TripDetailView: View {
             step(-1, "chevron.left")
             VStack(spacing: -1) {
                 Text(option.bikeRoute?.shortTitle ?? option.carRoute?.variants.first?.title
-                     ?? "\(Fmt.time(option.leave)) ab")
+                     ?? L("%@ ab", Fmt.time(option.leave)))
                     .display(.subheadline, weight: .semibold)
                     .lineLimit(1).minimumScaleFactor(0.7)
-                Text("\(index + 1) von \(siblings.count)")
+                Text(L("%d von %d", index + 1, siblings.count))
                     .font(.system(size: 11, design: .rounded))
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
@@ -86,7 +86,7 @@ struct TripDetailView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(by < 0 ? "Vorige Möglichkeit" : "Nächste Möglichkeit")
+        .accessibilityLabel(by < 0 ? L("Vorige Möglichkeit") : L("Nächste Möglichkeit"))
     }
 
     private var summary: some View {
@@ -99,7 +99,7 @@ struct TripDetailView: View {
                             .display(.title2, weight: .bold)
                             .monospacedDigit()
                             .foregroundStyle(option.mode.color)
-                        Text("\(Fmt.time(option.leave)) → \(Fmt.time(option.arrival))")
+                        Text(L("%@ → %@", Fmt.time(option.leave), Fmt.time(option.arrival)))
                             .display(.subheadline, weight: .regular)
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
@@ -111,11 +111,11 @@ struct TripDetailView: View {
                 Spacer(minLength: 0)
             }
             HStack(spacing: 6) {
-                Chip(text: "fertig machen \(Fmt.time(option.getReady))", symbol: "alarm",
+                Chip(text: L("fertig machen %@", Fmt.time(option.getReady)), symbol: "alarm",
                      tint: option.mode.color, strong: true)
                 if let t = option.transferText { Chip(text: t, symbol: "arrow.triangle.swap") }
                 if let v = option.bikeAverageKmh, option.mode == .bike {
-                    Chip(text: "Ø \(Int(v.rounded())) km/h", symbol: "speedometer")
+                    Chip(text: L("Ø %d km/h", Int(v.rounded())), symbol: "speedometer")
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -160,15 +160,16 @@ struct TripNotes: View {
         if let reason { out.append(Note(text: reason, symbol: "sparkles", tint: .secondary)) }
         if option.bikeCarriageUnclear {
             let open = option.transitLegs.filter { $0.bikeCarriage == .unknown }.compactMap(\.lineName)
-            out.append(Note(text: "Fahrradmitnahme ungeklärt: \(open.joined(separator: ", ")) — in den Einstellungen unter „Fahrradmitnahme“ festlegen",
+            out.append(Note(text: L("Fahrradmitnahme ungeklärt: %@ — in den Einstellungen unter „Fahrradmitnahme“ festlegen",
+                                    open.joined(separator: ", ")),
                             symbol: "questionmark.circle", tint: .orange))
         }
         if option.isAlternative {
-            out.append(Note(text: "Alternative mit U-Bahn/Tram — kein festes Radabteil",
+            out.append(Note(text: L("Alternative mit U-Bahn/Tram — kein festes Radabteil"),
                             symbol: "arrow.triangle.branch", tint: .orange))
         }
         if !option.passesWaypoints {
-            out.append(Note(text: "führt nicht über die Fixpunkte",
+            out.append(Note(text: L("führt nicht über die Fixpunkte"),
                             symbol: "point.topleft.down.to.point.bottomright.curvepath", tint: .secondary))
         }
         if let note = option.note { out.append(Note(text: note, symbol: "info.circle", tint: .secondary)) }
@@ -198,13 +199,13 @@ struct TripFacts: View {
     private func signalChip(_ st: BikeRouteStats) -> String {
         let wait = PlanSettings.signalWait(signals: st.signals, learned: st.learnedSignals,
                                            flat: TimeInterval(settings.signalWaitSeconds))
-        return "\(st.signals) Ampeln · \(Fmt.duration(wait))"
+        return L("%d Ampeln · %@", st.signals, Fmt.duration(wait))
     }
 
     private func bikeCard(_ bike: BikeRouteInfo) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 1) {
-                Label("Radroute: \(bike.shortTitle)", systemImage: "bicycle")
+                Label(L("Radroute: %@", bike.shortTitle), systemImage: "bicycle")
                     .display(.subheadline)
                     .foregroundStyle(LegKind.bike.color)
                 Text(bike.reason)
@@ -222,14 +223,14 @@ struct TripFacts: View {
                     // und ohne sie steht da eine Zahl, die niemand nachrechnen
                     // kann.
                     Chip(text: signalChip(st), icon: AnyView(TrafficLightIcon()))
-                    Chip(text: "\(st.crossings.count)× quer", symbol: "arrow.left.arrow.right")
-                    Chip(text: "\(Fmt.km(st.mainRoadMeters)) an Hauptstraßen", symbol: "road.lanes")
+                    Chip(text: L("%d× quer", st.crossings.count), symbol: "arrow.left.arrow.right")
+                    Chip(text: L("%@ an Hauptstraßen", Fmt.km(st.mainRoadMeters)), symbol: "road.lanes")
                 }
                 .lineLimit(1).minimumScaleFactor(0.8)
                 if !st.crossings.isEmpty {
                     // Eingeklappt: die Liste der gequerten Hauptstraßen ist auf
                     // einer Pendelstrecke lang und im Zweifel uninteressant.
-                    DisclosureGroup("\(st.crossings.count) Hauptstraßen queren") {
+                    DisclosureGroup(L("%d Hauptstraßen queren", st.crossings.count)) {
                         Text(st.crossings.joined(separator: " → "))
                             .font(.system(.caption, design: .rounded))
                             .foregroundStyle(.secondary)
@@ -239,7 +240,7 @@ struct TripFacts: View {
                     .tint(.secondary)
                 }
             }
-            Text(bike.source == "Apple" ? "Route von Apple Karten" : "Route von BRouter (\(bike.source))")
+            Text(bike.source == "Apple" ? L("Route von Apple Karten") : L("Route von BRouter (%@)", bike.source))
                 .font(.system(.caption2, design: .rounded)).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -249,19 +250,19 @@ struct TripFacts: View {
 
     private func carCard(_ car: CarRouteInfo) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("Autoroute: \(car.title)", systemImage: "car.fill")
+            Label(L("Autoroute: %@", car.title), systemImage: "car.fill")
                 .display(.subheadline)
                 .foregroundStyle(LegKind.car.color)
             HStack(spacing: 6) {
                 Chip(text: Fmt.km(option.totalDistance), symbol: "ruler")
                 if let s = car.signals {
-                    Chip(text: "\(s) Ampeln", icon: AnyView(TrafficLightIcon()))
+                    Chip(text: L("%d Ampeln", s), icon: AnyView(TrafficLightIcon()))
                 } else {
-                    Chip(text: "Ampeln unbekannt", symbol: "questionmark.circle")
+                    Chip(text: L("Ampeln unbekannt"), symbol: "questionmark.circle")
                 }
             }
             .lineLimit(1).minimumScaleFactor(0.8)
-            Text("Linienführung und Fahrzeit von Apple Karten, Ampeln aus OpenStreetMap")
+            Text(L("Linienführung und Fahrzeit von Apple Karten, Ampeln aus OpenStreetMap"))
                 .font(.system(.caption2, design: .rounded)).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -307,7 +308,7 @@ struct LegTimelineRow: View {
                     if leg.isTransit {
                         LineBadge(leg: leg)
                         if let dir = leg.direction {
-                            Text("→ \(dir)").font(.system(.caption, design: .rounded)).lineLimit(1)
+                            Text(L("→ %@", dir)).font(.system(.caption, design: .rounded)).lineLimit(1)
                         }
                     }
                     if let m = leg.length { Chip(text: Fmt.km(m), symbol: "ruler") }
@@ -319,7 +320,7 @@ struct LegTimelineRow: View {
                         .foregroundStyle(leg.bikeCarriage.tint)
                 }
                 if leg.cancelled {
-                    Text("Fällt aus").font(.system(.caption, design: .rounded, weight: .bold)).foregroundStyle(.red)
+                    Text(L("Fällt aus")).font(.system(.caption, design: .rounded, weight: .bold)).foregroundStyle(.red)
                 }
                 stop(time: leg.arrival, planned: leg.plannedArrival, name: leg.toName, platform: leg.arrivalPlatform)
                     .padding(.bottom, isLast ? 0 : 12)
@@ -337,7 +338,7 @@ struct LegTimelineRow: View {
             }
             Text(name).font(.system(.caption, design: .rounded)).lineLimit(1)
             if let platform {
-                Text("Gl. \(platform)").font(.system(.caption2, design: .rounded)).foregroundStyle(.secondary)
+                Text(L("Gl. %@", platform)).font(.system(.caption2, design: .rounded)).foregroundStyle(.secondary)
             }
         }
     }

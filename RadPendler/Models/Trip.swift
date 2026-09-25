@@ -8,10 +8,10 @@ enum TravelMode: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .bike: "Fahrrad"
-        case .bikeTransit: "Rad + Bahn"
-        case .transit: "Bus & Bahn"
-        case .car: "Auto"
+        case .bike: L("Fahrrad")
+        case .bikeTransit: L("Rad + Bahn")
+        case .transit: L("Bus & Bahn")
+        case .car: L("Auto")
         }
     }
 
@@ -32,10 +32,10 @@ enum TravelMode: String, CaseIterable, Identifiable {
     /// For the one line that has to hold all four: "Rad › Rad+Bahn › Auto › ÖPNV".
     var short: String {
         switch self {
-        case .bike: "Rad"
-        case .bikeTransit: "Rad+Bahn"
-        case .transit: "ÖPNV"
-        case .car: "Auto"
+        case .bike: L("Rad")
+        case .bikeTransit: L("Rad+Bahn")
+        case .transit: L("ÖPNV")
+        case .car: L("Auto")
         }
     }
 }
@@ -76,11 +76,11 @@ enum BikeVariant: String, CaseIterable, Comparable {
     /// Die Namen sagen das jetzt.
     var title: String {
         switch self {
-        case .fastest: "schnellst"
-        case .shortest: "kürzest"
-        case .balanced: "optimal"
-        case .quiet: "wenig Autos"
-        case .lowTraffic: "wenig Halts"
+        case .fastest: L("schnellst")
+        case .shortest: L("kürzest")
+        case .balanced: L("optimal")
+        case .quiet: L("wenig Autos")
+        case .lowTraffic: L("wenig Halts")
         }
     }
 
@@ -88,11 +88,11 @@ enum BikeVariant: String, CaseIterable, Comparable {
     /// Einstellungen, wo Platz dafür ist.
     var explanation: String {
         switch self {
-        case .fastest: "kürzeste Fahrzeit, Ampeln und Höhenmeter eingerechnet"
-        case .shortest: "die kürzeste Strecke, ganz gleich worüber"
-        case .balanced: "die Mischung: zügig, wenig neben Autos, wenig Halts"
-        case .quiet: "die wenigsten Meter neben fahrenden Autos"
-        case .lowTraffic: "am seltensten wegen des Verkehrs anhalten"
+        case .fastest: L("kürzeste Fahrzeit, Ampeln und Höhenmeter eingerechnet")
+        case .shortest: L("die kürzeste Strecke, ganz gleich worüber")
+        case .balanced: L("die Mischung: zügig, wenig neben Autos, wenig Halts")
+        case .quiet: L("die wenigsten Meter neben fahrenden Autos")
+        case .lowTraffic: L("am seltensten wegen des Verkehrs anhalten")
         }
     }
 
@@ -126,11 +126,11 @@ enum CarVariant: String, CaseIterable, Comparable {
 
     var title: String {
         switch self {
-        case .fastest: "schnellst"
-        case .shortest: "kürzest"
-        case .balanced: "optimal"
-        case .fewSignals: "wenig Ampeln"
-        case .alternative: "Alternative"
+        case .fastest: L("schnellst")
+        case .shortest: L("kürzest")
+        case .balanced: L("optimal")
+        case .fewSignals: L("wenig Ampeln")
+        case .alternative: L("Alternative")
         }
     }
 
@@ -184,8 +184,8 @@ struct BikeRouteInfo {
         guard variants.count > 1 else { return first.explanation }
         let rest = variants.dropFirst().map(\.title)
         let list = rest.count == 1 ? rest[0]
-                                   : rest.dropLast().joined(separator: ", ") + " und " + rest.last!
-        return "\(first.explanation) — und zugleich \(list)"
+                                   : rest.dropLast().joined(separator: ", ") + L(" und ") + rest.last!
+        return L("%@ — und zugleich %@", first.explanation, list)
     }
 }
 
@@ -292,7 +292,9 @@ struct TripOption: Identifiable {
     }
 
     var transferText: String? {
-        transitLegs.isEmpty ? nil : (transfers == 0 ? "direkt" : "\(transfers)× umsteigen")
+        transitLegs.isEmpty ? nil
+            : (transfers == 0 ? L("direkt")
+               : (transfers == 1 ? L("1× umsteigen") : L("%d× umsteigen", transfers)))
     }
 
     /// At least one leg whose bike carriage nobody has confirmed — shown with

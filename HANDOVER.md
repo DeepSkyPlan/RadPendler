@@ -121,6 +121,36 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
 - `design/Styleguide.html` + `.pdf` — Designkonzept; PDF wird mit Chrome headless erzeugt
   (Kopie für den Nutzer unter `_claude.code/_reports/RadPendler_Styleguide.pdf`).
 
+## Zweisprachig: Deutsch und Englisch
+
+Umgeschaltet wird im Burger-Menü (Fähnchen 🇩🇪 / 🇬🇧 / „A" für „wie das Telefon"), und die
+Umstellung wirkt **sofort**, ohne Neustart.
+
+Das geht nicht über die Sprachwahl des Systems: die steht fest, wenn der Prozess startet,
+und vier Wege, sie von innen umzustellen, sind nachgewiesen gescheitert — die Klasse von
+`Bundle.main` tauschen (greift für eigene Abfragen, **nicht** für `Text(…)`), `\.locale` in
+der Umgebung setzen (nur Formatierung), `AppleLanguages` schreiben und neu starten, und
+`CFBundleLocalizations` nachtragen. Der Weg, der funktioniert, fragt die Systemsprache gar
+nicht erst:
+
+- `Shared/Language.swift` — `AppLanguage` (system/de/en) und `L(…)`. `L` liest unmittelbar
+  aus `<sprache>.lproj` im Paket; `Text(String)` schlägt danach nichts mehr nach, also
+  bleibt stehen, was `L` liefert. Fehlt eine Übersetzung, kommt der deutsche Schlüssel.
+- Die Wurzelansicht trägt die Sprache als Kennung (`.id(settings.language)`) — deshalb
+  wirkt ein Wechsel sofort: SwiftUI baut den Baum neu und schlägt jeden Text neu nach.
+- **Zahlen und Uhrzeiten folgen mit**: `Fmt` formatiert über `AppLanguage.locale`, sonst
+  stünde „1,5 km" in der englischen Fassung.
+- Die Uhr hat keine eigene Wahl: die Sprache reist im `TripSnapshot` mit (`language`), und
+  `WatchModel` stellt sie beim Empfang ein. Der Katalog liegt in beiden Zielen.
+
+Ein neuer Text braucht zwei Handgriffe — `L("…")` schreiben und die englische Fassung in
+`tools/i18n/de_en.py` eintragen, dann `python3 tools/i18n/sync.py`. Das Verfahren steht in
+`tools/i18n/README.md`; geprüft wird es von `RadPendlerTests/LanguageTests.swift`.
+
+**Nicht übersetzt** werden die Vergleichsmuster fremder Dienste (die
+Fahrradmitnahme-Texte der VBB-Auskunft!), der User-Agent, JSON-Schlüssel und alles, was in
+`UserDefaults` landet.
+
 ## Datenquellen und ihre Fallen
 
 - **VBB HAFAS** `https://fahrinfo.vbb.de/bin/mgate.exe`, aid `hafas-vbb-webapp`, ver 1.45, ext VBB.1 —

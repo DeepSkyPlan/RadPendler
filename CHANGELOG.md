@@ -6,6 +6,10 @@
   Ortung ist so lange aus, und die Pause zählt weder zur Fahrzeit noch als Halt noch in den
   Schnitt. Es ist zugleich der einzige Knopf dieses Bildschirms, der wirklich Strom spart —
   der Empfänger ist das Teuerste an einer Aufzeichnung.
+- **Die App spricht Englisch.** Umgeschaltet wird im Burger-Menü, und die Umstellung wirkt
+  sofort, ohne Neustart: 439 Texte liegen als Katalog neben der App, die Uhr bekommt die
+  Sprache mit dem Plan, und Zahlen wie Uhrzeiten folgen der gewählten Sprache („1.5 km"
+  statt „1,5 km"). Fehlt eine Übersetzung, steht der deutsche Text da — nie ein Platzhalter.
 - **Der Bildschirm wird während der Fahrt dunkel**, solange du ihn nicht anfasst (nach 30 s,
   einstellbar, abschaltbar) — und beim ersten Antippen wieder hell, ebenso wenn eine Abbiegung
   ansteht oder du neben der Route bist. iOS dimmt hier von sich aus nichts, weil der

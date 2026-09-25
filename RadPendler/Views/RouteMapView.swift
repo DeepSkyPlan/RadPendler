@@ -444,7 +444,7 @@ struct RouteMapView: UIViewRepresentable {
                 let d = SignalDot()
                 d.coordinate = c
                 d.fromPlan = false
-                d.title = "Ampel"
+                d.title = L("Ampel")
                 return d
             })
         }
@@ -578,7 +578,7 @@ struct RouteMapView: UIViewRepresentable {
                 d.coordinate = stop.coordinate
                 d.atSignal = stop.atSignal
                 d.seconds = stop.seconds
-                d.title = stop.atSignal ? "Ampel" : "Halt"
+                d.title = stop.atSignal ? L("Ampel") : L("Halt")
                 return d
             })
         }
@@ -678,7 +678,7 @@ struct RouteMapView: UIViewRepresentable {
                 // Lit junctions of the chosen route — where the waiting happens.
                 if let points = selected?.bikeRoute?.stats?.signalPoints ?? selected?.carRoute?.signalPoints {
                     map.addAnnotations(points.map { c in
-                        let d = SignalDot(); d.coordinate = c; d.title = "Ampel"; return d
+                        let d = SignalDot(); d.coordinate = c; d.title = L("Ampel"); return d
                     })
                 }
                 if let selected { addLegBadges(map, selected) }
@@ -733,7 +733,7 @@ struct RouteMapView: UIViewRepresentable {
             if let bike = o.bikeRoute { return "\(d) · \(bike.shortTitle)" }
             if let car = o.carRoute { return "\(d) · \(car.variants.first?.title ?? "Route")" }
             guard !o.transitLegs.isEmpty else { return d }
-            return o.transfers == 0 ? "\(d) · direkt" : "\(d) · \(o.transfers)× um"   // short form of transferText
+            return o.transfers == 0 ? L("%@ · direkt", d) : L("%@ · %d× um", d, o.transfers)
         }
 
         func mapView(_ mapView: MKMapView, didSelect annotation: MKAnnotation) {
@@ -849,7 +849,7 @@ struct RouteMapView: UIViewRepresentable {
                 return
             }
             if rider == nil {
-                let p = Pin(); p.isRider = true; p.title = "Du"
+                let p = Pin(); p.isRider = true; p.title = L("Du")
                 rider = p
                 map.addAnnotation(p)
             }
@@ -956,18 +956,18 @@ struct RadarControls: View {
         HStack(spacing: 10) {
             Toggle(isOn: $visible) { Image(systemName: "cloud.rain") }
                 .toggleStyle(.button)
-                .accessibilityLabel("Regenradar")
+                .accessibilityLabel(L("Regenradar"))
             // Tiles still coming in: say so, an empty sky and a missing sky
             // look exactly alike.
             if visible, RadarLoads.shared.isLoading {
                 ProgressView().controlSize(.mini)
-                    .accessibilityLabel("Radarbilder werden geladen")
+                    .accessibilityLabel(L("Radarbilder werden geladen"))
             }
             if visible, !frames.isEmpty {
                 Button { playing.toggle() } label: {
                     Image(systemName: playing ? "pause.fill" : "play.fill")
                 }
-                .accessibilityLabel(playing ? "Anhalten" : "Abspielen")
+                .accessibilityLabel(playing ? L("Anhalten") : L("Abspielen"))
                 Slider(value: Binding(get: { Double(index) }, set: { index = Int($0.rounded()) }),
                        in: 0...Double(max(frames.count - 1, 1)), step: 1)
                 // Which minute is on the map — "jetzt 14:48", "in 25 min 15:10".
@@ -987,9 +987,9 @@ struct RadarControls: View {
                     .frame(width: 74, alignment: .trailing)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Regenradar \(Self.relative(shown)), \(Fmt.time(shown)). Tippen für jetzt.")
+                .accessibilityLabel(L("Regenradar %@, %@. Tippen für jetzt.", Self.relative(shown), Fmt.time(shown)))
             } else {
-                Text("Regenradar (DWD)").font(.callout).foregroundStyle(.secondary)
+                Text(L("Regenradar (DWD)")).font(.callout).foregroundStyle(.secondary)
                 Spacer()
             }
         }
@@ -1007,11 +1007,11 @@ struct RadarControls: View {
     /// A radar frame in words: measured minutes ago, now, or a forecast ahead.
     static func relative(_ frame: Date, now: Date = .now) -> String {
         let m = Int((frame.timeIntervalSince(now) / 60).rounded())
-        if m <= -60 { return "vor \(-m / 60) h" }
-        if m < -2 { return "vor \(-m) min" }
-        if m <= 2 { return "jetzt" }
-        if m < 60 { return "in \(m) min" }
-        return m % 60 == 0 ? "in \(m / 60) h" : "in \(m / 60):\(String(format: "%02d", m % 60)) h"
+        if m <= -60 { return L("vor %d h", -m / 60) }
+        if m < -2 { return L("vor %d min", -m) }
+        if m <= 2 { return L("jetzt") }
+        if m < 60 { return L("in %d min", m) }
+        return m % 60 == 0 ? L("in %d h", m / 60) : "in \(m / 60):\(String(format: "%02d", m % 60)) h"
     }
 
     /// Index of the frame closest to a moment.
@@ -1048,13 +1048,13 @@ struct LastRunLine: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(lastRun == nil ? "Neu berechnen" : "Berechnet \(text(now: context.date)). Tippen für neu berechnen.")
+            .accessibilityLabel(lastRun == nil ? L("Neu berechnen") : L("Berechnet %@. Tippen für neu berechnen.", text(now: context.date)))
         }
     }
 
     private func text(now: Date) -> String {
-        guard let lastRun else { return loading ? "wird berechnet …" : "neu berechnen" }
-        return "Stand \(Fmt.time(lastRun)) · \(Fmt.age(now.timeIntervalSince(lastRun)))"
+        guard let lastRun else { return loading ? L("wird berechnet …") : L("neu berechnen") }
+        return L("Stand %@ · %@", Fmt.time(lastRun), Fmt.age(now.timeIntervalSince(lastRun)))
     }
 
 }

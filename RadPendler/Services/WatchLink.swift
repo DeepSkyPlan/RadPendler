@@ -129,6 +129,9 @@ extension TripSnapshot {
                           })
         }
         self.countdownID = countdownID?.uuidString
+        // Die Uhr spricht, was das Telefon spricht — die Texte, die sie zeigt,
+        // hat ohnehin das Telefon geschrieben.
+        self.language = AppLanguage.current.rawValue
     }
 
     /// Same line the mode boxes carry on the phone.
@@ -136,7 +139,7 @@ extension TripSnapshot {
         if let bike = option.bikeRoute { return bike.shortTitle }
         if let car = option.carRoute { return car.variants.first?.title ?? Fmt.km(option.totalDistance) }
         if option.transitLegs.isEmpty { return Fmt.km(option.totalDistance) }
-        return option.transfers == 0 ? "ab \(Fmt.time(option.leave))"
+        return option.transfers == 0 ? L("ab %@", Fmt.time(option.leave))
                                      : "\(Fmt.time(option.leave)) · \(option.transfers)×"
     }
 }

@@ -81,7 +81,7 @@ struct LegChainView: View {
                     Image(systemName: "arrow.triangle.swap")
                         .font(.system(size: compact ? 8 : 10, weight: .bold))
                         .foregroundStyle(.red)
-                        .accessibilityLabel("umsteigen")
+                        .accessibilityLabel(L("umsteigen"))
                 }
                 HStack(spacing: 2) {
                     if leg.isTransit {
@@ -122,9 +122,9 @@ struct LineBadge: View {
 extension BikeCarriage {
     var legNote: String {
         switch self {
-        case .yes: "Fahrradmitnahme möglich"
-        case .no: "keine Fahrradmitnahme"
-        case .unknown: "Fahrradmitnahme ungeklärt"
+        case .yes: L("Fahrradmitnahme möglich")
+        case .no: L("keine Fahrradmitnahme")
+        case .unknown: L("Fahrradmitnahme ungeklärt")
         }
     }
 

@@ -53,6 +53,10 @@ struct TripSnapshot: Codable, Equatable {
     var options: [Option]
     /// The trip the countdown runs on — nil when no departure is fixed.
     var countdownID: String?
+    /// Die Sprache, in der das Telefon gerade spricht. Die Uhr hat keine
+    /// eigene Wahl — sie zeigt den Plan des Telefons, und dann auch in dessen
+    /// Sprache. nil (ältere Fassung) heißt: wie die Uhr selbst eingestellt ist.
+    var language: String?
 
     var countdown: Option? { countdownID.flatMap { id in options.first { $0.id == id } } }
     var recommended: Option? { options.first(where: \.isRecommended) }

@@ -147,6 +147,15 @@ final class AppSettings {
         didSet { defaults.set(rideOrientation.rawValue, forKey: "rideOrientationLock") }
     }
 
+    /// In welcher Sprache die App spricht. Wirkt sofort, ohne Neustart —
+    /// siehe `AppLanguage`.
+    var language: AppLanguage = .system {
+        didSet {
+            defaults.set(language.rawValue, forKey: "language")
+            AppLanguage.current = language
+        }
+    }
+
     /// Nach so vielen Sekunden ohne Berührung wird der Bildschirm während
     /// einer Fahrt dunkel; 0 schaltet es ab. Er bleibt **an** — nur dunkel,
     /// und beim ersten Antippen wieder hell.
@@ -276,6 +285,11 @@ final class AppSettings {
         }
         assign(\.autoStopMinutes, defaults.object(forKey: "autoStopMinutes") as? Double ?? autoStopMinutes)
         assign(\.rideDimSeconds, defaults.object(forKey: "rideDimSeconds") as? Double ?? rideDimSeconds)
+        assign(\.language, defaults.string(forKey: "language").flatMap(AppLanguage.init(rawValue:)) ?? language)
+        // `assign` setzt nur, was sich unterscheidet — beim Start auf
+        // „Deutsch" feuert das didSet also nicht, und `AppLanguage.current`
+        // bliebe auf dem Voreingestellten stehen.
+        AppLanguage.current = language
         assign(\.measuredOverallKmh, defaults.object(forKey: "measuredOverallKmh") as? Double)
         assign(\.measuredMovingKmh, defaults.object(forKey: "measuredMovingKmh") as? Double)
         assign(\.measuredRides, defaults.object(forKey: "measuredRides") as? Int ?? measuredRides)
@@ -601,10 +615,10 @@ enum DeparturePreset: Hashable {
 
     var title: String {
         switch self {
-        case .relative(let m) where m < 60: "in \(m) min"
-        case .relative(let m) where m % 60 == 0: "in \(m / 60) h"
-        case .relative(let m): "in \(m / 60) h \(m % 60) min"
-        case .clock(let h, let m): m == 0 ? "um \(h) Uhr" : String(format: "um %d:%02d", h, m)
+        case .relative(let m) where m < 60: L("in %d min", m)
+        case .relative(let m) where m % 60 == 0: L("in %d h", m / 60)
+        case .relative(let m): L("in %d h %d min", m / 60, m % 60)
+        case .clock(let h, let m): m == 0 ? L("um %d Uhr", h) : L("um %d:%02d", h, m)
         }
     }
 
@@ -665,7 +679,7 @@ enum TimetableSource: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .automatic: "Automatisch"
+        case .automatic: L("Automatisch")
         case .vbb: "VBB"
         case .transitous: "Transitous"
         }
@@ -694,9 +708,9 @@ enum OrientationLock: String, CaseIterable, Codable {
 
     var title: String {
         switch self {
-        case .auto: "Automatisch"
-        case .portrait: "Hochkant"
-        case .landscape: "Querformat"
+        case .auto: L("Automatisch")
+        case .portrait: L("Hochkant")
+        case .landscape: L("Querformat")
         }
     }
 
