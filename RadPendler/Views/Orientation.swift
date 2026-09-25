@@ -41,6 +41,52 @@ extension OrientationLock {
     }
 }
 
+/// Der dunkle Bildschirm während einer Fahrt.
+///
+/// Der Bildschirm ist der größte Stromfresser einer Aufzeichnung — größer als
+/// der GPS-Empfänger —, und er bleibt eine Fahrt lang an, weil ein Blick auf
+/// die Karte an der Kreuzung nichts nützt, wenn man vorher entsperren muss.
+/// iOS hilft hier nicht: mit abgeschaltetem Ruhezustand dimmt es von sich aus
+/// gar nichts. Also dimmt die App selbst — sie stellt die Helligkeit herunter
+/// und beim ersten Antippen wieder her, so wie es jedes Navigationsgerät tut.
+///
+/// `UIScreen.brightness` ist **systemweit**: was hier gesetzt wird, gilt auch
+/// für alles andere. Deshalb wird der Wert von vorher gemerkt und in jedem
+/// Ausgang wieder eingesetzt — Fahrtende, Pause, App in den Hintergrund.
+@MainActor
+@Observable
+final class ScreenDim {
+    private(set) var dimmed = false
+    /// Die Helligkeit, die der Nutzer eingestellt hatte.
+    private var original: CGFloat?
+
+    /// So viel bleibt übrig: ein Viertel, aber nie unter 8 % — darunter ist
+    /// der Bildschirm bei Sonne schwarz und man findet den Knopf nicht mehr,
+    /// mit dem man ihn wieder hell macht. Und nie **heller** als vorher: wer
+    /// sein Telefon auf 5 % stehen hat, will nicht, dass das Abdunkeln es
+    /// aufhellt.
+    nonisolated static func level(of original: CGFloat) -> CGFloat {
+        Swift.min(original, Swift.max(0.08, original * 0.25))
+    }
+
+    func dim() {
+        guard !dimmed else { return }
+        let now = UIScreen.main.brightness
+        original = now
+        dimmed = true
+        UIScreen.main.brightness = Self.level(of: now)
+    }
+
+    /// Wieder hell. Nur, wenn wir selbst gedimmt haben — sonst überschriebe
+    /// das eine Helligkeit, die der Nutzer inzwischen von Hand gestellt hat.
+    func wake() {
+        guard dimmed, let original else { return }
+        dimmed = false
+        self.original = nil
+        UIScreen.main.brightness = original
+    }
+}
+
 /// Cycles automatic → hochkant → querformat. Sits on the ride screen, where a
 /// phone on a handlebar must not turn itself while one leans into a corner.
 struct OrientationButton: View {

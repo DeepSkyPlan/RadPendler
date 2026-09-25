@@ -147,6 +147,13 @@ final class AppSettings {
         didSet { defaults.set(rideOrientation.rawValue, forKey: "rideOrientationLock") }
     }
 
+    /// Nach so vielen Sekunden ohne Berührung wird der Bildschirm während
+    /// einer Fahrt dunkel; 0 schaltet es ab. Er bleibt **an** — nur dunkel,
+    /// und beim ersten Antippen wieder hell.
+    var rideDimSeconds: Double = 30 {
+        didSet { defaults.set(rideDimSeconds, forKey: "rideDimSeconds") }
+    }
+
     /// Ab wann ein Halt, an dem keine Ampel steht, die Aufzeichnung von selbst
     /// beendet — in Minuten; 0 schaltet es ab. Der Regelfall ist nicht die
     /// Pause, sondern das vergessene „Fahrt beenden": das Telefon liegt auf
@@ -268,6 +275,7 @@ final class AppSettings {
             if rideOrientation == .auto { rideOrientation = .landscape }
         }
         assign(\.autoStopMinutes, defaults.object(forKey: "autoStopMinutes") as? Double ?? autoStopMinutes)
+        assign(\.rideDimSeconds, defaults.object(forKey: "rideDimSeconds") as? Double ?? rideDimSeconds)
         assign(\.measuredOverallKmh, defaults.object(forKey: "measuredOverallKmh") as? Double)
         assign(\.measuredMovingKmh, defaults.object(forKey: "measuredMovingKmh") as? Double)
         assign(\.measuredRides, defaults.object(forKey: "measuredRides") as? Int ?? measuredRides)

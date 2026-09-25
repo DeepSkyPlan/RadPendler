@@ -6,6 +6,12 @@
   Ortung ist so lange aus, und die Pause zählt weder zur Fahrzeit noch als Halt noch in den
   Schnitt. Es ist zugleich der einzige Knopf dieses Bildschirms, der wirklich Strom spart —
   der Empfänger ist das Teuerste an einer Aufzeichnung.
+- **Der Bildschirm wird während der Fahrt dunkel**, solange du ihn nicht anfasst (nach 30 s,
+  einstellbar, abschaltbar) — und beim ersten Antippen wieder hell, ebenso wenn eine Abbiegung
+  ansteht oder du neben der Route bist. iOS dimmt hier von sich aus nichts, weil der
+  Ruhezustand für die Fahrt abgeschaltet ist; der Bildschirm ist dabei der größte Posten auf
+  der Stromrechnung, größer als die Ortung. Die vorherige Helligkeit kommt bei Fahrtende,
+  Pause und beim Verlassen der App zurück.
 - **Die Aufzeichnung beendet sich von selbst**, wenn sie länger als eingestellt (10 min,
   abschaltbar) an derselben Stelle steht und dort keine bekannte Ampel ist. Gezählt wird bis
   zum Anfang des Stillstands; eine Mitteilung sagt Bescheid. Das ist der Fall „angekommen

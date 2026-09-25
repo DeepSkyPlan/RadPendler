@@ -292,6 +292,14 @@ final class RideTests: XCTestCase {
         XCTAssertNil(m.autoStop(at: start.addingTimeInterval(400), after: 300))
     }
 
+    /// Dunkel, aber nicht schwarz — und nie heller als vorher.
+    func testTheDimmedScreenStaysFindable() {
+        XCTAssertEqual(ScreenDim.level(of: 1.0), 0.25, accuracy: 0.001)
+        XCTAssertEqual(ScreenDim.level(of: 0.6), 0.15, accuracy: 0.001)
+        XCTAssertEqual(ScreenDim.level(of: 0.2), 0.08, accuracy: 0.001, "unter 8 % findet niemand mehr den Knopf")
+        XCTAssertEqual(ScreenDim.level(of: 0.05), 0.05, accuracy: 0.001, "und heller wird es nie")
+    }
+
     func testFixesOutOfOrderChangeNothing() {
         var m = RideMeter()
         m.add(fix(0, 10, speed: 5))
