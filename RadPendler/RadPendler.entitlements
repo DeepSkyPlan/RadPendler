@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.developer.icloud-container-identifiers</key>
 	<array>
-		<string>iCloud.org.afjk.radpendler</string>
+		<string>iCloud.de.keese.radpendler</string>
 	</array>
 	<key>com.apple.developer.icloud-services</key>
 	<array>
