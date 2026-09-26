@@ -25,6 +25,8 @@ struct RideTrackingView: View {
     /// Wann zuletzt etwas passiert ist, das den Bildschirm wachhält: eine
     /// Berührung, eine Abbiegung, ein Abweichen von der Route.
     @State private var lastTouch = Date.now
+    /// Ob das Telefon am Strom hängt — dann wird gar nicht erst gedunkelt.
+    @State private var onPower = ScreenDim.onPower
     /// When the map was last dragged. The camera comes back on its own after
     /// `Self.recenterAfter` — nobody wants to remember to press a button again
     /// while riding, and a map that stays where it was pushed is a map that
@@ -34,8 +36,10 @@ struct RideTrackingView: View {
 
     private var isLandscape: Bool { heightClass == .compact }
 
-    /// Neu gesetzt heißt: die Uhr fängt von vorn an.
-    private var dimKey: Date { lastTouch }
+    /// Neu gesetzt heißt: die Uhr fängt von vorn an — auch, wenn das Telefon
+    /// gerade an den Strom gekommen ist: sonst liefe der Schlafauftrag von
+    /// vorhin weiter und dunkelte ab, obwohl längst geladen wird.
+    private var dimKey: String { "\(Int(lastTouch.timeIntervalSince1970))|\(onPower)" }
 
     /// Beim Ziehen über die Karte kommen Dutzende Ereignisse je Sekunde. Die
     /// Uhr deshalb höchstens sekündlich neu stellen — sonst startet der
@@ -83,8 +87,14 @@ struct RideTrackingView: View {
         .onChange(of: tracker.detour != nil) { _, off in if off { touched() } }
         // Während einer Pause ist ohnehin nichts zu sehen.
         .onChange(of: tracker.isPaused) { _, paused in if paused { screen.dim() } else { touched() } }
+        // Am Lenker in der Ladeschale ist das Abdunkeln überflüssig: der
+        // Bildschirm kostet dann nichts, was nicht nachkommt.
+        .onReceive(NotificationCenter.default.publisher(for: UIDevice.batteryStateDidChangeNotification)) { _ in
+            onPower = ScreenDim.onPower
+            if onPower { screen.wake() } else { lastTouch = .now }
+        }
         .task(id: dimKey) {
-            guard settings.rideDimSeconds > 0 else { return }
+            guard settings.rideDimSeconds > 0, !onPower else { return }
             try? await Task.sleep(for: .seconds(settings.rideDimSeconds))
             guard !Task.isCancelled else { return }
             screen.dim()

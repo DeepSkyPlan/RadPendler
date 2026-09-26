@@ -72,7 +72,7 @@ struct HelpView: View {
                         L("Von selbst hält sie nach drei Minuten Stillstand an, wenn dort keine Ampel ist — und läuft weiter, sobald du wieder rollst. Die Ortung bleibt dabei an, aber sparsam. Der Halt selbst zählt als Halt: an der Schranke hast du gestanden."),
                         L("Steht sie zwanzig Minuten, bist du angekommen und hast das Beenden vergessen: dann endet die Aufzeichnung und zählt bis zum Anfang des Stillstands. Beide Zeiten stehen in den Einstellungen, „aus“ schaltet sie ab."),
                         L("Der dritte Knopf oben links schaltet beides für diese eine Fahrt ab — für den echten Stau, von dem du weißt, dass es gleich weitergeht. Beim nächsten Start ist die Automatik wieder an."),
-                        L("Der Bildschirm wird dunkel, solange du ihn nicht anfasst, und beim ersten Antippen wieder hell — ebenso, wenn eine Abbiegung ansteht oder du neben der Route bist. Er ist während einer Fahrt der größte Posten auf der Stromrechnung, größer als die Ortung."),
+                        L("Der Bildschirm wird dunkel, solange du ihn nicht anfasst, und beim ersten Antippen wieder hell — ebenso, wenn eine Abbiegung ansteht oder du neben der Route bist. Er ist während einer Fahrt der größte Posten auf der Stromrechnung, größer als die Ortung. Hängt das Telefon am Strom, bleibt er hell: dann kostet er nichts, was nicht nachkommt."),
                         L("Eine Fahrt beginnt quer. Stellst du es während der Fahrt um, gilt das ab dann für jede."),
                         L("Die Ortung läuft nur zwischen „Fahrt“ und „Fahrt beenden“, auch in der Tasche (iOS zeigt dabei die blaue Leiste). Danach hört sie auf."),
                     ])

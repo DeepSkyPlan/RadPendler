@@ -1,3 +1,4 @@
+import UIKit
 import XCTest
 @testable import RadPendler
 
@@ -49,5 +50,23 @@ final class LanguageTests: XCTestCase {
     func testSystemMeansNoBundleOfItsOwn() {
         AppLanguage.current = .system
         XCTAssertNil(AppLanguage.bundle)
+    }
+}
+
+/// Wann der Bildschirm während einer Fahrt dunkel werden darf.
+final class ScreenDimTests: XCTestCase {
+    func testChargingKeepsTheScreenBright() {
+        XCTAssertFalse(ScreenDim.dims(.charging), "in der Ladeschale wird nicht gedunkelt")
+        XCTAssertFalse(ScreenDim.dims(.full))
+    }
+
+    func testOnBatteryItDims() {
+        XCTAssertTrue(ScreenDim.dims(.unplugged))
+    }
+
+    /// `.unknown` ist der Normalzustand im Simulator — als „am Strom" gelesen
+    /// wäre das Abdunkeln dort nie zu sehen und sähe aus wie kaputt.
+    func testUnknownCountsAsBattery() {
+        XCTAssertTrue(ScreenDim.dims(.unknown))
     }
 }

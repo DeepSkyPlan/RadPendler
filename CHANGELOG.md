@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5 (noch nicht hochgeladen)
+
+- **Am Strom bleibt der Bildschirm hell.** Hängt das Telefon während der Fahrt in der
+  Ladeschale oder an einer Powerbank, wird nicht mehr abgedunkelt — genau dann kostet der
+  Bildschirm nichts, was nicht nachkommt. Beim Abstecken fängt die Uhr wieder an zu laufen.
+  Nichts umzustellen: die App sieht selbst nach.
+
 ## 1.4 (Build 38) — Automatik in zwei Stufen, und gelöscht bleibt gelöscht
 
 - **Die Aufzeichnung hält von selbst an**, wenn du drei Minuten an derselben Stelle stehst und

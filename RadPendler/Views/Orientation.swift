@@ -60,6 +60,27 @@ final class ScreenDim {
     /// Die Helligkeit, die der Nutzer eingestellt hatte.
     private var original: CGFloat?
 
+    /// **Am Strom wird nicht gedunkelt.** Der Bildschirm ist während einer
+    /// Fahrt der größte Verbraucher; hängt das Telefon am Lenker in der
+    /// Ladeschale oder an einer Powerbank, ist das genau der Grund, aus dem
+    /// man ihn eingeschaltet lässt. Dann soll man die Karte auch sehen.
+    ///
+    /// `.unknown` zählt **nicht** als Strom: im Simulator ist es der
+    /// Normalzustand, und ein Bildschirm, der dort nie dunkel wird, sieht aus
+    /// wie ein kaputtes Abdunkeln.
+    nonisolated static func dims(_ state: UIDevice.BatteryState) -> Bool {
+        state != .charging && state != .full
+    }
+
+    /// Ob gerade geladen wird. Schaltet die Überwachung ein, falls sie noch
+    /// aus ist — ohne sie meldet iOS immer `.unknown`.
+    static var onPower: Bool {
+        if !UIDevice.current.isBatteryMonitoringEnabled {
+            UIDevice.current.isBatteryMonitoringEnabled = true
+        }
+        return !dims(UIDevice.current.batteryState)
+    }
+
     /// So viel bleibt übrig: ein Viertel, aber nie unter 8 % — darunter ist
     /// der Bildschirm bei Sonne schwarz und man findet den Knopf nicht mehr,
     /// mit dem man ihn wieder hell macht. Und nie **heller** als vorher: wer
