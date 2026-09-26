@@ -49,8 +49,23 @@ die Seite im Netz muss beschreiben, was die App im Store tut, nicht was TestFlig
    Zielkoordinaten an `brouter.de`, `overpass-api.de`, `fahrinfo.vbb.de`,
    `api.transitous.org`, `api.open-meteo.com` und `maps.dwd.de`. Tracking-SDKs, IDFA oder
    eine Kennung in einer Anfrage gibt es dagegen nicht — geprüft im Quelltext.
-3. **CloudKit-Schema übernehmen**, falls die Linien bis dahin reisen:
-   <https://icloud.developer.apple.com/dashboard/> → Schema → Deploy, Development → Production.
+3. **CloudKit-Schema übernehmen** — der Container `iCloud.de.keese.radpendler` ist seit
+   dem 26.09.2026 neu, also **leer, auch in Development**. Reihenfolge:
+
+   1. Einen Bau **aus Xcode** aufs iPhone. Nur der schreibt nach Development; ein
+      TestFlight-Build schreibt nach Production, und dort legt CloudKit nichts von
+      selbst an.
+   2. App starten. Beim ersten Start schiebt `reuploadTracksIfNeeded` alle lokal
+      vorhandenen Linien hinauf — damit entsteht der Datensatztyp. Gibt es keine, eine
+      kurze Fahrt aufzeichnen (über 60 s und 100 m, sonst wird sie verworfen).
+      *Oder* von Hand: <https://icloud.developer.apple.com/dashboard/> → Container →
+      Schema → Record Types → **+** → `RideTrack` mit einem Feld `track` vom Typ
+      **Asset**. Indizes braucht es keine, die App liest über die Record-Id.
+   3. Dashboard → Container `iCloud.de.keese.radpendler` → **Deploy Schema Changes** →
+      Development → Production → Deploy.
+   4. Gegenprobe im TestFlight-Build: eine Fahrt aufzeichnen und in die Fahrtenliste
+      sehen. Steht dort oben keine orange Zeile, ist das Schema angekommen; steht dort
+      „iCloud kennt den Datensatztyp nicht", fehlt Schritt 3.
 
 Simulator mit Adressen füttern (zum Screenshotten ohne Tippen):
 
