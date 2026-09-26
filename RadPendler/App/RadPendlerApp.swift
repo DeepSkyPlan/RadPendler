@@ -41,6 +41,10 @@ struct RadPendlerApp: App {
                     // A ride the app did not survive is still a ride; it is
                     // filed here, up to the last second it knew about.
                     await rides.recoverInterrupted()
+                    // Der CloudKit-Container heißt seit 26.09.2026 wie die App;
+                    // was im alten liegt, zieht nicht mit. Dieses Gerät schiebt
+                    // seine Linien einmal nach.
+                    await rides.reuploadTracksIfNeeded()
                     // Whatever the user last chose, from this device or another.
                     settings.orientation.apply()
                 }

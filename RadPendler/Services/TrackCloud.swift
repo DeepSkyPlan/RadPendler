@@ -21,11 +21,17 @@ import Foundation
 actor TrackCloud {
     static let shared = TrackCloud()
 
-    /// Muss genauso im Entwicklerportal stehen. `org.afjk.*`, nicht
-    /// `de.keese.*`: die Bundle-Id einer veröffentlichten App bleibt, wie sie
-    /// ist, aber ein **neuer** Bezeichner wird nach der geltenden Regel
-    /// benannt. Ein Container ist nichts, was ein Nutzer je zu sehen bekommt.
-    static let containerID = "iCloud.org.afjk.radpendler"
+    /// Muss genauso im Entwicklerportal stehen.
+    ///
+    /// `de.keese`, wie die App: der Container hieß bis zum 26.09.2026
+    /// `iCloud.org.afjk.radpendler` — aus der Zeit, als der Umzug der ganzen
+    /// App geplant war. Der Umzug ist verworfen; zwei Namensschemata
+    /// nebeneinander wären die schlechteste aller Lösungen.
+    ///
+    /// **Was das kostet:** was schon im alten Container liegt, zieht nicht
+    /// mit. Es liegt aber ohnehin auf dem Gerät, das es aufgezeichnet hat, und
+    /// wandert beim nächsten Start noch einmal hinauf — siehe `uploadMissing`.
+    static let containerID = "iCloud.de.keese.radpendler"
 
     static let recordType = "RideTrack"
     private static let assetKey = "track"

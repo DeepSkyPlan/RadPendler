@@ -216,6 +216,29 @@ final class RideStore {
     ///
     /// Lesen, Löschen und Auspacken laufen neben dem Hauptthread; nur das
     /// Ablegen in der Liste läuft auf ihm.
+    /// Einmal nach einem Wechsel des CloudKit-Containers: was lokal liegt,
+    /// wandert noch einmal hinauf.
+    ///
+    /// Ein Container ist ein eigener Speicher; wer den Namen ändert, fängt
+    /// drüben bei null an. Die Linien sind aber nicht weg — sie liegen auf dem
+    /// Gerät, das sie aufgezeichnet hat. Also schiebt dieses Gerät sie einmal
+    /// nach, und danach steht der Name des Containers im Merker: passiert
+    /// genau einmal je Container, nicht bei jedem Start.
+    func reuploadTracksIfNeeded() async {
+        let key = "tracksUploadedTo"
+        guard defaults.string(forKey: key) != TrackCloud.containerID else { return }
+        // Erst merken, dann hochladen: ein Abbruch mitten im Nachschieben darf
+        // nicht dazu führen, dass beim nächsten Start alles wieder losgeht.
+        // Was liegen bleibt, geht beim nächsten Aufzeichnen ohnehin mit.
+        defaults.set(TrackCloud.containerID, forKey: key)
+        let ids = rides.map(\.id)
+        for id in ids {
+            guard let data = try? Data(contentsOf: trackFile(id)),
+                  let track = try? JSONDecoder().decode(RideTrack.self, from: data) else { continue }
+            await TrackCloud.shared.upload(track)
+        }
+    }
+
     func recoverInterrupted() async {
         let url = interruptedFile
         let recovered = await Task.detached(priority: .userInitiated) { () -> (Ride, RideTrack)? in

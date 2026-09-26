@@ -66,7 +66,7 @@ targets:
         # die API erzeugten Profilen signiert („RadPendler AppStore CK" und
         # „RadPendlerWatch AppStore CK"); die stehen im Portal und können weg,
         # sobald Xcode die eigenen erneuert hat.
-        com.apple.developer.icloud-container-identifiers: [iCloud.org.afjk.radpendler]
+        com.apple.developer.icloud-container-identifiers: [iCloud.de.keese.radpendler]
         com.apple.developer.icloud-services: [CloudKit]
     settings:
       base:
