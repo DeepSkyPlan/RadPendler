@@ -206,7 +206,7 @@ Alle Zeiten ohne Gewähr.
 
 ## Was ist neu (1.5)
 
-Für das Feld „Neue Funktionen“ der Version 1.5 (max 4000, hier 1180):
+Für das Feld „Neue Funktionen“ der Version 1.5 (max 4000, hier 1257):
 
 ```
 Diese Fassung kommt aus dem Auto: die Aufzeichnung kann jetzt mehr als Rad.
