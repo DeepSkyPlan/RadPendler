@@ -57,7 +57,7 @@ final class CloudStore {
     /// nothing to do with us; without this the store was rewritten and flushed
     /// every half second, and the settings list stuttered while scrolling.
     private var pushed: [String: Any] = [:]
-    private let queue = DispatchQueue(label: "de.keese.radpendler.cloud", qos: .utility)
+    private let queue = DispatchQueue(label: "org.afjk.radpendler.cloud", qos: .utility)
     /// Über dem Kontingent nimmt der Dienst nichts mehr an, schickt den
     /// Serverstand zurück und meldet das als Änderung. Weiterzuschreiben hieße,
     /// mit ihm zu streiten — ab da wird nur noch gelesen.

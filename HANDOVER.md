@@ -4,6 +4,31 @@ Multimodaler Pendel-Planer für iPhone, iPad und Apple Watch: Büro ↔ Zuhause 
 Regen und Countdown.
 Das Projekt ist quelloffen (MIT); Adressen und Schlüssel gehören nicht hinein.
 
+## Der Umzug auf `org.afjk` (26.09.2026)
+
+Die App heißt im System jetzt `org.afjk.radpendler`; `de.keese` steht nur noch
+an **einer** Stelle, und die muss dort stehen bleiben:
+
+```yaml
+com.apple.developer.ubiquity-kvstore-identifier: $(TeamIdentifierPrefix)de.keese.radpendler
+```
+
+Das ist der Schlüssel-Wert-Speicher mit den Adressen, den Vorlieben und den
+Kennzahlen jeder gefahrenen Fahrt. Folgte die Kennung der Bundle-Id, stünde die
+App nach dem Umzug leer da — bei jedem Nutzer, ohne Fehlermeldung. Die Regel
+verlangt nur, dass die Kennung mit der Team-Id beginnt; welche Bundle-Id
+dahinter steht, ist frei.
+
+Der CloudKit-Container (`iCloud.org.afjk.radpendler`, die gefahrenen Linien)
+hieß von Anfang an so und bleibt unberührt.
+
+**Was der Umzug kostet:** ein neuer App-Eintrag, also keine TestFlight-Historie,
+keine Bewertungen, kein Rang — und auf dem Gerät eine zweite App neben der
+alten. Es gibt keinen Update-Pfad; wer die alte hat, behält sie, bis er sie
+löscht. Was **nicht** mitkommt: die gefahrenen Linien auf dem Gerät (die in
+iCloud schon), der Overpass-Zwischenspeicher, die Erlaubnisse für Ortung und
+Mitteilungen.
+
 ## Bauen, testen, ausliefern
 
 ```bash
