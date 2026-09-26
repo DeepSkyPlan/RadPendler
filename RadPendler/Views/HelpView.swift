@@ -16,6 +16,10 @@ struct HelpView: View {
                         L("Der Pfeil daneben dreht die Richtung um."),
                         L("Ist das Ziel die Arbeitsadresse (Einstellungen → Arbeitsweg), startet die Suche mit „Ankunft“, sonst mit „Abfahrt jetzt“."),
                     ])
+                    section(L("Sprache"), "globe", [
+                        L("Im Menü stehen drei Fähnchen: wie das Telefon, Deutsch, English. Die Umstellung wirkt sofort, ohne Neustart — auch Zahlen und Uhrzeiten folgen mit."),
+                        L("Die Uhr spricht, was das Telefon spricht: sie zeigt dessen Plan, also auch in dessen Sprache."),
+                    ])
                     section(L("Abfahrt oder Ankunft"), "clock", [
                         L("„Abfahrt“ sucht ab einer Startzeit — Jetzt oder eine der gespeicherten Startzeiten."),
                         L("„Ankunft“ sucht rückwärts und bietet die zwei Zeiten an, die der Pendelweg wirklich hat: 9 Uhr hin, 19 Uhr zurück. Jede andere Zeit über das Uhr-Feld."),
@@ -65,7 +69,10 @@ struct HelpView: View {
                         L("Dabei zählt jede Aufzeichnung auch, wo sie ohne Halt durchgekommen ist. Eine gelernte Kreuzung kostet beim Planen deshalb nicht den eingestellten Mittelwert, sondern das, was sie dich im Schnitt wirklich gekostet hat — über alle Vorbeifahrten, nicht nur über die Male mit Rot."),
                         L("Die Uhr zeigt dieselben Zahlen, solange das iPhone in Reichweite ist — sie rechnet nichts selbst."),
                         L("„Pause“ hält die Fahrt an: die Uhr steht, die Ortung ist so lange aus, und die Pause zählt weder zur Fahrzeit noch als Halt. „Weiter“ nimmt sie wieder auf. Das ist auch der Knopf, der während einer Fahrt am meisten Strom spart."),
-                        L("Stehst du lange an derselben Stelle und ist dort keine Ampel, beendet sich die Aufzeichnung von selbst und zählt bis zum Anfang des Stillstands — der Fall „angekommen und vergessen, auf beenden zu tippen“. Ab wann, steht in den Einstellungen; „aus“ schaltet es ab."),
+                        L("Von selbst hält sie nach drei Minuten Stillstand an, wenn dort keine Ampel ist — und läuft weiter, sobald du wieder rollst. Die Ortung bleibt dabei an, aber sparsam. Der Halt selbst zählt als Halt: an der Schranke hast du gestanden."),
+                        L("Steht sie zwanzig Minuten, bist du angekommen und hast das Beenden vergessen: dann endet die Aufzeichnung und zählt bis zum Anfang des Stillstands. Beide Zeiten stehen in den Einstellungen, „aus“ schaltet sie ab."),
+                        L("Der dritte Knopf oben links schaltet beides für diese eine Fahrt ab — für den echten Stau, von dem du weißt, dass es gleich weitergeht. Beim nächsten Start ist die Automatik wieder an."),
+                        L("Der Bildschirm wird dunkel, solange du ihn nicht anfasst, und beim ersten Antippen wieder hell — ebenso, wenn eine Abbiegung ansteht oder du neben der Route bist. Er ist während einer Fahrt der größte Posten auf der Stromrechnung, größer als die Ortung."),
                         L("Eine Fahrt beginnt quer. Stellst du es während der Fahrt um, gilt das ab dann für jede."),
                         L("Die Ortung läuft nur zwischen „Fahrt“ und „Fahrt beenden“, auch in der Tasche (iOS zeigt dabei die blaue Leiste). Danach hört sie auf."),
                     ])
@@ -73,12 +80,12 @@ struct HelpView: View {
                         L("Menü → Fahrten: alle Aufzeichnungen, nach Jahren und Monaten. Die Überschrift eines Monats zeigt Kilometer, Schnitt und Ampelhalts dieses Monats."),
                         L("Eine Fahrt antippen zeigt die gefahrene Linie, jede Zahl dazu und die längsten Halte. Die geplante Route liegt dünn und grau daneben — der Unterschied ist die eigentliche Auskunft."),
                         L("Darunter: das Höhenprofil der Fahrt, und was angekündigt war — Ampeln und Schnitt gegen das, was daraus wurde."),
-                        L("Die Zahlen jeder Fahrt gehen über deine eigene iCloud auf deine anderen Geräte, die gefahrene Linie seit 1.3 ebenfalls — in deine private CloudKit-Datenbank, die außer dir niemand lesen kann. Nach links wischen löscht eine Fahrt — auf diesem Gerät."),
+                        L("Die Zahlen jeder Fahrt gehen über deine eigene iCloud auf deine anderen Geräte, die gefahrene Linie seit 1.3 ebenfalls — in deine private CloudKit-Datenbank, die außer dir niemand lesen kann. Nach links wischen löscht eine Fahrt, seit 1.4 auf allen deinen Geräten: was du löschst, bleibt gelöscht."),
                     ])
-                    section(L("Aktualisieren"), "arrow.down", [
-                        L("Seite nach unten ziehen und loslassen. Einen Knopf dafür gibt es nicht mehr."),
+                    section(L("Aktualisieren"), "arrow.clockwise", [
+                        L("Unter der Karte steht, von wann der Stand ist — „Stand 14:48 · gerade eben“. Ein Tipp darauf plant neu."),
                         L("Das plant alles neu — auch die Warnungen werden auf den neuen Fahrplan gesetzt. Findet die Suche nichts, bleiben die alten Warnungen scharf."),
-                        L("Unten steht, von wann der Stand ist."),
+                        L("Von selbst wird nicht neu geplant, solange sich nichts geändert hat: dieselbe Frage bekommt fünf Minuten lang dieselbe Antwort. Zwischen den Boxen zu springen kostet also keine einzige Anfrage."),
                     ])
                     section(L("Was die App voraussetzt"), "info.circle", [
                         L("Fahrzeiten mit dem Rad rechnen sich aus der rollenden Geschwindigkeit plus Wartezeit je Ampelkreuzung plus fünf Sekunden je Höhenmeter — Tempo und Wartezeit stehen in den Einstellungen. Wo eigene Fahrten eine Kreuzung schon kennen, gilt deren gemessene Zeit statt der eingestellten."),

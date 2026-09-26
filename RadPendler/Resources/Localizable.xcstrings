@@ -1046,6 +1046,17 @@
         }
       }
     },
+    "Der Bildschirm wird dunkel, solange du ihn nicht anfasst, und beim ersten Antippen wieder hell — ebenso, wenn eine Abbiegung ansteht oder du neben der Route bist. Er ist während einer Fahrt der größte Posten auf der Stromrechnung, größer als die Ortung.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The screen goes dark while you are not touching it, and bright again at the first tap — and likewise when a turn is coming up or you are off the route. During a ride it is the largest item on the battery bill, larger than location tracking."
+          }
+        }
+      }
+    },
     "Der Countdown oben rechts zählt bis zum Losgehen für Bahn und Bus — und bei „Ankunft um …“ für jede Fahrt. Warnungen kommen als Mitteilung, auch wenn die App zu ist; bei offener App zusätzlich als Ton.": {
       "extractionState": "manual",
       "localizations": {
@@ -1086,6 +1097,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "The switch at the bottom left of the map shows the DWD radar. On the right it says which minute you are looking at — “now 14:48”, “in 25 min 15:10”. A small spinner beside it means frames are still loading."
+          }
+        }
+      }
+    },
+    "Der dritte Knopf oben links schaltet beides für diese eine Fahrt ab — für den echten Stau, von dem du weißt, dass es gleich weitergeht. Beim nächsten Start ist die Automatik wieder an.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The third button at the top left switches both off for this one ride — for the real traffic jam you know will clear in a minute. At the next start the automatic is back on."
           }
         }
       }
@@ -1277,6 +1299,17 @@
         }
       }
     },
+    "Die Uhr spricht, was das Telefon spricht: sie zeigt dessen Plan, also auch in dessen Sprache.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The watch speaks what the phone speaks: it shows the phone's plan, so it shows it in the phone's language."
+          }
+        }
+      }
+    },
     "Die Uhr zeigt dieselben Zahlen, solange das iPhone in Reichweite ist — sie rechnet nichts selbst.": {
       "extractionState": "manual",
       "localizations": {
@@ -1310,13 +1343,13 @@
         }
       }
     },
-    "Die Zahlen jeder Fahrt gehen über deine eigene iCloud auf deine anderen Geräte, die gefahrene Linie seit 1.3 ebenfalls — in deine private CloudKit-Datenbank, die außer dir niemand lesen kann. Nach links wischen löscht eine Fahrt — auf diesem Gerät.": {
+    "Die Zahlen jeder Fahrt gehen über deine eigene iCloud auf deine anderen Geräte, die gefahrene Linie seit 1.3 ebenfalls — in deine private CloudKit-Datenbank, die außer dir niemand lesen kann. Nach links wischen löscht eine Fahrt, seit 1.4 auf allen deinen Geräten: was du löschst, bleibt gelöscht.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The numbers of every ride travel to your other devices through your own iCloud, and since 1.3 the track does too — into your private CloudKit database, which nobody but you can read. Swipe left to delete a ride — on this device."
+            "value": "The numbers of every ride travel to your other devices through your own iCloud, and since 1.3 the track does too — into your private CloudKit database, which nobody but you can read. Swipe left to delete a ride; since 1.4 on all your devices: what you delete stays deleted."
           }
         }
       }
@@ -2098,6 +2131,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "In the detail of a bike route a bar shows how many kilometres run on main roads, side streets, bike paths, tracks and footpaths. The same bar appears for every recorded ride — there for the way you actually rode."
+          }
+        }
+      }
+    },
+    "Im Menü stehen drei Fähnchen: wie das Telefon, Deutsch, English. Die Umstellung wirkt sofort, ohne Neustart — auch Zahlen und Uhrzeiten folgen mit.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There are three flags in the menu: match the phone, German, English. The change takes effect at once, without a restart — numbers and clock times follow too."
           }
         }
       }
@@ -3169,17 +3213,6 @@
         }
       }
     },
-    "Seite nach unten ziehen und loslassen. Einen Knopf dafür gibt es nicht mehr.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pull the page down and let go. There is no button for it any more."
-          }
-        }
-      }
-    },
     "Sie zeigt die gewählte Fahrt: Abfahrt → Ankunft, die Abschnitte, Kilometer, Ampeln und wann es losgeht.": {
       "extractionState": "manual",
       "localizations": {
@@ -3209,6 +3242,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "top"
+          }
+        }
+      }
+    },
+    "Sprache": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language"
           }
         }
       }
@@ -3301,13 +3345,13 @@
         }
       }
     },
-    "Stehst du lange an derselben Stelle und ist dort keine Ampel, beendet sich die Aufzeichnung von selbst und zählt bis zum Anfang des Stillstands — der Fall „angekommen und vergessen, auf beenden zu tippen“. Ab wann, steht in den Einstellungen; „aus“ schaltet es ab.": {
+    "Steht sie zwanzig Minuten, bist du angekommen und hast das Beenden vergessen: dann endet die Aufzeichnung und zählt bis zum Anfang des Stillstands. Beide Zeiten stehen in den Einstellungen, „aus“ schaltet sie ab.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "If you stand in the same spot for a long time and there is no traffic light there, the recording ends by itself and counts up to the start of that standstill — the “arrived and forgot to tap end” case. After how long is in the settings; “off” switches it off."
+            "value": "After twenty minutes you have arrived and forgotten to end it: then the recording stops and counts up to the start of that standstill. Both times are in the settings, “off” switches them off."
           }
         }
       }
@@ -3466,17 +3510,6 @@
         }
       }
     },
-    "Unten steht, von wann der Stand ist.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "At the bottom it says how old the result is."
-          }
-        }
-      }
-    },
     "Unten steht, was noch kommt: Reststrecke, Restzeit und die Uhrzeit der Ankunft. Oben in der Leiste stehen dieselben zwei Zahlen statt des Countdowns — losgehen musst du nicht mehr.": {
       "extractionState": "manual",
       "localizations": {
@@ -3484,6 +3517,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Below you see what is left: distance, time and the arrival clock. The same two numbers stand in the toolbar in place of the countdown — there is nothing left to set off for."
+          }
+        }
+      }
+    },
+    "Unter der Karte steht, von wann der Stand ist — „Stand 14:48 · gerade eben“. Ein Tipp darauf plant neu.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Below the map it says how old the result is — “As of 14:48 · just now”. Tapping it plans again."
           }
         }
       }
@@ -3572,6 +3616,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ended by itself: you stood in the same spot for a long time, and there is no traffic light there. Counted up to the start of that standstill."
+          }
+        }
+      }
+    },
+    "Von selbst hält sie nach drei Minuten Stillstand an, wenn dort keine Ampel ist — und läuft weiter, sobald du wieder rollst. Die Ortung bleibt dabei an, aber sparsam. Der Halt selbst zählt als Halt: an der Schranke hast du gestanden.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It pauses by itself after three minutes of standing still where there is no traffic light — and continues as soon as you roll again. Location tracking stays on meanwhile, but frugally. The stop itself counts as a stop: at the barrier you did stand."
+          }
+        }
+      }
+    },
+    "Von selbst wird nicht neu geplant, solange sich nichts geändert hat: dieselbe Frage bekommt fünf Minuten lang dieselbe Antwort. Zwischen den Boxen zu springen kostet also keine einzige Anfrage.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing is planned again by itself while nothing has changed: the same question gets the same answer for five minutes. Jumping between the boxes therefore costs no request at all."
           }
         }
       }
@@ -4874,7 +4940,7 @@
         }
       }
     },
-    "„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — Eine Fahrt beginnt quer, oder so, wie du es während der letzten Fahrt zuletzt eingestellt hast; der Knopf dafür steht oben links auf dem Fahrtbildschirm. — Steht die Aufzeichnung länger als eingestellt an derselben Stelle und ist dort keine bekannte Ampel, beendet sie sich selbst und zählt bis zum Anfang des Stillstands; das ist der Fall „angekommen und vergessen, auf beenden zu tippen“. Eine gewollte Unterbrechung ist der Knopf „Pause“ auf dem Fahrtbildschirm: er hält die Uhr an und schaltet die Ortung so lange ab, und die Pause zählt weder zur Fahrzeit noch als Halt. — Während einer Aufzeichnung bleibt der Bildschirm an, bis du die Fahrt beendest; das kostet Strom und ist so gewollt. Er wird aber dunkel, solange du ihn nicht anfasst — und beim ersten Antippen wieder hell, ebenso wenn eine Abbiegung ansteht oder du neben der Route bist. Das ist während einer Fahrt der größte Posten auf der Stromrechnung, größer als die Ortung. — Verlässt du die Route, zeigt ein Pfeil zurück. Neu berechnet wird, was zuerst eintritt: die eingestellte Entfernung (und dann erst nach ein paar Sekunden am Stück, damit ein Bogen um eine Baustelle keine Neuplanung auslöst) oder die eingestellte Zeit, egal wie weit — wer im Kreis um einen gesperrten Weg fährt, kommt nie weit genug weg. Beides „aus“ lässt es beim Pfeil. — Wer länger als die eingestellte Zeit steht, stand an einer Ampel, auch wenn keine Karte dort eine kennt — nur das Stehen vor dem Losfahren und nach dem Ankommen zählt nie, das ist die eigene Haustür. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein. Mitgezählt wird auch, wo eine Aufzeichnung ohne Halt durchkam: eine gelernte Kreuzung kostet beim Planen ihre gemessene Zeit über alle Vorbeifahrten, nicht den eingestellten Mittelwert. Sie bleiben auf deinen Geräten und in deiner iCloud.": {
+    "„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — Eine Fahrt beginnt quer, oder so, wie du es während der letzten Fahrt zuletzt eingestellt hast; der Knopf dafür steht oben links auf dem Fahrtbildschirm. — Steht die Aufzeichnung an derselben Stelle und ist dort keine bekannte Ampel, hält sie nach der ersten eingestellten Zeit von selbst an — und läuft weiter, sobald es weitergeht; die Ortung bleibt dabei an, aber sparsam. Nach der zweiten Zeit beendet sie sich und zählt bis zum Anfang des Stillstands: das ist der Fall „angekommen und vergessen, auf beenden zu tippen“. Der Knopf oben links auf dem Fahrtbildschirm schaltet beides für eine Fahrt ab, für den Stau, der gleich weitergeht. Eine gewollte Unterbrechung ist dagegen der Knopf „Pause“: er hält die Uhr an und schaltet die Ortung ganz ab, und die Pause zählt weder zur Fahrzeit noch als Halt — anders als das Stehen vor einer automatischen Pause, das ein Halt war wie jeder andere. — Während einer Aufzeichnung bleibt der Bildschirm an, bis du die Fahrt beendest; das kostet Strom und ist so gewollt. Er wird aber dunkel, solange du ihn nicht anfasst — und beim ersten Antippen wieder hell, ebenso wenn eine Abbiegung ansteht oder du neben der Route bist. Das ist während einer Fahrt der größte Posten auf der Stromrechnung, größer als die Ortung. — Verlässt du die Route, zeigt ein Pfeil zurück. Neu berechnet wird, was zuerst eintritt: die eingestellte Entfernung (und dann erst nach ein paar Sekunden am Stück, damit ein Bogen um eine Baustelle keine Neuplanung auslöst) oder die eingestellte Zeit, egal wie weit — wer im Kreis um einen gesperrten Weg fährt, kommt nie weit genug weg. Beides „aus“ lässt es beim Pfeil. — Wer länger als die eingestellte Zeit steht, stand an einer Ampel, auch wenn keine Karte dort eine kennt — nur das Stehen vor dem Losfahren und nach dem Ankommen zählt nie, das ist die eigene Haustür. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein. Mitgezählt wird auch, wo eine Aufzeichnung ohne Halt durchkam: eine gelernte Kreuzung kostet beim Planen ihre gemessene Zeit über alle Vorbeifahrten, nicht den eingestellten Mittelwert. Sie bleiben auf deinen Geräten und in deiner iCloud.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
