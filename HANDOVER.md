@@ -55,12 +55,14 @@ die Seite im Netz muss beschreiben, was die App im Store tut, nicht was TestFlig
    1. Einen Bau **aus Xcode** aufs iPhone. Nur der schreibt nach Development; ein
       TestFlight-Build schreibt nach Production, und dort legt CloudKit nichts von
       selbst an.
-   2. App starten. Beim ersten Start schiebt `reuploadTracksIfNeeded` alle lokal
-      vorhandenen Linien hinauf — damit entsteht der Datensatztyp. Gibt es keine, eine
-      kurze Fahrt aufzeichnen (über 60 s und 100 m, sonst wird sie verworfen).
-      *Oder* von Hand: <https://icloud.developer.apple.com/dashboard/> → Container →
-      Schema → Record Types → **+** → `RideTrack` mit einem Feld `track` vom Typ
-      **Asset**. Indizes braucht es keine, die App liest über die Record-Id.
+   2. Eine kurze Fahrt aufzeichnen (über 60 s und 100 m, sonst wird sie verworfen) —
+      die Linie geht hinauf, und damit entsteht der Datensatztyp. **Nicht** auf
+      `reuploadTracksIfNeeded` bauen: das Nachschieben der alten Linien läuft genau
+      einmal je Container, und wenn vorher schon ein TestFlight-Build lief, ist der
+      Merker `tracksUploadedTo` längst gesetzt.
+      *Oder ganz ohne Gerät:* <https://icloud.developer.apple.com/dashboard/> →
+      Container → Schema → Record Types → **+** → `RideTrack` mit einem Feld `track`
+      vom Typ **Asset**. Indizes braucht es keine, die App liest über die Record-Id.
    3. Dashboard → Container `iCloud.de.keese.radpendler` → **Deploy Schema Changes** →
       Development → Production → Deploy.
    4. Gegenprobe im TestFlight-Build: eine Fahrt aufzeichnen und in die Fahrtenliste
