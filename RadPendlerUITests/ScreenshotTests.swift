@@ -48,28 +48,33 @@ final class ScreenshotTests: XCTestCase {
             keep("radbahn")
         }
 
+        // Das Menü selbst: die vier Seiten der Einstellungen, die Fahrten —
+        // und die Sprachwahl, die es seit 1.4 gibt.
+        guard app.buttons["Menü"].waitForExistence(timeout: 10) else { return }
+        app.buttons["Menü"].tap()
+        sleep(2)
+        keep("menue")
+
+        // Die Vorlieben: Reihenfolge der Verkehrsmittel, Routenvarianten,
+        // Regenschwelle, und die zwei Geschwindigkeiten.
+        if app.buttons["Verkehrsmittel"].waitForExistence(timeout: 5) {
+            app.buttons["Verkehrsmittel"].tap()
+            sleep(3)
+            keep("vorlieben")
+            if app.navigationBars.buttons["Fertig"].exists {
+                app.navigationBars.buttons["Fertig"].tap()
+                sleep(2)
+            }
+        }
+
+        // Und was während einer Fahrt passiert: abdunkeln, anhalten, beenden.
         guard app.buttons["Menü"].waitForExistence(timeout: 10) else { return }
         app.buttons["Menü"].tap()
         sleep(1)
         guard app.buttons["Einstellungen"].waitForExistence(timeout: 5) else { return }
         app.buttons["Einstellungen"].tap()
         sleep(3)
-        // Unscrolled: the addresses and the three preference lists under them.
-        keep("vorlieben")
-
-        // The bike-carriage list, a few sections further down. Its row is a
-        // LabeledContent, so the label carries the value too — match the head.
-        let row = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Fahrradmitnahme")).firstMatch
-        for _ in 0..<8 {
-            if row.exists && row.isHittable { break }
-            app.swipeUp()
-            sleep(1)
-        }
-        if row.exists && row.isHittable {
-            row.tap()
-            sleep(3)
-            keep("fahrradmitnahme")
-        }
+        keep("aufzeichnen")
     }
 
     /// The first plan needs the timetable, BRouter, Overpass and the rain —

@@ -10,6 +10,33 @@ Fassung von Name, Untertitel, Keywords und Beschreibung steht am Ende und
 gehört in die Lokalisierung **Englisch (USA)**, damit die Seite in Stores
 außerhalb Deutschlands nicht leer aussieht.
 
+## Einreichungs-Checkliste (1.4, Build 38 — die einzureichende Fassung)
+
+Der Stand, der in den Store soll. Was seit der 1.0-Liste dazugekommen ist,
+steht in **fett**; alles andere gilt unverändert und ist unten ausgeführt.
+
+1. **Build 1.4 (38)** auswählen — liegt seit dem 26.09.2026 in TestFlight
+2. **Screenshots**: `screenshots/iphone-6.5/` (7 Bilder) in den 6,5″-Schacht,
+   `screenshots/ipad-13/` (6 Bilder) in den 13″-Schacht, in der Reihenfolge der
+   Dateinummern. **Neu aufgenommen am 26.09.2026 mit Build 38**, Alexanderplatz
+   → Potsdam Hbf, sonst nichts
+3. **Was ist neu** — Text unten, für 1.4
+4. **App-Datenschutz**: Standort → Genauer Standort → App-Funktionalität, nicht
+   mit der Identität verknüpft, kein Tracking. **Das Datenschutzmanifest
+   (`PrivacyInfo.xcprivacy`) liegt seit Build 38 im Paket** und sagt dasselbe;
+   die Angaben im Formular müssen dazu passen
+5. **Englische Lokalisierung anlegen** (Englisch, USA): Name, Untertitel,
+   Keywords, Beschreibung stehen am Ende dieser Datei. **Seit 1.4 spricht die
+   App selbst Englisch** — eine leere englische Store-Seite wäre jetzt ein
+   Widerspruch
+6. **CloudKit-Schema übernehmen**, falls noch nicht geschehen: Dashboard →
+   Schema → Deploy, Development → Production. Ohne das reisen die Linien der
+   aufgezeichneten Fahrten in der Store-Fassung **nicht**
+7. Support-, Marketing- und Datenschutz-URL wie unten; die Seiten liegen unter
+   `appstore/pages/` und müssen als GitHub-Pages-Repositories veröffentlicht
+   sein, bevor die URLs gültig sind
+8. Alterseinstufung 4+, Kategorie Navigation / Reisen, Preis kostenlos
+
 ## Einreichungs-Checkliste (1.0, Build 22)
 
 Die erste Einreichung überhaupt: bisher lief RadPendler nur über TestFlight,
@@ -68,7 +95,7 @@ neu ist, nicht was immer gilt.
 
 ## Beschreibung (max 4000)
 
-Länge: **3988** von 4000 Zeichen.
+Länge: **3967** von 4000 Zeichen. Stand 1.4.
 
 ```
 Wie kommst du heute zur Arbeit?
@@ -78,15 +105,13 @@ nebeneinander: mit dem Rad, mit Rad und Bahn, mit dem Auto und mit Bus & Bahn.
 Vier Kästen, vier Fahrzeiten, ein Stern an dem, der heute gewinnt — auf einer
 Seite, ohne Scrollen.
 
-Gebaut für einen echten Arbeitsweg und danach allgemein geworden. Die App
-kennt keine eingebauten Adressen, rechnet die Radzeit aus der rollenden
-Geschwindigkeit plus Wartezeit je Ampel — und sagt, was sie nicht weiß, statt
-zu raten.
+Gebaut für einen echten Arbeitsweg und danach allgemein geworden — und sie
+sagt, was sie nicht weiß, statt zu raten.
 
 DIE VIER WEGE
-• Fahrrad in Varianten: schnellst, kürzest, optimal, ruhigst. Aus mehreren
-  BRouter-Profilen und aus Apple Karten, bewertet nach Ampeln, gequerten
-  Hauptstraßen und Metern neben Hauptstraßen
+• Fahrrad in Varianten: schnellst, kürzest, optimal, ruhigst, verkehrsarm. Aus
+  mehreren BRouter-Profilen und aus Apple Karten, bewertet nach Ampeln,
+  gequerten Hauptstraßen und Metern neben Hauptstraßen
 • Rad + Bahn: die App sucht sich die Bahnhöfe selbst, radelt hin, fährt mit und
   radelt weiter
 • Auto: optimal, schnellst, kürzest oder wenig Ampeln — jede Linie, die
@@ -97,47 +122,50 @@ AMPELN, DIE MITZÄHLEN
 Eine Radzeit ohne Ampeln ist eine Radzeit für ein leeres Land. RadPendler holt
 Lichtsignalanlagen und Hauptstraßen entlang der Strecke aus OpenStreetMap,
 zählt die Kreuzungen und zeichnet sie auf die Karte. Fahrzeit = Strecke ÷
-Fahrgeschwindigkeit + Wartezeit je Ampel — beides von dir einstellbar.
+Rolltempo + Wartezeit je Ampel — beides von dir einstellbar.
+
+FAHRTEN AUFZEICHNEN, UND DIE APP LERNT DARAUS
+Ein Knopf neben der gewählten Fahrt zeichnet auf, was du wirklich fährst:
+Strecke, Tempo, jeden Halt, das Höhenprofil, und worauf du gefahren bist.
+
+Dann rechnet die App mit deinen Zahlen weiter: dein gemessener Schnitt ersetzt
+die Schätzung, und jede Kreuzung, an der du wirklich standest, kostet beim
+nächsten Planen, was sie dich gekostet hat. Die Aufzeichnung hält von selbst
+an, wenn du lange stehst, und läuft weiter, sobald es weitergeht.
 
 REGEN, WO DU FÄHRST
 Nicht „Regenwahrscheinlichkeit 40 %“, sondern Regen an den Punkten deiner
 Strecke zu den Minuten, an denen du dort bist — aus dem Nowcast des Deutschen
 Wetterdienstes und aus Open-Meteo. Die Radarbilder laufen über der Karte von
-jetzt bis zwei Stunden voraus, die Positionsmarke wandert mit. Ab wieviel Regen
-das Rad in die Bahn gehört, entscheidest du.
+jetzt bis zwei Stunden voraus, die Positionsmarke wandert mit.
 
 FAHRRADMITNAHME, VON DIR ENTSCHIEDEN
 Kein Fahrplan weiß zuverlässig, ob dein Rad mitdarf. Was der VBB zusichert,
 steht auf „Rad ja“. Alles andere ist „ungeklärt“ — und wird trotzdem
 vorgeschlagen, mit dem Hinweis dazu, statt stillschweigend zu verschwinden. In
-den Einstellungen setzt du jede Linie auf ja, nein oder offen; ein Nein nimmt
-sie aus den Rad-+-Bahn-Vorschlägen heraus.
+den Einstellungen setzt du jede Linie auf ja, nein oder offen.
 
 COUNTDOWN BIS ZUM LOSGEHEN
 Oben rechts läuft die Zeit bis zum Losgehen — Abfahrt minus deiner Rüstzeit,
-nicht bis zur Abfahrt. Die Pille färbt sich mit: grün, gelb ab 30 Minuten,
-orange ab 10, rot ab 5, dunkelrot sobald die Bahn weg ist. Die Warnungen kommen
-als Mitteilung, auch wenn die App zu ist. Ein Tipp auf die Pille stellt beides
-ab, wenn du diese Bahn ohnehin nicht nimmst.
+nicht bis zur Abfahrt. Die Pille färbt sich mit, von grün bis dunkelrot. Die
+Warnungen kommen als Mitteilung, auch wenn die App zu ist.
 
-BUNDESWEIT
+BUNDESWEIT, DEUTSCH UND ENGLISCH
 In Berlin und Brandenburg antwortet der VBB — dort ist er genauer und sagt als
 Einziger je Zug, ob Räder mitdürfen. Alles darüber hinaus beantwortet
 Transitous, die von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten
-DELFI-Datensatz, die Rad und Bahn in einem Zug plant.
+DELFI-Datensatz. Die Sprache stellst du im Menü um, ohne Neustart.
 
 iPAD UND APPLE WATCH
 Auf dem iPad steht alles nebeneinander: links Adressen, Zeitwahl, die vier
-Kästen, die Begründung der Empfehlung und der ganze Zeitstrahl — rechts die
-Karte über die volle Höhe. Auf der Uhr: Countdown in derselben Ampelfarbe wie
-auf dem iPhone, die Fahrt mit allen Abschnitten, die vier Kategorien zum
-Umwählen — und was du dort wählst, übernimmt das iPhone. Die Uhr plant nie
-selbst: sie zeigt, was das iPhone geschickt hat.
+Kästen und der ganze Zeitstrahl — rechts die Karte über die volle Höhe. Auf der
+Uhr: derselbe Countdown, die Fahrt mit allen Abschnitten, die vier Kategorien
+zum Umwählen — und was du dort wählst, übernimmt das iPhone.
 
 VORLIEBEN STATT REGELN
-Reihenfolge der Verkehrsmittel, Routenvariante, was ein Umstieg wert ist, wie
-lange du zum Fertigmachen brauchst, ab wieviel Regen das Rad in die Bahn
-gehört — alles einstellbar, jedes mit einer bewährten Voreinstellung.
+Reihenfolge der Verkehrsmittel, Routenvariante, was ein Umstieg wert ist, ab
+wieviel Regen das Rad in die Bahn gehört — alles einstellbar, jedes mit einer
+bewährten Voreinstellung.
 
 DEINE ADRESSEN BLEIBEN DEINE
 Die App wird ohne Adressen ausgeliefert und enthält keine. Was du eingibst,
@@ -152,19 +180,34 @@ ODbL), Deutscher Wetterdienst und Open-Meteo.
 Alle Zeiten ohne Gewähr.
 ```
 
-## Was ist neu (erste Version 1.0 — Feld bleibt leer)
+## Was ist neu (1.4)
 
-Bei der ersten Store-Version fragt App Store Connect nicht nach „Was ist neu“.
-Für die erste Aktualisierung danach steht der Text im `CHANGELOG.md` bereit;
-in Kundensprache zusammengefasst wäre es für 0.12.x:
+Für das Feld „Neue Funktionen“ der Version 1.4 (max 4000, hier 1063):
 
 ```
-• Bundesweite Fahrpläne über Transitous, neben dem VBB. Rad + Bahn geht jetzt
-  auch über weite Strecken: Rad zum Bahnhof, Zug, Rad weiter — in einer
-  Anfrage.
-• Fahrradmitnahme wird nie stillschweigend als Nein gelesen. Was der Fahrplan
-  nicht zusichert, heißt „ungeklärt“ und steht zur Wahl.
-• Gleisangaben auch dort, wo der Datensatz kein eigenes Feld dafür hat.
+Diese Fassung kommt von der Straße: sie zeichnet Fahrten auf und rechnet
+danach mit deinen Zahlen weiter.
+
+AUFZEICHNEN
+• Die Aufzeichnung hält von selbst an, wenn du länger als drei Minuten stehst
+  und dort keine Ampel ist — und läuft weiter, sobald du wieder rollst. Nach
+  zwanzig Minuten beendet sie sich; das ist der Fall „angekommen und vergessen,
+  auf beenden zu tippen“. Ein Knopf schaltet beides für eine Fahrt ab.
+• „Pause“ für die gewollte Unterbrechung: die Uhr steht, die Ortung ist aus.
+• Der Bildschirm wird dunkel, solange du ihn nicht anfasst, und beim ersten
+  Antippen wieder hell — während einer Fahrt der größte Posten auf der
+  Stromrechnung.
+• Der gefahrene Schnitt steht neben dem geplanten, die Ampeln als „18/20“.
+
+ENGLISCH
+Die App spricht Deutsch und Englisch. Umgeschaltet wird im Menü, und die
+Umstellung wirkt sofort — auch Zahlen und Uhrzeiten folgen mit.
+
+AUSSERDEM
+• Was du löschst, bleibt gelöscht — auch mit zwei Geräten.
+• Fehler stehen im Klartext da statt als „Fehler“.
+• Weniger Anfragen, weniger Strom: dieselbe Frage bekommt fünf Minuten lang
+  dieselbe Antwort, und zwischen den Boxen zu springen kostet gar nichts.
 ```
 
 ## Keywords (max 100, kommagetrennt, ohne Leerzeichen)
@@ -266,20 +309,22 @@ Was trotzdem gesagt gehört, und was die Datenschutzseite ausdrücklich sagt:
 
 ## Datenschutzmanifest (`PrivacyInfo.xcprivacy`)
 
-**Fehlt noch** und gehört vor der Einreichung dazu. Apple weist Uploads ohne
-Manifest nicht zurück, verlangt aber für die „required reason APIs“ eine
-Begründung; RadPendler benutzt davon:
+**Liegt seit Build 38 bei** (`RadPendler/Resources/PrivacyInfo.xcprivacy`) und
+wandert als Datei ins Paket — nachgeprüft am Archiv. Was drinsteht:
 
 | Kategorie | Grund | Warum |
 |---|---|---|
-| `NSPrivacyAccessedAPICategoryUserDefaults` | `CA92.1` | Adressen und Einstellungen, nur für die App selbst |
-| `NSPrivacyAccessedAPICategoryDiskSpace` | `E174.1` | nur falls der Overpass-Cache je nach freiem Platz schreibt — sonst weglassen |
-| `NSPrivacyAccessedAPICategoryFileTimestamp` | `C617.1` | Alter des Overpass-Caches und des Plans auf der Uhr |
+| `NSPrivacyAccessedAPICategoryUserDefaults` | `CA92.1` | Adressen, Einstellungen und die Zahlen der Fahrten, nur für die App selbst |
+| `NSPrivacyAccessedAPICategoryFileTimestamp` | `C617.1` | Alter des Overpass-Zwischenspeichers und der abgelegten Linien |
+| `NSPrivacyAccessedAPICategoryDiskSpace` | `E174.1` | der Kartenzwischenspeicher wird nur angelegt, wenn Platz ist |
+| `NSPrivacyAccessedAPICategorySystemBootTime` | `35F9.1` | Zeitstempel einer laufenden Aufzeichnung, damit eine abgebrochene Fahrt ihre Dauer behält |
 
-`NSPrivacyTracking` auf `false`, `NSPrivacyTrackingDomains` und
-`NSPrivacyCollectedDataTypes` leer. Vor dem Eintragen jede Zeile gegen den Code
-prüfen: ein Eintrag für eine API, die die App nicht aufruft, ist genauso falsch
-wie ein fehlender.
+`NSPrivacyTracking` ist `false`, `NSPrivacyTrackingDomains` leer. **Nicht leer
+ist `NSPrivacyCollectedDataTypes`**: der genaue Standort wird erhoben, für die
+Funktion der App, ohne Verknüpfung mit einer Person und ohne Tracking. Das muss
+mit den Antworten im Formular übereinstimmen — steht dort „wird nicht erhoben“
+und im Manifest das Gegenteil, ist das ein Widerspruch in der eigenen
+Einreichung.
 
 ## Screenshots
 
@@ -294,22 +339,27 @@ beiden Schächte annimmt, sind kurz; alles andere wird beim Hochladen abgelehnt:
 Ein 6,9″-Telefon (iPhone 17 Pro Max) nimmt mit 1320 × 2868 auf, und das steht
 **nicht** auf der Liste — der 6,5″-Satz muss aus einem 6,5″-Simulator kommen.
 
-Reihenfolge und der Bildtext, den jedes Bild tragen soll:
+Reihenfolge und der Bildtext, den jedes Bild tragen soll (Stand 26.09.2026,
+aufgenommen mit Build 38):
 
-**iPhone**
+**iPhone** — sieben Bilder
 
 1. `1-hauptseite` — „Vier Wege, eine Seite. Der Stern sitzt auf dem, der heute gewinnt.“
 2. `2-rad` — „Die Radroute mit ihren Ampeln — gezählt, nicht geschätzt.“
 3. `3-fahrt` — „Jede Fahrt im Zeitstrahl: Ampeln, Querungen, Hauptstraßen, Regen.“
 4. `4-radbahn` — „Rad + Bahn: hinradeln, mitfahren, weiterradeln.“
-5. `5-vorlieben` — „Deine Vorlieben, nicht meine Regeln.“
-6. `6-fahrradmitnahme` — „Ob dein Rad mitdarf, entscheidest du — je Linie.“
+5. `5-menue` — „Alles eine Ebene tief — und die Sprache gleich mit dabei.“
+6. `6-vorlieben` — „Deine Vorlieben, nicht meine Regeln.“
+7. `7-aufzeichnen` — „Was die App während der Fahrt tut — und wann sie sich selbst anhält.“
 
-**iPad**
+**iPad** — sechs Bilder
 
 1. `1-hauptseite` — „Auf dem iPad steht alles nebeneinander: Plan links, Karte rechts.“
-2. `2-vorlieben` — „Reihenfolge, Routenvariante, Regenschwelle — alles einstellbar.“
-3. `3-fahrradmitnahme` — „Rad ja, Rad nein, offen: die Linienliste.“
+2. `2-rad` — „Die Radroute mit Straßenarten, Ampeln und Höhenmetern.“
+3. `3-radbahn` — „Rad + Bahn, mit Bahnhöfen, die die App selbst sucht.“
+4. `4-menue` — „Alles eine Ebene tief — und die Sprache gleich mit dabei.“
+5. `5-vorlieben` — „Reihenfolge, Routenvariante, Regenschwelle — alles einstellbar.“
+6. `6-aufzeichnen` — „Was die App während der Fahrt tut — und wann sie sich selbst anhält.“
 
 ### Neu aufnehmen
 
@@ -343,11 +393,17 @@ zurückspielen. Steht eine drauf, App deinstallieren, Adressen neu setzen, neu
 aufnehmen. Die Bilder in diesem Ordner zeigen Alexanderplatz → Potsdam Hbf und
 sonst nichts.
 
-**Offen:** Der iPad-Satz hat keine Radrouten-Aufnahme. Der Versuch fiel in eine
-Overpass-Sperre und trug den Hinweis „Ampeln und Hauptstraßen unbekannt
-(OpenStreetMap nicht erreichbar)“ — mit einer Fehlermeldung geht kein Bild in
-den Store. Beim nächsten Lauf, wenn Overpass wieder antwortet, nachholen und
-als `2-rad` einsortieren.
+**Erledigt (26.09.2026):** Der iPad-Satz hat jetzt seine Radrouten-Aufnahme.
+
+**Zwei Fallen, beide am 26.09.2026 bezahlt:**
+
+- **Der Simulator spielt Adressen zurück.** Auf dem iPad stand im Kopf
+  plötzlich eine Adresse aus einem früheren Lauf, während die Route schon die
+  neue war — der iCloud-Abgleich hatte sie nach dem Start überschrieben. Hilft:
+  `xcrun simctl erase <UDID>`, dann App installieren, dann die Adressen setzen.
+- **Nach einem `erase` sind die Kartenkacheln leer.** Der erste Lauf danach
+  zeigt ein weißes Gitter statt einer Karte; der zweite ist gut. Also immer
+  zweimal laufen lassen und die Bilder ansehen.
 
 ### Apple Watch (46 mm) — 4 Bilder, 416 × 496
 
