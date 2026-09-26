@@ -16,9 +16,10 @@ Der Stand, der in den Store soll. Was seit 1.4 dazugekommen ist, steht in
 **fett**; alles andere gilt unverändert und ist unten ausgeführt.
 
 1. **Build 1.5 (40)** auswählen — liegt seit dem 26.09.2026 in TestFlight
-2. **Screenshots**: unverändert gültig. Sie sind mit Build 38 aufgenommen, und
-   keine der 1.5-Änderungen berührt eine der abgebildeten Seiten — die Bilder
-   zeigen Planung, Menü und Einstellungen, geändert hat sich die Fahrtseite
+2. **Screenshots**: `screenshots/iphone-6.5/` (**8 Bilder**) in den 6,5″-Schacht,
+   `screenshots/ipad-13/` (**7 Bilder**) in den 13″-Schacht, in der Reihenfolge
+   der Dateinummern. **Neu aufgenommen am 26.09.2026 mit Build 40**, darunter
+   erstmals eine echte Aufnahme des Fahrtmodus
 3. **Was ist neu** — Text unten, **für 1.5**
 4. **App-Datenschutz**: Standort → Genauer Standort → App-Funktionalität, nicht
    mit der Identität verknüpft, kein Tracking. Das Datenschutzmanifest
@@ -119,23 +120,22 @@ neu ist, nicht was immer gilt.
 
 ## Beschreibung (max 4000)
 
-Länge: **3967** von 4000 Zeichen. Stand 1.4.
+Länge: **3994** von 4000 Zeichen. Stand 1.5.
 
 ```
 Wie kommst du heute zur Arbeit?
 
 RadPendler rechnet dieselbe Strecke auf vier Arten und stellt sie
-nebeneinander: mit dem Rad, mit Rad und Bahn, mit dem Auto und mit Bus & Bahn.
-Vier Kästen, vier Fahrzeiten, ein Stern an dem, der heute gewinnt — auf einer
-Seite, ohne Scrollen.
+nebeneinander: Rad, Rad und Bahn, Auto, Bus & Bahn. Vier Kästen, vier
+Fahrzeiten, ein Stern an dem, der heute gewinnt — auf einer Seite.
 
-Gebaut für einen echten Arbeitsweg und danach allgemein geworden — und sie
-sagt, was sie nicht weiß, statt zu raten.
+Gebaut für einen echten Arbeitsweg — und sie sagt, was sie nicht weiß, statt
+zu raten.
 
 DIE VIER WEGE
 • Fahrrad in Varianten: schnellst, kürzest, optimal, ruhigst, verkehrsarm. Aus
-  mehreren BRouter-Profilen und aus Apple Karten, bewertet nach Ampeln,
-  gequerten Hauptstraßen und Metern neben Hauptstraßen
+  mehreren BRouter-Profilen und aus Apple Karten, bewertet nach Ampeln und
+  Hauptstraßen
 • Rad + Bahn: die App sucht sich die Bahnhöfe selbst, radelt hin, fährt mit und
   radelt weiter
 • Auto: optimal, schnellst, kürzest oder wenig Ampeln — jede Linie, die
@@ -144,57 +144,62 @@ DIE VIER WEGE
 
 AMPELN, DIE MITZÄHLEN
 Eine Radzeit ohne Ampeln ist eine Radzeit für ein leeres Land. RadPendler holt
-Lichtsignalanlagen und Hauptstraßen entlang der Strecke aus OpenStreetMap,
-zählt die Kreuzungen und zeichnet sie auf die Karte. Fahrzeit = Strecke ÷
+Lichtsignalanlagen und Hauptstraßen entlang der Strecke aus OpenStreetMap und
+zeichnet sie auf die Karte. Fahrzeit = Strecke ÷
 Rolltempo + Wartezeit je Ampel — beides von dir einstellbar.
 
 FAHRTEN AUFZEICHNEN, UND DIE APP LERNT DARAUS
 Ein Knopf neben der gewählten Fahrt zeichnet auf, was du wirklich fährst:
-Strecke, Tempo, jeden Halt, das Höhenprofil, und worauf du gefahren bist.
+Strecke, Tempo, jeden Halt, das Höhenprofil und den Untergrund.
 
 Dann rechnet die App mit deinen Zahlen weiter: dein gemessener Schnitt ersetzt
 die Schätzung, und jede Kreuzung, an der du wirklich standest, kostet beim
-nächsten Planen, was sie dich gekostet hat. Die Aufzeichnung hält von selbst
-an, wenn du lange stehst, und läuft weiter, sobald es weitergeht.
+nächsten Planen, was sie dich gekostet hat.
+
+WAS DER FAHRTMODUS DAFÜR ZEIGT
+Eine Seite, die vom Lenker aus zu lesen ist: das Tempo jetzt, der gefahrene
+Schnitt neben dem geplanten, die Restzeit mit Ankunftszeit und die Ampeln als
+„3/18“ samt der Zeit, die du an ihnen gestanden hast. Wer vom Weg abkommt,
+sieht, wie weit — und bekommt eine neue Route in Fahrtrichtung. „Pause“ für
+die gewollte Unterbrechung; von selbst hält die Aufzeichnung an, wenn du lange
+stehst, und läuft weiter, sobald es weitergeht. Der Bildschirm dunkelt ab,
+solange niemand ihn anfasst, und bleibt am Ladekabel hell.
 
 REGEN, WO DU FÄHRST
 Nicht „Regenwahrscheinlichkeit 40 %“, sondern Regen an den Punkten deiner
-Strecke zu den Minuten, an denen du dort bist — aus dem Nowcast des Deutschen
-Wetterdienstes und aus Open-Meteo. Die Radarbilder laufen über der Karte von
-jetzt bis zwei Stunden voraus, die Positionsmarke wandert mit.
+Strecke zu den Minuten, an denen du dort bist. Die Radarbilder laufen über der
+Karte von jetzt bis zwei Stunden voraus, die Positionsmarke wandert mit.
 
 FAHRRADMITNAHME, VON DIR ENTSCHIEDEN
 Kein Fahrplan weiß zuverlässig, ob dein Rad mitdarf. Was der VBB zusichert,
-steht auf „Rad ja“. Alles andere ist „ungeklärt“ — und wird trotzdem
-vorgeschlagen, mit dem Hinweis dazu, statt stillschweigend zu verschwinden. In
-den Einstellungen setzt du jede Linie auf ja, nein oder offen.
+steht auf „Rad ja“. Alles andere ist „ungeklärt“ — und wird
+trotzdem vorgeschlagen, mit dem Hinweis dazu. In den Einstellungen setzt du
+jede Linie auf ja, nein oder offen.
 
 COUNTDOWN BIS ZUM LOSGEHEN
 Oben rechts läuft die Zeit bis zum Losgehen — Abfahrt minus deiner Rüstzeit,
-nicht bis zur Abfahrt. Die Pille färbt sich mit, von grün bis dunkelrot. Die
-Warnungen kommen als Mitteilung, auch wenn die App zu ist.
+nicht bis zur Abfahrt. Die Warnungen kommen als Mitteilung, auch wenn die App
+zu ist.
 
 BUNDESWEIT, DEUTSCH UND ENGLISCH
-In Berlin und Brandenburg antwortet der VBB — dort ist er genauer und sagt als
-Einziger je Zug, ob Räder mitdürfen. Alles darüber hinaus beantwortet
-Transitous, die von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten
-DELFI-Datensatz. Die Sprache stellst du im Menü um, ohne Neustart.
+In Berlin und Brandenburg antwortet der VBB — genauer, und als Einziger sagt
+er je Zug, ob Räder mitdürfen. Alles darüber hinaus beantwortet
+Transitous, die MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Die Sprache stellst du im Menü um, ohne Neustart.
 
 iPAD UND APPLE WATCH
 Auf dem iPad steht alles nebeneinander: links Adressen, Zeitwahl, die vier
-Kästen und der ganze Zeitstrahl — rechts die Karte über die volle Höhe. Auf der
-Uhr: derselbe Countdown, die Fahrt mit allen Abschnitten, die vier Kategorien
-zum Umwählen — und was du dort wählst, übernimmt das iPhone.
+Kästen und der Zeitstrahl, rechts die Karte. Auf der Uhr: derselbe Countdown,
+die Fahrt mit allen Abschnitten, die vier Kategorien zum Umwählen — und was du
+dort wählst, übernimmt das iPhone.
 
 VORLIEBEN STATT REGELN
 Reihenfolge der Verkehrsmittel, Routenvariante, was ein Umstieg wert ist, ab
-wieviel Regen das Rad in die Bahn gehört — alles einstellbar, jedes mit einer
-bewährten Voreinstellung.
+wieviel Regen das Rad in die Bahn gehört — alles einstellbar, jedes mit
+bewährter Voreinstellung.
 
 DEINE ADRESSEN BLEIBEN DEINE
-Die App wird ohne Adressen ausgeliefert und enthält keine. Was du eingibst,
-bleibt auf deinen Geräten und in deiner eigenen iCloud; es geht an keinen
-Server dieses Projekts, weil es keinen gibt. Kein Konto, keine Anmeldung, keine
+Was du eingibst, bleibt auf deinen Geräten und in deiner eigenen iCloud; es
+geht an keinen Server dieses Projekts, weil es keinen gibt. Kein Konto, keine Anmeldung, keine
 Analytik, keine Werbung. Quelloffen (MIT).
 
 Datenquellen: VBB, Transitous/MOTIS auf dem DELFI-Datensatz, Apple Karten,
@@ -322,12 +327,16 @@ Quelle: `appstore/pages/radpendler-privacy/index.html`, gedacht für
 
 ## App-Datenschutz — die Antworten auf den Fragebogen
 
-**Erhobene Daten: keine.** Auf jede Kategorie „Nein“.
+**Ein einziger Datentyp: Genauer Standort.** Verwendungszweck
+*App-Funktionalität*, **nicht** mit der Identität verknüpft, **kein** Tracking.
+Alles andere im Fragebogen: „Nein“.
 
-Der Fragebogen fragt nach Daten, die **der Entwickler oder seine Partner**
-erheben. Es gibt keinen Server dieses Projekts und keine Analytik, kein SDK
-eines Dritten, kein Konto und keine Werbung — also ist die Antwort überall
-„Nein“. Das ist keine Auslegungsfrage, sondern der Aufbau der App.
+So steht es seit 1.4 auch im Datenschutzmanifest im Paket (unten), und beide
+müssen dasselbe sagen — Apple vergleicht sie. Bis 1.0 stand hier „keine Daten“;
+das war die schärfere Lesart (es gibt keinen Server dieses Projekts, keine
+Analytik, kein fremdes SDK, kein Konto, keine Werbung), aber der Standort
+verlässt das Gerät nun einmal als Koordinate an die Routing-Dienste, und die
+konservative Angabe ist die, die zum Manifest passt.
 
 Was trotzdem gesagt gehört, und was die Datenschutzseite ausdrücklich sagt:
 
@@ -395,9 +404,9 @@ Ein 6,9″-Telefon (iPhone 17 Pro Max) nimmt mit 1320 × 2868 auf, und das steht
 **nicht** auf der Liste — der 6,5″-Satz muss aus einem 6,5″-Simulator kommen.
 
 Reihenfolge und der Bildtext, den jedes Bild tragen soll (Stand 26.09.2026,
-aufgenommen mit Build 38):
+aufgenommen mit Build 40):
 
-**iPhone** — sieben Bilder
+**iPhone** — acht Bilder
 
 1. `1-hauptseite` — „Vier Wege, eine Seite. Der Stern sitzt auf dem, der heute gewinnt.“
 2. `2-rad` — „Die Radroute mit ihren Ampeln — gezählt, nicht geschätzt.“
@@ -405,16 +414,27 @@ aufgenommen mit Build 38):
 4. `4-radbahn` — „Rad + Bahn: hinradeln, mitfahren, weiterradeln.“
 5. `5-menue` — „Alles eine Ebene tief — und die Sprache gleich mit dabei.“
 6. `6-vorlieben` — „Deine Vorlieben, nicht meine Regeln.“
-7. `7-aufzeichnen` — „Was die App während der Fahrt tut — und wann sie sich selbst anhält.“
+7. `7-einstellungen` — „Was die App während der Fahrt tut — und wann sie sich selbst anhält.“
+8. `8-fahrtmodus` — „Unterwegs: Tempo jetzt, Schnitt gegen Plan, Restzeit, Ampeln.“
 
-**iPad** — sechs Bilder
+**iPad** — sieben Bilder
 
 1. `1-hauptseite` — „Auf dem iPad steht alles nebeneinander: Plan links, Karte rechts.“
 2. `2-rad` — „Die Radroute mit Straßenarten, Ampeln und Höhenmetern.“
 3. `3-radbahn` — „Rad + Bahn, mit Bahnhöfen, die die App selbst sucht.“
 4. `4-menue` — „Alles eine Ebene tief — und die Sprache gleich mit dabei.“
 5. `5-vorlieben` — „Reihenfolge, Routenvariante, Regenschwelle — alles einstellbar.“
-6. `6-aufzeichnen` — „Was die App während der Fahrt tut — und wann sie sich selbst anhält.“
+6. `6-einstellungen` — „Was die App während der Fahrt tut — und wann sie sich selbst anhält.“
+7. `7-fahrtmodus` — „Unterwegs: Tempo jetzt, Schnitt gegen Plan, Restzeit, Ampeln.“
+
+**Wozu der Fahrtmodus da ist** — für den Bildtext und für jede Frage danach:
+Er ist die Seite, die während des Fahrens läuft. Sie zeigt das Tempo jetzt,
+den gefahrenen Schnitt neben dem geplanten, die Restzeit mit Ankunftszeit, die
+Ampeln als „3/18“ und die an ihnen verlorene Zeit; sie warnt, wenn man neben
+der Route ist, und plant von dort aus neu. Zugleich ist sie die Messung, aus
+der die App lernt: der gemessene Schnitt und die wirklich kostenden Kreuzungen
+gehen in die nächste Planung ein. Deshalb gehört sie in die Bilder — ohne sie
+sieht die App wie ein reiner Planer aus.
 
 ### Neu aufnehmen
 
@@ -431,6 +451,17 @@ xcrun simctl spawn $UDID defaults write de.keese.radpendler origin -data \
 xcrun simctl spawn $UDID defaults write de.keese.radpendler destination -data \
   "$(hex '{"name":"Potsdam Hauptbahnhof, 14473 Potsdam","latitude":52.3914,"longitude":13.0672,"postalCode":"14473","locality":"Potsdam"}')"
 xcrun simctl spawn $UDID defaults write de.keese.radpendler alertsOn -bool NO
+# Der Fahrtmodus startet sonst im Querformat — im Store-Schacht gilt hochkant.
+xcrun simctl spawn $UDID defaults write de.keese.radpendler rideOrientationLock -string portrait
+xcrun simctl privacy $UDID grant location-always de.keese.radpendler
+
+# Die Aufnahme des Fahrtmodus braucht **Bewegung**, sonst stehen dort Nullen.
+# Die Punkte sind die ersten Meter der Radroute ab Alexanderplatz (BRouter);
+# 6 m/s sind 21,6 km/h. In zsh als Array, sonst wird daraus ein Argument.
+WP=(52.521027,13.412965 52.521011,13.412359 52.520720,13.412771 52.520675,13.412163
+    52.520097,13.411077 52.519663,13.410140 52.519404,13.409581 52.519052,13.408822
+    52.518829,13.408110 52.518590,13.407613 52.518364,13.407084 52.518039,13.406290)
+xcrun simctl location $UDID start --speed=6 --interval=1 $WP &
 
 xcodebuild test -project RadPendler.xcodeproj -scheme RadPendlerShots \
   -destination "platform=iOS Simulator,id=$UDID" -resultBundlePath /tmp/shots.xcresult
@@ -448,7 +479,14 @@ zurückspielen. Steht eine drauf, App deinstallieren, Adressen neu setzen, neu
 aufnehmen. Die Bilder in diesem Ordner zeigen Alexanderplatz → Potsdam Hbf und
 sonst nichts.
 
-**Erledigt (26.09.2026):** Der iPad-Satz hat jetzt seine Radrouten-Aufnahme.
+**Erledigt (26.09.2026):** Der iPad-Satz hat seine Radrouten-Aufnahme, und
+beide Sätze haben eine echte Aufnahme des Fahrtmodus — vorher zeigte das Bild
+mit diesem Namen die Einstellungsseite.
+
+**Dritte Falle, am 26.09.2026 bezahlt:** Läuft die simulierte Fahrt neben der
+geplanten Route, steht ein rotes „151 m neben der Route“ quer über dem Bild.
+Der Test fährt deshalb 80 Sekunden statt 45: dann hat die App von selbst neu
+geplant, das Band ist weg, und im Kopf steht stattdessen der Zähler „1×“.
 
 **Zwei Fallen, beide am 26.09.2026 bezahlt:**
 
