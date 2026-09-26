@@ -156,10 +156,15 @@ final class PlanModel {
 
     private var lastMark: Mark?
     /// So lange gilt eine Antwort als frisch genug, um sie nicht zu
-    /// wiederholen. Eine volle Planung sind gut zwei Dutzend Anfragen; sie
-    /// zweimal in derselben Minute für dieselbe Frage zu stellen, ist
-    /// verschenkter Strom. Von Hand nachfragen (`force`) geht immer.
-    static let reuseWithin: TimeInterval = 60
+    /// wiederholen. Eine volle Planung sind gut zwei Dutzend Anfragen, und wer
+    /// zwischen Rad, Auto und Bahn hin und her springt, stellt dieselbe Frage
+    /// ein Dutzend Mal in fünf Minuten. Von Hand nachfragen — der Zeitstempel
+    /// auf der Karte, Ziehen zum Aktualisieren — geht immer (`force`).
+    ///
+    /// Fünf Minuten sind auch für Bahn und Bus vertretbar: die Abfahrten
+    /// stehen im Plan, und der Countdown rechnet gegen die Uhr, nicht gegen
+    /// den Zeitpunkt der Abfrage.
+    static let reuseWithin: TimeInterval = 300
 
     /// What the wrist picked, applied here. The watch shows the phone's plan,
     /// so a choice made there means the same trip as a choice made here.

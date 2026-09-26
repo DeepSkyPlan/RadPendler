@@ -369,9 +369,15 @@ struct SettingsView: View {
                             Text(L("%d s ohne Berührung", Int(s))).tag(s)
                         }
                     }
+                    Picker(L("Von selbst anhalten nach"), selection: $settings.autoPauseMinutes) {
+                        Text(L("aus")).tag(0.0)
+                        ForEach([1.0, 2.0, 3.0, 5.0, 10.0], id: \.self) { m in
+                            Text(L("%d min Halt", Int(m))).tag(m)
+                        }
+                    }
                     Picker(L("Von selbst beenden nach"), selection: $settings.autoStopMinutes) {
                         Text(L("aus")).tag(0.0)
-                        ForEach([5.0, 10.0, 15.0, 20.0, 30.0], id: \.self) { m in
+                        ForEach([10.0, 15.0, 20.0, 30.0, 60.0], id: \.self) { m in
                             Text(L("%d min Halt", Int(m))).tag(m)
                         }
                     }
@@ -384,7 +390,7 @@ struct SettingsView: View {
                     }
                     if !settings.learnedSignals.isEmpty {
                         Button(L("Gelernte Ampeln vergessen"), role: .destructive) {
-                            settings.learnedSignals = []
+                            settings.forgetLearnedSignals()
                         }
                     }
                 } header: {

@@ -29,7 +29,8 @@ final class CloudStore {
                        "signalStopSeconds", "learnedSignals", "orientationLock", "rideOrientationLock",
                        "replanOffRouteMeters", "replanOffRouteMinutes", "optionsPerMode",
                        "measuredOverallKmh", "measuredMovingKmh", "measuredRides",
-                       "autoStopMinutes", "rideStartsLandscape", "rideDimSeconds", "language"]
+                       "autoStopMinutes", "autoPauseMinutes", "rideStartsLandscape",
+                       "rideDimSeconds", "language", "tombstones"]
 
     /// The recorded rides — summaries only, never their lines. Not a setting,
     /// which is why it stands apart from `settingsKeys`: that list is checked
@@ -41,7 +42,12 @@ final class CloudStore {
 
     /// The keys that are merged instead of replaced: a device that has not
     /// pulled yet must not be able to shorten a list it has not seen.
-    private static let mergedKeys: Set<String> = ["placeHistory", "learnedSignals", ridesKey]
+    private static let mergedKeys: Set<String> = ["placeHistory", "learnedSignals", ridesKey, tombstonesKey]
+
+    /// Was gelöscht wurde. Wird wie die drei Listen vereinigt — und entscheidet
+    /// beim Vereinigen der drei, was hinausfliegt. Ohne ihn ist Löschen mit
+    /// zwei Geräten unmöglich: siehe `Tombstones`.
+    static let tombstonesKey = "tombstones"
 
     /// Called after values came in from another device.
     var onPull: (() -> Void)?
@@ -173,6 +179,10 @@ final class CloudStore {
         queue.async { [weak self, cloud] in
             var resolved: [String: Resolution] = [:]
             var had: [String: Any] = [:]
+            // Zuerst die Grabsteine beider Seiten: sie entscheiden, was beim
+            // Vereinigen der drei Listen hinausfliegt.
+            let graves = Self.tombstones(local: mine[Self.tombstonesKey],
+                                         cloud: cloud.data(forKey: Self.tombstonesKey))
             for key in keys {
                 guard let value = cloud.object(forKey: key) else {
                     // Gone from the cloud means deleted somewhere, not "no news":
@@ -183,7 +193,8 @@ final class CloudStore {
                 }
                 had[key] = value
                 if Self.mergedKeys.contains(key), let incoming = value as? Data {
-                    resolved[key] = .set(Self.merged(key, local: mine[key], cloud: incoming) ?? incoming)
+                    resolved[key] = .set(Self.merged(key, local: mine[key], cloud: incoming,
+                                                     graves: graves) ?? incoming)
                 } else {
                     resolved[key] = .set(value)
                 }
@@ -222,20 +233,39 @@ final class CloudStore {
 
     /// Both lists into one; nil when either side cannot be read, so the caller
     /// falls back to what came in.
-    static func merged(_ key: String, local: Data?, cloud: Data) -> Data? {
+    /// Die Grabsteine beider Seiten, für die Vereinigung der drei Listen.
+    /// Sie kommen aus denselben zwei Quellen wie alles andere: was hier liegt
+    /// und was in der Wolke steht.
+    static func tombstones(local: Data?, cloud: Data?) -> Tombstones {
+        let decoder = JSONDecoder()
+        let mine = local.flatMap { try? decoder.decode(Tombstones.self, from: $0) } ?? Tombstones()
+        let theirs = cloud.flatMap { try? decoder.decode(Tombstones.self, from: $0) } ?? Tombstones()
+        return mine.merging(theirs)
+    }
+
+    static func merged(_ key: String, local: Data?, cloud: Data, graves: Tombstones = Tombstones()) -> Data? {
         guard let local else { return nil }
         let decoder = JSONDecoder()
+        if key == Self.tombstonesKey {
+            return try? JSONEncoder().encode(Self.tombstones(local: local, cloud: cloud))
+        }
         if key == Self.ridesKey {
             guard let mine = RideStore.decode(local), let theirs = RideStore.decode(cloud) else { return nil }
-            return RideStore.encode(RideStore.merge(mine, theirs))
+            let all = RideStore.merge(mine, theirs)
+                .filter { !graves.buried(Tombstones.key(ride: $0.id), newerThan: $0.started) }
+            return RideStore.encode(all)
         }
         if key == "learnedSignals" {
             guard let mine = try? decoder.decode([LearnedSignal].self, from: local),
                   let theirs = try? decoder.decode([LearnedSignal].self, from: cloud) else { return nil }
-            return try? JSONEncoder().encode(LearnedSignal.merging(mine, theirs))
+            let all = LearnedSignal.merging(mine, theirs)
+                .filter { !graves.buried(Tombstones.key(signal: $0.id), newerThan: $0.lastSeen) }
+            return try? JSONEncoder().encode(all)
         }
         guard let mine = try? decoder.decode([PlaceUse].self, from: local),
               let theirs = try? decoder.decode([PlaceUse].self, from: cloud) else { return nil }
-        return try? JSONEncoder().encode(mine.merging(theirs))
+        let all = mine.merging(theirs)
+            .filter { !graves.buried(Tombstones.key(place: $0.id), newerThan: $0.lastUsed) }
+        return try? JSONEncoder().encode(all)
     }
 }

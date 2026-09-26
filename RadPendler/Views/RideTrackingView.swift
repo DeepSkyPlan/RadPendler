@@ -243,9 +243,30 @@ struct RideTrackingView: View {
         HStack(spacing: 8) {
             followButton
             OrientationButton(lock: orientation)
+            automaticsButton
             SpeedLegend()
             Spacer(minLength: 0)
         }
+    }
+
+    /// Die Automatik für **diese** Fahrt abschalten: wer im Stau steht oder an
+    /// einer Schranke wartet, von der er weiß, dass sie gleich aufgeht, will
+    /// weder ein Anhalten noch ein Ende. Beim nächsten Start ist sie wieder an
+    /// — es ist ein Knopf für die Ausnahme, keine Einstellung.
+    private var automaticsButton: some View {
+        Button {
+            tracker.setAutomatics(off: !tracker.automaticsOff)
+        } label: {
+            Image(systemName: "pause.circle")
+                .symbolVariant(tracker.automaticsOff ? .slash : .none)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(tracker.automaticsOff ? .white : Theme.accent)
+                .frame(width: 36, height: 36)
+                .background(tracker.automaticsOff ? AnyShapeStyle(Theme.gradient(.orange))
+                                                  : AnyShapeStyle(.regularMaterial), in: Circle())
+        }
+        .accessibilityLabel(tracker.automaticsOff ? L("Automatik aus — die Fahrt hält nicht von selbst an")
+                                                  : L("Automatik an — die Fahrt hält bei langem Stehen von selbst an"))
     }
 
     /// Following gives way to a hand on the map; this is the way back, and it
@@ -302,7 +323,7 @@ struct RideTrackingView: View {
                 .minimumScaleFactor(0.7)
             Spacer(minLength: 0)
             if tracker.isPaused {
-                Label(L("Pause"), systemImage: "pause.circle.fill")
+                Label(tracker.autoPaused ? L("hält") : L("Pause"), systemImage: "pause.circle.fill")
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundStyle(.orange)
             } else if tracker.meter.isStanding {

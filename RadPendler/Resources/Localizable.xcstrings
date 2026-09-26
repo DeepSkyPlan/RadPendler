@@ -738,6 +738,28 @@
         }
       }
     },
+    "Automatik an — die Fahrt hält bei langem Stehen von selbst an": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic on — the ride pauses by itself when you stand for long"
+          }
+        }
+      }
+    },
+    "Automatik aus — die Fahrt hält nicht von selbst an": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic off — the ride will not pause by itself"
+          }
+        }
+      }
+    },
     "Automatisch": {
       "extractionState": "manual",
       "localizations": {
@@ -1376,6 +1398,17 @@
         }
       }
     },
+    "Du stehst seit %d Minuten. Die Aufzeichnung läuft weiter, sobald es weitergeht.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You have been standing for %d minutes. The recording continues as soon as you move again."
+          }
+        }
+      }
+    },
     "Ein Doppeltipp auf die Box setzt die Pendelstrecke ein: dein Standort als Start, Zuhause oder Arbeit als Ziel. Welches von beidem, entscheidet der Ort — und wenn keiner passt, die Uhrzeit.": {
       "extractionState": "manual",
       "localizations": {
@@ -1570,6 +1603,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ride"
+          }
+        }
+      }
+    },
+    "Fahrt angehalten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ride paused"
           }
         }
       }
@@ -3477,6 +3521,17 @@
         }
       }
     },
+    "Von selbst anhalten nach": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause by itself after"
+          }
+        }
+      }
+    },
     "Von selbst beenden nach": {
       "extractionState": "manual",
       "localizations": {
@@ -4034,6 +4089,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "bear right"
+          }
+        }
+      }
+    },
+    "hält": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "paused"
           }
         }
       }

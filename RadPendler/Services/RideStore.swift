@@ -87,6 +87,10 @@ final class RideStore {
         rides.removeAll { $0.id == ride.id }
         tracks[ride.id] = nil
         try? FileManager.default.removeItem(at: trackFile(ride.id))
+        // Der Grabstein muss **vor** dem Schreiben stehen: `write()` schiebt die
+        // gekürzte Liste in die Wolke, und das andere Gerät vereinigt sie sofort
+        // — ohne Grabstein käme die Fahrt im selben Atemzug zurück.
+        Tombstones.bury([Tombstones.key(ride: ride.id)], in: defaults)
         write()
         Task { await TrackCloud.shared.delete(ride.id) }
     }
