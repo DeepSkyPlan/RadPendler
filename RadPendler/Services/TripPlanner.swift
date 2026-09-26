@@ -49,7 +49,7 @@ struct TripPlanner {
     var motis = MotisClient()
     var streets: StreetRouting = CompositeRouter()
     var brouter = BRouterClient()
-    var apple = MapKitRouter()
+    var apple: StreetRouting = MapKitRouter()
     var roads = RoadDataStore.shared
     var rain = RainService()
 
@@ -365,7 +365,16 @@ struct TripPlanner {
         planner.hafas.session = session
         planner.motis.session = session
         planner.brouter.session = session
+        planner.brouter.cached = false
         planner.rain.session = session
+        // Die beiden, die bis 1.4 trotzdem ins Netz liefen: Overpass hing an
+        // einem fest verdrahteten `URLSession.shared`, und Apple Karten ist
+        // MapKit — das lässt sich nicht umlenken, also antwortet hier gar
+        // niemand. „Offline" hieß vorher „fast offline", und das ist bei einem
+        // Test die unangenehmste Sorte von fast.
+        planner.roads = RoadDataStore(session: session)
+        planner.apple = DeadRouter()
+        planner.streets = DeadRouter()
         return planner
     }
 

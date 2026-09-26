@@ -69,9 +69,7 @@ final class PlanModel {
     }
 
     func options(for mode: TravelMode) -> [TripOption] {
-        let own = options.filter { $0.mode == mode }
-        let sorted = own.filter { !$0.isAlternative } + own.filter(\.isAlternative)
-        return sorted.filter(\.passesWaypoints) + sorted.filter { !$0.passesWaypoints }
+        TripRules.ordered(options.filter { $0.mode == mode })
     }
 
     func selected(for mode: TravelMode) -> TripOption? {
@@ -108,8 +106,7 @@ final class PlanModel {
 
     var countdownOption: TripOption? {
         guard let trip = selected else { return nil }
-        if when.isArrival { return trip }
-        return trip.transitLegs.isEmpty ? nil : trip
+        return TripRules.countsDown(trip, arrivalSearch: when.isArrival) ? trip : nil
     }
 
     /// Going to work means "be there at 9", coming home means "leave now" —

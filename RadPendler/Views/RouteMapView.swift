@@ -365,7 +365,15 @@ struct RouteMapView: UIViewRepresentable {
                 map.showsCompass = !hidesCompass
             }
             // New plan → redraw and fit; new selection only → redraw.
-            let plan = view.options.map { $0.id.uuidString }.joined()
+            //
+            // Die Kennung ist die **Geometrie**, nicht die Liste der Ids: eine
+            // Planung meldet vier Zwischenstände, und in jedem sind dieselben
+            // Linien mit neuen Ids. Vorher passte sich die Karte deshalb
+            // viermal je Planung neu ein, mitten ins Hinsehen hinein.
+            let plan = view.options.map { o in
+                o.legs.first.map { "\(Int($0.departure.timeIntervalSince1970))" } ?? ""
+                    + "\(Int(o.totalDistance))"
+            }.joined(separator: "|")
             let key = plan + (view.selectedID?.uuidString ?? "")
             if key != routeKey {
                 routeKey = key
@@ -1090,7 +1098,19 @@ struct TripMapPanel: View {
                 .padding(8)
         }
         .onAppear { resetFrames() }
-        .onChange(of: selectedID) { resetFrames() }
+        // An der **Reise**, nicht an der Auswahl: eine Planung meldet vier
+        // Zwischenstände, und jeder davon hat eine andere Kennung, aber
+        // dieselben Zeiten. Die Bildliste neu zu legen hieß jedes Mal, die
+        // sichtbaren DWD-Kacheln noch einmal zu holen.
+        .onChange(of: tripWindow) { resetFrames() }
+    }
+
+    /// Von wann bis wann die Reise geht, auf zehn Minuten gerundet — feiner
+    /// unterscheidet die Bildliste ohnehin nicht.
+    private var tripWindow: String {
+        guard let trip else { return "-" }
+        let step = 600.0
+        return "\(Int(trip.leave.timeIntervalSince1970 / step))|\(Int(trip.arrival.timeIntervalSince1970 / step))"
     }
 
     /// Frames around the selected trip, so pressing play runs the ride and the

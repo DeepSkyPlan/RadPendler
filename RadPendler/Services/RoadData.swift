@@ -99,11 +99,33 @@ struct Corridor: Codable, Equatable {
     /// ist. Das dünnt jede einzelne Route aus **und** legt die gemeinsamen
     /// Stücke mehrerer Varianten übereinander — neun Routen über dieselbe
     /// Hauptstraße ergeben einen Schlauch, nicht neun.
+    /// Über ein Gitter aus `spacing`-Zellen statt über alles schon Behaltene:
+    /// „liegt hier schon einer?" ist damit ein Nachschlagen und kein Vergleich
+    /// mit jedem Vorgänger. Bei vier Radrouten sind das sechstausend Punkte
+    /// gegen zweihundert — über eine Million Vergleiche, jeder davon vorher
+    /// mit zwei frisch angelegten `CLLocation`-Objekten, und das dreimal je
+    /// Planung.
     static func around(_ coords: [CLLocationCoordinate2D], spacing: Double = spacing,
                        radius: Double = radius) -> Corridor {
+        guard let first = coords.first(where: Geo.valid) else { return Corridor(points: [], radius: radius) }
+        let mPerDegLat = 111_320.0
+        let mPerDegLon = mPerDegLat * cos(first.latitude * .pi / 180)
+        var seen = Set<Int64>()
         var kept: [CLLocationCoordinate2D] = []
         for c in coords where Geo.valid(c) {
-            if kept.contains(where: { $0.distance(to: c) < spacing }) { continue }
+            let x = Int64((c.longitude * mPerDegLon / spacing).rounded(.down))
+            let y = Int64((c.latitude * mPerDegLat / spacing).rounded(.down))
+            // Die eigene Zelle und ihre acht Nachbarn: sonst lägen zwei Punkte
+            // beiderseits einer Zellgrenze beide drin, obwohl sie einen Meter
+            // auseinander sind.
+            var near = false
+            for dx in -1...1 where !near {
+                for dy in -1...1 where !near {
+                    if seen.contains((x + Int64(dx)) &* 1_000_003 &+ (y + Int64(dy))) { near = true }
+                }
+            }
+            if near { continue }
+            seen.insert(x &* 1_000_003 &+ y)
             kept.append(c)
         }
         return Corridor(points: kept.map { [$0.latitude, $0.longitude] }, radius: radius)
@@ -182,6 +204,17 @@ actor RoadDataStore {
     }
 
     static let shared = RoadDataStore()
+
+    /// Wer die Frage stellt. Einspeisbar, weil ein Planer, der offline sein
+    /// soll, es sonst nicht ist: bis 1.4 lief die Overpass-Abfrage über ein
+    /// fest verdrahtetes `URLSession.shared` weiter, während alle anderen
+    /// Dienste längst ins Leere liefen.
+    private let session: URLSession
+
+    init(session: URLSession = .shared) {
+        self.session = session
+    }
+
     private var memory: [Box: (data: RoadData, corridor: Corridor?)] = [:]
     /// Requests already on their way. Bike, car and bike+rail ask for
     /// overlapping corridors at the same moment; without this they all miss the
@@ -208,7 +241,6 @@ actor RoadDataStore {
         if let hit = memory.first(where: { $0.key.contains(box) && ($0.value.corridor?.covers(coords) ?? true) }) {
             return hit.value.data
         }
-        let corridor = Corridor.around(coords)
         // Someone is already fetching a corridor that covers this one: wait for
         // their answer instead of asking the same question again. The task is
         // registered before the first `await`, or the actor would let the next
@@ -220,8 +252,12 @@ actor RoadDataStore {
             remember(b, d, c)
             return d
         }
+        // Erst hier: den Schlauch braucht nur, wer wirklich fragt. Vorher lag
+        // er vor beiden Zwischenspeichern und wurde auch dann gerechnet, wenn
+        // die Antwort längst auf der Platte lag.
+        let corridor = Corridor.around(coords)
         let task = Task { [directory] () throws -> RoadData in
-            let raw = try await Self.fetch(corridor)
+            let raw = try await self.fetch(corridor)
             let parsed = try RoadData.parse(raw)
             try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let file = directory.appendingPathComponent("\(box.fileName).json")
@@ -242,7 +278,14 @@ actor RoadDataStore {
             // Server kaputt. Der Plan wartet darauf nicht — er sagt, dass die
             // Ampeln fehlen, und holt sie in Ruhe nach. Einmal geholt, liegen
             // sie dreißig Tage auf der Platte, und der nächste Plan hat sie.
-            warm(box, corridor)
+            //
+            // **Nicht nach einem Abbruch.** Wer auf das Adressfeld tippt,
+            // bricht die Planung ab, weil er etwas anderes sucht; ihm dann
+            // noch eine Abfrage mit dreieinhalb Minuten Geduld hinterherzu-
+            // schicken, holt Daten für eine Strecke, die niemand mehr fährt.
+            if !(error is CancellationError), !Task.isCancelled {
+                warm(box, corridor)
+            }
             throw error
         }
     }
@@ -254,7 +297,7 @@ actor RoadDataStore {
         guard warming.insert(box).inserted else { return }
         Task { [directory] in
             defer { warming.remove(box) }
-            guard let raw = try? await Self.fetch(corridor, serverSeconds: 180, requestSeconds: 210),
+            guard let raw = try? await self.fetch(corridor, serverSeconds: 180, requestSeconds: 210),
                   let parsed = try? RoadData.parse(raw) else { return }
             try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let file = directory.appendingPathComponent("\(box.fileName).json")
@@ -373,8 +416,8 @@ actor RoadDataStore {
         """
     }
 
-    private static func fetch(_ corridor: Corridor, serverSeconds: Int = 25,
-                              requestSeconds: TimeInterval = 30) async throws -> Data {
+    private func fetch(_ corridor: Corridor, serverSeconds: Int = 25,
+                       requestSeconds: TimeInterval = 30) async throws -> Data {
         let query = Self.query(corridor, serverSeconds: serverSeconds)
         var request = URLRequest(url: URL(string: "https://overpass-api.de/api/interpreter")!,
                                  timeoutInterval: requestSeconds)
@@ -384,7 +427,7 @@ actor RoadDataStore {
         var form = URLComponents()
         form.queryItems = [.init(name: "data", value: query)]
         request.httpBody = form.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B").data(using: .utf8)
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await session.data(for: request)
         if let http = response as? HTTPURLResponse, http.statusCode != 200 {
             throw URLError(.badServerResponse)
         }

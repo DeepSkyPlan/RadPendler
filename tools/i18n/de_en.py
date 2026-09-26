@@ -597,3 +597,5 @@ T.update({
 "Automatik an — die Fahrt hält bei langem Stehen von selbst an": "Automatic on — the ride pauses by itself when you stand for long",
 "hält": "paused",
 })
+
+T.update({"%@ ist nicht gegangen: %@": "%@ did not work: %@"})
