@@ -21,7 +21,7 @@ import UIKit
 enum BackgroundReplan {
     /// Muss genauso in `BGTaskSchedulerPermittedIdentifiers` stehen
     /// (`RadPendlerInfo.plist`), sonst lehnt iOS die Anmeldung ab.
-    static let taskID = "org.afjk.radpendler.replan"
+    static let taskID = "de.keese.radpendler.replan"
 
     /// Frühestens so viel später wieder. Es ist eine Bitte, keine Zusage: iOS
     /// weckt, wenn es ihm passt, und gar nicht, wenn der Nutzer die
