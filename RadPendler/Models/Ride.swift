@@ -92,6 +92,10 @@ struct Ride: Codable, Identifiable, Equatable {
     /// zur Fahrzeit noch in den Schnitt — sonst wäre jede Einkehr eine
     /// langsame Fahrt. Ältere Dateien kennen das Feld nicht; dort ist es 0.
     var pausedSeconds: TimeInterval = 0
+    /// Womit sie aufgezeichnet wurde — „1.4 (38)". Wer eine alte Fahrt ansieht
+    /// und sich über eine Zahl wundert, sieht so, ob sie aus einer Fassung
+    /// stammt, die anders gerechnet hat. Ältere Dateien kennen das Feld nicht.
+    var appVersion: String?
     var pointCount: Int = 0
     /// Metres per kind of road, attributed to the route that was planned.
     /// nil where nobody classified the route — Apple's lines carry no tags.

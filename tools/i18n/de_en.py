@@ -620,3 +620,17 @@ T.update({
 "Die Uhr spricht, was das Telefon spricht: sie zeigt dessen Plan, also auch in dessen Sprache.":
     "The watch speaks what the phone speaks: it shows the phone's plan, so it shows it in the phone's language.",
 })
+
+T.update({
+"Anhalten und beenden": "Pause and end",
+"Nur beenden": "End only",
+"Durchfahren": "Keep going",
+"Automatik: %@. Tippen für %@.": "Automatic: %@. Tap for %@.",
+"%d×": "%d×",
+"%d× neu geplant": "replanned %d times",
+})
+
+T.update({"Farbskala der Geschwindigkeit, rot langsam bis grün schnell":
+          "Speed colour scale, red is slow and green is fast"})
+
+T.update({"aufgezeichnet mit %@": "recorded with %@"})

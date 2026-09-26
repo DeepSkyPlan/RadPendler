@@ -286,6 +286,12 @@ struct RideFacts: View {
             if let profile = ElevationProfile.from(track?.points ?? []) {
                 ElevationProfileView(profile: profile)
             }
+            if let version = ride.appVersion {
+                Text(L("aufgezeichnet mit %@", version))
+                    .font(.system(size: 10, design: .rounded))
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
             if let off = ride.deviationSeconds {
                 // The one comparison that judges the app rather than the rider.
                 Label(off <= 0 ? L("%@ schneller als geplant", Fmt.clock(-off))

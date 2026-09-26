@@ -320,6 +320,28 @@
         }
       }
     },
+    "%d×": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d×"
+          }
+        }
+      }
+    },
+    "%d× neu geplant": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "replanned %d times"
+          }
+        }
+      }
+    },
     "%d× quer": {
       "extractionState": "manual",
       "localizations": {
@@ -639,6 +661,17 @@
         }
       }
     },
+    "Anhalten und beenden": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause and end"
+          }
+        }
+      }
+    },
     "Ankunft": {
       "extractionState": "manual",
       "localizations": {
@@ -749,24 +782,13 @@
         }
       }
     },
-    "Automatik an — die Fahrt hält bei langem Stehen von selbst an": {
+    "Automatik: %@. Tippen für %@.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Automatic on — the ride pauses by itself when you stand for long"
-          }
-        }
-      }
-    },
-    "Automatik aus — die Fahrt hält nicht von selbst an": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Automatic off — the ride will not pause by itself"
+            "value": "Automatic: %@. Tap for %@."
           }
         }
       }
@@ -1453,6 +1475,17 @@
         }
       }
     },
+    "Durchfahren": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep going"
+          }
+        }
+      }
+    },
     "Ein Doppeltipp auf die Box setzt die Pendelstrecke ein: dein Standort als Start, Zuhause oder Arbeit als Ziel. Welches von beidem, entscheidet der Ort — und wenn keiner passt, die Uhrzeit.": {
       "extractionState": "manual",
       "localizations": {
@@ -1816,13 +1849,13 @@
         }
       }
     },
-    "Farbskala der Geschwindigkeit, rot unter 8 bis grün über 26 km/h": {
+    "Farbskala der Geschwindigkeit, rot langsam bis grün schnell": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Speed scale, red below 8 to green above 26 km/h"
+            "value": "Speed colour scale, red is slow and green is fast"
           }
         }
       }
@@ -2593,6 +2626,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "north-west"
+          }
+        }
+      }
+    },
+    "Nur beenden": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End only"
           }
         }
       }
@@ -4023,6 +4067,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "arrived · %@"
+          }
+        }
+      }
+    },
+    "aufgezeichnet mit %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "recorded with %@"
           }
         }
       }

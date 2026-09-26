@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.5 (noch nicht hochgeladen) — die App merkt, womit du fährst
+## 1.5 (Build 39) — die App merkt, womit du fährst
 
 Acht Funde von einer **Autofahrt**. Die Aufzeichnung war für das Rad gebaut und hat das an
 jeder Ecke gezeigt.
@@ -25,6 +25,15 @@ jeder Ecke gezeigt.
   Abbiegepfeil und über den Knöpfen links.
 - **Die Automatik greift auch an einer Kreuzung**, an der sich nichts bewegt: wer doppelt so
   lange steht wie eingestellt, steht nicht mehr bei Rot, sondern im Stau.
+- **Der Knopf für die Automatik schaltet im Kreis**: anhalten und beenden → nur beenden →
+  durchfahren. Zwei Stellungen reichten nicht: wer im Stau steht, will keine Pause; wer das
+  Beenden fürchtet, will nur die Pause.
+- **Wie oft unterwegs neu geplant wurde, steht während der Fahrt da** — als Zahl, nicht als
+  Gefühl. „Die Route hat sich nie angepasst" war vorher nicht von „dreimal angepasst und sah
+  gleich aus" zu unterscheiden.
+- **Jede aufgezeichnete Fahrt merkt sich ihre Fassung** („aufgezeichnet mit 1.4 (39)"). Wer
+  sich über eine Zahl wundert, sieht, ob sie aus einer Fassung stammt, die anders gerechnet
+  hat.
 - **Am Strom bleibt der Bildschirm hell.** Hängt das Telefon während der Fahrt in der
   Ladeschale oder an einer Powerbank, wird nicht mehr abgedunkelt — genau dann kostet der
   Bildschirm nichts, was nicht nachkommt. Nichts umzustellen: die App sieht selbst nach.

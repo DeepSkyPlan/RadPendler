@@ -146,7 +146,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         self.signalSeconds = signalSeconds
         self.autoStopSeconds = autoStopMinutes * 60
         self.autoPauseSeconds = autoPauseMinutes * 60
-        automaticsOff = false
+        automatic = .full
         self.replanOffRouteMeters = replanOffRouteMeters
         self.replanOffRouteMinutes = replanOffRouteMinutes
         self.roadPoints = roadPoints
@@ -190,21 +190,62 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// ein Stau, ein Schwatz am Straßenrand. Rollt es wieder, läuft die
     /// Aufzeichnung von selbst weiter.
     private var autoPauseSeconds: TimeInterval = 0
-    /// Ob die Automatik für **diese** Fahrt ausgeschaltet ist. Der Knopf dafür
-    /// steht auf dem Fahrtbildschirm: wer im Stau steht und weiß, dass es
-    /// gleich weitergeht, will weder Pause noch Ende.
-    private(set) var automaticsOff = false
+    /// Was die Aufzeichnung bei langem Stillstand von selbst tun darf.
+    ///
+    /// Drei Stellungen, weil zwei nicht reichen: wer im Stau steht, will keine
+    /// Pause; wer das Beenden fürchtet, will nur die Pause; und wer beides
+    /// nicht will, will durchfahren. Der Knopf auf dem Fahrtbildschirm schaltet
+    /// im Kreis, und die Stellung gilt für **diese** Fahrt — beim nächsten
+    /// Start steht sie wieder auf `.full`.
+    enum Automatic: CaseIterable {
+        /// Erst anhalten, später beenden — wie die Einstellungen es sagen.
+        case full
+        /// Nur beenden. Für die Fahrt, die nicht unterbrochen werden soll.
+        case stopOnly
+        /// Nichts von beidem.
+        case off
+
+        var next: Automatic {
+            switch self {
+            case .full: .stopOnly
+            case .stopOnly: .off
+            case .off: .full
+            }
+        }
+
+        var pauses: Bool { self == .full }
+        var stops: Bool { self != .off }
+
+        var symbol: String {
+            switch self {
+            case .full: "pause.circle"
+            case .stopOnly: "stop.circle"
+            case .off: "figure.outdoor.cycle"
+            }
+        }
+
+        var title: String {
+            switch self {
+            case .full: L("Anhalten und beenden")
+            case .stopOnly: L("Nur beenden")
+            case .off: L("Durchfahren")
+            }
+        }
+    }
+
+    private(set) var automatic: Automatic = .full
     /// Ob die laufende Pause von der App kommt. Nur sie endet von selbst; eine
     /// Pause per Knopf wartet auf den Knopf.
     private(set) var autoPaused = false
     /// Wo die Pause begann; von dort aus wird gemessen, ob es weitergeht.
     private var pausedAt: CLLocationCoordinate2D?
 
-    func setAutomatics(off: Bool) {
-        automaticsOff = off
-        // Die Automatik abzuschalten, während sie gerade pausiert hat, heißt:
-        // weiterfahren.
-        if off, autoPaused { resume() }
+    /// Eine Stellung weiter. Steht die Aufzeichnung gerade in einer selbst
+    /// gemachten Pause und wird das Anhalten abgeschaltet, heißt das:
+    /// weiterfahren.
+    func cycleAutomatic() {
+        automatic = automatic.next
+        if !automatic.pauses, autoPaused { resume() }
     }
     /// Ob die letzte Fahrt von selbst endete. Steht in der Zusammenfassung,
     /// sonst fragt sich der Fahrer, wer da auf „beenden" getippt hat.
@@ -452,9 +493,9 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         // abschaltbar: nach ein paar Minuten hält die Aufzeichnung an und
         // wartet darauf, dass es weitergeht; erst nach langer Zeit ist der
         // Fahrer angekommen und hat das Beenden vergessen.
-        if !automaticsOff,
+        if automatic != .off,
            let stand = meter.standstill(at: Date.now, beyond: autoPauseSeconds * 2) {
-            if autoStopSeconds > 0, stand.seconds >= autoStopSeconds {
+            if automatic.stops, autoStopSeconds > 0, stand.seconds >= autoStopSeconds {
                 stop(at: stand.since)
                 stoppedByItself = true
                 onAutoStop?()
@@ -462,7 +503,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                            body: L("Du standst länger als %d Minuten an derselben Stelle — die Aufzeichnung ist gespeichert.", Int(autoStopSeconds / 60)))
                 return
             }
-            if autoPauseSeconds > 0, stand.seconds >= autoPauseSeconds {
+            if automatic.pauses, autoPauseSeconds > 0, stand.seconds >= autoPauseSeconds {
                 pauseAutomatically(at: Date.now)
                 return
             }
