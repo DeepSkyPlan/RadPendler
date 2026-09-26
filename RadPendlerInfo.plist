@@ -18,7 +18,7 @@
 	     steht genauso in BackgroundReplan.taskID. -->
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
-		<string>org.afjk.radpendler.replan</string>
+		<string>de.keese.radpendler.replan</string>
 	</array>
 </dict>
 </plist>

@@ -1,17 +1,5 @@
 # Changelog
 
-## 1.0 (Build 40) — derselbe Stand, neuer Bezeichner
-
-Die App heißt im System jetzt `org.afjk.radpendler` statt `de.keese.radpendler`
-und fängt im Store als 1.0 neu an. Am Funktionsumfang ändert sich **nichts** —
-alles unten Beschriebene ist drin.
-
-Der Schlüssel-Wert-Speicher zeigt weiter auf die alte Kennung: Adressen,
-Vorlieben und die Kennzahlen aller gefahrenen Fahrten sind nach der
-Neuinstallation sofort wieder da, die Linien kommen über CloudKit. Auf dem
-Gerät ist es trotzdem eine zweite App — es gibt keinen Update-Pfad, und die
-alte bleibt, bis du sie löschst.
-
 ## 1.5 (Build 39) — die App merkt, womit du fährst
 
 Acht Funde von einer **Autofahrt**. Die Aufzeichnung war für das Rad gebaut und hat das an
