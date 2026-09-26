@@ -265,24 +265,26 @@ struct RideTrackingView: View {
         }
     }
 
-    /// Die Automatik für **diese** Fahrt abschalten: wer im Stau steht oder an
-    /// einer Schranke wartet, von der er weiß, dass sie gleich aufgeht, will
-    /// weder ein Anhalten noch ein Ende. Beim nächsten Start ist sie wieder an
-    /// — es ist ein Knopf für die Ausnahme, keine Einstellung.
+    /// Was die Aufzeichnung bei langem Stillstand von selbst tun darf —
+    /// im Kreis: anhalten und beenden → nur beenden → durchfahren.
+    ///
+    /// Die Stellung gilt für **diese** Fahrt; beim nächsten Start steht sie
+    /// wieder auf der ersten. Es ist ein Knopf für die Ausnahme, keine
+    /// Einstellung — die steht in den Einstellungen.
     private var automaticsButton: some View {
         Button {
-            tracker.setAutomatics(off: !tracker.automaticsOff)
+            tracker.cycleAutomatic()
         } label: {
-            Image(systemName: "pause.circle")
-                .symbolVariant(tracker.automaticsOff ? .slash : .none)
+            Image(systemName: tracker.automatic.symbol)
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(tracker.automaticsOff ? .white : Theme.accent)
+                .foregroundStyle(tracker.automatic == .full ? Theme.accent : .white)
                 .frame(width: 36, height: 36)
-                .background(tracker.automaticsOff ? AnyShapeStyle(Theme.gradient(.orange))
-                                                  : AnyShapeStyle(.regularMaterial), in: Circle())
+                .background(tracker.automatic == .full ? AnyShapeStyle(.regularMaterial)
+                                                      : AnyShapeStyle(Theme.gradient(tracker.automatic == .off ? .red : .orange)),
+                            in: Circle())
         }
-        .accessibilityLabel(tracker.automaticsOff ? L("Automatik aus — die Fahrt hält nicht von selbst an")
-                                                  : L("Automatik an — die Fahrt hält bei langem Stehen von selbst an"))
+        .accessibilityLabel(L("Automatik: %@. Tippen für %@.",
+                              tracker.automatic.title, tracker.automatic.next.title))
     }
 
     /// Following gives way to a hand on the map; this is the way back, and it
@@ -338,6 +340,16 @@ struct RideTrackingView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Spacer(minLength: 0)
+            // Wie oft unterwegs neu geplant wurde. Steht nur da, wenn es
+            // passiert ist — und dann als Zahl, nicht als Gefühl: „die Route
+            // hat sich nie angepasst" ist sonst nicht von „sie hat sich
+            // dreimal angepasst und sah jedes Mal gleich aus" zu unterscheiden.
+            if tracker.replans > 0 {
+                Label(L("%d×", tracker.replans), systemImage: "arrow.triangle.2.circlepath")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundStyle(Theme.accent)
+                    .accessibilityLabel(L("%d× neu geplant", tracker.replans))
+            }
             if tracker.isPaused {
                 Label(tracker.autoPaused ? L("hält") : L("Pause"), systemImage: "pause.circle.fill")
                     .font(.system(size: 11, weight: .bold, design: .rounded))

@@ -364,6 +364,14 @@ struct RideMeter {
         }
     }
 
+    /// „1.4 (38)" — was in der Fahrt landet.
+    static var appVersion: String? {
+        let info = Bundle.main.infoDictionary
+        guard let v = info?["CFBundleShortVersionString"] as? String else { return nil }
+        let b = info?["CFBundleVersion"] as? String
+        return b.map { "\(v) (\($0))" } ?? v
+    }
+
     /// Die geplante Linie, so wie sie beim Start der Fahrt aussah. Liegt
     /// hinterher dünn neben der gefahrenen.
     var plannedLine: [CLLocationCoordinate2D] = []
@@ -371,7 +379,8 @@ struct RideMeter {
     /// Everything measured, as the two records that get stored.
     func result(id: UUID, origin: String, destination: String, mode: String,
                 plannedSeconds: TimeInterval?, end: Date,
-                plannedMeters: Double? = nil, plannedSignals: Int? = nil) -> (Ride, RideTrack) {
+                plannedMeters: Double? = nil, plannedSignals: Int? = nil,
+                appVersion: String? = Self.appVersion) -> (Ride, RideTrack) {
         let ride = Ride(id: id, started: started ?? end, ended: end,
                         origin: origin, destination: destination, mode: mode,
                         meters: meters, movingSeconds: movingSeconds, maxKmh: maxSpeed * 3.6,
@@ -379,6 +388,7 @@ struct RideMeter {
                         signalWaitTotal: signalWaitTotal, plannedSeconds: plannedSeconds,
                         plannedMeters: plannedMeters, plannedSignals: plannedSignals,
                         pausedSeconds: pausedSeconds + currentPause(at: end),
+                        appVersion: appVersion,
                         pointCount: points.count, mix: mix.isEmpty ? nil : mix)
         return (ride, RideTrack(id: id, points: points, stops: stops,
                                 planned: Geo.thinned(plannedLine).map(TrackPoint.init)))
