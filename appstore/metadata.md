@@ -10,7 +10,31 @@ Fassung von Name, Untertitel, Keywords und Beschreibung steht am Ende und
 gehört in die Lokalisierung **Englisch (USA)**, damit die Seite in Stores
 außerhalb Deutschlands nicht leer aussieht.
 
-## Einreichungs-Checkliste (1.4, Build 38 — die einzureichende Fassung)
+## Einreichungs-Checkliste (1.5, Build 40 — die einzureichende Fassung)
+
+Der Stand, der in den Store soll. Was seit 1.4 dazugekommen ist, steht in
+**fett**; alles andere gilt unverändert und ist unten ausgeführt.
+
+1. **Build 1.5 (40)** auswählen — liegt seit dem 26.09.2026 in TestFlight
+2. **Screenshots**: unverändert gültig. Sie sind mit Build 38 aufgenommen, und
+   keine der 1.5-Änderungen berührt eine der abgebildeten Seiten — die Bilder
+   zeigen Planung, Menü und Einstellungen, geändert hat sich die Fahrtseite
+3. **Was ist neu** — Text unten, **für 1.5**
+4. **App-Datenschutz**: Standort → Genauer Standort → App-Funktionalität, nicht
+   mit der Identität verknüpft, kein Tracking. Das Datenschutzmanifest
+   (`PrivacyInfo.xcprivacy`) liegt im Paket und sagt dasselbe; die Angaben im
+   Formular müssen dazu passen
+5. **Englische Lokalisierung** (Englisch, USA): Name, Untertitel, Keywords,
+   Beschreibung stehen am Ende dieser Datei. Die App selbst spricht seit 1.4
+   Englisch — eine leere englische Store-Seite wäre ein Widerspruch
+6. **CloudKit-Schema** — **erledigt am 26.09.2026**: `RideTrack` liegt in
+   Production, geprüft mit einer Fahrt vom iPhone, die auf dem iPad mit Linie
+   ankam. Vor jedem weiteren Feld gilt der Schritt erneut, siehe `HANDOVER.md`
+7. Support-, Marketing- und Datenschutz-URL wie unten; **die drei Seiten sind
+   seit dem 26.09.2026 als GitHub Pages veröffentlicht**
+8. Alterseinstufung 4+, Kategorie Navigation / Reisen, Preis kostenlos
+
+## Einreichungs-Checkliste (1.4, Build 38)
 
 Der Stand, der in den Store soll. Was seit der 1.0-Liste dazugekommen ist,
 steht in **fett**; alles andere gilt unverändert und ist unten ausgeführt.
@@ -178,6 +202,37 @@ BRouter und Overpass auf OpenStreetMap-Daten (© OpenStreetMap-Mitwirkende,
 ODbL), Deutscher Wetterdienst und Open-Meteo.
 
 Alle Zeiten ohne Gewähr.
+```
+
+## Was ist neu (1.5)
+
+Für das Feld „Neue Funktionen“ der Version 1.5 (max 4000, hier 1180):
+
+```
+Diese Fassung kommt aus dem Auto: die Aufzeichnung kann jetzt mehr als Rad.
+
+UNTERWEGS
+• Wer von der Route abkommt, bekommt eine neue — und zwar in Fahrtrichtung.
+  Bisher schickte die Neuberechnung einen auf der Autobahn schon mal zurück
+  zur letzten Ausfahrt, weil sie nur den Punkt kannte und nicht die Richtung.
+• Die Restzeit rechnet im Tempo des Verkehrsmittels, in dem du sitzt. Dreißig
+  Kilometer Landstraße sind keine anderthalb Stunden mehr.
+• Die Farbskala folgt mit: 8 bis 26 km/h auf dem Rad, 20 bis 100 im Auto und
+  in der Bahn. Vorher war im Auto alles grün.
+• Die Automatik läuft im Kreis: Pause, Selbstanhalten aus, weiter — ein Knopf,
+  drei Zustände, für den Fall, dass der Stau echt ist.
+• Am Ladekabel bleibt der Bildschirm hell. Wer am Lenker lädt, will sehen.
+
+HINTERHER
+• Jede aufgezeichnete Fahrt merkt sich, mit welcher Fassung sie entstand.
+• Wie oft unterwegs neu geplant wurde, steht jetzt da.
+• Die Legende erscheint in der Auswertung statt während der Fahrt, skaliert
+  auf das, was diese Fahrt wirklich an Tempo hatte.
+• Die ursprüngliche Route liegt blau gestrichelt unter der neuen.
+
+AUSSERDEM
+Das Menü im Querformat zeigt wieder alle Einträge, und die Anzeigen auf der
+Fahrtseite gehen einander nicht mehr über den Weg.
 ```
 
 ## Was ist neu (1.4)
