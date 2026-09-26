@@ -10,7 +10,48 @@ Fassung von Name, Untertitel, Keywords und Beschreibung steht am Ende und
 gehört in die Lokalisierung **Englisch (USA)**, damit die Seite in Stores
 außerhalb Deutschlands nicht leer aussieht.
 
-## Einreichungs-Checkliste (1.4, Build 38 — die einzureichende Fassung)
+## Einreichungs-Checkliste (1.0 unter `org.afjk.radpendler` — der Neustart)
+
+Der Umzug von `de.keese.radpendler` auf `org.afjk.radpendler` macht aus der App
+im Store einen **neuen Eintrag**. Er ist leer: keine TestFlight-Historie, keine
+Tester, keine Bewertungen. Der Code ist umgestellt (Version zurück auf **1.0**,
+Buildnummer läuft weiter bei **40**); was jetzt noch fehlt, geht nur von Hand im
+Browser.
+
+**Zuerst, in dieser Reihenfolge:**
+
+1. **App-ID anlegen** — <https://developer.apple.com/account/resources/identifiers/list>
+   - `org.afjk.radpendler`, dazu `org.afjk.radpendler.watchkitapp`
+   - Capabilities: **iCloud** (Key-Value-Speicher **und** CloudKit mit dem
+     bestehenden Container `iCloud.org.afjk.radpendler`), **Background Modes**
+   - Der Key-Value-Speicher zeigt weiter auf `de.keese.radpendler` — das ist
+     Absicht und steht so in den Entitlements; ohne diesen Kniff wäre der Umzug
+     stiller Datenverlust
+2. **Den Namen prüfen.** „RadPendler" ist kontoweit an den alten Eintrag
+   gebunden. Beim Anlegen des neuen Eintrags zeigt App Store Connect sofort, ob
+   der Name frei ist. Ist er es nicht: die alte App aus dem Verkauf nehmen und
+   löschen, dann erneut versuchen; notfalls mit einem Behelfsnamen anlegen und
+   mit der ersten Version umbenennen
+3. **Neuen App-Eintrag anlegen** — Bundle-ID `org.afjk.radpendler`, SKU z. B.
+   `radpendler-afjk`, Primärsprache Deutsch. Apple lässt das **nicht** über die
+   API zu
+4. **Bauen und hochladen** (macht Claude): `archive` → `exportArchive` mit den
+   Schlüsseln aus `~/.appstoreconnect/`
+5. **Store-Seite füllen** — Texte, Keywords, Screenshots, URLs wie unten. Das
+   App-Datenschutz-Formular muss zum Manifest passen: Standort → Genauer
+   Standort → App-Funktionalität, nicht mit der Identität verknüpft, kein
+   Tracking
+6. **CloudKit-Schema** von Development nach Production übernehmen, sonst reisen
+   die Linien der Fahrten in der Store-Fassung nicht
+7. **Zum Schluss** die alte App (`de.keese.radpendler`) aus dem Verkauf nehmen
+
+**Was aus dem alten Eintrag nicht mitkommt:** nichts Wertvolles — 0
+Bewertungen, eine Woche im Verkauf. Auf dem Gerät liegt die neue App neben der
+alten; Adressen, Vorlieben und die Kennzahlen der Fahrten sind über den alten
+Schlüssel-Wert-Speicher sofort wieder da, die Linien über CloudKit. Die alten
+lokalen Dateien (Linien, Zwischenspeicher) bleiben in der alten App.
+
+## Einreichungs-Checkliste (1.4, Build 38 — der letzte Stand unter `de.keese`)
 
 Der Stand, der in den Store soll. Was seit der 1.0-Liste dazugekommen ist,
 steht in **fett**; alles andere gilt unverändert und ist unten ausgeführt.
@@ -43,7 +84,7 @@ Die erste Einreichung überhaupt: bisher lief RadPendler nur über TestFlight,
 intern. In App Store Connect, auf der Versionsseite 0.12.1:
 
 1. **App anlegen** — Apple erlaubt kein Anlegen per API, das muss von Hand im
-   Browser passieren. Bundle-ID `de.keese.radpendler`, Team 5PX3V6L522,
+   Browser passieren. Bundle-ID `org.afjk.radpendler`, Team 5PX3V6L522,
    SKU z. B. `radpendler`, Primärsprache Deutsch
 2. **Build** — 0.12.1 (19) hochladen und auswählen. Die Exportkonformität ist
    im Binary beantwortet (`ITSAppUsesNonExemptEncryption = NO`), es wird also
@@ -180,35 +221,13 @@ ODbL), Deutscher Wetterdienst und Open-Meteo.
 Alle Zeiten ohne Gewähr.
 ```
 
-## Was ist neu (1.4)
+## Was ist neu
 
-Für das Feld „Neue Funktionen“ der Version 1.4 (max 4000, hier 1063):
-
-```
-Diese Fassung kommt von der Straße: sie zeichnet Fahrten auf und rechnet
-danach mit deinen Zahlen weiter.
-
-AUFZEICHNEN
-• Die Aufzeichnung hält von selbst an, wenn du länger als drei Minuten stehst
-  und dort keine Ampel ist — und läuft weiter, sobald du wieder rollst. Nach
-  zwanzig Minuten beendet sie sich; das ist der Fall „angekommen und vergessen,
-  auf beenden zu tippen“. Ein Knopf schaltet beides für eine Fahrt ab.
-• „Pause“ für die gewollte Unterbrechung: die Uhr steht, die Ortung ist aus.
-• Der Bildschirm wird dunkel, solange du ihn nicht anfasst, und beim ersten
-  Antippen wieder hell — während einer Fahrt der größte Posten auf der
-  Stromrechnung.
-• Der gefahrene Schnitt steht neben dem geplanten, die Ampeln als „18/20“.
-
-ENGLISCH
-Die App spricht Deutsch und Englisch. Umgeschaltet wird im Menü, und die
-Umstellung wirkt sofort — auch Zahlen und Uhrzeiten folgen mit.
-
-AUSSERDEM
-• Was du löschst, bleibt gelöscht — auch mit zwei Geräten.
-• Fehler stehen im Klartext da statt als „Fehler“.
-• Weniger Anfragen, weniger Strom: dieselbe Frage bekommt fünf Minuten lang
-  dieselbe Antwort, und zwischen den Boxen zu springen kostet gar nichts.
-```
+Der neue Eintrag startet als **1.0** — dort fragt App Store Connect nicht nach
+„Was ist neu". Der Text für die erste Aktualisierung danach steht im
+`CHANGELOG.md`; alles, was seit der ersten Fassung dazugekommen ist, steckt
+ohnehin schon in der Beschreibung oben: Aufzeichnen mit Lernen, Englisch, die
+Automatik während der Fahrt.
 
 ## Keywords (max 100, kommagetrennt, ohne Leerzeichen)
 
@@ -371,11 +390,11 @@ App und hängt jedes Bild ans Testergebnis.
 # Adressen setzen, ohne je eine echte zu benutzen (die App startet leer):
 hex() { python3 -c "import sys,json;print(json.dumps(json.loads(sys.argv[1]),ensure_ascii=False).encode().hex())" "$1"; }
 UDID=…   # 6,5″-Telefon oder iPad Pro 13″
-xcrun simctl spawn $UDID defaults write de.keese.radpendler origin -data \
+xcrun simctl spawn $UDID defaults write org.afjk.radpendler origin -data \
   "$(hex '{"name":"Alexanderplatz, 10178 Berlin","latitude":52.5210,"longitude":13.4130,"postalCode":"10178","locality":"Berlin"}')"
-xcrun simctl spawn $UDID defaults write de.keese.radpendler destination -data \
+xcrun simctl spawn $UDID defaults write org.afjk.radpendler destination -data \
   "$(hex '{"name":"Potsdam Hauptbahnhof, 14473 Potsdam","latitude":52.3914,"longitude":13.0672,"postalCode":"14473","locality":"Potsdam"}')"
-xcrun simctl spawn $UDID defaults write de.keese.radpendler alertsOn -bool NO
+xcrun simctl spawn $UDID defaults write org.afjk.radpendler alertsOn -bool NO
 
 xcodebuild test -project RadPendler.xcodeproj -scheme RadPendlerShots \
   -destination "platform=iOS Simulator,id=$UDID" -resultBundlePath /tmp/shots.xcresult
@@ -543,7 +562,7 @@ Alles, was nicht aus diesem Repository heraus geht:
 
 **In App Store Connect**
 
-5. App anlegen (geht nicht per API): Bundle-ID `de.keese.radpendler`,
+5. App anlegen (geht nicht per API): Bundle-ID `org.afjk.radpendler`,
    Primärsprache Deutsch, SKU frei wählbar
 6. Build 1.0 (22) hochladen, auswählen
 7. Die Felder von oben eintragen, in der Reihenfolge dieser Datei

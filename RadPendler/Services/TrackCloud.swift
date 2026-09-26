@@ -21,10 +21,10 @@ import Foundation
 actor TrackCloud {
     static let shared = TrackCloud()
 
-    /// Muss genauso im Entwicklerportal stehen. `org.afjk.*`, nicht
-    /// `de.keese.*`: die Bundle-Id einer veröffentlichten App bleibt, wie sie
-    /// ist, aber ein **neuer** Bezeichner wird nach der geltenden Regel
-    /// benannt. Ein Container ist nichts, was ein Nutzer je zu sehen bekommt.
+    /// Muss genauso im Entwicklerportal stehen — und bleibt, wie er ist,
+    /// auch wenn die App umzieht: ein Container ist eine eigenständige
+    /// Kennung, keine Ableitung der Bundle-Id. Er trug `org.afjk` schon,
+    /// bevor die App es tat.
     static let containerID = "iCloud.org.afjk.radpendler"
 
     static let recordType = "RideTrack"
