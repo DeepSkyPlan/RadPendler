@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.4 (noch nicht hochgeladen) — Pause, Selbstbeenden und weniger Anfragen
+## 1.4 (Build 37) — Pause, Selbstbeenden, Englisch und weniger Anfragen
 
 - **„Pause" auf dem Fahrtbildschirm.** Für die gewollte Unterbrechung: die Uhr steht, die
   Ortung ist so lange aus, und die Pause zählt weder zur Fahrzeit noch als Halt noch in den
