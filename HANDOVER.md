@@ -49,8 +49,11 @@ die Seite im Netz muss beschreiben, was die App im Store tut, nicht was TestFlig
    Zielkoordinaten an `brouter.de`, `overpass-api.de`, `fahrinfo.vbb.de`,
    `api.transitous.org`, `api.open-meteo.com` und `maps.dwd.de`. Tracking-SDKs, IDFA oder
    eine Kennung in einer Anfrage gibt es dagegen nicht — geprüft im Quelltext.
-3. **CloudKit-Schema übernehmen** — der Container `iCloud.de.keese.radpendler` ist seit
-   dem 26.09.2026 neu, also **leer, auch in Development**. Reihenfolge:
+3. **CloudKit-Schema übernehmen** — **erledigt am 26.09.2026**: `RideTrack` liegt in
+   Production, eine Fahrt vom iPhone ist auf dem iPad mit Linie zu sehen. Die
+   Reihenfolge bleibt hier stehen, weil sie beim nächsten Containerwechsel und bei
+   jedem neuen Feld wieder gilt — der Container ist am 26.09.2026 neu angelegt
+   worden und war anfangs **leer, auch in Development**:
 
    1. Einen Bau **aus Xcode** aufs iPhone. Nur der schreibt nach Development; ein
       TestFlight-Build schreibt nach Production, und dort legt CloudKit nichts von
