@@ -45,6 +45,17 @@
         }
       }
     },
+    "%@ ist nicht gegangen: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ did not work: %@"
+          }
+        }
+      }
+    },
     "%@ länger als geplant": {
       "extractionState": "manual",
       "localizations": {
@@ -1779,6 +1790,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Speed scale, red below 8 to green above 26 km/h"
+          }
+        }
+      }
+    },
+    "Fehler": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Error"
           }
         }
       }
@@ -4331,6 +4353,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "not set"
+          }
+        }
+      }
+    },
+    "nichts": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nothing"
           }
         }
       }

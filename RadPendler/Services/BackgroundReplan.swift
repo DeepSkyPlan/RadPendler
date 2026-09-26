@@ -129,12 +129,11 @@ enum BackgroundReplan {
     ///
     /// Rein, damit die Regel geprüft werden kann, ohne die App zu wecken.
     static func option(for question: Question, in options: [TripOption]) -> TripOption? {
-        let own = options.filter { $0.mode.rawValue == question.mode }
-        let sorted = own.filter { !$0.isAlternative } + own.filter(\.isAlternative)
-        guard let option = sorted.first(where: \.passesWaypoints) ?? sorted.first else { return nil }
+        let own = TripRules.ordered(options.filter { $0.mode.rawValue == question.mode })
+        guard let option = own.first else { return nil }
         // Rad und Auto mit „jetzt los" haben keine feste Abfahrt; da gibt es
         // nichts nachzustellen, und eine Warnung wäre erfunden.
-        guard question.isArrival || !option.transitLegs.isEmpty else { return nil }
+        guard TripRules.countsDown(option, arrivalSearch: question.isArrival) else { return nil }
         return option
     }
 }

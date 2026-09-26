@@ -40,6 +40,30 @@ enum TravelMode: String, CaseIterable, Identifiable {
     }
 }
 
+/// Die zwei Regeln, nach denen überall dasselbe gelten muss: **worauf der
+/// Countdown zählt** und **in welcher Reihenfolge eine Kategorie ihre
+/// Möglichkeiten zeigt**.
+///
+/// Sie standen dreimal da — im `PlanModel`, in `WatchLink` und in
+/// `BackgroundReplan` —, und zwei dieser drei Kopien sieht man beim
+/// Ausprobieren nie: die Uhr und die im Hintergrund geweckte App. Es ist
+/// zugleich die Stelle, die vor dem falschen Zug warnt.
+enum TripRules {
+    /// Eine Fahrt hat nur dann eine feste Abfahrt, wenn ein Zug oder ein Bus
+    /// darin vorkommt — oder wenn nach einer Ankunftszeit gesucht wurde. Rad
+    /// und Auto mit „jetzt los" haben nichts, worauf sich zählen ließe.
+    static func countsDown(_ option: TripOption, arrivalSearch: Bool) -> Bool {
+        arrivalSearch || !option.transitLegs.isEmpty
+    }
+
+    /// Erst die eigentlichen Möglichkeiten, dann die Alternativen; und
+    /// innerhalb beider erst, was über die Fixpunkte führt.
+    static func ordered(_ options: [TripOption]) -> [TripOption] {
+        let sorted = options.filter { !$0.isAlternative } + options.filter(\.isAlternative)
+        return sorted.filter(\.passesWaypoints) + sorted.filter { !$0.passesWaypoints }
+    }
+}
+
 /// HAFAS product classes as the VBB profile numbers them.
 enum TransitProduct: Int, CaseIterable {
     case suburban = 1, subway = 2, tram = 4, bus = 8, ferry = 16, express = 32, regional = 64

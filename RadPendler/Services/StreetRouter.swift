@@ -37,9 +37,31 @@ enum StreetMode: Hashable {
     }
 }
 
+/// Ein Router, der nichts findet — für den Planer, der offline sein soll.
+/// MapKit lässt sich nicht umlenken; also fragt ihn dort niemand.
+struct DeadRouter: StreetRouting {
+    struct Offline: Error {}
+
+    func route(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+               mode: StreetMode, departure: Date?) async throws -> StreetRoute {
+        throw Offline()
+    }
+}
+
 protocol StreetRouting: Sendable {
     func route(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
                mode: StreetMode, departure: Date?) async throws -> StreetRoute
+    /// Mehrere Linien, wo der Router welche anbietet — Apple Karten tut das
+    /// fürs Auto. Wer nur eine kennt, liefert eben die eine.
+    func routes(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+                mode: StreetMode, departure: Date?) async throws -> [StreetRoute]
+}
+
+extension StreetRouting {
+    func routes(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+                mode: StreetMode, departure: Date?) async throws -> [StreetRoute] {
+        [try await route(from: from, to: to, mode: mode, departure: departure)]
+    }
 }
 
 /// Apple Maps directions. Bike and walk routes are cached for the life of the

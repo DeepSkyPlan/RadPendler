@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Kein Tracking: die App hat keine Analytik, kein Crash-SDK, keine
+         Werbung, und sie verknüpft nichts mit Daten anderer Anbieter. -->
+    <key>NSPrivacyTracking</key>
+    <false/>
+    <key>NSPrivacyTrackingDomains</key>
+    <array/>
+
+    <!-- Was erhoben wird, und wozu. Der Standort verlässt das Gerät nur als
+         Koordinate an die Dienste, die die Strecke rechnen; die Aufzeichnung
+         einer Fahrt geht ausschließlich in die private iCloud des Nutzers.
+         Nichts davon ist mit einer Person verknüpft — die App kennt keine
+         Konten, keine Namen und keine Kennungen. -->
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array>
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypePreciseLocation</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypeTracking</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array>
+                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+            </array>
+        </dict>
+    </array>
+
+    <!-- Die vier APIs, die Apple begründet haben will. -->
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array>
+        <dict>
+            <!-- Einstellungen, Adressen und die Zahlen der Fahrten. -->
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>CA92.1</string>
+            </array>
+        </dict>
+        <dict>
+            <!-- Die Linien der Fahrten und der Zwischenspeicher der
+                 OpenStreetMap-Antworten liegen als Dateien. -->
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>C617.1</string>
+            </array>
+        </dict>
+        <dict>
+            <!-- Der Kartenzwischenspeicher wird nur angelegt, wenn Platz ist. -->
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryDiskSpace</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>E174.1</string>
+            </array>
+        </dict>
+        <dict>
+            <!-- Zeitstempel einer laufenden Aufzeichnung, damit eine
+                 abgebrochene Fahrt ihre Dauer behält. -->
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategorySystemBootTime</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>35F9.1</string>
+            </array>
+        </dict>
+    </array>
+</dict>
+</plist>

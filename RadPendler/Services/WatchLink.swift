@@ -104,8 +104,7 @@ extension TripSnapshot {
         self.destination = destination
         self.computedAt = computedAt
         self.options = options.map { option in
-            // Same rule the phone's own countdown uses.
-            let countsDown = arrivalSearch || !option.transitLegs.isEmpty
+            let countsDown = TripRules.countsDown(option, arrivalSearch: arrivalSearch)
             // Short walks between two trains are the change, not a leg.
             let legs = option.legs.filter { $0.kind != .walk || ($0.length ?? 0) >= 150 }
             return Option(id: option.id.uuidString,
@@ -135,12 +134,12 @@ extension TripSnapshot {
     }
 
     /// Same line the mode boxes carry on the phone.
-    private static func caption(_ option: TripOption) -> String {
+    static func caption(_ option: TripOption) -> String {
         if let bike = option.bikeRoute { return bike.shortTitle }
         if let car = option.carRoute { return car.variants.first?.title ?? Fmt.km(option.totalDistance) }
         if option.transitLegs.isEmpty { return Fmt.km(option.totalDistance) }
         return option.transfers == 0 ? L("ab %@", Fmt.time(option.leave))
-                                     : "\(Fmt.time(option.leave)) · \(option.transfers)×"
+                                     : L("%@ · %d×", Fmt.time(option.leave), option.transfers)
     }
 }
 

@@ -119,7 +119,7 @@ struct ModeStrip: View {
     private func caption(_ mode: TravelMode, _ option: TripOption?) -> String {
         guard let option else {
             if model.isLoading { return L("sucht …") }
-            return model.result.failures[mode] != nil ? "Fehler" : "nichts"
+            return model.result.failures[mode] != nil ? L("Fehler") : L("nichts")
         }
         if let bike = option.bikeRoute { return bike.shortTitle }
         if let car = option.carRoute { return car.variants.first?.title ?? Fmt.km(option.totalDistance) }
@@ -234,8 +234,9 @@ struct SelectedTripBar: View {
             return Note(text: L("ohne Fixpunkte"), symbol: "point.topleft.down.to.point.bottomright.curvepath",
                         tint: .secondary)
         }
-        if model.result.failures[option.mode] != nil {
-            return Note(text: "Fehler", symbol: "exclamationmark.triangle", tint: .orange)
+        // Der Satz, den der Planer formuliert hat — nicht das Wort „Fehler".
+        if let failure = model.result.failures[option.mode] {
+            return Note(text: failure, symbol: "exclamationmark.triangle", tint: .orange)
         }
         return nil
     }

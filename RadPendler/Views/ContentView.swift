@@ -346,8 +346,23 @@ struct ContentView: View {
                       plannedSignals: planned)
     }
 
+    /// Was schiefging — und zwar **im Wortlaut**.
+    ///
+    /// Der Planer formuliert brauchbare Sätze („Kein Bahnhof mit Radmitnahme
+    /// im Umkreis von 5 km"), und angezeigt wurde davon bis 1.4 nichts: in
+    /// der Box stand „Fehler", der Satz lag unbenutzt im Ergebnis. Hier steht
+    /// er, für die Kategorie, die gerade offen ist.
     @ViewBuilder private var rainNote: some View {
-        if let rainFailure = model.result.rainFailure {
+        if let failure = model.result.failures[model.activeMode] {
+            Label(failure, systemImage: "exclamationmark.triangle")
+                .font(.system(.caption2, design: .rounded))
+                .foregroundStyle(.orange)
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
+                .padding(.horizontal, Theme.gutter + 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityLabel(L("%@ ist nicht gegangen: %@", model.activeMode.title, failure))
+        } else if let rainFailure = model.result.rainFailure {
             Label(rainFailure, systemImage: "cloud.slash")
                 .font(.system(.caption2, design: .rounded))
                 .foregroundStyle(.orange)
