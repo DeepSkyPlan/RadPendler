@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.4 (Build 38) — Automatik in zwei Stufen, und gelöscht bleibt gelöscht
+
+- **Die Aufzeichnung hält von selbst an**, wenn du drei Minuten an derselben Stelle stehst und
+  dort keine Ampel ist — und **läuft von selbst weiter**, sobald du wieder rollst. Die Ortung
+  bleibt dabei an, aber sparsam. Erst nach zwanzig Minuten endet sie ganz: das ist der Fall
+  „angekommen und vergessen, auf beenden zu tippen". Ein Knopf auf dem Fahrtbildschirm
+  schaltet beides für eine Fahrt ab — für den Stau, von dem du weißt, dass er gleich weitergeht.
+- **Löschen löscht.** Gelöschte Fahrten, Adressen und gelernte Ampeln kamen vom zweiten Gerät
+  zurück, weil die drei Listen zwischen den Geräten vereinigt und nie gekürzt werden. Jetzt
+  reist mit, was **nicht** mehr da sein soll.
+- **Dieselbe Frage bekommt fünf Minuten lang dieselbe Antwort.** Zwischen den Boxen zu springen
+  kostet keine einzige Anfrage mehr.
+- **Fehler stehen im Klartext da**: „Kein Bahnhof mit Radmitnahme im Umkreis von 5 km" statt
+  „Fehler". Den Satz gab es vorher schon — angezeigt wurde er nie.
+- **Das Datenschutzmanifest** liegt bei; ohne es nimmt der App Store nichts mehr an.
+- Unter der Haube: die Karte passt sich nicht mehr viermal je Planung ein und lädt die
+  Radarkacheln nicht viermal neu, der OpenStreetMap-Korridor rechnet über ein Gitter statt
+  über eine Million Vergleiche, nach einem Abbruch läuft keine Nachholabfrage mehr los, und
+  die Regel „worauf zählt der Countdown" steht an einer Stelle statt an dreien.
+
 ## 1.4 (Build 37) — Pause, Selbstbeenden, Englisch und weniger Anfragen
 
 - **„Pause" auf dem Fahrtbildschirm.** Für die gewollte Unterbrechung: die Uhr steht, die
