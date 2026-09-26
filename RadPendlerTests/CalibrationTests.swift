@@ -187,32 +187,61 @@ final class CalibrationTests: XCTestCase {
         XCTAssertEqual(half.metersLeft, 450, accuracy: 5)
     }
 
-    func testTheRemainingTimeUsesSpeedLightsAndTheMeasuredAverage() throws {
+    func testTheRemainingTimeFallsBackToSpeedAndLights() throws {
         let s = settings()
         s.bikeSpeedKmh = 20
         s.signalWaitSeconds = 30
         let p = RideTracker.Progress(metersLeft: 5_000, signalsLeft: 4, signalsPassed: 2,
                                      plannedSignals: 6, plannedMeters: 10_000)
-        let left = try XCTUnwrap(RideRemaining.from(progress: p, settings: s))
-        // 5 km bei 20 km/h sind 15 min, dazu vier Ampeln à 30 s.
-        XCTAssertEqual(left.seconds, 900 + 120, accuracy: 1)
-        XCTAssertEqual(left.signals, 4)
+        // Ohne laufende Fahrt und ohne Plan: Rolltempo plus Ampeln.
+        func left(_ s: AppSettings) throws -> RideRemaining {
+            try XCTUnwrap(RideRemaining.from(progress: p, ridden: 0, rideKmh: 0,
+                                             plannedKmh: nil, settings: s))
+        }
+        XCTAssertEqual(try left(s).seconds, 900 + 120, accuracy: 1)
+        XCTAssertEqual(try left(s).signals, 4)
         // Und auch hier gewinnt die Messung — langsamer …
         s.measuredRides = 5
         s.measuredOverallKmh = 12
-        let slower = try XCTUnwrap(RideRemaining.from(progress: p, settings: s))
-        XCTAssertEqual(slower.seconds, 5_000 / (12 / 3.6), accuracy: 1)
+        XCTAssertEqual(try left(s).seconds, 5_000 / (12 / 3.6), accuracy: 1)
         // … wie schneller.
         s.measuredOverallKmh = 30
-        let faster = try XCTUnwrap(RideRemaining.from(progress: p, settings: s))
-        XCTAssertEqual(faster.seconds, 5_000 / (30 / 3.6), accuracy: 1)
+        XCTAssertEqual(try left(s).seconds, 5_000 / (30 / 3.6), accuracy: 1)
+    }
+
+    /// Der Fall, der auf der Autofahrt anderthalb Stunden für dreißig
+    /// Kilometer Landstraße ansagte: die Restzeit rechnete mit dem Rolltempo
+    /// des **Fahrrads**, weil sie nie erfahren hat, was gerade gefahren wird.
+    /// Jetzt zählt der Schnitt, den der Plan dieser Fahrt versprochen hat.
+    func testTheRemainingTimeFollowsThePlannedAverageOfThisRide() throws {
+        let s = settings()
+        s.bikeSpeedKmh = 20
+        let p = RideTracker.Progress(metersLeft: 30_900, signalsLeft: 4, signalsPassed: 3,
+                                     plannedSignals: 7, plannedMeters: 32_000)
+        // 32 km in 32 min: eine Autofahrt mit 60 km/h Schnitt, gerade erst los.
+        let left = try XCTUnwrap(RideRemaining.from(progress: p, ridden: 1_800, rideKmh: 25.6,
+                                                    plannedKmh: 60, settings: s))
+        XCTAssertEqual(left.seconds, 30_900 / (60 / 3.6), accuracy: 30, "30,9 km bei 60 km/h sind gut 31 min")
+        XCTAssertLessThan(left.seconds, 2_400, "und ganz sicher keine anderthalb Stunden")
+    }
+
+    /// Ist genug gefahren, zählt der Schnitt **dieser** Fahrt — der kennt den
+    /// Stau, den der Plan nicht kannte.
+    func testOnceEnoughIsRiddenTheRideItselfDecides() throws {
+        let p = RideTracker.Progress(metersLeft: 20_000, signalsLeft: 2, signalsPassed: 4,
+                                     plannedSignals: 6, plannedMeters: 32_000)
+        let left = try XCTUnwrap(RideRemaining.from(progress: p, ridden: 12_000, rideKmh: 40,
+                                                    plannedKmh: 60, settings: settings()))
+        XCTAssertEqual(left.seconds, 20_000 / (40 / 3.6), accuracy: 30)
     }
 
     func testNothingLeftWhenNothingWasPlanned() {
-        XCTAssertNil(RideRemaining.from(progress: nil, settings: settings()))
+        XCTAssertNil(RideRemaining.from(progress: nil, ridden: 0, rideKmh: 0,
+                                        plannedKmh: nil, settings: settings()))
         let done = RideTracker.Progress(metersLeft: 0, signalsLeft: 0, signalsPassed: 6,
                                         plannedSignals: 6, plannedMeters: 10_000)
-        XCTAssertNil(RideRemaining.from(progress: done, settings: settings()))
+        XCTAssertNil(RideRemaining.from(progress: done, ridden: 0, rideKmh: 0,
+                                        plannedKmh: nil, settings: settings()))
     }
 
     // MARK: Höhenprofil

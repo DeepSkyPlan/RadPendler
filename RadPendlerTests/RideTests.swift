@@ -322,6 +322,19 @@ final class RideTests: XCTestCase {
         XCTAssertNil(m.autoStop(at: start.addingTimeInterval(400), after: 300))
     }
 
+    /// … aber irgendwann ist auch an einer Ampel nicht mehr Rot, sondern Stau.
+    /// Vorher griff die Automatik ausgerechnet dort nie, wo man sie braucht.
+    func testAtSomePointEvenALightIsJustAJam() {
+        var m = RideMeter()
+        m.signals = [east(50)]
+        for i in 0...10 { m.add(fix(Double(i) * 5, Double(i), speed: 5)) }
+        for i in 11...400 { m.add(fix(50, Double(i), speed: 0.1)) }
+        let now = start.addingTimeInterval(400)
+        XCTAssertNil(m.standstill(at: now), "an einer Ampel zählt der Stillstand zunächst nicht")
+        XCTAssertNil(m.standstill(at: now, beyond: 600), "sechs Minuten Rot sind noch denkbar")
+        XCTAssertNotNil(m.standstill(at: now, beyond: 360), "danach steht man nicht mehr bei Rot")
+    }
+
     /// Dunkel, aber nicht schwarz — und nie heller als vorher.
     func testTheDimmedScreenStaysFindable() {
         XCTAssertEqual(ScreenDim.level(of: 1.0), 0.25, accuracy: 0.001)
@@ -507,9 +520,32 @@ final class RideTests: XCTestCase {
         XCTAssertEqual(RideColors.index(0), 0)
         XCTAssertEqual(RideColors.index(7.9), 0)
         XCTAssertEqual(RideColors.index(8), 1)
-        XCTAssertEqual(RideColors.index(1000), RideColors.steps.count - 1)
-        XCTAssertEqual(RideColors.index(.infinity), RideColors.steps.count - 1)
-        XCTAssertEqual(RideColors.titles.count, RideColors.steps.count)
+        XCTAssertEqual(RideColors.index(1000), RideColors.palette.count - 1)
+        XCTAssertEqual(RideColors.index(.infinity), RideColors.palette.count - 1)
+        XCTAssertEqual(RideColors.Scale.bike.titles.count, RideColors.palette.count)
+    }
+
+    /// Ein Auto ist auf der Radskala überall tiefgrün — dann sagt die Linie
+    /// nichts mehr. Deshalb hängt die Skala am Verkehrsmittel.
+    func testTheScaleFollowsTheModeOfTravel() {
+        XCTAssertEqual(RideColors.Scale.of(.bike), .bike)
+        XCTAssertEqual(RideColors.Scale.of(.bikeTransit), .bike)
+        XCTAssertEqual(RideColors.Scale.of(.car), .fast)
+        XCTAssertEqual(RideColors.Scale.of(.transit), .fast)
+        // 50 km/h: auf dem Rad die schnellste Stufe, im Auto die mittlere.
+        XCTAssertEqual(RideColors.Scale.bike.index(50), 4)
+        XCTAssertLessThan(RideColors.Scale.fast.index(50), 4)
+    }
+
+    /// Im Rückblick zählt, was diese Fahrt hatte: eine Fahrt, die nie über
+    /// 15 km/h kam, soll nicht einfarbig rot sein.
+    func testTheScaleFitsItselfToOneRide() {
+        let slow = RideColors.Scale.fitted(to: (0..<60).map { 6 + Double($0 % 10) })
+        XCTAssertNotEqual(slow, .bike, "eine langsame Fahrt bekommt ihre eigene Skala")
+        XCTAssertLessThan(slow.bounds.last ?? 99, 20)
+        // Zu wenige Punkte oder zu wenig Spanne: dann bleibt es beim Rad.
+        XCTAssertEqual(RideColors.Scale.fitted(to: [10, 11, 12]), .bike)
+        XCTAssertEqual(RideColors.Scale.fitted(to: Array(repeating: 15, count: 40)), .bike)
     }
 
     // MARK: Wording

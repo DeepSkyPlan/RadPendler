@@ -198,12 +198,20 @@ struct RideMapCard: View {
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             if let track, track.points.count > 1 {
+                // Die Skala kommt aus **dieser** Fahrt: eine Autofahrt hat
+                // andere Zahlen als eine Radfahrt, und eine Radfahrt gegen den
+                // Wind andere als eine mit. Erst dadurch sagt die Farbe etwas.
+                let scale = RideColors.Scale.fitted(to: track.points.map(\.kmh),
+                                                    fallback: .of(ride.travelMode))
                 RouteMapView(options: [], selectedID: nil, radarFrames: [], radarTime: nil,
-                             track: track.points, trackStops: track.stops,
+                             track: track.points, speedScale: scale, trackStops: track.stops,
                              // Die geplante Linie dünn daneben: der Unterschied
                              // ist die eigentliche Auskunft einer Fahrt.
                              plannedLine: track.plannedCoordinates)
-                SpeedLegend().padding(8)
+                // Nur hier, im Rückblick: während der Fahrt ist der Platz für
+                // die Karte da, und die Farben erklären sich beim Fahren von
+                // selbst.
+                SpeedLegend(scale: scale).padding(8)
             } else if searched {
                 // The numbers of every ride reach every device; the line stays
                 // where it was drawn. Eighty Kilobyte je Fahrt passen nicht in
@@ -255,8 +263,10 @@ struct RideFacts: View {
                      ride.plannedAverageKmh.map { "\(Self.number(ride.averageKmh)) / \(Self.number($0))" }
                          ?? Fmt.kmh(ride.averageKmh),
                      ride.plannedAverageKmh.map { ride.averageKmh >= $0 ? Color.green : .orange } ?? Theme.accent)
-                fact(L("Ø rollend"), Fmt.kmh(ride.movingKmh), RideColors.color(ride.movingKmh))
-                fact(L("Spitze"), Fmt.kmh(ride.maxKmh), RideColors.color(ride.maxKmh))
+                fact(L("Ø rollend"), Fmt.kmh(ride.movingKmh),
+                     RideColors.color(ride.movingKmh, scale: .of(ride.travelMode)))
+                fact(L("Spitze"), Fmt.kmh(ride.maxKmh),
+                     RideColors.color(ride.maxKmh, scale: .of(ride.travelMode)))
                 fact(L("gestanden"), Fmt.clock(ride.standingSeconds), .orange)
                 fact(ride.plannedSignals == nil ? L("Ampelhalts") : L("Ampeln / Plan"),
                      ride.plannedSignals.map { "\(ride.signalStops)/\($0)" } ?? "\(ride.signalStops)",

@@ -36,6 +36,12 @@ struct RideTrackingView: View {
 
     private var isLandscape: Bool { heightClass == .compact }
 
+    /// Die Farbskala dieser Fahrt. Ein Auto ist auf einer Radskala überall
+    /// tiefgrün; dann sagt die Linie nichts mehr.
+    private var scale: RideColors.Scale {
+        .of(tracker.subject.flatMap { TravelMode(rawValue: $0.mode) })
+    }
+
     /// Neu gesetzt heißt: die Uhr fängt von vorn an — auch, wenn das Telefon
     /// gerade an den Strom gekommen ist: sonst liefe der Schlafauftrag von
     /// vorhin weiter und dunkelte ab, obwohl längst geladen wird.
@@ -133,7 +139,8 @@ struct RideTrackingView: View {
 
     private var map: some View {
         RouteMapView(options: options, selectedID: selectedID, radarFrames: [], radarTime: nil,
-                     track: tracker.meter.points, trackStops: tracker.meter.stops,
+                     track: tracker.meter.points, speedScale: scale,
+                     trackStops: tracker.meter.stops,
                      // Nur die Ampeln **dieser** Route: `tracker.signals` hat
                      // zusätzlich alles Gelernte quer durch die Stadt.
                      signals: tracker.plannedSignals,
@@ -254,7 +261,6 @@ struct RideTrackingView: View {
             followButton
             OrientationButton(lock: orientation)
             automaticsButton
-            SpeedLegend()
             Spacer(minLength: 0)
         }
     }
@@ -367,7 +373,7 @@ struct RideTrackingView: View {
                     .contentTransition(.numericText())
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
-                    .foregroundStyle(RideColors.color(tracker.meter.currentSpeed * 3.6))
+                    .foregroundStyle(scale.color(tracker.meter.currentSpeed * 3.6))
                 Text(L("jetzt"))
                     .font(.system(size: 10, design: .rounded))
                     .foregroundStyle(.secondary)
@@ -463,7 +469,7 @@ struct RideTrackingView: View {
     /// demselben Modell wie beim Planen — Strecke durch Rolltempo plus
     /// Wartezeit für die Ampeln, die noch vor einem liegen.
     var remaining: RideRemaining? {
-        RideRemaining.from(progress: tracker.progress, settings: settings)
+        RideRemaining.from(progress: tracker.progress, tracker: tracker, settings: settings)
     }
 
     private func arrivalRow(_ left: RideRemaining, now: Date) -> some View {
@@ -553,18 +559,56 @@ struct RideRemaining: Equatable {
     var signals: Int
     var seconds: TimeInterval
 
-    static func from(progress: RideTracker.Progress?, settings: AppSettings) -> RideRemaining? {
+    /// Wie lange es noch dauert — **in dem Tempo, das diese Fahrt hat**.
+    ///
+    /// Bis 1.4 rechnete das hier immer mit dem Rolltempo des Fahrrads und dem
+    /// gemessenen Radschnitt, auch wenn gerade Auto gefahren wurde: dreißig
+    /// Kilometer Landstraße kamen als anderthalb Stunden heraus, weil zwanzig
+    /// km/h eingesetzt wurden. Jetzt zählt in dieser Reihenfolge:
+    ///
+    /// 1. **Was diese Fahrt bisher wirklich geschafft hat**, sobald genug
+    ///    davon zurückliegt (`enoughToJudge`). Das ist die ehrlichste Zahl: sie
+    ///    kennt den Stau, den Gegenwind und die Ampeln dieses Tages.
+    /// 2. **Was der Plan versprochen hat** — Strecke durch Zeit, also der
+    ///    Schnitt der geplanten Fahrt, mit ihren Ampeln darin.
+    /// 3. Erst wenn beides fehlt, das eingestellte Rolltempo plus Wartezeit je
+    ///    Ampel; das gilt dann für ein Rad, denn nur dafür ist es gedacht.
+    @MainActor
+    static func from(progress: RideTracker.Progress?, tracker: RideTracker,
+                     settings: AppSettings, now: Date = .now) -> RideRemaining? {
+        from(progress: progress, ridden: tracker.meter.meters,
+             rideKmh: tracker.averageKmh(at: now), plannedKmh: tracker.plannedAverageKmh,
+             settings: settings)
+    }
+
+    /// Die Rechnung selbst, ohne Tracker — so lässt sie sich prüfen, ohne
+    /// einen Ortungsdienst zu starten.
+    static func from(progress: RideTracker.Progress?, ridden: Double, rideKmh: Double,
+                     plannedKmh: Double?, settings: AppSettings) -> RideRemaining? {
         guard let p = progress, p.plannedMeters > 0, p.metersLeft > 10 else { return nil }
+        let left = p.metersLeft
+        if ridden >= enoughToJudge, rideKmh > 1 {
+            return RideRemaining(meters: left, signals: p.signalsLeft,
+                                 seconds: (left / (rideKmh / 3.6)).rounded())
+        }
+        if let planned = plannedKmh, planned > 1 {
+            return RideRemaining(meters: left, signals: p.signalsLeft,
+                                 seconds: (left / (planned / 3.6)).rounded())
+        }
         let rolling = Swift.max(5.0, settings.bikeSpeedKmh) / 3.6
-        var seconds = p.metersLeft / rolling + Double(p.signalsLeft * settings.signalWaitSeconds)
+        var seconds = left / rolling + Double(p.signalsLeft * settings.signalWaitSeconds)
         if settings.measuredRides >= AppSettings.calibrationRides,
            let kmh = settings.measuredOverallKmh, kmh > 0 {
-            // Dieselbe Regel wie beim Planen: die Messung gewinnt, auch wenn
-            // sie die schnellere ist.
-            seconds = p.metersLeft / (kmh / 3.6)
+            seconds = left / (kmh / 3.6)
         }
-        return RideRemaining(meters: p.metersLeft, signals: p.signalsLeft, seconds: seconds.rounded())
+        return RideRemaining(meters: left, signals: p.signalsLeft, seconds: seconds.rounded())
     }
+
+    /// So viel muss gefahren sein, bevor der laufende Schnitt die Restzeit
+    /// bestimmt. Darunter ist er das Ausrollen aus der Einfahrt: nach
+    /// dreihundert Metern steht dort eine Zahl, die nichts über die nächsten
+    /// dreißig Kilometer sagt.
+    static let enoughToJudge = 2_000.0
 }
 
 /// Während einer Fahrt steht in der Leiste nicht mehr, wann man losgehen soll
@@ -579,7 +623,7 @@ struct RideArrivalPill: View {
     @State private var now = Date.now
 
     var body: some View {
-        let left = RideRemaining.from(progress: tracker.progress, settings: settings)
+        let left = RideRemaining.from(progress: tracker.progress, tracker: tracker, settings: settings)
         HStack(spacing: 4) {
             Image(systemName: "flag.checkered")
                 .font(.system(size: 9, weight: .bold))

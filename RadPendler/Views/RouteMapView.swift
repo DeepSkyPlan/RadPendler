@@ -22,6 +22,9 @@ struct RouteMapView: UIViewRepresentable {
     /// The way actually ridden, coloured by speed. Grows point by point while
     /// a ride is being recorded and stands still afterwards.
     var track: [RidePoint] = []
+    /// Nach welcher Skala die gefahrene Linie eingefärbt wird — Rad, Auto oder
+    /// auf diese eine Fahrt zugeschnitten.
+    var speedScale: RideColors.Scale = .bike
     /// Where the ride stood still, and whether that was a red light.
     var trackStops: [RideStop] = []
     /// Lit junctions to show while riding — the planned route's and the ones
@@ -99,7 +102,7 @@ struct RouteMapView: UIViewRepresentable {
     /// anderen nur mit einem neuen Plan.
     final class GuideLine: MKPolyline {
         var kind: LegKind = .bike
-        /// Die alte Linie — dünn, grau, gestrichelt.
+        /// Die ursprüngliche Linie — dünn, blau, gestrichelt.
         var faded = false
     }
 

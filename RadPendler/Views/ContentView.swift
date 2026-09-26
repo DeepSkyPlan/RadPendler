@@ -90,9 +90,14 @@ struct ContentView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
+                    // Während einer Fahrt ist der Name im Weg: er liegt über
+                    // dem Abbiegepfeil und über den drei Knöpfen links. Das
+                    // Zeichen allein reicht — man weiß, welche App man fährt.
                     HStack(spacing: 8) {
                         AppMark(size: 32)
-                        Text("RadPendler").display(.headline)
+                        if !tracker.isRecording {
+                            Text("RadPendler").display(.headline)
+                        }
                     }
                     // Without this the bar hands the leading item as little
                     // width as it likes and drops the name.
@@ -384,6 +389,10 @@ struct ContentView: View {
         }
         .accessibilityLabel(L("Menü"))
         .popover(isPresented: $showMenu) {
+            // Scrollbar, weil das Menü im Querformat höher ist als der
+            // Bildschirm: dort fehlte die erste Zeile — „Fahrten" — komplett,
+            // und zwar oben abgeschnitten, wo niemand danach sucht.
+            ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 menuRow(L("Fahrten"), "list.bullet.rectangle") { showRides = true }
                 Divider().padding(.leading, 44)
@@ -414,6 +423,8 @@ struct ContentView: View {
                 .padding(.bottom, 14)
                 .accessibilityElement(children: .combine)
             }
+            }
+            .scrollBounceBehavior(.basedOnSize)
             .frame(width: 280)
             .presentationCompactAdaptation(.popover)
         }

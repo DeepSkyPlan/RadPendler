@@ -145,10 +145,16 @@ struct RideMeter {
     /// Pedale, nicht an einer bekannten Ampel. Grundlage fürs automatische
     /// Pausieren; die Ampelbedingung bleibt, weil an einer Kreuzung auch mal
     /// drei Minuten Rot steht.
-    func standstill(at now: Date) -> (since: Date, seconds: TimeInterval)? {
-        guard standingAfterRiding, let since = standingSince, let at = standingAt,
-              !nearSignal(at) else { return nil }
-        return (since, standingSeconds(at: now))
+    /// `beyond` ist die Grenze, ab der auch eine Ampel nicht mehr zählt: wer
+    /// doppelt so lange steht wie die eingestellte Zeit, steht nicht mehr bei
+    /// Rot, sondern im Stau oder vor einer Schranke. Ohne das griff die
+    /// Automatik ausgerechnet dort nie, wo man sie braucht — an der Kreuzung,
+    /// an der sich nichts bewegt.
+    func standstill(at now: Date, beyond: TimeInterval = .infinity) -> (since: Date, seconds: TimeInterval)? {
+        guard standingAfterRiding, let since = standingSince, let at = standingAt else { return nil }
+        let seconds = standingSeconds(at: now)
+        guard !nearSignal(at) || seconds >= beyond else { return nil }
+        return (since, seconds)
     }
 
     /// Ob der laufende Stillstand nach denselben Regeln eine Ampel ist, nach

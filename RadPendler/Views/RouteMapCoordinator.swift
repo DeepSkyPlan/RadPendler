@@ -190,7 +190,7 @@ extension RouteMapView {
             let first = drawnTrack == 0
             let from = Swift.max(drawnTrack - 1, 0)
             var added: [TrackLine] = []
-            for line in Self.lines(of: view.track, from: from) {
+            for line in Self.lines(of: view.track, from: from, scale: view.speedScale) {
                 map.addOverlay(line, level: .aboveRoads)
                 added.append(line)
             }
@@ -250,25 +250,27 @@ extension RouteMapView {
         /// crossed. Sitting *on* a boundary keeps whatever colour is running —
         /// but a speed well inside another step always wins, so a steady
         /// twenty-five is drawn as twenty-five and not as whatever came before.
-        static func step(of track: [RidePoint], at i: Int, current: Int?) -> Int {
+        static func step(of track: [RidePoint], at i: Int, current: Int?,
+                         scale: RideColors.Scale = .bike) -> Int {
             let v = smoothed(track, at: i)
-            let raw = RideColors.index(v)
+            let raw = scale.index(v)
             guard let current, raw != current else { return raw }
             // The boundary between the two steps is the upper bound of the
             // lower one.
-            let boundary = RideColors.steps[Swift.min(current, raw)].kmh
+            let boundary = scale.bounds[Swift.min(Swift.min(current, raw), scale.bounds.count - 1)]
             return abs(v - boundary) >= colourMargin ? raw : current
         }
 
         /// One polyline per run of equal colour, built from `from` onwards.
         /// Runs overlap by a point so the line has no gaps at a colour change.
-        static func lines(of track: [RidePoint], from: Int) -> [TrackLine] {
+        static func lines(of track: [RidePoint], from: Int,
+                          scale: RideColors.Scale = .bike) -> [TrackLine] {
             guard track.count >= 2, from < track.count - 1 else { return [] }
             var out: [TrackLine] = []
             var run: [CLLocationCoordinate2D] = [track[from].coordinate]
-            var step = Self.step(of: track, at: from + 1, current: nil)
+            var step = Self.step(of: track, at: from + 1, current: nil, scale: scale)
             for i in (from + 1)..<track.count {
-                let next = Self.step(of: track, at: i, current: step)
+                let next = Self.step(of: track, at: i, current: step, scale: scale)
                 if next != step, run.count >= 2 {
                     out.append(line(run, step))
                     run = [run[run.count - 1]]
@@ -584,7 +586,7 @@ extension RouteMapView {
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let track = overlay as? TrackLine {
                 let r = MKPolylineRenderer(polyline: track)
-                r.strokeColor = RideColors.steps[track.step].color
+                r.strokeColor = RideColors.palette[Swift.min(track.step, RideColors.palette.count - 1)]
                 r.lineWidth = 7
                 r.lineCap = .round
                 r.lineJoin = .round
@@ -592,9 +594,13 @@ extension RouteMapView {
             }
             if let line = overlay as? GuideLine {
                 let r = MKPolylineRenderer(polyline: line)
-                r.strokeColor = line.faded ? UIColor.systemGray.withAlphaComponent(0.65)
+                // Blau, nicht grau: die ursprüngliche Linie ist kein
+                // ausgegrauter Rest, sondern die Auskunft „hier wolltest du
+                // lang". Grau liest sich auf einer grauen Straßenkarte als
+                // Straße, blau als Absicht.
+                r.strokeColor = line.faded ? UIColor.systemBlue.withAlphaComponent(0.75)
                                            : line.kind.uiColor.withAlphaComponent(0.95)
-                r.lineWidth = line.faded ? 2.5 : 5
+                r.lineWidth = line.faded ? 3 : 5
                 if line.faded { r.lineDashPattern = [4, 5] }
                 r.lineCap = .round
                 return r

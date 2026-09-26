@@ -8,41 +8,90 @@ import UIKit
 /// screenshot and reads worse on a street: one wants to see *where* the way
 /// was slow, and five colours put a border at the place where that changed.
 enum RideColors {
-    /// Upper bound in km/h and the colour for everything under it. The steps
-    /// are set around a commute on a city bike — 29 km/h rolling is this
-    /// user's fast, not a racer's.
-    static let steps: [(kmh: Double, color: UIColor)] = [
-        (8, UIColor(red: 0.85, green: 0.16, blue: 0.20, alpha: 1)),   // standing or crawling
-        (14, UIColor(red: 0.95, green: 0.55, blue: 0.10, alpha: 1)),  // traffic, bad surface
-        (20, UIColor(red: 0.92, green: 0.78, blue: 0.11, alpha: 1)),  // normal city riding
-        (26, UIColor(red: 0.29, green: 0.70, blue: 0.24, alpha: 1)),  // a good stretch
-        (.infinity, UIColor(red: 0.00, green: 0.62, blue: 0.51, alpha: 1)), // free run
+    /// Die fünf Farben, von „steht" bis „läuft". Nur sie stehen fest; **wo**
+    /// die Grenzen liegen, hängt davon ab, womit gefahren wird.
+    static let palette: [UIColor] = [
+        UIColor(red: 0.85, green: 0.16, blue: 0.20, alpha: 1),   // steht oder kriecht
+        UIColor(red: 0.95, green: 0.55, blue: 0.10, alpha: 1),   // zäh
+        UIColor(red: 0.92, green: 0.78, blue: 0.11, alpha: 1),   // normal
+        UIColor(red: 0.29, green: 0.70, blue: 0.24, alpha: 1),   // gut
+        UIColor(red: 0.00, green: 0.62, blue: 0.51, alpha: 1),   // freie Fahrt
     ]
 
-    static let titles = ["< 8", "8–14", "14–20", "20–26", "> 26"]
+    /// Die Grenzen dazu.
+    ///
+    /// Eine Skala von 8 bis 26 km/h ist für ein Stadtrad gemacht und für ein
+    /// Auto sinnlos: dort ist **alles** tiefgrün, und die Linie sagt nichts
+    /// mehr. Deshalb hängt die Skala am Verkehrsmittel — und im Rückblick auf
+    /// eine gefahrene Fahrt an dem, was diese Fahrt wirklich hatte.
+    struct Scale: Equatable {
+        /// Vier Obergrenzen; darüber liegt die fünfte, offene Stufe.
+        var bounds: [Double]
 
-    /// A speed that is not a number is not a fast one: it lands in the
-    /// slowest step rather than painting the line the colour of a free run.
-    static func index(_ kmh: Double) -> Int {
-        guard !kmh.isNaN else { return 0 }
-        return steps.firstIndex { kmh < $0.kmh } ?? steps.count - 1
+        static let bike = Scale(bounds: [8, 14, 20, 26])
+        /// Auto und Bahn: Stadtverkehr, Landstraße, Schnellstraße, Autobahn.
+        static let fast = Scale(bounds: [20, 50, 80, 100])
+
+        static func of(_ mode: TravelMode?) -> Scale {
+            switch mode {
+            case .bike, .bikeTransit, .none: .bike
+            case .car, .transit: .fast
+            }
+        }
+
+        /// Auf eine gefahrene Fahrt zugeschnitten: vier gleiche Schritte
+        /// zwischen dem langsamsten und dem schnellsten Stück. So trägt die
+        /// Linie auch bei einer Fahrt Farbe, die nie über 15 km/h kam.
+        static func fitted(to speeds: [Double], fallback: Scale = .bike) -> Scale {
+            let moving = speeds.filter { $0.isFinite && $0 > 1 }.sorted()
+            guard moving.count >= 10 else { return fallback }
+            // Nicht das äußerste Prozent: ein einzelner Ausreißer des
+            // Empfängers verschöbe sonst die ganze Skala.
+            let low = moving[moving.count / 20]
+            let high = moving[moving.count - 1 - moving.count / 20]
+            guard high - low >= 4 else { return fallback }
+            let step = (high - low) / 4
+            return Scale(bounds: (1...4).map { (low + step * Double($0 - 1) + step).rounded() })
+        }
+
+        func index(_ kmh: Double) -> Int {
+            guard !kmh.isNaN else { return 0 }
+            return bounds.firstIndex { kmh < $0 } ?? bounds.count
+        }
+
+        func uiColor(_ kmh: Double) -> UIColor { palette[index(kmh)] }
+        func color(_ kmh: Double) -> Color { Color(uiColor: uiColor(kmh)) }
+
+        /// „< 8", „8–14", … „> 26" — die Beschriftung der Legende.
+        var titles: [String] {
+            var out = ["< \(Self.number(bounds[0]))"]
+            for i in 1..<bounds.count { out.append("\(Self.number(bounds[i - 1]))–\(Self.number(bounds[i]))") }
+            out.append("> \(Self.number(bounds[bounds.count - 1]))")
+            return out
+        }
+
+        private static func number(_ v: Double) -> String { String(Int(v.rounded())) }
     }
 
-    static func uiColor(_ kmh: Double) -> UIColor { steps[index(kmh)].color }
-    static func color(_ kmh: Double) -> Color { Color(uiColor: uiColor(kmh)) }
+    /// Solange nichts anderes gesagt wird, gilt das Rad — so war es immer.
+    static func index(_ kmh: Double, scale: Scale = .bike) -> Int { scale.index(kmh) }
+    static func uiColor(_ kmh: Double, scale: Scale = .bike) -> UIColor { scale.uiColor(kmh) }
+    static func color(_ kmh: Double, scale: Scale = .bike) -> Color { scale.color(kmh) }
 }
 
 /// The five colours with their ranges, small enough to sit in a corner of the
 /// map. Without it the line is pretty and says nothing.
 struct SpeedLegend: View {
+    var scale: RideColors.Scale = .bike
+
     var body: some View {
         HStack(spacing: 3) {
-            ForEach(Array(RideColors.steps.indices), id: \.self) { i in
+            ForEach(Array(RideColors.palette.indices), id: \.self) { i in
                 VStack(spacing: 1) {
                     RoundedRectangle(cornerRadius: 1.5)
-                        .fill(RideColors.color(RideColors.steps[i].kmh - 1))
+                        .fill(Color(uiColor: RideColors.palette[i]))
                         .frame(width: 20, height: 4)
-                    Text(RideColors.titles[i])
+                    Text(scale.titles[i])
                         .font(.system(size: 8, weight: .semibold, design: .rounded))
                         .foregroundStyle(.secondary)
                 }
@@ -55,7 +104,7 @@ struct SpeedLegend: View {
         .padding(.horizontal, 7).padding(.vertical, 4)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(L("Farbskala der Geschwindigkeit, rot unter 8 bis grün über 26 km/h"))
+        .accessibilityLabel(L("Farbskala der Geschwindigkeit, rot langsam bis grün schnell"))
     }
 }
 
