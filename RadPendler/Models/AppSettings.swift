@@ -204,6 +204,43 @@ final class AppSettings {
     /// measured ~21 km/h door-to-door on the Berlin commute it was built for.
     static let defaultBikeSpeedKmh = 29.0
 
+    /// **Die** Liste der Schlüssel, unter denen Einstellungen liegen.
+    ///
+    /// Sie stand zweimal da: einmal hier in den `didSet`, einmal in
+    /// `CloudStore.settingsKeys` — und wer eine Einstellung hinzufügte und die
+    /// zweite Liste vergaß, hatte eine, die nie auf dem iPad ankam. Genau das
+    /// ist zwischen 0.10.0 und 0.12.1 vier Mal passiert. Jetzt leitet der
+    /// CloudStore seine Liste von hier ab, und
+    /// `testEverySettingTheAppSavesAlsoTravelsThroughICloud` vergleicht beide
+    /// gegen das, was wirklich geschrieben wird.
+    ///
+    /// Die `didSet` selbst bleiben, wo sie sind: eine Tabelle aus KeyPaths
+    /// ginge nur über einen eigenen Property-Wrapper, und der verträgt sich
+    /// mit `@Observable` schlecht. Der Gewinn wäre eine Zeile weniger je
+    /// Einstellung, der Preis eine Schicht zwischen jeder Ansicht und jedem
+    /// Wert.
+    static let storedKeys = [
+        // Adressen und Orte
+        "origin", "destination", "workPlace", "homePlace", "waypoints", "placeHistory",
+        "requireAllWaypoints", "workArrivalMinutes",
+        // Planung
+        "prepMinutes", "bikeMovingSpeedKmh", "bikeStationBufferMinutes", "maxBikeToStationKm",
+        "parkingMinutes", "transferPenaltyMinutes", "signalWaitSeconds", "departurePresets2",
+        "departureBufferMinutes", "arrivalBufferMinutes", "optionsPerMode",
+        "modeOrder", "bikeVariantOrder", "carVariantOrder", "rainSwitchLevel",
+        "timetableSource", "bikeLines",
+        // Countdown
+        "alertMinutes", "alertsOn",
+        // Aufzeichnen
+        "signalStopSeconds", "learnedSignals", "replanOffRouteMeters", "replanOffRouteMinutes",
+        "autoStopMinutes", "autoPauseMinutes", "rideDimSeconds",
+        "measuredOverallKmh", "measuredMovingKmh", "measuredRides",
+        // Anzeige
+        "orientationLock", "rideOrientationLock", "rideStartsLandscape", "language",
+        // Was gelöscht wurde
+        "tombstones",
+    ]
+
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
