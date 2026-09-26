@@ -140,10 +140,13 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                replanOffRouteMeters: Double = OffRoute.replanMeters,
                replanOffRouteMinutes: Double = 0,
                autoStopMinutes: Double = 0,
+               autoPauseMinutes: Double = 0,
                plannedSignals: [CLLocationCoordinate2D] = []) {
         guard !isRecording else { return }
         self.signalSeconds = signalSeconds
         self.autoStopSeconds = autoStopMinutes * 60
+        self.autoPauseSeconds = autoPauseMinutes * 60
+        automaticsOff = false
         self.replanOffRouteMeters = replanOffRouteMeters
         self.replanOffRouteMinutes = replanOffRouteMinutes
         self.roadPoints = roadPoints
@@ -183,6 +186,26 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// Ab wann ein Halt, der keine Ampel ist, die Fahrt beendet; 0 schaltet
     /// es ab.
     private var autoStopSeconds: TimeInterval = 0
+    /// Und ab wann er sie nur **anhält**. Das ist der Regelfall: eine Schranke,
+    /// ein Stau, ein Schwatz am Straßenrand. Rollt es wieder, läuft die
+    /// Aufzeichnung von selbst weiter.
+    private var autoPauseSeconds: TimeInterval = 0
+    /// Ob die Automatik für **diese** Fahrt ausgeschaltet ist. Der Knopf dafür
+    /// steht auf dem Fahrtbildschirm: wer im Stau steht und weiß, dass es
+    /// gleich weitergeht, will weder Pause noch Ende.
+    private(set) var automaticsOff = false
+    /// Ob die laufende Pause von der App kommt. Nur sie endet von selbst; eine
+    /// Pause per Knopf wartet auf den Knopf.
+    private(set) var autoPaused = false
+    /// Wo die Pause begann; von dort aus wird gemessen, ob es weitergeht.
+    private var pausedAt: CLLocationCoordinate2D?
+
+    func setAutomatics(off: Bool) {
+        automaticsOff = off
+        // Die Automatik abzuschalten, während sie gerade pausiert hat, heißt:
+        // weiterfahren.
+        if off, autoPaused { resume() }
+    }
     /// Ob die letzte Fahrt von selbst endete. Steht in der Zusammenfassung,
     /// sonst fragt sich der Fahrer, wer da auf „beenden" getippt hat.
     private(set) var stoppedByItself = false
@@ -239,6 +262,9 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     func pause() {
         guard isRecording, !meter.isPaused else { return }
         meter.pause()
+        autoPaused = false
+        // Von Hand angehalten heißt: die Ortung darf ganz aus. Weiter geht es
+        // über den Knopf, und der braucht keine Fixe.
         manager.stopUpdatingLocation()
         manager.allowsBackgroundLocationUpdates = false
         applyIdleTimer()
@@ -246,9 +272,38 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         pushToWatch(force: true)
     }
 
+    /// Von selbst angehalten. Anders als beim Knopf bleibt die Ortung an —
+    /// nur sparsam: ohne sie wüsste niemand, wann es weitergeht. Hundert Meter
+    /// Genauigkeit und ein Filter von fünfzig Metern kosten einen Bruchteil
+    /// dessen, was die volle Aufzeichnung kostet, und reichen für die eine
+    /// Frage, die jetzt zählt: rollt es wieder?
+    private func pauseAutomatically(at now: Date) {
+        guard isRecording, !meter.isPaused else { return }
+        meter.pause(at: now, keepingStop: true)
+        autoPaused = true
+        pausedAt = here
+        manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        manager.distanceFilter = Self.wakeMeters
+        applyIdleTimer()
+        saveInterrupted(at: now)
+        pushToWatch(force: true)
+        Alarm.note(title: L("Fahrt angehalten"),
+                   body: L("Du stehst seit %d Minuten. Die Aufzeichnung läuft weiter, sobald es weitergeht.",
+                           Int(autoPauseSeconds / 60)))
+    }
+
+    /// So weit muss man sich vom Ort der Pause entfernen, damit die
+    /// Aufzeichnung von selbst weiterläuft — oder so schnell wieder sein.
+    static let wakeMeters = 50.0
+    static let wakeSpeed = 2.0
+
     func resume() {
         guard isRecording, meter.isPaused else { return }
         meter.resume()
+        autoPaused = false
+        pausedAt = nil
+        manager.desiredAccuracy = kCLLocationAccuracyBest
+        manager.distanceFilter = kCLDistanceFilterNone
         manager.allowsBackgroundLocationUpdates = true
         manager.showsBackgroundLocationIndicator = true
         manager.startUpdatingLocation()
@@ -363,6 +418,12 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     private func accept(_ fixes: [RideMeter.Fix], _ courses: [CLLocationDirection]) {
         guard isRecording else { return }
         applyIdleTimer()
+        // Während einer selbst gemachten Pause nimmt das Messwerk nichts an —
+        // hier wird nur noch die eine Frage gestellt: rollt es wieder?
+        if meter.isPaused {
+            if autoPaused, let last = fixes.last, wokeUp(last) { resume() }
+            return
+        }
         for fix in fixes { meter.add(fix) }
         if let last = fixes.last {
             here = last.coordinate
@@ -387,16 +448,23 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         } else if course < 0, let derived = Self.courseFromTrack(meter.points) {
             course = derived
         }
-        // Wer lange an derselben Stelle steht und dort keine Ampel ist, ist
-        // angekommen und hat das Beenden vergessen. Beendet wird auf den
-        // Anfang des Stillstands: das Warten danach war keine Fahrt.
-        if let since = meter.autoStop(at: Date.now, after: autoStopSeconds) {
-            stop(at: since)
-            stoppedByItself = true
-            onAutoStop?()
-            Alarm.note(title: L("Fahrt beendet"),
-                       body: L("Du standst länger als %d Minuten an derselben Stelle — die Aufzeichnung ist gespeichert.", Int(autoStopSeconds / 60)))
-            return
+        // Zwei Stufen, beide gegen denselben Stillstand gemessen und beide
+        // abschaltbar: nach ein paar Minuten hält die Aufzeichnung an und
+        // wartet darauf, dass es weitergeht; erst nach langer Zeit ist der
+        // Fahrer angekommen und hat das Beenden vergessen.
+        if !automaticsOff, let stand = meter.standstill(at: Date.now) {
+            if autoStopSeconds > 0, stand.seconds >= autoStopSeconds {
+                stop(at: stand.since)
+                stoppedByItself = true
+                onAutoStop?()
+                Alarm.note(title: L("Fahrt beendet"),
+                           body: L("Du standst länger als %d Minuten an derselben Stelle — die Aufzeichnung ist gespeichert.", Int(autoStopSeconds / 60)))
+                return
+            }
+            if autoPauseSeconds > 0, stand.seconds >= autoPauseSeconds {
+                pauseAutomatically(at: Date.now)
+                return
+            }
         }
         pushToWatch()
         // The app can be killed in a pocket; what was ridden up to then is
@@ -517,6 +585,15 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         return Progress(metersLeft: Swift.max(0, total - travelled),
                         signalsLeft: stations.count - passed, signalsPassed: passed,
                         plannedSignals: stations.count, plannedMeters: total)
+    }
+
+    /// Ob diese Ortung heißt, dass es weitergeht: schnell genug, oder weit
+    /// genug weg von der Stelle, an der die Pause begann. Beides, weil der
+    /// Empfänger im Sparbetrieb oft keine Geschwindigkeit liefert.
+    private func wokeUp(_ fix: RideMeter.Fix) -> Bool {
+        if fix.speed >= Self.wakeSpeed { return true }
+        guard let from = pausedAt else { return false }
+        return from.distance(to: fix.coordinate) >= Self.wakeMeters
     }
 
     /// Bearing of the last stretch actually ridden, for the fixes that carry

@@ -283,6 +283,36 @@ final class RideTests: XCTestCase {
                        "beendet wird auf den Anfang des Stillstands")
     }
 
+    /// Der Stillstand, an dem die Automatik ansetzt: erst nach dem Losfahren,
+    /// nicht an einer bekannten Ampel, und mit seiner Dauer.
+    func testAStandstillIsOfferedToTheAutomatics() {
+        var m = RideMeter()
+        for i in 0...10 { m.add(fix(Double(i) * 5, Double(i), speed: 5)) }
+        XCTAssertNil(m.standstill(at: start.addingTimeInterval(10)), "beim Fahren steht nichts")
+        for i in 11...200 { m.add(fix(50, Double(i), speed: 0.1)) }
+        let stand = m.standstill(at: start.addingTimeInterval(200))
+        XCTAssertEqual(stand?.seconds ?? 0, 190, accuracy: 2)
+        XCTAssertEqual(stand?.since.timeIntervalSince(start) ?? -1, 10, accuracy: 2)
+    }
+
+    /// Hält die App von selbst an, war das Stehen davor ein Halt wie jeder
+    /// andere — an der Schranke hat man gestanden, ob man wollte oder nicht.
+    /// Beim Knopf dagegen fängt mit dem Anhalten die Pause an.
+    func testTheAutomaticPauseKeepsTheStopTheButtonDoesNot() {
+        var automatic = RideMeter()
+        for i in 0...10 { automatic.add(fix(Double(i) * 5, Double(i), speed: 5)) }
+        for i in 11...200 { automatic.add(fix(50, Double(i), speed: 0.1)) }
+        automatic.pause(at: start.addingTimeInterval(200), keepingStop: true)
+        XCTAssertEqual(automatic.stops.count, 1)
+        XCTAssertEqual(automatic.stops.first?.seconds ?? 0, 190, accuracy: 2)
+
+        var byHand = RideMeter()
+        for i in 0...10 { byHand.add(fix(Double(i) * 5, Double(i), speed: 5)) }
+        for i in 11...200 { byHand.add(fix(50, Double(i), speed: 0.1)) }
+        byHand.pause(at: start.addingTimeInterval(200))
+        XCTAssertEqual(byHand.stops.count, 0, "wer auf Pause tippt, hat keinen Halt gemacht")
+    }
+
     /// Steht dort eine Ampel, war es eine Ampel — auch nach zehn Minuten.
     func testALongWaitAtALightDoesNotEndTheRide() {
         var m = RideMeter()

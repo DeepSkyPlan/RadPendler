@@ -55,6 +55,12 @@ final class AppSettings {
         didSet { defaults.set(try? JSONEncoder().encode(placeHistory), forKey: "placeHistory") }
     }
 
+    /// Was gelöscht wurde — siehe `Tombstones`. Ohne diese Liste kommt jede
+    /// gelöschte Adresse, Fahrt und Ampel vom zweiten Gerät zurück.
+    var tombstones = Tombstones() {
+        didSet { defaults.set(try? JSONEncoder().encode(tombstones), forKey: "tombstones") }
+    }
+
     /// Which mode wins when two trips arrive at nearly the same time, and the
     /// order of the four boxes. The user's own by default: Rad vor Rad + Bahn
     /// vor Auto vor Bahn & Bus.
@@ -163,11 +169,17 @@ final class AppSettings {
         didSet { defaults.set(rideDimSeconds, forKey: "rideDimSeconds") }
     }
 
-    /// Ab wann ein Halt, an dem keine Ampel steht, die Aufzeichnung von selbst
-    /// beendet — in Minuten; 0 schaltet es ab. Der Regelfall ist nicht die
-    /// Pause, sondern das vergessene „Fahrt beenden": das Telefon liegt auf
-    /// dem Schreibtisch und ortet weiter.
-    var autoStopMinutes: Double = 10 {
+    /// Ab wann ein Halt, an dem keine Ampel steht, die Aufzeichnung **anhält**
+    /// — in Minuten; 0 schaltet es ab. Sie läuft von selbst weiter, sobald es
+    /// weitergeht; so lange bleibt die Ortung sparsam.
+    var autoPauseMinutes: Double = 3 {
+        didSet { defaults.set(autoPauseMinutes, forKey: "autoPauseMinutes") }
+    }
+
+    /// Und ab wann er sie **beendet**. Das ist der andere Fall: nicht die
+    /// Schranke, sondern das vergessene „Fahrt beenden" — das Telefon liegt
+    /// auf dem Schreibtisch und ortet weiter.
+    var autoStopMinutes: Double = 20 {
         didSet { defaults.set(autoStopMinutes, forKey: "autoStopMinutes") }
     }
 
@@ -284,6 +296,9 @@ final class AppSettings {
             if rideOrientation == .auto { rideOrientation = .landscape }
         }
         assign(\.autoStopMinutes, defaults.object(forKey: "autoStopMinutes") as? Double ?? autoStopMinutes)
+        assign(\.autoPauseMinutes, defaults.object(forKey: "autoPauseMinutes") as? Double ?? autoPauseMinutes)
+        assign(\.tombstones, defaults.data(forKey: "tombstones")
+            .flatMap { try? JSONDecoder().decode(Tombstones.self, from: $0) } ?? tombstones)
         assign(\.rideDimSeconds, defaults.object(forKey: "rideDimSeconds") as? Double ?? rideDimSeconds)
         assign(\.language, defaults.string(forKey: "language").flatMap(AppLanguage.init(rawValue:)) ?? language)
         // `assign` setzt nur, was sich unterscheidet — beim Start auf
@@ -420,6 +435,14 @@ final class AppSettings {
 
     func forget(_ use: PlaceUse) {
         placeHistory.removeAll { $0.id == use.id }
+        tombstones = Tombstones.bury([Tombstones.key(place: use.id)], in: defaults)
+    }
+
+    /// Alle gelernten Kreuzungen vergessen — und zwar so, dass sie nicht vom
+    /// zweiten Gerät zurückkommen.
+    func forgetLearnedSignals() {
+        tombstones = Tombstones.bury(learnedSignals.map { Tombstones.key(signal: $0.id) }, in: defaults)
+        learnedSignals = []
     }
 
     func swapDirection() {

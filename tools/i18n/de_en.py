@@ -587,3 +587,13 @@ T.update({
 "%d Ampelhalt": "%d stop at a light",
 "Route": "Route",
 })
+
+T.update({
+"Von selbst anhalten nach": "Pause by itself after",
+"Fahrt angehalten": "Ride paused",
+"Du stehst seit %d Minuten. Die Aufzeichnung läuft weiter, sobald es weitergeht.":
+    "You have been standing for %d minutes. The recording continues as soon as you move again.",
+"Automatik aus — die Fahrt hält nicht von selbst an": "Automatic off — the ride will not pause by itself",
+"Automatik an — die Fahrt hält bei langem Stehen von selbst an": "Automatic on — the ride pauses by itself when you stand for long",
+"hält": "paused",
+})

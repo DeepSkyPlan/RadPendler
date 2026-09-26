@@ -140,6 +140,17 @@ struct RideMeter {
         return since
     }
 
+    /// Wie lange der laufende Stillstand schon dauert, **wenn** er einer ist,
+    /// an dem eine Fahrt nicht weitergeht: nach dem ersten Tritt in die
+    /// Pedale, nicht an einer bekannten Ampel. Grundlage fürs automatische
+    /// Pausieren; die Ampelbedingung bleibt, weil an einer Kreuzung auch mal
+    /// drei Minuten Rot steht.
+    func standstill(at now: Date) -> (since: Date, seconds: TimeInterval)? {
+        guard standingAfterRiding, let since = standingSince, let at = standingAt,
+              !nearSignal(at) else { return nil }
+        return (since, standingSeconds(at: now))
+    }
+
     /// Ob der laufende Stillstand nach denselben Regeln eine Ampel ist, nach
     /// denen er am Ende gezählt wird — einschließlich der Regel, dass ein
     /// Stillstand ab `signalSeconds` überall eine Ampel ist. Er wird es also
@@ -169,10 +180,18 @@ struct RideMeter {
         return max(0, now.timeIntervalSince(since))
     }
 
-    /// Anhalten: die Uhr bleibt stehen, der laufende Stillstand wird
-    /// verworfen — er ist kein Halt, sondern der Anfang der Pause.
-    mutating func pause(at now: Date = .now) {
+    /// Anhalten: die Uhr bleibt stehen.
+    ///
+    /// `keepingStop` entscheidet über den laufenden Stillstand. Beim Knopf ist
+    /// er **kein** Halt, sondern der Anfang der Pause — man hält ja an, um
+    /// Pause zu machen. Pausiert die App dagegen von selbst, weil seit drei
+    /// Minuten nichts geht, dann war das ein Halt wie jeder andere und gehört
+    /// gezählt: an der Schranke hat man gestanden, ob man wollte oder nicht.
+    mutating func pause(at now: Date = .now, keepingStop: Bool = false) {
         guard pausedSince == nil else { return }
+        if keepingStop, let since = standingSince {
+            close(since: since, until: now)
+        }
         pausedSince = now
         standingSince = nil
         standingAt = nil
