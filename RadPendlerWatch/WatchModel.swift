@@ -42,7 +42,7 @@ final class WatchModel {
         link.onPlan = { [weak self] plan in
             Task { @MainActor in
                 Self.speak(plan.language)
-                self?.snapshot = plan
+                self?.accept(plan)
             }
         }
         link.onRide = { [weak self] ride in
@@ -63,6 +63,23 @@ final class WatchModel {
     /// as it redraws, so the page goes away on its own.
     func expireSummary(now: Date = .now) {
         if live != nil, Self.fresh(live, now: now) == nil { live = nil }
+    }
+
+    /// Ein **neuer** Plan setzt die Wahl am Handgelenk zurück — genau wie auf
+    /// dem Telefon, wo `selection` nach jedem Lauf geleert wird.
+    ///
+    /// Vorher behielt die Uhr ihre Wahl über jede Neuplanung hinweg, und
+    /// danach zeigten die beiden Bildschirme Verschiedenes, bis jemand
+    /// irgendwo tippte. Die Uhr ist aber kein zweiter Planer, sondern ein
+    /// zweiter Blick auf denselben Plan.
+    ///
+    /// Am Zeitpunkt der Berechnung, nicht an der Ankunft: tippt man auf der
+    /// Uhr eine andere Fahrt an, schickt sie die Wahl zum Telefon, und das
+    /// Telefon schickt denselben Plan zurück. Der darf die Wahl nicht wieder
+    /// wegnehmen.
+    private func accept(_ plan: TripSnapshot) {
+        if plan.computedAt != snapshot?.computedAt, chosenMode != nil { followPhone() }
+        snapshot = plan
     }
 
     /// The trip everything on the watch is about: what the wrist picked, or —

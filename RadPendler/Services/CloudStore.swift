@@ -19,18 +19,11 @@ final class CloudStore {
     /// `testEverySettingTheAppSavesAlsoTravelsThroughICloud` fails when a new
     /// setting is added to `AppSettings` and forgotten here — which is how the
     /// four preference lists missed the boat between 0.10.0 and 0.12.1.
-    static let settingsKeys = ["origin", "destination", "workPlace", "homePlace", "waypoints", "placeHistory",
-                       "bikeLines", "timetableSource", "departurePresets2", "prepMinutes", "bikeMovingSpeedKmh",
-                       "bikeStationBufferMinutes", "maxBikeToStationKm", "parkingMinutes",
-                       "transferPenaltyMinutes", "signalWaitSeconds", "requireAllWaypoints",
-                       "departureBufferMinutes", "arrivalBufferMinutes", "workArrivalMinutes",
-                       "alertMinutes", "alertsOn",
-                       "modeOrder", "bikeVariantOrder", "carVariantOrder", "rainSwitchLevel",
-                       "signalStopSeconds", "learnedSignals", "orientationLock", "rideOrientationLock",
-                       "replanOffRouteMeters", "replanOffRouteMinutes", "optionsPerMode",
-                       "measuredOverallKmh", "measuredMovingKmh", "measuredRides",
-                       "autoStopMinutes", "autoPauseMinutes", "rideStartsLandscape",
-                       "rideDimSeconds", "language", "tombstones"]
+    /// Abgeleitet statt abgeschrieben: die Wahrheit steht in
+    /// `AppSettings.storedKeys`. Eine neue Einstellung ist damit **eine**
+    /// Zeile, nicht zwei an zwei Orten — das war die Verwechslung, die
+    /// zwischen 0.10.0 und 0.12.1 vier Einstellungen um die Reise gebracht hat.
+    static let settingsKeys = AppSettings.storedKeys
 
     /// The recorded rides — summaries only, never their lines. Not a setting,
     /// which is why it stands apart from `settingsKeys`: that list is checked
