@@ -405,3 +405,43 @@ final class RoadMixTests: XCTestCase {
                        "die Voreinstellung ist dieselbe Zahl, nicht eine zweite daneben")
     }
 }
+
+/// Die Neuplanung mitten in der Fahrt — die Stelle, an der eine Autofahrt auf
+/// der Autobahn zurückgeschickt wurde.
+final class ReplanDirectionTests: XCTestCase {
+    private let base = CLLocationCoordinate2D(latitude: 52.5, longitude: 13.4)
+
+    private func north(_ meters: Double) -> CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: base.latitude + meters / 111_320, longitude: base.longitude)
+    }
+
+    /// Ein Router kennt nur einen Punkt. Der Startpunkt ein Stück voraus sagt
+    /// ihm, wohin man zeigt.
+    func testTheReplanStartsAheadOfTheRider() {
+        let ahead = Geo.ahead(base, course: 0, meters: 60)
+        XCTAssertEqual(ahead.latitude, north(60).latitude, accuracy: 1e-5)
+        XCTAssertEqual(ahead.longitude, base.longitude, accuracy: 1e-6)
+        // Ohne bekannten Kurs bleibt es, wo es ist.
+        XCTAssertEqual(Geo.ahead(base, course: -1, meters: 60).latitude, base.latitude)
+    }
+
+    /// Fährt man nach Norden und die neue Linie geht nach Süden, ist das eine
+    /// Wende — auf der Autobahn keine Auskunft, sondern ein Witz.
+    func testARouteThatTurnsBackIsRejected() {
+        let backwards = (0...10).map { north(-Double($0) * 30) }
+        XCTAssertTrue(RideTracker.turnsBack(backwards, heading: 0))
+        let onwards = (0...10).map { north(Double($0) * 30) }
+        XCTAssertFalse(RideTracker.turnsBack(onwards, heading: 0))
+    }
+
+    /// Ein Bogen ist keine Wende: die ersten 150 m entscheiden, und ein
+    /// Kreisverkehr biegt darin nicht um 180 Grad ab.
+    func testABendIsNotAUTurn() {
+        var line = (0...5).map { north(Double($0) * 30) }          // 150 m geradeaus
+        line += (1...5).map { i in
+            CLLocationCoordinate2D(latitude: line.last!.latitude,
+                                   longitude: base.longitude + Double(i) * 0.0005)
+        }
+        XCTAssertFalse(RideTracker.turnsBack(line, heading: 0))
+    }
+}

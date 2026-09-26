@@ -1,11 +1,33 @@
 # Changelog
 
-## 1.5 (noch nicht hochgeladen)
+## 1.5 (noch nicht hochgeladen) — die App merkt, womit du fährst
 
+Acht Funde von einer **Autofahrt**. Die Aufzeichnung war für das Rad gebaut und hat das an
+jeder Ecke gezeigt.
+
+- **Die Restzeit rechnet mit dem Tempo dieser Fahrt.** Sie nahm immer das Rolltempo des
+  Fahrrads: dreißig Kilometer Landstraße kamen als anderthalb Stunden heraus. Jetzt zählt,
+  was diese Fahrt bisher wirklich geschafft hat — und solange das zu wenig ist, der Schnitt,
+  den der Plan versprochen hat.
+- **Die Farbskala der Linie hängt am Verkehrsmittel.** Rot bis grün von 8 bis 26 km/h ist
+  für ein Stadtrad gemacht; im Auto war alles tiefgrün. Für Auto und Bahn gilt jetzt 20 bis
+  100. Im Rückblick auf eine Fahrt schneidet sich die Skala sogar auf **diese** Fahrt zu.
+- **Die Legende steht nur noch im Rückblick.** Während der Fahrt nimmt sie Platz weg und
+  erklärt etwas, das sich beim Fahren von selbst erklärt.
+- **Die Neuplanung kennt die Fahrtrichtung.** Ein Router kennt nur einen Punkt und schickte
+  auf der Autobahn zurück, wo man hergekommen war. Jetzt beginnt die neue Linie sechzig
+  Meter **voraus**, und eine Linie, die als Erstes zurückweist, wird verworfen.
+- **Die ursprüngliche Linie ist blau gestrichelt**, nicht grau: auf einer grauen
+  Straßenkarte liest sich Grau als Straße, Blau als Absicht.
+- **Das Menü zeigt wieder „Fahrten".** Im Querformat war das Menü höher als der Bildschirm,
+  und ausgerechnet die erste Zeile lag außerhalb — oben abgeschnitten, wo niemand sucht.
+- **Der Name „RadPendler" verschwindet während der Fahrt** aus der Leiste: er lag über dem
+  Abbiegepfeil und über den Knöpfen links.
+- **Die Automatik greift auch an einer Kreuzung**, an der sich nichts bewegt: wer doppelt so
+  lange steht wie eingestellt, steht nicht mehr bei Rot, sondern im Stau.
 - **Am Strom bleibt der Bildschirm hell.** Hängt das Telefon während der Fahrt in der
   Ladeschale oder an einer Powerbank, wird nicht mehr abgedunkelt — genau dann kostet der
-  Bildschirm nichts, was nicht nachkommt. Beim Abstecken fängt die Uhr wieder an zu laufen.
-  Nichts umzustellen: die App sieht selbst nach.
+  Bildschirm nichts, was nicht nachkommt. Nichts umzustellen: die App sieht selbst nach.
 
 ## 1.4 (Build 38) — Automatik in zwei Stufen, und gelöscht bleibt gelöscht
 

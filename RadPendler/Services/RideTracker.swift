@@ -452,7 +452,8 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         // abschaltbar: nach ein paar Minuten hält die Aufzeichnung an und
         // wartet darauf, dass es weitergeht; erst nach langer Zeit ist der
         // Fahrer angekommen und hat das Beenden vergessen.
-        if !automaticsOff, let stand = meter.standstill(at: Date.now) {
+        if !automaticsOff,
+           let stand = meter.standstill(at: Date.now, beyond: autoPauseSeconds * 2) {
             if autoStopSeconds > 0, stand.seconds >= autoStopSeconds {
                 stop(at: stand.since)
                 stoppedByItself = true
@@ -532,15 +533,33 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         lastReplan = .now
         let mode: StreetMode = subject?.mode == TravelMode.car.rawValue ? .car : .bike
         let router = router
+        // **Nicht von hier, sondern von gleich.** Ein Router kennt nur einen
+        // Punkt, keine Fahrtrichtung — und schickt einen auf der Autobahn
+        // dorthin zurück, wo man hergekommen ist, weil das die kürzeste
+        // Verbindung zum Ziel ist. Ein Startpunkt ein Stück **voraus** sagt
+        // ihm, wohin man zeigt: dort ist die Ausfahrt, die man gleich nimmt,
+        // und die Wende kommt nicht mehr in Frage.
+        let from = course >= 0 ? Geo.ahead(here, course: course, meters: Self.replanLookahead) : here
+        let heading = course
         replanTask = Task { [weak self] in
-            let route = try? await router.route(from: here, to: destination, mode: mode, departure: nil)
-            await MainActor.run { self?.adopt(route) }
+            let route = try? await router.route(from: from, to: destination, mode: mode, departure: .now)
+            await MainActor.run { self?.adopt(route, heading: heading) }
         }
     }
 
-    private func adopt(_ route: StreetRoute?) {
+    /// So weit voraus wird die Neuplanung angesetzt. Zwei Sekunden bei
+    /// Autobahntempo, zwanzig auf dem Rad — weit genug, dass keine Ausfahrt
+    /// zurückliegt, nah genug, dass nichts übersprungen wird.
+    static let replanLookahead = 60.0
+
+    private func adopt(_ route: StreetRoute?, heading: CLLocationDirection = -1) {
         replanTask = nil
         guard isRecording, let route, route.coordinates.count > 1 else { return }
+        // Führt der neue Weg als Erstes dorthin zurück, wo man herkommt, ist
+        // er eine Wende — auf einer Autobahn ist das keine Auskunft, sondern
+        // ein Witz. Dann lieber den alten Weg stehen lassen und es in einer
+        // Minute noch einmal versuchen.
+        if heading >= 0, Self.turnsBack(route.coordinates, heading: heading) { return }
         plannedRoute = route.coordinates
         routeLengths = TurnGuide.cumulative(route.coordinates)
         routeIndex = 0
@@ -558,6 +577,30 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         // Nähe mit einem mitlaufenden Index — was schon zugeordnet ist, bleibt.
         meter.addRoadPoints(route.roadPoints)
     }
+
+    /// Ob eine frisch geplante Linie als Erstes zurückweist. Gemessen über
+    /// die ersten `backCheckMeters`: ein Bogen um einen Kreisverkehr zählt
+    /// nicht, eine Wende schon.
+    nonisolated static func turnsBack(_ route: [CLLocationCoordinate2D],
+                                      heading: CLLocationDirection) -> Bool {
+        guard let first = route.first else { return false }
+        var ahead = route.last!
+        var run = 0.0
+        for (a, b) in zip(route, route.dropFirst()) {
+            run += a.distance(to: b)
+            if run >= backCheckMeters { ahead = b; break }
+        }
+        guard let bearing = courseFromTrack([RidePoint(lat: first.latitude, lon: first.longitude,
+                                                       t: .distantPast, v: 0),
+                                             RidePoint(lat: ahead.latitude, lon: ahead.longitude,
+                                                       t: .distantPast, v: 0)]) else { return false }
+        let diff = abs((bearing - heading + 540).truncatingRemainder(dividingBy: 360) - 180)
+        return diff > 120
+    }
+
+    /// So weit wird hineingesehen, um „geht zurück" von „macht einen Bogen"
+    /// zu unterscheiden.
+    static let backCheckMeters = 150.0
 
     /// Wo auf der Route jede Ampel liegt, in Metern vom Anfang — nur die, die
     /// überhaupt auf ihr liegen. `RouteAnalyzer` hat sie schon einmal der

@@ -26,6 +26,23 @@ enum Geo {
     /// allows; without the limit the accumulator can be driven past `Int`.
     static let maxPolylineShift = 32
 
+    /// Der Punkt `meters` voraus in Richtung `course`. Flach gerechnet: über
+    /// ein paar hundert Meter ist die Erdkrümmung nicht das, was zählt.
+    ///
+    /// Gebraucht, wo ein Router die Fahrtrichtung wissen müsste und nicht
+    /// danach fragt — er bekommt sie als Startpunkt.
+    static func ahead(_ from: CLLocationCoordinate2D, course: CLLocationDirection,
+                      meters: Double) -> CLLocationCoordinate2D {
+        guard valid(from), course >= 0, meters.isFinite else { return from }
+        let rad = course * .pi / 180
+        let mPerDegLat = 111_320.0
+        let mPerDegLon = mPerDegLat * cos(from.latitude * .pi / 180)
+        guard mPerDegLon > 1 else { return from }
+        let next = CLLocationCoordinate2D(latitude: from.latitude + cos(rad) * meters / mPerDegLat,
+                                          longitude: from.longitude + sin(rad) * meters / mPerDegLon)
+        return valid(next) ? next : from
+    }
+
     /// Eine Linie auf das, was man auf einer Karte unterscheiden kann: jeder
     /// Punkt, der weiter als `step` vom zuletzt behaltenen entfernt liegt,
     /// plus der letzte. Für die geplante Linie, die neben der gefahrenen
