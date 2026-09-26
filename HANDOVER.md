@@ -121,6 +121,40 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
 - `design/Styleguide.html` + `.pdf` — Designkonzept; PDF wird mit Chrome headless erzeugt
   (Kopie für den Nutzer unter `_claude.code/_reports/RadPendler_Styleguide.pdf`).
 
+## Die Automatik einer Fahrt (seit 1.4)
+
+Zwei Stufen gegen denselben Stillstand, beide gegen die **bekannten** Ampeln
+geprüft — an einer Kreuzung steht man auch mal drei Minuten:
+
+- **Anhalten nach `autoPauseMinutes`** (3): `RideTracker.pauseAutomatically`.
+  Die Uhr steht, die Ortung bleibt an, aber sparsam (`kCLLocationAccuracyHundredMeters`,
+  `distanceFilter` 50 m) — ohne sie wüsste niemand, wann es weitergeht. Rollt es
+  wieder (`wokeUp`: Tempo oder 50 m vom Ort der Pause), läuft sie von selbst weiter.
+- **Beenden nach `autoStopMinutes`** (20): der Fahrer ist angekommen und hat es
+  vergessen. Gezählt wird bis zum **Anfang** des Stillstands.
+- **`setAutomatics(off:)`** schaltet beides für die laufende Fahrt ab; der Knopf
+  sitzt oben links neben Folgen und Ausrichtung. Beim nächsten Start ist die
+  Automatik wieder an — eine Ausnahme, keine Einstellung.
+
+Der Unterschied zwischen den beiden Pausen steckt in `RideMeter.pause(at:keepingStop:)`:
+die automatische **behält** den Halt (an der Schranke hat man gestanden), die per
+Knopf verwirft ihn (wer auf Pause tippt, macht Pause).
+
+## Löschen mit zwei Geräten: Grabsteine (seit 1.4)
+
+`rides`, `placeHistory` und `learnedSignals` werden zwischen den Geräten
+**vereinigt** und nie gekürzt — sonst könnte ein Gerät, das seit einer Woche
+nicht nachgesehen hat, eine Liste kürzen, die es nie gesehen hat. Der Preis war,
+dass Löschen nicht ging: was A löschte, brachte B beim nächsten Abgleich zurück.
+
+`Tombstones` (Models/Tombstones.swift) führt deshalb mit, was **nicht** mehr da
+sein soll: Kennung → Zeitpunkt, selbst ein `mergedKey`, 90 Tage Lebensdauer. Beim
+Vereinigen der drei Listen fliegt hinaus, was einen Grabstein hat, **der jünger
+ist als der Eintrag** — wer eine gelöschte Adresse wieder benutzt, hat sie wieder.
+
+Wer eine vierte vereinigte Liste einführt, muss sie hier eintragen, sonst ist sie
+wieder unlöschbar.
+
 ## Zweisprachig: Deutsch und Englisch
 
 Umgeschaltet wird im Burger-Menü (Fähnchen 🇩🇪 / 🇬🇧 / „A" für „wie das Telefon"), und die
