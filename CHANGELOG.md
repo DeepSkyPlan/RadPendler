@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht
+## 1.6 (Build 41) — Töne, Pfeile an ihrer Seite, Pausen, die stimmen
 
 - **Töne während der Fahrt.** Bisher gab es keinen einzigen. Jetzt: steigender Doppelton
   beim Start, fallender beim Ende, ein Ton 250 m vor jeder Abbiegung und ein doppelter
