@@ -390,4 +390,14 @@ extension BikeRouteTests {
         XCTAssertEqual(BikeRouteInfo(variants: [], stats: nil, source: "trekking").reason, "",
                        "ohne Rolle gibt es nichts zu erklären — solche Linien zeigt die App nicht mehr")
     }
+
+    /// „wenig Autos" fährt mit dem eigenen Profil, und das ist „safety" mit
+    /// Lärm und Verkehr — sonst wäre der Radweg neben der Hauptstraße ideal.
+    func testTheQuietProfileWeighsNoiseAndTraffic() throws {
+        XCTAssertTrue(BRouterClient.Profile.quiet.isCustom)
+        let url = try XCTUnwrap(Bundle.main.url(forResource: "radpendler-quiet", withExtension: "brf"))
+        let text = try String(contentsOf: url, encoding: .utf8)
+        XCTAssertTrue(text.contains("assign   consider_noise           = true"))
+        XCTAssertTrue(text.contains("assign   consider_traffic         = true"))
+    }
 }

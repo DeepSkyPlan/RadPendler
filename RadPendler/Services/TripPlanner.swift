@@ -169,7 +169,7 @@ struct TripPlanner {
             case .balanced: requests.append(("trekking", .trekking, 0))
             case .fastest: requests.append(("fastbike", .fastbike, 0))
             case .shortest: requests.append(("shortest", .shortest, 0))
-            case .quiet: requests.append(("safety", .safety, 0))
+            case .quiet: requests.append(("safety", .quiet, 0))
             case .lowTraffic: requests.append((L("verkehrsarm"), .lowTraffic, 0))
             }
         }

@@ -1,5 +1,16 @@
 # Changelog
 
+## Unveröffentlicht
+
+- **„wenig Autos“ meidet jetzt wirklich die Hauptstraßen.** Die Linie kam von BRouters
+  Profil „safety“, und das hält eine Hauptstraße mit Radweg für fast so gut wie eine
+  Nebenstraße (Kosten 1,2 gegen 1,1). Jetzt fährt sie mit einem eigenen Profil: „safety“
+  plus BRouters geschätztem Lärm und Verkehr. Probe: Pinneberg → Hammerbrook statt
+  2 km nur noch 150 m an Haupt- und Nebenstraßen und nicht mehr die Kieler Straße
+  (+0,9 km); Kleinmachnow → Heidestraße Prinzregenten- statt Martin-Luther-Straße
+  (+2,3 km). Das Profil wird beim ersten Plan zu brouter.de hochgeladen; geht das
+  schief, steht wie bisher „safety“ dafür.
+
 ## 1.6 (Build 41) — Töne, Pfeile an ihrer Seite, Pausen, die stimmen
 
 - **Töne während der Fahrt.** Bisher gab es keinen einzigen. Jetzt: steigender Doppelton
