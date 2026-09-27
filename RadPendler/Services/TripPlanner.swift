@@ -54,11 +54,16 @@ struct TripPlanner {
     var rain = RainService()
 
     /// S-Bahn/regional stations considered at each end of a bike+rail trip.
-    /// 3 × 4 + 2 × 2 = 16 HAFAS searches per refresh — each ~0.2 s, in parallel.
+    /// 3 × 4 + 3 × 3 = 21 HAFAS searches per refresh — each ~0.2 s, in parallel.
     var originStationCount = 3
     var destinationStationCount = 4
-    /// Nearest stations of any kind (incl. U-Bahn-only) for the alternative search: 2 × 2.
+    /// Nearest stations of any kind (incl. U-Bahn-only) for the alternative search.
     var alternativeStationCount = 2
+    /// Plus the nearest tram stop at each end: where the tram is the direct
+    /// line (M10, M1, the east), the way to the next S/U station is a detour.
+    /// Asked for separately — the dense tram stops would otherwise crowd the
+    /// S-Bahn stations out of the twenty nearest.
+    var tramStationCount = 1
 
     /// `onProgress` bekommt den Stand nach jedem Modus — schon sortiert und
     /// mit Empfehlung, damit der Bildschirm ihn unverändert zeigen kann.
@@ -415,7 +420,13 @@ struct TripPlanner {
         let radius = s.maxBikeToStationKm * 1000
         async let fromList = hafas.nearbyStations(around: req.origin.coordinate, radius: radius)
         async let toList = hafas.nearbyStations(around: req.destination.coordinate, radius: radius)
+        async let fromTramList = hafas.nearbyStations(around: req.origin.coordinate, radius: radius,
+                                                      productMask: TransitProduct.tram.rawValue)
+        async let toTramList = hafas.nearbyStations(around: req.destination.coordinate, radius: radius,
+                                                    productMask: TransitProduct.tram.rawValue)
         let fromAll = try await fromList, toAll = try await toList
+        // A missing tram stop only costs the tram alternative, not the trip.
+        let fromTram = (try? await fromTramList) ?? [], toTram = (try? await toTramList) ?? []
 
         var searches: [(from: Station, to: Station, mask: Int)] = []
         let preferredMask = TransitProduct.bikeCompartmentMask
@@ -424,8 +435,10 @@ struct TripPlanner {
                 searches.append((a, b, preferredMask))
             }
         }
-        for a in fromAll.prefix(alternativeStationCount) {
-            for b in toAll.prefix(alternativeStationCount) {
+        let fromAlt = unique(Array(fromAll.prefix(alternativeStationCount) + fromTram.prefix(tramStationCount)))
+        let toAlt = unique(Array(toAll.prefix(alternativeStationCount) + toTram.prefix(tramStationCount)))
+        for a in fromAlt {
+            for b in toAlt {
                 searches.append((a, b, TransitProduct.bikeSearchMask))
             }
         }

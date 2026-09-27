@@ -57,6 +57,13 @@ final class HafasParserTests: XCTestCase {
         XCTAssertTrue(stations.contains { $0.name.contains("Alexanderplatz") })
     }
 
+    func testTramStopsComeFromTheirOwnMask() throws {
+        let stops = HafasParser.stations(try fixture("nearby_stations"), productMask: TransitProduct.tram.rawValue)
+        XCTAssertFalse(stops.isEmpty)
+        XCTAssertTrue(stops.allSatisfy { $0.productMask & TransitProduct.tram.rawValue != 0 })
+        XCTAssertEqual(stops.map(\.distance), stops.map(\.distance).sorted())
+    }
+
     func testDayOffsetRollsOverMidnight() {
         let late = HafasTime.date(day: "20260921", time: "235000")!
         let next = HafasTime.date(day: "20260921", time: "01002500")!
