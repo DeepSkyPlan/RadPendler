@@ -45,6 +45,8 @@ struct RadPendlerApp: App {
                     // was im alten liegt, zieht nicht mit. Dieses Gerät schiebt
                     // seine Linien einmal nach.
                     await rides.reuploadTracksIfNeeded()
+                    // Bis 1.5 zählte das Stehen vor einer Pause als Fahrzeit.
+                    await rides.repairStandingBeforePauses()
                     // Whatever the user last chose, from this device or another.
                     settings.orientation.apply()
                 }

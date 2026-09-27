@@ -92,6 +92,12 @@ struct Ride: Codable, Identifiable, Equatable {
     /// zur Fahrzeit noch in den Schnitt — sonst wäre jede Einkehr eine
     /// langsame Fahrt. Ältere Dateien kennen das Feld nicht; dort ist es 0.
     var pausedSeconds: TimeInterval = 0
+    /// Ob das Stehen **vor** einer Pause schon in `pausedSeconds` steckt. Bis
+    /// 1.5 begann die Pause erst beim Tippen, die Minuten Stillstand davor
+    /// zählten als Fahrzeit. Neue Fahrten tragen true; ältere rechnet
+    /// `RideStore.repairStandingBeforePauses` einmal aus ihrer Linie nach und
+    /// setzt es dann — damit es auf keinem Gerät zweimal abgezogen wird.
+    var standingInPause: Bool?
     /// Womit sie aufgezeichnet wurde — „1.4 (38)". Wer eine alte Fahrt ansieht
     /// und sich über eine Zahl wundert, sieht so, ob sie aus einer Fassung
     /// stammt, die anders gerechnet hat. Ältere Dateien kennen das Feld nicht.
@@ -168,5 +174,40 @@ extension Ride {
     static func monthName(_ month: Int, calendar: Calendar = .current) -> String {
         let names = calendar.standaloneMonthSymbols
         return names.indices.contains(month - 1) ? names[month - 1] : "\(month)"
+    }
+}
+
+// MARK: Stehen vor der Pause, nachträglich
+
+extension Ride {
+    /// Wie lange vor jeder Pause schon gestanden wurde — aus der Linie
+    /// gelesen, für Fahrten, bei denen die Pause erst beim Tippen begann.
+    ///
+    /// Eine Pause ist in der Linie eine Lücke: die Ortung war aus. Welche
+    /// Lücken Pausen sind und welche nur Empfangslöcher, sagt `pausedSeconds`:
+    /// die längsten Lücken, solange sie zusammen nicht über die gespeicherte
+    /// Pausenzeit hinausgehen (eine Lücke ist bis zu `maxGap` länger als die
+    /// Pause, weil der erste Fix danach etwas braucht). Vor jeder davon zählt
+    /// die zusammenhängende Strecke unter `stopSpeed` — einen Halt kann es
+    /// darin nicht geben, der endete erst über `goSpeed`.
+    static func standingBeforePauses(_ points: [RidePoint], pausedSeconds: TimeInterval) -> TimeInterval {
+        guard pausedSeconds > 0, points.count >= 2 else { return 0 }
+        let gaps = (0..<(points.count - 1))
+            .map { (i: $0, dt: points[$0 + 1].t.timeIntervalSince(points[$0].t)) }
+            .filter { $0.dt > RideMeter.maxGap }
+            .sorted { $0.dt > $1.dt }
+        var covered: TimeInterval = 0, taken = 0.0
+        var extra: TimeInterval = 0
+        for gap in gaps {
+            guard covered + gap.dt <= pausedSeconds + RideMeter.maxGap * (taken + 1) else { continue }
+            covered += gap.dt
+            taken += 1
+            var j = gap.i
+            while j > 0, points[j - 1].v < RideMeter.stopSpeed { j -= 1 }
+            if points[gap.i].v < RideMeter.stopSpeed {
+                extra += points[gap.i].t.timeIntervalSince(points[j].t)
+            }
+        }
+        return extra
     }
 }
