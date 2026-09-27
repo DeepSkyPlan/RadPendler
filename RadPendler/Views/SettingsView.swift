@@ -369,6 +369,7 @@ struct SettingsView: View {
                             Text(L("%d s ohne Berührung", Int(s))).tag(s)
                         }
                     }
+                    Toggle(L("Töne bei Start, Ende und Abbiegungen"), isOn: $settings.rideSounds)
                     Picker(L("Von selbst anhalten nach"), selection: $settings.autoPauseMinutes) {
                         Text(L("aus")).tag(0.0)
                         ForEach([1.0, 2.0, 3.0, 5.0, 10.0], id: \.self) { m in

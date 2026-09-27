@@ -68,6 +68,13 @@ enum TurnGuide {
         }
     }
 
+    /// So kurz vor einer Abbiegung erscheint der Pfeil und kommt der erste Ton
+    /// — und keinen Meter früher. Ein Pfeil, der zwei Kilometer lang „rechts"
+    /// sagt, ist kein Hinweis, sondern Tapete.
+    static let announceMeters = 250.0
+    /// Und hier der doppelte Ton: jetzt abbiegen. Bei 20 km/h gut fünf Sekunden.
+    static let nowMeters = 30.0
+
     /// Less than this is the line wobbling, not the road bending.
     static let minAngle = 22.0
     /// Two bends closer than this are one corner drawn in three points.

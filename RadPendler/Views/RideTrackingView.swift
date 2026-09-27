@@ -168,15 +168,9 @@ struct RideTrackingView: View {
         if tracker.detour != nil { detourBanner } else if showsTurn { turnBanner }
     }
 
-    /// So kurz vor einer Abbiegung steht der Pfeil da — und keinen Meter
-    /// früher. Ein Pfeil, der zwei Kilometer lang „rechts" sagt, ist kein
-    /// Hinweis, sondern Tapete: man sieht ihn nicht mehr an, wenn es so weit
-    /// ist. Und er nimmt der Karte die obersten hundert Punkte.
-    static let announceMeters = 250.0
-
     private var showsTurn: Bool {
         guard let next = tracker.nextTurn else { return false }
-        return next.meters <= Self.announceMeters
+        return next.meters <= TurnGuide.announceMeters
     }
 
     /// Der Pfeil zeigt **auf der Karte**, nicht nach Norden. Die Karte ist in
@@ -213,17 +207,17 @@ struct RideTrackingView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                 }
-                Spacer(minLength: 0)
             }
             .foregroundStyle(.white)
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, alignment: .leading)
             // Rot: das hier ist das Einzige auf diesem Bildschirm, das
             // bedeutet „du bist falsch". Der Abbiegepfeil ist grün, weil er
             // das Gegenteil sagt.
             .background(Theme.gradient(.red), in: RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
             .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
+            // Mittig: neben der Route ist keine Seite, sondern ein Zustand.
+            .frame(maxWidth: .infinity, alignment: .center)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(L("%@ neben der Route, Richtung %@", Fmt.km(detour.meters), Self.compass(detour.bearing))
                                 + (tracker.offSince.map { ", " + L("seit %@", Fmt.clock(Date.now.timeIntervalSince($0))) } ?? ""))
@@ -239,31 +233,39 @@ struct RideTrackingView: View {
     }
 
     /// The one line worth a glance at twenty km/h: what comes, and in how far.
+    /// Der Pfeil steht auf der Seite, auf die es geht: links abbiegen links
+    /// oben, rechts abbiegen rechts oben, der Pfeil jeweils außen. Ein Blick
+    /// aus dem Augenwinkel reicht dann schon für die Richtung, bevor man den
+    /// Pfeil selbst gelesen hat. Geradeaus und das Ziel stehen in der Mitte.
     @ViewBuilder private var turnBanner: some View {
         if let next = tracker.nextTurn {
-            HStack(spacing: 12) {
-                Image(systemName: next.step.turn.symbol)
-                    .font(.system(size: 38, weight: .heavy))
-                    .frame(width: 46)
-                VStack(alignment: .leading, spacing: -2) {
-                    Text(Fmt.km(next.meters))
-                        .font(.system(size: 30, weight: .heavy, design: .rounded))
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                    Text(next.step.turn.title)
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .opacity(0.9)
-                }
-                Spacer(minLength: 0)
+            let side = next.step.turn.side
+            let arrow = Image(systemName: next.step.turn.symbol)
+                .font(.system(size: 38, weight: .heavy))
+                .frame(width: 46)
+            let text = VStack(alignment: side > 0 ? .trailing : .leading, spacing: -2) {
+                Text(Fmt.km(next.meters))
+                    .font(.system(size: 30, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                Text(next.step.turn.title)
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .opacity(0.9)
             }
-            .foregroundStyle(.white)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.gradient(LegKind.bike.color), in: RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
-            .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(L("Nächste Abbiegung %@ in %@", next.step.turn.title, Fmt.km(next.meters)))
+            HStack(spacing: 0) {
+                if side >= 0 { Spacer(minLength: 0) }
+                HStack(spacing: 12) {
+                    if side > 0 { text; arrow } else { arrow; text }
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Theme.gradient(LegKind.bike.color), in: RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
+                .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(L("Nächste Abbiegung %@ in %@", next.step.turn.title, Fmt.km(next.meters)))
+                if side <= 0 { Spacer(minLength: 0) }
+            }
         }
     }
 

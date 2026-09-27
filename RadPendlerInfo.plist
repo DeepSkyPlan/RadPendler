@@ -8,11 +8,14 @@
 	     einer Fahrt. Er ist nur zwischen „Fahrt aufzeichnen" und „Fahrt
 	     beenden" aktiv — siehe RideTracker. Dazu „fetch": damit darf iOS die
 	     App gelegentlich wecken, um den Fahrplan nachzuschlagen und die
-	     Warnungen nachzustellen — siehe BackgroundReplan. -->
+	     Warnungen nachzustellen — siehe BackgroundReplan. Und „audio": die Töne bei
+	     Abbiegungen, Start und Ende auch mit gesperrtem Bildschirm — siehe
+	     RideSounds. -->
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
 		<string>fetch</string>
+		<string>audio</string>
 	</array>
 	<!-- Ohne diese Liste lehnt BGTaskScheduler die Anmeldung ab. Die Kennung
 	     steht genauso in BackgroundReplan.taskID. -->

@@ -48,6 +48,8 @@ final class AppSettings {
     /// Minutes before departure at which the countdown beeps.
     var alertMinutes: [Int] = [10, 5, 1] { didSet { defaults.set(alertMinutes, forKey: "alertMinutes") } }
     var alertsOn: Bool = true { didSet { defaults.set(alertsOn, forKey: "alertsOn") } }
+    /// Töne während der Fahrt: Start, Ende, Abbiegungen.
+    var rideSounds: Bool = true { didSet { defaults.set(rideSounds, forKey: "rideSounds") } }
 
     /// Addresses that have been used before, with how often — the list the
     /// search offers before anything is typed. Device only, like the addresses.
@@ -233,7 +235,7 @@ final class AppSettings {
         "alertMinutes", "alertsOn",
         // Aufzeichnen
         "signalStopSeconds", "learnedSignals", "replanOffRouteMeters", "replanOffRouteMinutes",
-        "autoStopMinutes", "autoPauseMinutes", "rideDimSeconds",
+        "autoStopMinutes", "autoPauseMinutes", "rideDimSeconds", "rideSounds",
         "measuredOverallKmh", "measuredMovingKmh", "measuredRides",
         // Anzeige
         "orientationLock", "rideOrientationLock", "rideStartsLandscape", "language",
@@ -333,6 +335,7 @@ final class AppSettings {
             if rideOrientation == .auto { rideOrientation = .landscape }
         }
         assign(\.autoStopMinutes, defaults.object(forKey: "autoStopMinutes") as? Double ?? autoStopMinutes)
+        assign(\.rideSounds, defaults.object(forKey: "rideSounds") as? Bool ?? rideSounds)
         assign(\.autoPauseMinutes, defaults.object(forKey: "autoPauseMinutes") as? Double ?? autoPauseMinutes)
         assign(\.tombstones, defaults.data(forKey: "tombstones")
             .flatMap { try? JSONDecoder().decode(Tombstones.self, from: $0) } ?? tombstones)
