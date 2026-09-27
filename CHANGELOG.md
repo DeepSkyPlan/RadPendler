@@ -1,5 +1,12 @@
 # Changelog
 
+## Unveröffentlicht
+
+- **Rad + Tram.** Beim VBB sucht Rad + Bahn jetzt an beiden Enden zusätzlich die nächste
+  Tramhaltestelle. Wo die Tram die direkte Linie ist, war der Weg zum nächsten S- oder
+  U-Bahnhof ein Umweg. Tramverbindungen bleiben markierte Alternative wie die U-Bahn;
+  21 statt 16 Fahrplanabfragen je Durchlauf. Transitous wählte Tramhaltestellen schon immer.
+
 ## 1.5 (Build 39) — die App merkt, womit du fährst
 
 Acht Funde von einer **Autofahrt**. Die Aufzeichnung war für das Rad gebaut und hat das an
