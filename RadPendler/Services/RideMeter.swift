@@ -186,19 +186,16 @@ struct RideMeter {
         return max(0, now.timeIntervalSince(since))
     }
 
-    /// Anhalten: die Uhr bleibt stehen.
-    ///
-    /// `keepingStop` entscheidet über den laufenden Stillstand. Beim Knopf ist
-    /// er **kein** Halt, sondern der Anfang der Pause — man hält ja an, um
-    /// Pause zu machen. Pausiert die App dagegen von selbst, weil seit drei
-    /// Minuten nichts geht, dann war das ein Halt wie jeder andere und gehört
-    /// gezählt: an der Schranke hat man gestanden, ob man wollte oder nicht.
-    mutating func pause(at now: Date = .now, keepingStop: Bool = false) {
+    /// Anhalten: die Uhr bleibt stehen — und zwar rückwirkend ab dem Anfang
+    /// des laufenden Stillstands, ob die Pause vom Knopf kommt oder von der
+    /// Automatik. Wer nach drei Minuten Stehen von selbst anhält oder erst
+    /// beim Absteigen auf den Knopf tippt, ist in diesen Minuten nicht
+    /// gefahren; sie zählten bis 1.5 zur Fahrzeit und drückten den Schnitt,
+    /// der über `calibrate` in jede spätere Planung wandert. Der Stillstand
+    /// wird deshalb auch kein Halt: seine Zeit gehört der Pause.
+    mutating func pause(at now: Date = .now) {
         guard pausedSince == nil else { return }
-        if keepingStop, let since = standingSince {
-            close(since: since, until: now)
-        }
-        pausedSince = now
+        pausedSince = min(standingSince ?? now, now)
         standingSince = nil
         standingAt = nil
         standingAfterRiding = false

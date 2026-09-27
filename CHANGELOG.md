@@ -2,6 +2,15 @@
 
 ## Unveröffentlicht
 
+- **Das automatische Anhalten lief nie.** Die Einstellung „Von selbst anhalten nach“ kam
+  nicht bei der Aufzeichnung an — seit es sie gibt. Jetzt hält die Fahrt nach der
+  eingestellten Zeit Stillstand an, im Auto wie auf dem Rad.
+- **Die Pause beginnt, wo das Stehen begann.** Ob von selbst nach drei Minuten oder per
+  Knopf: die Minuten Stillstand davor zählen nicht mehr zur Fahrzeit und werden kein Halt.
+  Fahrzeit, Schnitt und die daraus gelernte Planung stimmen damit.
+- **Eine angehaltene Fahrt beendet sich auch.** Das Selbstbeenden sah nur Stillstände,
+  keine Pausen — eine von selbst angehaltene Fahrt wäre nie zu Ende gegangen. Eine Uhr
+  prüft das jetzt alle 30 Sekunden; beendet wird am Anfang des Stillstands.
 - **Rad + Tram.** Beim VBB sucht Rad + Bahn jetzt an beiden Enden zusätzlich die nächste
   Tramhaltestelle. Wo die Tram die direkte Linie ist, war der Weg zum nächsten S- oder
   U-Bahnhof ein Umweg. Tramverbindungen bleiben markierte Alternative wie die U-Bahn;
