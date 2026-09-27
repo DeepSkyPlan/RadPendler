@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht
+## 1.6.1 (Build 42) — „wenig Autos“ meidet die Hauptstraßen
 
 - **„wenig Autos“ meidet jetzt wirklich die Hauptstraßen.** Die Linie kam von BRouters
   Profil „safety“, und das hält eine Hauptstraße mit Radweg für fast so gut wie eine
