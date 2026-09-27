@@ -11,6 +11,12 @@ struct BRouterClient {
         /// BRouter's own low-traffic profile: it pays a detour to stay off
         /// roads that carry cars, where "safety" only prefers what is safe.
         case lowTraffic = "fastbike-lowtraffic"
+        /// „wenig Autos": unser eigenes Profil, „safety" mit geschätztem Lärm
+        /// und Verkehr (`Resources/radpendler-quiet.brf`). Liegt nicht auf
+        /// dem Server, sondern wird hochgeladen — siehe `CustomProfile`.
+        case quiet = "radpendler-quiet"
+
+        var isCustom: Bool { self == .quiet }
     }
 
     var session: URLSession = .shared
@@ -29,11 +35,37 @@ struct BRouterClient {
                          from.latitude, from.longitude, to.latitude, to.longitude,
                          profile.rawValue, alternative)
         if cached, let hit = await RouteCache.shared.route(for: key) { return hit }
+        let route: StreetRoute
+        if profile.isCustom {
+            // Hochgeladene Profile räumt der Server irgendwann weg. Scheitert
+            // die Anfrage mit einer gemerkten Kennung, einmal neu hochladen;
+            // scheitert auch das, steht „safety" dafür — lieber die alte
+            // Antwort als gar keine „wenig Autos"-Linie.
+            do {
+                route = try await fetch(from: from, to: to, profile: try await CustomProfile.shared.id(session: session),
+                                        alternative: alternative)
+            } catch {
+                do {
+                    let fresh = try await CustomProfile.shared.id(session: session, renew: true)
+                    route = try await fetch(from: from, to: to, profile: fresh, alternative: alternative)
+                } catch {
+                    return try await self.route(from: from, to: to, profile: .safety, alternative: alternative)
+                }
+            }
+        } else {
+            route = try await fetch(from: from, to: to, profile: profile.rawValue, alternative: alternative)
+        }
+        if cached { await RouteCache.shared.keep(route, for: key) }
+        return route
+    }
+
+    private func fetch(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+                       profile: String, alternative: Int) async throws -> StreetRoute {
         var c = URLComponents(string: "https://brouter.de/brouter")!
         c.queryItems = [
             .init(name: "lonlats", value: String(format: "%.6f,%.6f|%.6f,%.6f",
                                                  from.longitude, from.latitude, to.longitude, to.latitude)),
-            .init(name: "profile", value: profile.rawValue),
+            .init(name: "profile", value: profile),
             .init(name: "alternativeidx", value: String(alternative)),
             .init(name: "format", value: "geojson"),
         ]
@@ -43,9 +75,7 @@ struct BRouterClient {
         if let http = response as? HTTPURLResponse, http.statusCode != 200 {
             throw BRouterError.server(String(data: data.prefix(200), encoding: .utf8) ?? "HTTP \(http.statusCode)")
         }
-        let route = try Self.parse(data)
-        if cached { await RouteCache.shared.keep(route, for: key) }
-        return route
+        return try Self.parse(data)
     }
 
     static func parse(_ data: Data) throws -> StreetRoute {
@@ -222,5 +252,39 @@ actor CompositeRouter: StreetRouting {
         }
         cache[key] = r
         return r
+    }
+}
+
+/// Ein eigenes BRouter-Profil auf dem öffentlichen Server: einmal hochladen
+/// (`POST /brouter/profile`), die Kennung („custom_…") merken und bei jeder
+/// Anfrage als Profilnamen schicken. Parameter in der Adresse
+/// (`profile:consider_noise=true`) beantwortet brouter.de mit 500 — der
+/// Umweg über das Hochladen ist der einzige.
+///
+/// Die Kennung gilt eine halbe Stunde; wie lange der Server sie wirklich
+/// hält, sagt er nicht. Dafür gibt es `renew`.
+actor CustomProfile {
+    static let shared = CustomProfile()
+    static let lifetime: TimeInterval = 1800
+
+    private var current: (id: String, at: Date)?
+
+    func id(session: URLSession, renew: Bool = false) async throws -> String {
+        if !renew, let c = current, Date.now.timeIntervalSince(c.at) < Self.lifetime { return c.id }
+        guard let url = Bundle.main.url(forResource: "radpendler-quiet", withExtension: "brf"),
+              let text = try? Data(contentsOf: url) else { throw BRouterClient.BRouterError.malformed }
+        var request = URLRequest(url: URL(string: "https://brouter.de/brouter/profile")!, timeoutInterval: 20)
+        request.httpMethod = "POST"
+        request.setValue("text/plain", forHTTPHeaderField: "Content-Type")
+        request.setValue("RadPendler iOS (private commute planner)", forHTTPHeaderField: "User-Agent")
+        request.httpBody = text
+        let (data, response) = try await session.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let id = json["profileid"] as? String, id.hasPrefix("custom_") else {
+            throw BRouterClient.BRouterError.server(String(data: data.prefix(200), encoding: .utf8) ?? "upload")
+        }
+        current = (id, .now)
+        return id
     }
 }
