@@ -124,8 +124,10 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// Ab wann neu berechnet wird; 0 schaltet es ab.
     private var replanOffRouteMeters = OffRoute.replanMeters
     private var replanOffRouteMinutes = 0.0
-    /// Seit wann ohne Unterbrechung neben der Route.
-    private var offSince: Date?
+    /// Seit wann ohne Unterbrechung neben der Route. Steht im roten Band
+    /// neben dem Abstand; zugewiesen wird nur beim Wechsel, sonst baute
+    /// `@Observable` den Fahrtbildschirm einmal die Sekunde neu auf.
+    private(set) var offSince: Date?
     private var replanTask: Task<Void, Never>?
     private let router = CompositeRouter()
 
@@ -584,9 +586,12 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         }
         let next = OffRoute.isOff(fix.meters, was: detour != nil) ? fix : nil
         if detour != next { detour = next }
-        guard let next else { offSince = nil; return }
+        guard let next else {
+            if offSince != nil { offSince = nil }
+            return
+        }
         let since = offSince ?? .now
-        offSince = since
+        if offSince == nil { offSince = since }
         guard OffRoute.shouldReplan(meters: next.meters,
                                     offFor: Date.now.timeIntervalSince(since),
                                     afterMeters: replanOffRouteMeters,

@@ -4621,6 +4621,17 @@
         }
       }
     },
+    "seit %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "for %@"
+          }
+        }
+      }
+    },
     "sonstiges": {
       "extractionState": "manual",
       "localizations": {
