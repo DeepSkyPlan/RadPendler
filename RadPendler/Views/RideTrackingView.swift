@@ -192,10 +192,20 @@ struct RideTrackingView: View {
                     .rotationEffect(.degrees(detour.bearing - (tracker.course >= 0 ? tracker.course : 0)))
                     .frame(width: 46)
                 VStack(alignment: .leading, spacing: -2) {
-                    Text(Fmt.km(detour.meters))
-                        .font(.system(size: 30, weight: .heavy, design: .rounded))
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Text(Fmt.km(detour.meters))
+                            .font(.system(size: 30, weight: .heavy, design: .rounded))
+                            .monospacedDigit()
+                            .contentTransition(.numericText())
+                        // Wie lange schon daneben. Die Uhr zählt SwiftUI selbst
+                        // weiter — ohne TimelineView, das Band hängt über der Karte.
+                        if let since = tracker.offSince {
+                            Label { Text(since, style: .timer) } icon: { Image(systemName: "clock") }
+                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                                .monospacedDigit()
+                                .opacity(0.9)
+                        }
+                    }
                     Text(detour.meters > OffRoute.replanMeters ? L("neben der Route — wird neu geplant")
                                                                : L("neben der Route"))
                         .font(.system(size: 15, weight: .bold, design: .rounded))
@@ -215,7 +225,8 @@ struct RideTrackingView: View {
             .background(Theme.gradient(.red), in: RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
             .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
             .accessibilityElement(children: .combine)
-            .accessibilityLabel(L("%@ neben der Route, Richtung %@", Fmt.km(detour.meters), Self.compass(detour.bearing)))
+            .accessibilityLabel(L("%@ neben der Route, Richtung %@", Fmt.km(detour.meters), Self.compass(detour.bearing))
+                                + (tracker.offSince.map { ", " + L("seit %@", Fmt.clock(Date.now.timeIntervalSince($0))) } ?? ""))
         }
     }
 
