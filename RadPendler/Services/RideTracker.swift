@@ -292,6 +292,26 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         manager.startUpdatingLocation()
         applyIdleTimer()
         pushToWatch(force: true)
+        announcedTurn = nil
+        calledTurn = nil
+        RideSounds.shared.play(.start)
+    }
+
+    /// Welche Abbiegung schon ihren Ton hatte — einer beim Ankündigen, einer
+    /// kurz davor, und keiner doppelt, auch wenn der Abstand um die Grenze
+    /// herum zappelt.
+    private var announcedTurn: TurnGuide.Step?
+    private var calledTurn: TurnGuide.Step?
+
+    private func soundTurn(_ step: TurnGuide.Step, meters: Double) {
+        if meters <= TurnGuide.nowMeters, calledTurn != step {
+            calledTurn = step
+            announcedTurn = step
+            RideSounds.shared.play(.turnNow(side: step.turn.side))
+        } else if meters <= TurnGuide.announceMeters, announcedTurn != step {
+            announcedTurn = step
+            RideSounds.shared.play(.turnAhead(side: step.turn.side))
+        }
     }
 
     // MARK: Pause
@@ -399,6 +419,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         manager.stopUpdatingLocation()
         manager.allowsBackgroundLocationUpdates = false
         meter.finish(at: end)
+        RideSounds.shared.play(.stop)
         let (ride, track) = meter.result(id: subject.id, origin: subject.origin,
                                          destination: subject.destination, mode: subject.mode,
                                          plannedSeconds: subject.plannedSeconds, end: end,
@@ -512,6 +533,8 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                                       cum: routeLengths, from: routeIndex) {
                 routeIndex = n.index
                 nextTurn = (n.step, n.meters)
+                // Neben der Route liegt die Abbiegung auf einer anderen Straße.
+                if detour == nil { soundTurn(n.step, meters: n.meters) }
                 let next = Self.progress(travelled: routeLengths[Swift.min(n.index, routeLengths.count - 1)],
                                          cum: routeLengths, stations: signalStations)
                 if progress != next { progress = next }

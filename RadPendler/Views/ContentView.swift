@@ -335,6 +335,7 @@ struct ContentView: View {
         // Am Lenker gilt, was am Lenker zuletzt galt — nicht, wie die App
         // sich sonst dreht.
         settings.rideOrientation.apply()
+        RideSounds.shared.enabled = settings.rideSounds
         tracker.start(subject: RideTracker.Subject(origin: settings.origin?.shortName ?? "Start",
                                                    destination: settings.destination?.shortName ?? "Ziel",
                                                    mode: option.mode.rawValue,

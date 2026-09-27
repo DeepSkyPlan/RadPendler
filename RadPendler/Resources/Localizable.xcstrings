@@ -3510,6 +3510,17 @@
         }
       }
     },
+    "Töne bei Start, Ende und Abbiegungen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sounds at start, end and turns"
+          }
+        }
+      }
+    },
     "Tür zu Tür, mit Ampeln und Halten — damit wird die Fahrzeit gerechnet": {
       "extractionState": "manual",
       "localizations": {

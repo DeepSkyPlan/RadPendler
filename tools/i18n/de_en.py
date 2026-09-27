@@ -466,6 +466,7 @@ T.update({
 "Ø %@ je Halt · Ø %@ je Ampel · %d Vorbeifahrten": "avg %@ per stop · avg %@ per light · %d passes",
 "%@ neben der Route, Richtung %@": "%@ off the route, heading %@",
 "seit %@": "for %@",
+"Töne bei Start, Ende und Abbiegungen": "Sounds at start, end and turns",
 "Nächste Abbiegung %@ in %@": "Next turn %@ in %@",
 "Fahrzeit %@": "Ride time %@",
 "Schnitt %@, geplant %@": "Average %@, planned %@",

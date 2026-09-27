@@ -100,6 +100,11 @@ intern. In App Store Connect, auf der Versionsseite 0.12.1:
     und, wo Transitous Daten hat, Fahrpläne
 11. **Beta-Prüfung** — nur nötig, wenn externe TestFlight-Tester dazukommen
     sollen. Für die Store-Einreichung selbst nicht
+12. **Hinweis an die Prüfung (seit 1.6)** — die App trägt den Hintergrundmodus
+    `audio`. Begründung für App Review: *„Während einer aufgezeichneten Fahrt
+    spielt die App kurze Hinweistöne vor Abbiegungen sowie bei Start und Ende,
+    auch bei gesperrtem Bildschirm — wie eine Navigations-App. Außerhalb einer
+    Fahrt spielt sie nichts. Abschaltbar unter Einstellungen → Aufzeichnen.“*
 
 ## Name (max 30)
 

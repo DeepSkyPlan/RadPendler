@@ -2,6 +2,14 @@
 
 ## Unveröffentlicht
 
+- **Töne während der Fahrt.** Bisher gab es keinen einzigen. Jetzt: steigender Doppelton
+  beim Start, fallender beim Ende, ein Ton 250 m vor jeder Abbiegung und ein doppelter
+  30 m davor — links tiefer, rechts höher, mit Kopfhörern auch links und rechts im Ohr.
+  Hörbar trotz Stummschalter und bei gesperrtem Bildschirm (Hintergrundmodus `audio`),
+  Musik wird dafür kurz leiser. Abschaltbar unter *Aufzeichnen*.
+- **Der Pfeil steht auf seiner Seite.** Links abbiegen: grünes Band links oben, Pfeil
+  außen; rechts abbiegen: rechts oben. Geradeaus und Ziel mittig. Neben der Route: rotes
+  Band in der Mitte.
 - **Alte Fahrten werden nachgerechnet.** Beim ersten Start rechnet jedes Gerät aus der
   gespeicherten Linie heraus, wie lange vor jeder Pause schon gestanden wurde, und schlägt
   das der Pause zu — einmal je Fahrt, markiert, damit nichts doppelt abgezogen wird. Fahrten
