@@ -2,6 +2,12 @@
 
 ## Unveröffentlicht
 
+- **Alte Fahrten werden nachgerechnet.** Beim ersten Start rechnet jedes Gerät aus der
+  gespeicherten Linie heraus, wie lange vor jeder Pause schon gestanden wurde, und schlägt
+  das der Pause zu — einmal je Fahrt, markiert, damit nichts doppelt abgezogen wird. Fahrten
+  ohne Linie auf dem Gerät (und nicht in iCloud) bleiben, wie sie sind.
+- **Neben der Route: auch wie lange schon.** Das rote Band zeigt neben dem Abstand eine
+  mitlaufende Uhr seit dem Verlassen der Route.
 - **Das automatische Anhalten lief nie.** Die Einstellung „Von selbst anhalten nach“ kam
   nicht bei der Aufzeichnung an — seit es sie gibt. Jetzt hält die Fahrt nach der
   eingestellten Zeit Stillstand an, im Auto wie auf dem Rad.

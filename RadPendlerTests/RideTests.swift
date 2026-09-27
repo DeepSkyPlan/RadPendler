@@ -621,4 +621,46 @@ final class RideTests: XCTestCase {
         XCTAssertTrue(store.rides.isEmpty)
         try? FileManager.default.removeItem(at: folder)
     }
+
+    // MARK: Stehen vor der Pause, nachträglich
+
+    /// Eine Fahrt nach altem Muster: 60 s fahren, 120 s stehen (Punkte alle
+    /// 2 s), Pause per Knopf 600 s (Lücke), 60 s fahren — und mittendrin
+    /// ein 40-s-Empfangsloch im Fahren, das keine Pause ist.
+    private func oldStyleTrack() -> [RidePoint] {
+        var p: [RidePoint] = []
+        func add(_ t: Double, _ v: Double) {
+            p.append(RidePoint(lat: 52.5, lon: 13.4 + t * 1e-6, t: start.addingTimeInterval(t), v: v))
+        }
+        for t in stride(from: 0.0, through: 20, by: 2) { add(t, 5) }
+        for t in stride(from: 60.0, through: 100, by: 2) { add(t, 5) }      // Loch 20 → 60
+        for t in stride(from: 102.0, through: 220, by: 2) { add(t, 0.2) }   // steht ab 102
+        for t in stride(from: 822.0, through: 880, by: 2) { add(t, 5) }     // Pause 220 → 822
+        return p
+    }
+
+    func testStandingBeforeAnOldPauseIsFound() {
+        let extra = Ride.standingBeforePauses(oldStyleTrack(), pausedSeconds: 600)
+        XCTAssertEqual(extra, 118, accuracy: 2, "das Stehen vor der Pause, nicht das Empfangsloch")
+        XCTAssertEqual(Ride.standingBeforePauses(oldStyleTrack(), pausedSeconds: 0), 0,
+                       "ohne Pause gibt es nichts zu verschieben")
+    }
+
+    /// Einmal und nicht wieder: der Merker verhindert das doppelte Abziehen.
+    @MainActor func testTheRepairRunsOncePerRide() async {
+        let folder = URL.temporaryDirectory.appending(path: "RideStoreTest-\(UUID().uuidString)")
+        let store = RideStore(folder: folder, defaults: UserDefaults(suiteName: "test-\(UUID().uuidString)")!)
+        let points = oldStyleTrack()
+        let ride = Ride(started: start, ended: start.addingTimeInterval(880), origin: "A", destination: "B",
+                        mode: "bike", meters: 700, movingSeconds: 140, maxKmh: 18,
+                        signalStops: 0, otherStops: 0, signalWaitTotal: 0, plannedSeconds: nil,
+                        pausedSeconds: 600)
+        store.add(ride, track: RideTrack(id: ride.id, points: points, stops: []))
+        await store.repairStandingBeforePauses()
+        XCTAssertEqual(store.rides.first?.pausedSeconds ?? 0, 718, accuracy: 2)
+        XCTAssertEqual(store.rides.first?.standingInPause, true)
+        await store.repairStandingBeforePauses()
+        XCTAssertEqual(store.rides.first?.pausedSeconds ?? 0, 718, accuracy: 2, "nicht zweimal")
+        try? FileManager.default.removeItem(at: folder)
+    }
 }

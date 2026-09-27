@@ -385,6 +385,7 @@ struct RideMeter {
                         signalWaitTotal: signalWaitTotal, plannedSeconds: plannedSeconds,
                         plannedMeters: plannedMeters, plannedSignals: plannedSignals,
                         pausedSeconds: pausedSeconds + currentPause(at: end),
+                        standingInPause: true,
                         appVersion: appVersion,
                         pointCount: points.count, mix: mix.isEmpty ? nil : mix)
         return (ride, RideTrack(id: id, points: points, stops: stops,

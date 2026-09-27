@@ -239,6 +239,29 @@ final class RideStore {
         }
     }
 
+    /// Einmal je Fahrt: das Stehen vor den Pausen älterer Fahrten wird zur
+    /// Pause, so wie es neue Fahrten von selbst tun. Gerechnet wird aus der
+    /// Linie; wo sie fehlt (auf einem anderen Gerät gezeichnet und noch nicht
+    /// in CloudKit), bleibt die Fahrt, wie sie ist, und kommt beim nächsten
+    /// Start wieder dran. Jedes Gerät repariert seine eigene Liste — beim
+    /// Zusammenführen gewinnt die eigene Fassung, und der Merker an der Fahrt
+    /// hält fest, dass nichts zweimal abgezogen wird.
+    func repairStandingBeforePauses() async {
+        let todo = rides.filter { $0.pausedSeconds > 0 && $0.standingInPause != true }
+        guard !todo.isEmpty else { return }
+        var changed = false
+        for ride in todo {
+            guard let track = await track(for: ride),
+                  let k = rides.firstIndex(where: { $0.id == ride.id }) else { continue }
+            let extra = Ride.standingBeforePauses(track.points, pausedSeconds: ride.pausedSeconds)
+            // Nie mehr, als an Fahrzeit neben dem Rollen übrig ist.
+            rides[k].pausedSeconds += min(extra, rides[k].standingSeconds)
+            rides[k].standingInPause = true
+            changed = true
+        }
+        if changed { write() }
+    }
+
     func recoverInterrupted() async {
         let url = interruptedFile
         let recovered = await Task.detached(priority: .userInitiated) { () -> (Ride, RideTrack)? in
