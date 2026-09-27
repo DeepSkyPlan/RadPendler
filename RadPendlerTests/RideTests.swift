@@ -295,22 +295,31 @@ final class RideTests: XCTestCase {
         XCTAssertEqual(stand?.since.timeIntervalSince(start) ?? -1, 10, accuracy: 2)
     }
 
-    /// Hält die App von selbst an, war das Stehen davor ein Halt wie jeder
-    /// andere — an der Schranke hat man gestanden, ob man wollte oder nicht.
-    /// Beim Knopf dagegen fängt mit dem Anhalten die Pause an.
-    func testTheAutomaticPauseKeepsTheStopTheButtonDoesNot() {
-        var automatic = RideMeter()
-        for i in 0...10 { automatic.add(fix(Double(i) * 5, Double(i), speed: 5)) }
-        for i in 11...200 { automatic.add(fix(50, Double(i), speed: 0.1)) }
-        automatic.pause(at: start.addingTimeInterval(200), keepingStop: true)
-        XCTAssertEqual(automatic.stops.count, 1)
-        XCTAssertEqual(automatic.stops.first?.seconds ?? 0, 190, accuracy: 2)
+    /// Die Pause fängt dort an, wo das Stehen anfing — ob die Automatik sie
+    /// nach drei Minuten auslöst oder der Knopf erst beim Absteigen. Die
+    /// Minuten davor sind nicht gefahren und gehören nicht zur Fahrzeit; ein
+    /// Halt wird aus ihnen auch nicht.
+    func testAPauseStartsWhereTheStandstillStarted() {
+        for pauseAt in [200.0, 40.0] {   // Automatik nach ~3 min, Knopf nach 30 s
+            var m = RideMeter()
+            for i in 0...10 { m.add(fix(Double(i) * 5, Double(i), speed: 5)) }
+            for i in 11...Int(pauseAt) { m.add(fix(50, Double(i), speed: 0.1)) }
+            m.pause(at: start.addingTimeInterval(pauseAt))
+            XCTAssertEqual(m.pausedSince?.timeIntervalSince(start) ?? -1, 10, accuracy: 2)
+            XCTAssertEqual(m.stops.count, 0, "das Stehen vor der Pause ist kein Halt")
+            m.resume(at: start.addingTimeInterval(700))
+            XCTAssertEqual(m.pausedSeconds, 690, accuracy: 2)
+            XCTAssertEqual(m.seconds(at: start.addingTimeInterval(700)), 10, accuracy: 2,
+                           "gefahren wurde nur bis zum Anhalten")
+        }
+    }
 
-        var byHand = RideMeter()
-        for i in 0...10 { byHand.add(fix(Double(i) * 5, Double(i), speed: 5)) }
-        for i in 11...200 { byHand.add(fix(50, Double(i), speed: 0.1)) }
-        byHand.pause(at: start.addingTimeInterval(200))
-        XCTAssertEqual(byHand.stops.count, 0, "wer auf Pause tippt, hat keinen Halt gemacht")
+    /// Wer im Fahren auf Pause tippt, pausiert ab jetzt.
+    func testAPauseWhileMovingStartsNow() {
+        var m = RideMeter()
+        for i in 0...10 { m.add(fix(Double(i) * 5, Double(i), speed: 5)) }
+        m.pause(at: start.addingTimeInterval(12))
+        XCTAssertEqual(m.pausedSince?.timeIntervalSince(start) ?? -1, 12, accuracy: 0.01)
     }
 
     /// Steht dort eine Ampel, war es eine Ampel — auch nach zehn Minuten.

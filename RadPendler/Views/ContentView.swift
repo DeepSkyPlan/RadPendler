@@ -348,6 +348,7 @@ struct ContentView: View {
                       replanOffRouteMeters: settings.replanOffRouteMeters,
                       replanOffRouteMinutes: settings.replanOffRouteMinutes,
                       autoStopMinutes: settings.autoStopMinutes,
+                      autoPauseMinutes: settings.autoPauseMinutes,
                       plannedSignals: planned)
     }
 
