@@ -201,11 +201,10 @@ final class CalibrationTests: XCTestCase {
         XCTAssertEqual(try left(s).seconds, 900 + 120, accuracy: 1)
         XCTAssertEqual(try left(s).signals, 4)
         // Und auch hier gewinnt die Messung — langsamer …
-        s.measuredRides = 5
-        s.measuredOverallKmh = 12
+        s.bikeOverallKmh = 12
         XCTAssertEqual(try left(s).seconds, 5_000 / (12 / 3.6), accuracy: 1)
         // … wie schneller.
-        s.measuredOverallKmh = 30
+        s.bikeOverallKmh = 30
         XCTAssertEqual(try left(s).seconds, 5_000 / (30 / 3.6), accuracy: 1)
     }
 
@@ -279,5 +278,28 @@ final class CalibrationTests: XCTestCase {
                       t: noon.addingTimeInterval(Double(i)), v: 5, h: nil)
         }
         XCTAssertNil(ElevationProfile.from(points))
+    }
+
+    /// Rad und Auto haben je ihren eigenen Schnitt: Autofahrten schieben den
+    /// Rad-Schnitt nicht, und der Auto-Schnitt wird erst mit drei Fahrten.
+    func testCarAndBikeAveragesAreSeparate() {
+        let s = settings()
+        func ride(_ mode: TravelMode, km: Double, minutes: Double, day: Double) -> Ride {
+            Ride(started: Date(timeIntervalSince1970: 1_780_000_000 + day * 86_400),
+                 ended: Date(timeIntervalSince1970: 1_780_000_000 + day * 86_400 + minutes * 60),
+                 origin: "A", destination: "B", mode: mode.rawValue, meters: km * 1000,
+                 movingSeconds: minutes * 50, maxKmh: 60, signalStops: 0, otherStops: 0,
+                 signalWaitTotal: 0, plannedSeconds: nil)
+        }
+        let cars = (0..<3).map { ride(.car, km: 20, minutes: 30, day: Double($0)) }   // 40 km/h
+        s.calibrate(from: cars)
+        s.calibrateCar(from: cars)
+        XCTAssertEqual(s.bikeOverallKmh, 0, "Autofahrten sind kein Rad-Schnitt")
+        XCTAssertEqual(s.carOverallKmh, 40, accuracy: 0.5)
+        XCTAssertEqual(s.snapshot.carOverallKmh ?? 0, 40, accuracy: 0.5)
+        let bikes = (0..<3).map { ride(.bike, km: 10, minutes: 30, day: Double($0) + 10) }  // 20 km/h
+        s.calibrate(from: cars + bikes)
+        XCTAssertEqual(s.bikeOverallKmh, 20, accuracy: 0.5)
+        XCTAssertEqual(s.carOverallKmh, 40, accuracy: 0.5, "und umgekehrt")
     }
 }

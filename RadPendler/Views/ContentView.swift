@@ -524,6 +524,7 @@ struct ContentView: View {
         // Und was sie über das Tempo dieses Fahrers weiß, steht ab jetzt in
         // den Einstellungen.
         settings.calibrate(from: rides.rides)
+        settings.calibrateCar(from: rides.rides)
         // Die Fahrt ist vorbei: die App dreht sich wieder wie jede andere.
         settings.orientation = .auto
         settings.orientation.apply()

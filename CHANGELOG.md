@@ -1,5 +1,19 @@
 # Changelog
 
+## Unveröffentlicht
+
+- **Nach der Fahrt: Ist / Plan auch für Fahrzeit und Strecke**, die Einheit steht im Titel
+  jeder Kachel („Strecke / Plan (km)“ → „22,4 / 22,2“).
+- **Höhenprofil sagt, was es zählt**: „↑ 31 hm bergauf · ↓ 28 hm · 34–65 m ü. NN“ statt
+  nur „+31 m“ — die Zahl war schon immer die Summe der Anstiege.
+- **Gesamtschnitt je Verkehrsmittel, einstellbar.** Rad und Auto haben je einen eigenen
+  Tür-zu-Tür-Schnitt, von Hand stellbar und nach jeder Fahrt aus den eigenen Fahrten
+  fortgeschrieben (ab drei). Beim Auto ist er die Untergrenze für Apples Fahrzeit.
+- **Einstellungen → Verkehrsmittel** hat neben *Fahrrad* jetzt *Auto* (Parkplatzsuche,
+  Schnitt) und *Bus & Bahn* (Umstieg, Fahrplanquelle); beides stand vorher unter
+  *Navigation*.
+- Anleitung: der Abschnitt zur Fahrt beschreibt Bänder und Töne, wie sie jetzt sind.
+
 ## 1.6.1 (Build 42) — „wenig Autos“ meidet die Hauptstraßen
 
 - **„wenig Autos“ meidet jetzt wirklich die Hauptstraßen.** Die Linie kam von BRouters

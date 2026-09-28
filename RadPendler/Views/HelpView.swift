@@ -55,7 +55,7 @@ struct HelpView: View {
                     ])
                     section(L("Fahrt aufzeichnen"), "record.circle", [
                         L("Der grüne Knopf rechts neben der gewählten Fahrt zeichnet auf, was du wirklich fährst: Strecke, Geschwindigkeit, Ampelhalts."),
-                        L("Oben im roten Band steht, was als Nächstes kommt und in wie vielen Metern. Die Kurven rechnet die App aus der geplanten Linie — es sind Hinweise, keine Navigation, und sie sagt nichts an."),
+                        L("Vor einer Abbiegung steht oben ein grünes Band mit Pfeil und Metern — links abbiegen links, rechts abbiegen rechts. Dazu ein Ton bei 250 m und ein doppelter kurz davor, links tiefer, rechts höher. Neben der Route steht mittig ein rotes Band mit Abstand und Zeit. Die Kurven rechnet die App aus der geplanten Linie — es sind Hinweise, keine Navigation."),
                         L("Die große Zahl ist dein aktuelles Tempo, in der Farbe, in der die Linie gerade gezeichnet wird. Der Pfeil auf der Karte zeigt immer dahin, wo du hinfährst."),
                         L("Der Abbiegepfeil ist grün und kommt erst 250 m vor der Abbiegung — ein Pfeil, der zwei Kilometer lang „rechts“ sagt, sieht man nicht mehr an, wenn es so weit ist. Rot ist nur eines: dass du neben der Route bist."),
                         L("Unten steht, was noch kommt: Reststrecke, Restzeit und die Uhrzeit der Ankunft. Oben in der Leiste stehen dieselben zwei Zahlen statt des Countdowns — losgehen musst du nicht mehr."),
