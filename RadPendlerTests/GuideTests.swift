@@ -214,7 +214,7 @@ final class GuideTests: XCTestCase {
         // neue Variante nicht verschlucken.
         let old = ["balanced", "fastest", "quiet", "shortest"]
         let order: [BikeVariant] = storedOrder(old, fallback: BikeVariant.defaultOrder)
-        XCTAssertEqual(order.count, BikeVariant.allCases.count)
+        XCTAssertEqual(order.count, BikeVariant.defaultOrder.count)
         XCTAssertTrue(order.contains(.lowTraffic))
         XCTAssertEqual(order.first, .balanced, "die bekannte Reihenfolge bleibt vorn")
         XCTAssertEqual(BRouterClient.Profile.lowTraffic.rawValue, "fastbike-lowtraffic")

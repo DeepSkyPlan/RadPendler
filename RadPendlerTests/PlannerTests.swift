@@ -489,10 +489,10 @@ final class PlannerTests: XCTestCase {
     /// auf beiden Seiten ein vollständiges `load()`.
     func testTheOrderNormalisationDoesNotConvergeBetweenVersions() {
         let stored = ["fastest", "shortest", "balanced", "quiet"]
-        let newer = storedOrder(stored, fallback: BikeVariant.allCases)
-        XCTAssertEqual(newer, BikeVariant.allCases, "die neuere Fassung hängt an, was fehlt")
+        let newer = storedOrder(stored, fallback: BikeVariant.defaultOrder)
+        XCTAssertEqual(newer, [.fastest, .shortest, .balanced, .quiet, .lowTraffic], "die neuere Fassung hängt an, was fehlt")
         let backAgain = storedOrder(newer.map(\.rawValue).filter { $0 != "lowTraffic" },
-                                    fallback: BikeVariant.allCases)
+                                    fallback: BikeVariant.defaultOrder)
         XCTAssertEqual(backAgain, newer, "und tut es beim nächsten Mal wieder")
         XCTAssertNotEqual(newer.map(\.rawValue), stored,
                           "die normalisierte Fassung ist nicht die gespeicherte — genau darum darf sie nicht hinaus")

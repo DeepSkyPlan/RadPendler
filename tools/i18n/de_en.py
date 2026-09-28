@@ -466,6 +466,7 @@ T.update({
 "Ø %@ je Halt · Ø %@ je Ampel · %d Vorbeifahrten": "avg %@ per stop · avg %@ per light · %d passes",
 "%@ neben der Route, Richtung %@": "%@ off the route, heading %@",
 "seit %@": "for %@",
+"ein anderer Weg — in keiner Hinsicht der beste, aber anders": "another way — not the best at anything, but different",
 "Ampelwartezeit (m:ss)": "Waiting at lights (m:ss)",
 "Die Fahrzeit kommt von Apple Karten mit Verkehrslage, dazu die Parkplatzsuche. Der Gesamtschnitt ist deine eigene Messung, Tür zu Tür: wäre Apple schneller als er, gilt er. Die App schreibt ihn nach jeder aufgezeichneten Autofahrt fort, sobald es drei gibt; getrennt vom Rad.":
     "The driving time comes from Apple Maps with live traffic, plus looking for parking. The overall average is your own measurement, door to door: if Apple would be faster than that, the average counts. The app updates it after every recorded car trip once there are three; separately from the bike.",

@@ -227,6 +227,15 @@ struct BikeCandidate {
                                           .balanced: balanced, .quiet: quiet, .lowTraffic: lowTraffic]
         var roles: [Int: [BikeVariant]] = [:]
         for v in order { roles[winner[v]!, default: []].append(v) }
+        // **Gewinnt eine Linie alles, bleibt es nicht bei einer.** Seit „wenig
+        // Autos" mit eigenem Profil fährt, holt dessen Linie oft alle drei
+        // Rollen auf einmal — und von drei angefragten, verschiedenen Wegen
+        // stand nur einer da (Nutzer, 28.09.2026). Die übrigen füllen die
+        // freien Plätze als „Alternative", die ausgewogenste zuerst; einen
+        // Namen, den sie nicht verdient, bekommt keine.
+        let spare = all.indices.filter { roles[$0] == nil }
+            .sorted { all[$0].balancedScore(s) < all[$1].balancedScore(s) }
+        for i in spare.prefix(Swift.max(0, order.count - roles.count)) { roles[i] = [.alternative] }
         let rank = { (v: BikeVariant) in order.firstIndex(of: v) ?? order.count }
         return roles
             .map { (all[$0.key], $0.value.sorted { rank($0) < rank($1) }) }

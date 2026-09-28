@@ -171,6 +171,7 @@ struct TripPlanner {
             case .shortest: requests.append(("shortest", .shortest, 0))
             case .quiet: requests.append(("safety", .quiet, 0))
             case .lowTraffic: requests.append((L("verkehrsarm"), .lowTraffic, 0))
+            case .alternative: break
             }
         }
         // Höchstens so viele Anfragen gleichzeitig an BRouter. Der öffentliche

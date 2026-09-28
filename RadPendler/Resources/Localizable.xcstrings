@@ -4236,6 +4236,17 @@
         }
       }
     },
+    "ein anderer Weg — in keiner Hinsicht der beste, aber anders": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "another way — not the best at anything, but different"
+          }
+        }
+      }
+    },
     "fertig machen %@": {
       "extractionState": "manual",
       "localizations": {
