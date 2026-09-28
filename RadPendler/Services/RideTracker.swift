@@ -99,6 +99,8 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// unterwegs neu geplant wird — auf der Karte liegt sie dann dünn neben
     /// der neuen, und hinterher neben der gefahrenen.
     private(set) var originalRoute: [CLLocationCoordinate2D] = []
+    /// Jede Route, die eine Neuplanung verworfen hat, älteste zuerst.
+    private(set) var pastRoutes: [[CLLocationCoordinate2D]] = []
     /// Wie weit jede geplante Ampel vom Anfang der Route entfernt liegt,
     /// aufsteigend. Damit ist „wie viele kommen noch" ein Vergleich und keine
     /// Suche über die halbe Stadt.
@@ -155,6 +157,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         self.roadPoints = roadPoints
         plannedRoute = route
         originalRoute = route
+        pastRoutes = []
         routeLengths = TurnGuide.cumulative(route)
         routeIndex = 0
         turns = TurnGuide.steps(on: route)
@@ -685,6 +688,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         // Minute noch einmal versuchen.
         if heading >= 0, Self.turnsBack(route.coordinates, heading: heading) { return }
         signalsBehind = progress?.signalsPassed ?? signalsBehind
+        pastRoutes.append(plannedRoute)
         plannedRoute = route.coordinates
         routeLengths = TurnGuide.cumulative(route.coordinates)
         routeIndex = 0

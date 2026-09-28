@@ -1,7 +1,10 @@
 # Changelog
 
-## Unveröffentlicht
+## 1.8 (Build 44) — Karte in drei Farben, Ampelzähler nach Neuplanung
 
+- **Karte während der Fahrt in drei Farben**: gefahren grün und breit, die gültige Route
+  blau, jede durch Neuplanung verworfene grau — beide schmaler als das Gefahrene. Die
+  Tempofarben bleiben der Auswertung nach der Fahrt.
 - **Ampelzähler während der Fahrt stimmt nach einer Neuplanung.** Stand „5/7“, wo der Plan 27
   Ampeln hatte: nach einer Neuplanung zählte die Anzeige nur die Ampeln der **alten** Route,
   die zufällig auch auf der neuen lagen, und vergaß die schon passierten. Jetzt holt die

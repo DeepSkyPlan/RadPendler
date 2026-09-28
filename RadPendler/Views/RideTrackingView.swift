@@ -140,16 +140,16 @@ struct RideTrackingView: View {
 
     private var map: some View {
         RouteMapView(options: options, selectedID: selectedID, radarFrames: [], radarTime: nil,
-                     track: tracker.meter.points, speedScale: scale,
+                     track: tracker.meter.points, speedScale: scale, trackTint: .systemGreen,
                      trackStops: tracker.meter.stops,
                      // Nur die Ampeln **dieser** Route: `tracker.signals` hat
                      // zusätzlich alles Gelernte quer durch die Stadt.
                      signals: tracker.plannedSignals,
                      guidedLine: tracker.plannedRoute,
-                     // Nach einer Neuplanung liegt die ursprüngliche Linie dünn
-                     // daneben — sonst wüsste niemand, dass sich etwas geändert
-                     // hat.
-                     plannedLine: tracker.replans > 0 ? tracker.originalRoute : [],
+                     // Nach einer Neuplanung liegen die verworfenen Linien dünn
+                     // und grau daneben — sonst wüsste niemand, dass sich etwas
+                     // geändert hat.
+                     pastLines: tracker.pastRoutes,
                      rider: tracker.here, course: tracker.course, following: following,
                      showBoth: tracker.detour?.nearest,
                      onPan: {
