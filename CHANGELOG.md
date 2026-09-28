@@ -2,6 +2,8 @@
 
 ## Unveröffentlicht
 
+- **Abbiegehinweis auf dem Rad erst 125 m vorher** statt 250 m — die Hälfte vom Auto. Pfeil und
+  erster Ton kommen gemeinsam; der doppelte Ton bleibt bei 30 m.
 - **Nach der Fahrt: Ist / Plan auch für Fahrzeit und Strecke**, die Einheit steht im Titel
   jeder Kachel („Strecke / Plan (km)“ → „22,4 / 22,2“).
 - **Höhenprofil sagt, was es zählt**: „↑ 31 hm bergauf · ↓ 28 hm · 34–65 m ü. NN“ statt

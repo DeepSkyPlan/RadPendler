@@ -170,7 +170,7 @@ struct RideTrackingView: View {
 
     private var showsTurn: Bool {
         guard let next = tracker.nextTurn else { return false }
-        return next.meters <= TurnGuide.announceMeters
+        return next.meters <= tracker.announceMeters
     }
 
     /// Der Pfeil zeigt **auf der Karte**, nicht nach Norden. Die Karte ist in
