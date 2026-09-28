@@ -1,5 +1,16 @@
 # Changelog
 
+## Unveröffentlicht
+
+- **Ampelzähler während der Fahrt stimmt nach einer Neuplanung.** Stand „5/7“, wo der Plan 27
+  Ampeln hatte: nach einer Neuplanung zählte die Anzeige nur die Ampeln der **alten** Route,
+  die zufällig auch auf der neuen lagen, und vergaß die schon passierten. Jetzt holt die
+  Neuplanung die Ampeln des neuen Wegs (OpenStreetMap-Ausschnitt plus Gelerntes), und die
+  passierten zählen weiter mit.
+- Ampeln werden gegen die Linie selbst gemessen, nicht nur gegen ihre Stützpunkte — auf einer
+  langen Geraden fiel eine Ampel in der Mitte sonst aus der Zählung. Zwei Ampelknoten einer
+  Kreuzung zählen als eine.
+
 ## 1.7 (Build 43) — Ist/Plan, Schnitt je Verkehrsmittel, Bildschirm wieder hell
 
 - **Nach der Fahrt wird der Bildschirm wieder hell.** Das Wiederherstellen hing am

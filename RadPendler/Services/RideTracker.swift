@@ -1,5 +1,6 @@
 import CoreLocation
 import Observation
+import simd
 import UIKit
 
 /// Records a ride: the way actually taken, how fast, and where it stood still.
@@ -166,6 +167,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         replanTask = nil
         self.signals = signals
         self.plannedSignals = plannedSignals
+        signalsBehind = 0
         signalStations = Self.stations(of: plannedSignals, on: route, cum: routeLengths)
         progress = Self.progress(travelled: 0, cum: routeLengths, stations: signalStations)
         switch manager.authorizationStatus {
@@ -541,7 +543,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                 // Neben der Route liegt die Abbiegung auf einer anderen Straße.
                 if detour == nil { soundTurn(n.step, meters: n.meters) }
                 let next = Self.progress(travelled: routeLengths[Swift.min(n.index, routeLengths.count - 1)],
-                                         cum: routeLengths, stations: signalStations)
+                                         cum: routeLengths, stations: signalStations, behind: signalsBehind)
                 if progress != next { progress = next }
             }
             updateDetour(at: last.coordinate)
@@ -635,9 +637,9 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// der Fahrt einfriert. Die Regel gibt es, damit eine beiläufige
     /// Neuplanung nicht nachträglich umdeutet, was schon gemessen wurde — und
     /// genau das passiert hier nicht: gemessen bleibt, was gemessen wurde, neu
-    /// ist nur der Weg nach vorn. Die Ampeln der alten Route bleiben deshalb
-    /// stehen; für den neuen Weg gibt es keine Kartendaten, aber die Regel
-    /// „ein Halt ab `signalStopSeconds` ist eine Ampel" gilt weiter.
+    /// ist nur der Weg nach vorn. Die Ampeln des neuen Wegs kommen aus dem
+    /// OpenStreetMap-Ausschnitt und dem Gelernten; die schon passierten
+    /// zählen weiter mit (`signalsBehind`).
     private func replan(from here: CLLocationCoordinate2D) {
         guard replanTask == nil, Date.now.timeIntervalSince(lastReplan) >= OffRoute.replanEvery,
               let destination = plannedRoute.last else { return }
@@ -652,9 +654,19 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         // und die Wende kommt nicht mehr in Frage.
         let from = course >= 0 ? Geo.ahead(here, course: course, meters: Self.replanLookahead) : here
         let heading = course
+        let known = signals
         replanTask = Task { [weak self] in
             let route = try? await router.route(from: from, to: destination, mode: mode, departure: .now)
-            await MainActor.run { self?.adopt(route, heading: heading) }
+            // Die Ampeln des **neuen** Wegs: aus demselben OpenStreetMap-
+            // Ausschnitt, mit dem geplant wurde (meist schon im Speicher),
+            // dazu alles Gelernte. Ohne Netz bleibt es beim Gelernten und bei
+            // den Ampeln der alten Route, die auch auf der neuen liegen.
+            var lights: [CLLocationCoordinate2D] = known
+            if let line = route?.coordinates, line.count > 1,
+               let data = try? await RoadDataStore.shared.data(covering: line) {
+                lights += RouteAnalyzer.analyze(line, roads: data).signalPoints
+            }
+            await MainActor.run { self?.adopt(route, heading: heading, lights: lights) }
         }
     }
 
@@ -663,7 +675,8 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// zurückliegt, nah genug, dass nichts übersprungen wird.
     static let replanLookahead = 60.0
 
-    private func adopt(_ route: StreetRoute?, heading: CLLocationDirection = -1) {
+    private func adopt(_ route: StreetRoute?, heading: CLLocationDirection = -1,
+                       lights: [CLLocationCoordinate2D]? = nil) {
         replanTask = nil
         guard isRecording, let route, route.coordinates.count > 1 else { return }
         // Führt der neue Weg als Erstes dorthin zurück, wo man herkommt, ist
@@ -671,6 +684,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         // ein Witz. Dann lieber den alten Weg stehen lassen und es in einer
         // Minute noch einmal versuchen.
         if heading >= 0, Self.turnsBack(route.coordinates, heading: heading) { return }
+        signalsBehind = progress?.signalsPassed ?? signalsBehind
         plannedRoute = route.coordinates
         routeLengths = TurnGuide.cumulative(route.coordinates)
         routeIndex = 0
@@ -678,8 +692,8 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         // Die Ampeln der alten Route liegen auf der neuen woanders — oder gar
         // nicht mehr. Gezählt wird ab hier gegen den neuen Weg; was schon
         // gemessen wurde, bleibt gemessen.
-        signalStations = Self.stations(of: plannedSignals, on: route.coordinates, cum: routeLengths)
-        progress = Self.progress(travelled: 0, cum: routeLengths, stations: signalStations)
+        signalStations = Self.stations(of: lights ?? plannedSignals, on: route.coordinates, cum: routeLengths)
+        progress = Self.progress(travelled: 0, cum: routeLengths, stations: signalStations, behind: signalsBehind)
         nextTurn = nil
         if detour != nil { detour = nil }
         offSince = nil
@@ -720,26 +734,53 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     nonisolated static func stations(of signals: [CLLocationCoordinate2D],
                                      on route: [CLLocationCoordinate2D], cum: [Double]) -> [Double] {
         guard route.count > 1, cum.count == route.count else { return [] }
+        // Gegen die **Strecken** zwischen den Stützpunkten, nicht gegen die
+        // Stützpunkte selbst: eine gerade Straße hat oft nur alle paar hundert
+        // Meter einen, und eine Ampel mittendrin lag dann weiter als
+        // `offMeters` von jedem entfernt — sie fiel aus der Zählung.
+        let flat = Flat(latitude: route[0].latitude)
+        let pts = route.map(flat.point)
         var out: [Double] = []
         for s in signals {
+            let p = flat.point(s)
             var best = (d: Double.infinity, at: 0.0)
-            for (i, c) in route.enumerated() {
-                let d = c.distance(to: s)
-                if d < best.d { best = (d, cum[i]) }
+            for i in 0..<(pts.count - 1) {
+                let a = pts[i], ab = pts[i + 1] - a
+                let len2 = simd_length_squared(ab)
+                let t = len2 > 0 ? Swift.min(Swift.max(simd_dot(p - a, ab) / len2, 0), 1) : 0
+                let d = simd_length(p - (a + ab * t))
+                if d < best.d { best = (d, cum[i] + t * (cum[i + 1] - cum[i])) }
             }
-            guard best.d <= OffRoute.offMeters else { continue }
+            guard best.d <= Self.stationMeters else { continue }
             out.append(best.at)
         }
-        return out.sorted()
+        // Eine Kreuzung mit mehreren Ampelknoten ist eine Ampel.
+        var merged: [Double] = []
+        for s in out.sorted() where merged.last.map({ s - $0 > Self.stationMerge }) ?? true { merged.append(s) }
+        return merged
     }
 
-    nonisolated static func progress(travelled: Double, cum: [Double], stations: [Double]) -> Progress {
+    /// So nah muss eine Ampel an der Linie liegen, um auf ihr zu zählen —
+    /// dieselbe Grenze wie beim Planen (`RouteAnalyzer`: 15 m), mit etwas
+    /// Luft für Linien, die die Fahrbahnmitte und nicht den Radweg zeichnen.
+    static let stationMeters = 25.0
+    /// Und so nah beieinander sind zwei Ampeln eine Kreuzung.
+    static let stationMerge = 40.0
+
+    nonisolated static func progress(travelled: Double, cum: [Double], stations: [Double],
+                                     behind: Int = 0) -> Progress {
         let total = cum.last ?? 0
         let passed = stations.filter { $0 <= travelled + 20 }.count
         return Progress(metersLeft: Swift.max(0, total - travelled),
-                        signalsLeft: stations.count - passed, signalsPassed: passed,
-                        plannedSignals: stations.count, plannedMeters: total)
+                        signalsLeft: stations.count - passed, signalsPassed: behind + passed,
+                        plannedSignals: behind + stations.count, plannedMeters: total)
     }
+
+    /// Ampeln, die vor der letzten Neuplanung schon hinter einem lagen. Die
+    /// Anzeige „5/27" zählt die ganze Fahrt, nicht nur den neuen Weg — sonst
+    /// stand nach einer Neuplanung „5/7" da, weil von der alten Route nur
+    /// sieben Ampeln auf der neuen lagen.
+    private var signalsBehind = 0
 
     /// Ob diese Ortung heißt, dass es weitergeht: schnell genug, oder weit
     /// genug weg von der Stelle, an der die Pause begann. Beides, weil der

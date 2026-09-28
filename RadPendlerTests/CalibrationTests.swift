@@ -169,6 +169,26 @@ final class CalibrationTests: XCTestCase {
 
     // MARK: Was noch kommt
 
+    /// Eine gerade Straße hat oft nur an den Enden einen Stützpunkt. Die
+    /// Ampel in der Mitte liegt trotzdem auf ihr.
+    func testALightHalfwayAlongAStraightStretchCounts() {
+        let route = [east(0), east(1000)]
+        let cum = TurnGuide.cumulative(route)
+        let stations = RideTracker.stations(of: [east(500), east(510)], on: route, cum: cum)
+        XCTAssertEqual(stations.count, 1, "zwei Knoten einer Kreuzung sind eine Ampel")
+        XCTAssertEqual(stations.first ?? 0, 500, accuracy: 5)
+    }
+
+    /// Nach einer Neuplanung zählt die Anzeige die ganze Fahrt weiter.
+    func testProgressKeepsTheLightsBehindAReplan() {
+        let route = stride(from: 0.0, through: 1000, by: 50).map { east($0) }
+        let cum = TurnGuide.cumulative(route)
+        let p = RideTracker.progress(travelled: 0, cum: cum, stations: [300, 700], behind: 5)
+        XCTAssertEqual(p.plannedSignals, 7)
+        XCTAssertEqual(p.signalsPassed, 5)
+        XCTAssertEqual(p.signalsLeft, 2)
+    }
+
     func testStationsAndProgressAlongTheRoute() {
         let route = stride(from: 0.0, through: 1000, by: 50).map { east($0) }
         let cum = TurnGuide.cumulative(route)
