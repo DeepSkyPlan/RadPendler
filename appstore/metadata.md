@@ -10,7 +10,38 @@ Fassung von Name, Untertitel, Keywords und Beschreibung steht am Ende und
 gehört in die Lokalisierung **Englisch (USA)**, damit die Seite in Stores
 außerhalb Deutschlands nicht leer aussieht.
 
-## Einreichungs-Checkliste (1.5, Build 40 — die einzureichende Fassung)
+## Einreichungs-Checkliste (1.8, Build 44 — die einzureichende Fassung)
+
+Was seit 1.5 dazugekommen ist, steht in **fett**; alles andere gilt wie in der
+1.5-Liste darunter.
+
+1. **Build 1.8 (44)** auswählen — liegt seit dem 28.09.2026 in TestFlight
+2. Screenshots wie 1.5 (Build 40). Neue Aufnahmen sind nicht nötig; der
+   Fahrtmodus sieht mit der dreifarbigen Karte leicht anders aus — wer es genau
+   will, nimmt die Fahrtmodus-Bilder neu auf (Anleitung unten)
+3. **Was ist neu** — Text unten, **für 1.8**, deutsch **und englisch**
+4. **Hinweis an die Prüfung**: seit 1.6 trägt die App den Hintergrundmodus
+   `audio`. Begründung für App Review (Feld „Notes“): *„Während einer
+   aufgezeichneten Fahrt spielt die App kurze Hinweistöne vor Abbiegungen sowie
+   bei Start und Ende, auch bei gesperrtem Bildschirm — wie eine Navigations-App.
+   Außerhalb einer Fahrt spielt sie nichts. Abschaltbar unter Einstellungen →
+   Fahrt aufzeichnen.“* Englisch: *“During a recorded ride the app plays short cues
+   before turns and at start and end, also with the screen locked — like a
+   navigation app. Outside a ride it plays nothing. Can be switched off in
+   Settings → Record ride.”*
+5. **Beschreibung**: die Radvarianten heißen jetzt „wenig Autos“ und „wenig
+   Halts“ (deutsch) bzw. “few cars” / “few stops” (englisch) — im Text unten
+   angepasst
+6. App-Datenschutz unverändert: Standort → Genauer Standort →
+   App-Funktionalität, nicht verknüpft, kein Tracking. **Neu übertragen wird
+   nichts Persönliches**: das eigene BRouter-Profil für „wenig Autos“ geht als
+   Profiltext an brouter.de, ohne Koordinaten oder Kennung
+7. CloudKit-Schema: **kein neues Feld seit 1.5** in `RideTrack`; `Ride` reist
+   über den Schlüssel-Wert-Speicher (neues Feld `standingInPause` braucht kein
+   Schema)
+8. Alles Übrige (URLs, Alterseinstufung, Kategorie, Preis) wie 1.5
+
+## Einreichungs-Checkliste (1.5, Build 40)
 
 Der Stand, der in den Store soll. Was seit 1.4 dazugekommen ist, steht in
 **fett**; alles andere gilt unverändert und ist unten ausgeführt.
@@ -125,7 +156,7 @@ neu ist, nicht was immer gilt.
 
 ## Beschreibung (max 4000)
 
-Länge: **3994** von 4000 Zeichen. Stand 1.5.
+Länge: **3998** von 4000 Zeichen. Stand 1.8.
 
 ```
 Wie kommst du heute zur Arbeit?
@@ -138,7 +169,7 @@ Gebaut für einen echten Arbeitsweg — und sie sagt, was sie nicht weiß, statt
 zu raten.
 
 DIE VIER WEGE
-• Fahrrad in Varianten: schnellst, kürzest, optimal, ruhigst, verkehrsarm. Aus
+• Fahrrad in Varianten: schnellst, kürzest, optimal, wenig Autos, wenig Halts. Aus
   mehreren BRouter-Profilen und aus Apple Karten, bewertet nach Ampeln und
   Hauptstraßen
 • Rad + Bahn: die App sucht sich die Bahnhöfe selbst, radelt hin, fährt mit und
@@ -212,6 +243,45 @@ BRouter und Overpass auf OpenStreetMap-Daten (© OpenStreetMap-Mitwirkende,
 ODbL), Deutscher Wetterdienst und Open-Meteo.
 
 Alle Zeiten ohne Gewähr.
+```
+
+## Was ist neu (1.8)
+
+Für das Feld „Neue Funktionen“ der Version 1.8 (max 4000, hier 1593). Deckt alles seit
+der Store-Fassung 1.5 ab (1.6, 1.6.1, 1.7 waren nur TestFlight):
+
+```
+Diese Fassung macht die Fahrt hörbar und die Zahlen ehrlich.
+
+UNTERWEGS
+• Töne: beim Start, beim Ende und vor jeder Abbiegung — auf dem Rad 125 m
+  vorher, im Auto 250 m, dazu ein doppelter kurz davor. Links tiefer, rechts
+  höher. Hörbar auch bei stummgeschaltetem Telefon, Musik wird dafür kurz
+  leiser; abschaltbar.
+• Der Abbiegepfeil steht auf seiner Seite: links abbiegen links oben, rechts
+  abbiegen rechts oben. Neben der Route ein rotes Band in der Mitte, mit
+  Abstand und der Zeit, seit du sie verlassen hast.
+• Die Karte in drei Farben: gefahren grün, die gültige Route blau, verworfene
+  Routen grau.
+• Der Ampelzähler stimmt auch nach einer Neuplanung.
+• Von selbst anhalten funktioniert jetzt wirklich. Die Minuten Stillstand vor
+  einer Pause zählen nicht mehr zur Fahrzeit, und eine angehaltene Fahrt
+  beendet sich nach der eingestellten Zeit.
+• Nach der Fahrt wird der Bildschirm wieder hell. Läuft nebenher ein Video
+  oder Musik, dunkelt er gar nicht erst ab.
+
+PLANEN
+• „wenig Autos“ meidet die Hauptstraßen jetzt wirklich — auch die mit Radweg.
+• Rad + Bahn kann in Berlin und Brandenburg auch an der Tram beginnen und enden.
+• Gesamtschnitt getrennt für Rad und Auto, einstellbar und aus deinen Fahrten
+  gelernt. Das Auto ist nie schneller als dein eigener Schnitt.
+• Die Einstellungen haben eigene Blöcke für Auto und für Bus & Bahn.
+
+HINTERHER
+• Ist gegen Plan auch für Fahrzeit und Strecke; die Einheit steht im Titel.
+• Das Höhenprofil nennt Höhenmeter bergauf und bergab.
+• Ältere Fahrten werden einmal nachgerechnet: das Stehen vor einer Pause
+  zählt zur Pause.
 ```
 
 ## Was ist neu (1.5)
@@ -540,9 +610,46 @@ traffic lights on the route, rain point by point, and a countdown to leaving.
 commute,bike,cycling,route,train,transit,bike on train,rain radar,traffic
 lights,countdown  [90]
 
+### What's New (1.8)
+
+For the field “What’s New in This Version” of 1.8 (max 4000, here 1542):
+
+```
+This version makes the ride audible and the numbers honest.
+
+ON THE WAY
+• Sounds: at the start, at the end and before every turn — 125 m ahead on the
+  bike, 250 m in the car, plus a double one just before. Lower for left, higher
+  for right. Audible even with the phone on silent; music dips briefly; can be
+  switched off.
+• The turn arrow sits on its side: a left turn top left, a right turn top
+  right. Off the route, a red band in the middle shows the distance and how
+  long you have been off it.
+• The map in three colours: ridden in green, the current route in blue,
+  discarded routes in grey.
+• The traffic-light counter stays right after a re-route.
+• Pausing by itself now really works. The minutes standing before a pause no
+  longer count as riding time, and a paused ride ends itself after the time
+  you set.
+• After the ride the screen comes back to full brightness. With a video or
+  music playing alongside it does not dim at all.
+
+PLANNING
+• “Few cars” now really avoids main roads — including those with a bike lane.
+• In Berlin and Brandenburg, bike + train can also start and end at a tram stop.
+• Separate overall averages for bike and car, adjustable and learned from your
+  rides. The car is never faster than your own average.
+• Settings have their own sections for car and for bus & train.
+
+AFTERWARDS
+• Actual versus plan for time and distance too; the unit is in the title.
+• The elevation profile names metres climbed and descended.
+• Older rides are recalculated once: standing before a pause counts as pause.
+```
+
 ### Description
 
-Length: **3561** of 4000 characters.
+Length: **3576** of 4000 characters. As of 1.8.
 
 ```
 How are you getting to work today?
@@ -557,7 +664,7 @@ addresses, works the cycling time out from your rolling speed plus a wait per
 signalised junction — and says what it does not know instead of guessing.
 
 THE FOUR WAYS
-• Bike, in variants: fastest, shortest, best, quietest. From several BRouter
+• Bike, in variants: fastest, shortest, balanced, few cars, few stops. From several BRouter
   profiles and from Apple Maps, scored on traffic lights, main roads crossed
   and metres spent alongside main roads
 • Bike + train: the app finds the stations itself, rides there, takes the

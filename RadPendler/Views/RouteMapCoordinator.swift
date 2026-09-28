@@ -58,7 +58,15 @@ extension RouteMapView {
         private var hidesCompass = false
         private var live: Rider?
 
+        /// Siehe `RouteMapView.trackTint`.
+        private var trackTint: UIColor?
+
         func update(_ map: MKMapView, _ view: RouteMapView) {
+            if trackTint != view.trackTint {
+                trackTint = view.trackTint
+                map.removeOverlays(map.overlays.filter { $0 is TrackLine })
+                drawnTrack = 0
+            }
             onSelect = view.onSelect
             onPan = view.onPan
             // Never `layoutMargins`. Setting them on an MKMapView whose
@@ -110,13 +118,18 @@ extension RouteMapView {
         /// vorher zeigte die Karte trotzdem weiter die alte Linie, während die
         /// Pfeile schon auf die neue zeigten.
         private func updateGuideLines(_ map: MKMapView, _ view: RouteMapView) {
-            let key = Self.lineKey(view.guidedLine) + "|" + Self.lineKey(view.plannedLine)
+            let key = ([view.guidedLine, view.plannedLine] + view.pastLines).map(Self.lineKey).joined(separator: "|")
             guard key != guideKey else { return }
             guideKey = key
             map.removeOverlays(map.overlays.filter { $0 is GuideLine })
             if view.plannedLine.count > 1 {
                 let old = GuideLine(coordinates: view.plannedLine, count: view.plannedLine.count)
                 old.faded = true
+                map.addOverlay(old, level: .aboveRoads)
+            }
+            for line in view.pastLines where line.count > 1 {
+                let old = GuideLine(coordinates: line, count: line.count)
+                old.past = true
                 map.addOverlay(old, level: .aboveRoads)
             }
             if view.guidedLine.count > 1 {
@@ -586,7 +599,7 @@ extension RouteMapView {
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let track = overlay as? TrackLine {
                 let r = MKPolylineRenderer(polyline: track)
-                r.strokeColor = RideColors.palette[Swift.min(track.step, RideColors.palette.count - 1)]
+                r.strokeColor = trackTint ?? RideColors.palette[Swift.min(track.step, RideColors.palette.count - 1)]
                 r.lineWidth = 7
                 r.lineCap = .round
                 r.lineJoin = .round
@@ -598,9 +611,14 @@ extension RouteMapView {
                 // ausgegrauter Rest, sondern die Auskunft „hier wolltest du
                 // lang". Grau liest sich auf einer grauen Straßenkarte als
                 // Straße, blau als Absicht.
-                r.strokeColor = line.faded ? UIColor.systemBlue.withAlphaComponent(0.75)
-                                           : line.kind.uiColor.withAlphaComponent(0.95)
-                r.lineWidth = line.faded ? 3 : 5
+                // Während der Fahrt (Nutzer, 28.09.2026): gefahren grün und
+                // breit, die gültige Route blau, verworfene grau — beide
+                // schmaler als das Gefahrene, das darüber liegt.
+                r.strokeColor = line.past ? UIColor.systemGray.withAlphaComponent(0.8)
+                    : line.faded ? UIColor.systemBlue.withAlphaComponent(0.75)
+                    : trackTint != nil ? UIColor.systemBlue.withAlphaComponent(0.9)
+                    : line.kind.uiColor.withAlphaComponent(0.95)
+                r.lineWidth = line.past ? 3 : line.faded ? 3 : trackTint != nil ? 4 : 5
                 if line.faded { r.lineDashPattern = [4, 5] }
                 r.lineCap = .round
                 return r

@@ -25,6 +25,10 @@ struct RouteMapView: UIViewRepresentable {
     /// Nach welcher Skala die gefahrene Linie eingefärbt wird — Rad, Auto oder
     /// auf diese eine Fahrt zugeschnitten.
     var speedScale: RideColors.Scale = .bike
+    /// Gesetzt, wird die gefahrene Linie in **einer** Farbe gezeichnet statt
+    /// nach Tempo — während der Fahrt: grün ist „schon gefahren", und die
+    /// Tempofarben stritten sich mit Blau (Route) und Grau (verworfen).
+    var trackTint: UIColor? = nil
     /// Where the ride stood still, and whether that was a red light.
     var trackStops: [RideStop] = []
     /// Lit junctions to show while riding — the planned route's and the ones
@@ -39,6 +43,9 @@ struct RouteMapView: UIViewRepresentable {
     /// Die Linie, die einmal geplant war: dünn und grau daneben. Während einer
     /// Fahrt nach einer Neuplanung, hinterher neben der gefahrenen.
     var plannedLine: [CLLocationCoordinate2D] = []
+    /// Während der Fahrt: jede Route, die durch eine Neuplanung verworfen
+    /// wurde — dünn und grau. Die gerade gültige ist `guidedLine`.
+    var pastLines: [[CLLocationCoordinate2D]] = []
     /// Where the rider is now; drawn as a heading arrow, not as a pin.
     var rider: CLLocationCoordinate2D? = nil
     /// Degrees from north, negative when unknown.
@@ -104,6 +111,8 @@ struct RouteMapView: UIViewRepresentable {
         var kind: LegKind = .bike
         /// Die ursprüngliche Linie — dünn, blau, gestrichelt.
         var faded = false
+        /// Eine verworfene Route während der Fahrt — dünn, grau.
+        var past = false
     }
 
     final class Pin: MKPointAnnotation {
