@@ -10,16 +10,16 @@ Fassung von Name, Untertitel, Keywords und Beschreibung steht am Ende und
 gehört in die Lokalisierung **Englisch (USA)**, damit die Seite in Stores
 außerhalb Deutschlands nicht leer aussieht.
 
-## Einreichungs-Checkliste (1.8, Build 44 — die einzureichende Fassung)
+## Einreichungs-Checkliste (1.8.1, Build 45 — die einzureichende Fassung)
 
 Was seit 1.5 dazugekommen ist, steht in **fett**; alles andere gilt wie in der
 1.5-Liste darunter.
 
-1. **Build 1.8 (44)** auswählen — liegt seit dem 28.09.2026 in TestFlight
+1. **Build 1.8.1 (45)** auswählen — liegt seit dem 28.09.2026 in TestFlight
 2. Screenshots wie 1.5 (Build 40). Neue Aufnahmen sind nicht nötig; der
    Fahrtmodus sieht mit der dreifarbigen Karte leicht anders aus — wer es genau
    will, nimmt die Fahrtmodus-Bilder neu auf (Anleitung unten)
-3. **Was ist neu** — Text unten, **für 1.8**, deutsch **und englisch**
+3. **Was ist neu** — Text unten, **für 1.8.1**, deutsch **und englisch**
 4. **Hinweis an die Prüfung**: seit 1.6 trägt die App den Hintergrundmodus
    `audio`. Begründung für App Review (Feld „Notes“): *„Während einer
    aufgezeichneten Fahrt spielt die App kurze Hinweistöne vor Abbiegungen sowie
@@ -245,9 +245,9 @@ ODbL), Deutscher Wetterdienst und Open-Meteo.
 Alle Zeiten ohne Gewähr.
 ```
 
-## Was ist neu (1.8)
+## Was ist neu (1.8.1)
 
-Für das Feld „Neue Funktionen“ der Version 1.8 (max 4000, hier 1593). Deckt alles seit
+Für das Feld „Neue Funktionen“ der Version 1.8.1 (max 4000, hier 1799). Deckt alles seit
 der Store-Fassung 1.5 ab (1.6, 1.6.1, 1.7 waren nur TestFlight):
 
 ```
@@ -272,6 +272,9 @@ UNTERWEGS
 
 PLANEN
 • „wenig Autos“ meidet die Hauptstraßen jetzt wirklich — auch die mit Radweg.
+• Kopfsteinpflaster meiden: Radrouten machen einen Bogen darum (abschaltbar).
+• Gewinnt eine Radroute alles, zeigt die App trotzdem mehrere Wege — die
+  nächsten deiner Reihenfolge, mit ihrem echten Namen.
 • Rad + Bahn kann in Berlin und Brandenburg auch an der Tram beginnen und enden.
 • Gesamtschnitt getrennt für Rad und Auto, einstellbar und aus deinen Fahrten
   gelernt. Das Auto ist nie schneller als dein eigener Schnitt.
@@ -610,9 +613,9 @@ traffic lights on the route, rain point by point, and a countdown to leaving.
 commute,bike,cycling,route,train,transit,bike on train,rain radar,traffic
 lights,countdown  [90]
 
-### What's New (1.8)
+### What's New (1.8.1)
 
-For the field “What’s New in This Version” of 1.8 (max 4000, here 1542):
+For the field “What’s New in This Version” of 1.8.1 (max 4000, here 1741):
 
 ```
 This version makes the ride audible and the numbers honest.
@@ -636,6 +639,9 @@ ON THE WAY
 
 PLANNING
 • “Few cars” now really avoids main roads — including those with a bike lane.
+• Avoid cobblestones: bike routes steer around them (can be switched off).
+• When one bike route wins everything, the app still shows several — the next
+  ones in your order, under their real names.
 • In Berlin and Brandenburg, bike + train can also start and end at a tram stop.
 • Separate overall averages for bike and car, adjustable and learned from your
   rides. The car is never faster than your own average.
