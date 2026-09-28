@@ -1,5 +1,12 @@
 # Changelog
 
+## Unveröffentlicht
+
+- **Wieder mehrere Radrouten.** Seit „wenig Autos“ mit eigenem Profil fährt, gewann dessen
+  Linie oft alle drei gewünschten Rollen — und von drei angefragten Wegen stand nur einer
+  da, Tippen brachte nichts. Jetzt trägt der Gewinner weiter alle seine Namen, die übrigen
+  Wege füllen die freien Plätze als „Alternative“.
+
 ## 1.8 (Build 44) — Karte in drei Farben, Ampelzähler nach Neuplanung
 
 - **Karte während der Fahrt in drei Farben**: gefahren grün und breit, die gültige Route

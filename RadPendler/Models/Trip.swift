@@ -93,6 +93,10 @@ enum BikeVariant: String, CaseIterable, Comparable {
     // New cases go at the end: `Comparable` reads the position in `allCases`,
     // and inserting one in the middle would silently reorder the old ones.
     case fastest, shortest, balanced, quiet, lowTraffic
+    /// Ein Weg, der keine Rolle gewinnt, weil eine andere Linie alle
+    /// gewonnen hat. Steht nie in der eigenen Reihenfolge — siehe
+    /// `BikeCandidate.pick`.
+    case alternative
 
     /// „ruhigst" und „verkehrsarm" waren am Wort nicht auseinanderzuhalten,
     /// obwohl sie zwei verschiedene Fragen beantworten: die eine, **wie lange
@@ -105,6 +109,7 @@ enum BikeVariant: String, CaseIterable, Comparable {
         case .balanced: L("optimal")
         case .quiet: L("wenig Autos")
         case .lowTraffic: L("wenig Halts")
+        case .alternative: L("Alternative")
         }
     }
 
@@ -117,6 +122,7 @@ enum BikeVariant: String, CaseIterable, Comparable {
         case .balanced: L("die Mischung: zügig, wenig neben Autos, wenig Halts")
         case .quiet: L("die wenigsten Meter neben fahrenden Autos")
         case .lowTraffic: L("am seltensten wegen des Verkehrs anhalten")
+        case .alternative: L("ein anderer Weg — in keiner Hinsicht der beste, aber anders")
         }
     }
 
@@ -127,6 +133,7 @@ enum BikeVariant: String, CaseIterable, Comparable {
         case .balanced: "checkmark.seal"
         case .quiet: "leaf"
         case .lowTraffic: "road.lanes"
+        case .alternative: "arrow.triangle.branch"
         }
     }
 

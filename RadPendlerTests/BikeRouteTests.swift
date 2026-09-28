@@ -164,15 +164,16 @@ final class BikeRouteTests: XCTestCase {
     }
 
     /// Eine Linie, die alles gewinnt, steht **einmal** da und trägt alle
-    /// Namen, die sie gewonnen hat. Weniger Kästen sind dann die richtige
-    /// Antwort — es gibt eben nicht drei verschieden gute Wege. Eine namenlose
-    /// „Alternative" daneben zu stellen war der Versuch aus 1.3, mehr Auswahl
-    /// zu zeigen; dreimal „Alternative" untereinander sagt aber nichts.
+    /// Namen, die sie gewonnen hat. Die andere Linie verschwindet aber nicht
+    /// mehr: sie füllt den freien Platz als „Alternative" (seit 1.8 — mit dem
+    /// eigenen „wenig Autos"-Profil gewann oft eine Linie alles, und von drei
+    /// angefragten Wegen blieb einer übrig).
     func testTheWinnerIsListedOnceWithAllItsNames() {
         let best = candidate("safety", km: 19, signals: 10, crossings: 2, mainKm: 1)
         let worse = candidate("fastbike", km: 20, signals: 50, crossings: 18, mainKm: 13)
         let picked = BikeCandidate.pick([worse, best], settings: PlanSettings())
-        XCTAssertEqual(picked.count, 1, "ein Weg, ein Kasten")
+        XCTAssertEqual(picked.count, 2, "der Gewinner und die Alternative")
+        XCTAssertEqual(picked[1].1, [.alternative])
         XCTAssertEqual(picked[0].0.source, "safety")
         XCTAssertEqual(picked[0].1, Array(BikeVariant.defaultOrder.prefix(3)),
                        "die obersten drei Namen, in der Reihenfolge des Nutzers")
@@ -363,8 +364,9 @@ extension BikeRouteTests {
         XCTAssertEqual(Set(BikeCandidate.pick([a, b, c], settings: s).flatMap { $0.1 }).count, 1)
         s.optionsPerMode = 3
         let three = BikeCandidate.pick([a, b, c], settings: s)
-        XCTAssertEqual(Set(three.flatMap { $0.1 }), Set(BikeVariant.defaultOrder.prefix(3)))
-        XCTAssertTrue(three.allSatisfy { !$0.1.isEmpty }, "keine namenlose Linie mehr")
+        XCTAssertEqual(Set(three.flatMap { $0.1 }).subtracting([.alternative]), Set(BikeVariant.defaultOrder.prefix(3)))
+        XCTAssertLessThanOrEqual(three.count, 3, "nie mehr Kästen als eingestellt")
+        XCTAssertTrue(three.allSatisfy { !$0.1.isEmpty }, "keine namenlose Linie")
     }
 
     /// „wenig Autos" und „wenig Halts" beantworten zwei verschiedene Fragen —
