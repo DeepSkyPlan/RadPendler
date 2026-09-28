@@ -1,3 +1,4 @@
+import AVFoundation
 import SwiftUI
 import UIKit
 
@@ -56,9 +57,28 @@ extension OrientationLock {
 @MainActor
 @Observable
 final class ScreenDim {
+    /// **Eine** für die ganze App, nicht eine je Fahrtbildschirm. Solange sie
+    /// am Bildschirm hing, hing das Wiederherstellen an dessen `onDisappear` —
+    /// und endete die Fahrt, während die App im Hintergrund lief (Selbst-
+    /// beenden in der Tasche), blieb das Telefon dunkel.
+    static let shared = ScreenDim()
+
     private(set) var dimmed = false
-    /// Die Helligkeit, die der Nutzer eingestellt hatte.
-    private var original: CGFloat?
+    /// Die Helligkeit, die der Nutzer eingestellt hatte. Steht zusätzlich auf
+    /// der Platte: wird die App im gedunkelten Zustand beendet, stellt der
+    /// nächste Start sie wieder her.
+    private var original: CGFloat? {
+        didSet {
+            if let original { UserDefaults.standard.set(Double(original), forKey: Self.key) }
+            else { UserDefaults.standard.removeObject(forKey: Self.key) }
+        }
+    }
+    private static let key = "screenDimOriginal"
+
+    /// Läuft nebenher etwas mit Ton — ein Video im Bild-im-Bild-Fenster, ein
+    /// Podcast —, wird nicht gedunkelt. Ob ein Fenster offen ist, verrät iOS
+    /// einer fremden App nicht; ob anderer Ton läuft, schon.
+    static var otherMediaPlaying: Bool { AVAudioSession.sharedInstance().isOtherAudioPlaying }
 
     /// **Am Strom wird nicht gedunkelt.** Der Bildschirm ist während einer
     /// Fahrt der größte Verbraucher; hängt das Telefon am Lenker in der
@@ -90,21 +110,28 @@ final class ScreenDim {
         Swift.min(original, Swift.max(0.08, original * 0.25))
     }
 
-    func dim() {
-        guard !dimmed else { return }
+    /// Dunkelt ab, wenn es darf. false, wenn nicht — dann fragt der Aufrufer
+    /// später noch einmal. Nie im Hintergrund: die Helligkeit ist
+    /// systemweit, und dort sieht niemand, dass sie herunterging.
+    @discardableResult
+    func dim() -> Bool {
+        guard !dimmed else { return true }
+        guard UIApplication.shared.applicationState == .active, !Self.otherMediaPlaying else { return false }
         let now = UIScreen.main.brightness
         original = now
         dimmed = true
         UIScreen.main.brightness = Self.level(of: now)
+        return true
     }
 
     /// Wieder hell. Nur, wenn wir selbst gedimmt haben — sonst überschriebe
     /// das eine Helligkeit, die der Nutzer inzwischen von Hand gestellt hat.
     func wake() {
-        guard dimmed, let original else { return }
+        let stored = original ?? (UserDefaults.standard.object(forKey: Self.key) as? Double).map { CGFloat($0) }
+        guard let stored else { return }
         dimmed = false
-        self.original = nil
-        UIScreen.main.brightness = original
+        original = nil
+        UIScreen.main.brightness = stored
     }
 }
 

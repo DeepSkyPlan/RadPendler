@@ -1,7 +1,14 @@
 # Changelog
 
-## Unveröffentlicht
+## 1.7 (Build 43) — Ist/Plan, Schnitt je Verkehrsmittel, Bildschirm wieder hell
 
+- **Nach der Fahrt wird der Bildschirm wieder hell.** Das Wiederherstellen hing am
+  Fahrtbildschirm; endete die Fahrt im Hintergrund oder die App wurde beendet, blieb das
+  Telefon gedunkelt. Jetzt stellt das Fahrtende, jeder Wechsel zurück in die App und der
+  nächste Start die alte Helligkeit her — sie steht dafür auf der Platte.
+- **Kein Abdunkeln, solange nebenher etwas mit Ton läuft** — ein Video im Bild-im-Bild-
+  Fenster, Musik, ein Podcast. Ob ein Fenster offen ist, verrät iOS nicht, ob Ton läuft, schon.
+  Und nie im Hintergrund.
 - **Abbiegehinweis auf dem Rad erst 125 m vorher** statt 250 m — die Hälfte vom Auto. Pfeil und
   erster Ton kommen gemeinsam; der doppelte Ton bleibt bei 30 m.
 - **Nach der Fahrt: Ist / Plan auch für Fahrzeit und Strecke**, die Einheit steht im Titel
