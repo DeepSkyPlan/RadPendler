@@ -622,9 +622,8 @@ struct RideRemaining: Equatable {
         }
         let rolling = Swift.max(5.0, settings.bikeSpeedKmh) / 3.6
         var seconds = left / rolling + Double(p.signalsLeft * settings.signalWaitSeconds)
-        if settings.measuredRides >= AppSettings.calibrationRides,
-           let kmh = settings.measuredOverallKmh, kmh > 0 {
-            seconds = left / (kmh / 3.6)
+        if settings.bikeOverallKmh > 0 {
+            seconds = left / (settings.bikeOverallKmh / 3.6)
         }
         return RideRemaining(meters: left, signals: p.signalsLeft, seconds: seconds.rounded())
     }

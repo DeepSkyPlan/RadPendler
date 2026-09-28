@@ -617,13 +617,13 @@
         }
       }
     },
-    "Ampelwartezeit": {
+    "Ampelwartezeit (m:ss)": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Time at lights"
+            "value": "Waiting at lights (m:ss)"
           }
         }
       }
@@ -899,17 +899,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "For bikes there is “low traffic” next to “quietest”: “quietest” also counts lights and crossings, “low traffic” only asks where the cars are."
-          }
-        }
-      }
-    },
-    "Beim Sortieren und Empfehlen wird jeder Umstieg wie so viele Minuten längere Fahrt gewertet. Eine direkte Verbindung gewinnt also, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "When sorting and recommending, every change counts as this many extra minutes of travel. A direct connection therefore wins unless the one with a change arrives more than that earlier."
           }
         }
       }
@@ -1218,6 +1207,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "The orientation you pick while riding applies to every ride from then on. After “End ride” the app turns like any other again."
+          }
+        }
+      }
+    },
+    "Die Fahrzeit kommt von Apple Karten mit Verkehrslage, dazu die Parkplatzsuche. Der Gesamtschnitt ist deine eigene Messung, Tür zu Tür: wäre Apple schneller als er, gilt er. Die App schreibt ihn nach jeder aufgezeichneten Autofahrt fort, sobald es drei gibt; getrennt vom Rad.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The driving time comes from Apple Maps with live traffic, plus looking for parking. The overall average is your own measurement, door to door: if Apple would be faster than that, the average counts. The app updates it after every recorded car trip once there are three; separately from the bike."
           }
         }
       }
@@ -1596,17 +1596,6 @@
         }
       }
     },
-    "Fahrplanquelle": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Timetable source"
-          }
-        }
-      }
-    },
     "Fahrrad": {
       "extractionState": "manual",
       "localizations": {
@@ -1805,17 +1794,6 @@
         }
       }
     },
-    "Fahrzeit": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ride time"
-          }
-        }
-      }
-    },
     "Fahrzeit %@": {
       "extractionState": "manual",
       "localizations": {
@@ -1823,6 +1801,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ride time %@"
+          }
+        }
+      }
+    },
+    "Fahrzeit (min)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time (min)"
+          }
+        }
+      }
+    },
+    "Fahrzeit / Plan (min)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time / plan (min)"
           }
         }
       }
@@ -2014,6 +2014,17 @@
         }
       }
     },
+    "Gemessen aus %d Autofahrten: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Measured from %d car trips: %@"
+          }
+        }
+      }
+    },
     "Gemessen aus %d Fahrten": {
       "extractionState": "manual",
       "localizations": {
@@ -2032,6 +2043,39 @@
           "stringUnit": {
             "state": "translated",
             "value": "Overall average"
+          }
+        }
+      }
+    },
+    "Gesamtschnitt: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Overall average: %@"
+          }
+        }
+      }
+    },
+    "Gesamtschnitt: aus — Apple Karten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Overall average: off — Apple Maps"
+          }
+        }
+      }
+    },
+    "Gesamtschnitt: aus — nur die Rechnung": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Overall average: off — calculation only"
           }
         }
       }
@@ -2197,6 +2241,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "If the destination is your work address (Settings → commute), the search starts with “Arrival”, otherwise with “Departure now”."
+          }
+        }
+      }
+    },
+    "Jeder Umstieg wird beim Sortieren und Empfehlen wie so viele Minuten längere Fahrt gewertet: eine direkte Verbindung gewinnt, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When sorting and recommending, every change counts as that many minutes of extra travel: a direct connection wins as long as the one with a change arrives no more than this much earlier."
           }
         }
       }
@@ -2575,6 +2630,17 @@
         }
       }
     },
+    "Noch keine gemessenen Autofahrten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No measured car trips yet"
+          }
+        }
+      }
+    },
     "Noch keine gemessenen Fahrten": {
       "extractionState": "manual",
       "localizations": {
@@ -2692,17 +2758,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tap the two lines above. The addresses stay on this device."
-          }
-        }
-      }
-    },
-    "Oben im roten Band steht, was als Nächstes kommt und in wie vielen Metern. Die Kurven rechnet die App aus der geplanten Linie — es sind Hinweise, keine Navigation, und sie sagt nichts an.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The red banner at the top says what comes next and in how many metres. The turns are computed from the planned line — they are hints, not navigation, and nothing is spoken."
           }
         }
       }
@@ -3279,13 +3334,13 @@
         }
       }
     },
-    "Spitze": {
+    "Spitze (km/h)": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "top"
+            "value": "Top (km/h)"
           }
         }
       }
@@ -3407,6 +3462,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Distance"
+          }
+        }
+      }
+    },
+    "Strecke (km)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Distance (km)"
+          }
+        }
+      }
+    },
+    "Strecke / Plan (km)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Distance / plan (km)"
           }
         }
       }
@@ -3539,17 +3616,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Metro/tram"
-          }
-        }
-      }
-    },
-    "Umsteigen": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Changing trains"
           }
         }
       }
@@ -3693,6 +3759,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nothing is planned again by itself while nothing has changed: the same question gets the same answer for five minutes. Jumping between the boxes therefore costs no request at all."
+          }
+        }
+      }
+    },
+    "Vor einer Abbiegung steht oben ein grünes Band mit Pfeil und Metern — links abbiegen links, rechts abbiegen rechts. Dazu ein Ton bei 250 m und ein doppelter kurz davor, links tiefer, rechts höher. Neben der Route steht mittig ein rotes Band mit Abstand und Zeit. Die Kurven rechnet die App aus der geplanten Linie — es sind Hinweise, keine Navigation.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Before a turn a green band appears at the top with an arrow and the distance — on the left for a left turn, on the right for a right turn. A tone sounds at 250 m and a double one just before, lower for left, higher for right. Off the route, a red band in the middle shows the distance and the time. The turns are worked out from the planned line — they are hints, not navigation."
           }
         }
       }
@@ -4214,6 +4291,17 @@
         }
       }
     },
+    "gestanden (m:ss)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "standing (m:ss)"
+          }
+        }
+      }
+    },
     "gestanden · %d sonst": {
       "extractionState": "manual",
       "localizations": {
@@ -4441,6 +4529,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "more"
+          }
+        }
+      }
+    },
+    "nach deinem Auto-Schnitt von %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "from your car average of %@"
           }
         }
       }
@@ -4929,46 +5028,46 @@
         }
       }
     },
-    "Ø gesamt": {
+    "Ø gesamt (km/h)": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "avg overall"
+            "value": "Ø overall (km/h)"
           }
         }
       }
     },
-    "Ø gesamt / Plan": {
+    "Ø gesamt / Plan (km/h)": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "avg overall / plan"
+            "value": "Ø overall / plan (km/h)"
           }
         }
       }
     },
-    "Ø je Ampel": {
+    "Ø je Ampel (m:ss)": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "avg per light"
+            "value": "Ø per light (m:ss)"
           }
         }
       }
     },
-    "Ø rollend": {
+    "Ø rollend (km/h)": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "avg rolling"
+            "value": "Ø rolling (km/h)"
           }
         }
       }
@@ -5057,6 +5156,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "… or after"
+          }
+        }
+      }
+    },
+    "↑ %d hm bergauf · ↓ %d hm · %d–%d m ü. NN": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "↑ %d m climb · ↓ %d m · %d–%d m above sea level"
           }
         }
       }

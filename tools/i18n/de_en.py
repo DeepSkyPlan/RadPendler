@@ -315,8 +315,8 @@ T.update({
     "The large number is your current speed, in the colour the line is being drawn in. The arrow on the map always points the way you are heading.",
 "Unten steht, was noch kommt: Reststrecke, Restzeit und die Uhrzeit der Ankunft. Oben in der Leiste stehen dieselben zwei Zahlen statt des Countdowns — losgehen musst du nicht mehr.":
     "Below you see what is left: distance, time and the arrival clock. The same two numbers stand in the toolbar in place of the countdown — there is nothing left to set off for.",
-"Oben im roten Band steht, was als Nächstes kommt und in wie vielen Metern. Die Kurven rechnet die App aus der geplanten Linie — es sind Hinweise, keine Navigation, und sie sagt nichts an.":
-    "The red banner at the top says what comes next and in how many metres. The turns are computed from the planned line — they are hints, not navigation, and nothing is spoken.",
+"Vor einer Abbiegung steht oben ein grünes Band mit Pfeil und Metern — links abbiegen links, rechts abbiegen rechts. Dazu ein Ton bei 250 m und ein doppelter kurz davor, links tiefer, rechts höher. Neben der Route steht mittig ein rotes Band mit Abstand und Zeit. Die Kurven rechnet die App aus der geplanten Linie — es sind Hinweise, keine Navigation.":
+    "Before a turn a green band appears at the top with an arrow and the distance — on the left for a left turn, on the right for a right turn. A tone sounds at 250 m and a double one just before, lower for left, higher for right. Off the route, a red band in the middle shows the distance and the time. The turns are worked out from the planned line — they are hints, not navigation.",
 "Der Abbiegepfeil ist grün und kommt erst 250 m vor der Abbiegung — ein Pfeil, der zwei Kilometer lang „rechts“ sagt, sieht man nicht mehr an, wenn es so weit ist. Rot ist nur eines: dass du neben der Route bist.":
     "The turn arrow is green and only appears 250 m before the turn — an arrow that says “right” for two kilometres is no longer looked at when the moment comes. Red means one thing only: you are off the route.",
 "Nach Zoomen oder Schieben kommt die Karte 30 Sekunden später von selbst zu dir zurück. Der Knopf oben links schaltet das Folgen von Hand.":
@@ -466,6 +466,28 @@ T.update({
 "Ø %@ je Halt · Ø %@ je Ampel · %d Vorbeifahrten": "avg %@ per stop · avg %@ per light · %d passes",
 "%@ neben der Route, Richtung %@": "%@ off the route, heading %@",
 "seit %@": "for %@",
+"Ampelwartezeit (m:ss)": "Waiting at lights (m:ss)",
+"Die Fahrzeit kommt von Apple Karten mit Verkehrslage, dazu die Parkplatzsuche. Der Gesamtschnitt ist deine eigene Messung, Tür zu Tür: wäre Apple schneller als er, gilt er. Die App schreibt ihn nach jeder aufgezeichneten Autofahrt fort, sobald es drei gibt; getrennt vom Rad.":
+    "The driving time comes from Apple Maps with live traffic, plus looking for parking. The overall average is your own measurement, door to door: if Apple would be faster than that, the average counts. The app updates it after every recorded car trip once there are three; separately from the bike.",
+"Fahrzeit (min)": "Time (min)",
+"Fahrzeit / Plan (min)": "Time / plan (min)",
+"Gemessen aus %d Autofahrten: %@": "Measured from %d car trips: %@",
+"Gesamtschnitt: %@": "Overall average: %@",
+"Gesamtschnitt: aus — Apple Karten": "Overall average: off — Apple Maps",
+"Gesamtschnitt: aus — nur die Rechnung": "Overall average: off — calculation only",
+"Jeder Umstieg wird beim Sortieren und Empfehlen wie so viele Minuten längere Fahrt gewertet: eine direkte Verbindung gewinnt, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.":
+    "When sorting and recommending, every change counts as that many minutes of extra travel: a direct connection wins as long as the one with a change arrives no more than this much earlier.",
+"Noch keine gemessenen Autofahrten": "No measured car trips yet",
+"Spitze (km/h)": "Top (km/h)",
+"Strecke (km)": "Distance (km)",
+"Strecke / Plan (km)": "Distance / plan (km)",
+"gestanden (m:ss)": "standing (m:ss)",
+"nach deinem Auto-Schnitt von %@": "from your car average of %@",
+"Ø gesamt (km/h)": "Ø overall (km/h)",
+"Ø gesamt / Plan (km/h)": "Ø overall / plan (km/h)",
+"Ø je Ampel (m:ss)": "Ø per light (m:ss)",
+"Ø rollend (km/h)": "Ø rolling (km/h)",
+"↑ %d hm bergauf · ↓ %d hm · %d–%d m ü. NN": "↑ %d m climb · ↓ %d m · %d–%d m above sea level",
 "Töne bei Start, Ende und Abbiegungen": "Sounds at start, end and turns",
 "Nächste Abbiegung %@ in %@": "Next turn %@ in %@",
 "Fahrzeit %@": "Ride time %@",

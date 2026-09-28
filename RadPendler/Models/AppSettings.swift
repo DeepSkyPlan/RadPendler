@@ -202,6 +202,18 @@ final class AppSettings {
         didSet { defaults.set(measuredRides, forKey: "measuredRides") }
     }
 
+    /// Der Tür-zu-Tür-Schnitt, mit dem gerechnet wird — je Verkehrsmittel
+    /// getrennt, weil ein Auto-Schnitt das Rad nichts angeht und umgekehrt.
+    /// 0 heißt: keiner, es gilt die Rechnung (beim Rad Rolltempo, Ampeln und
+    /// Höhenmeter; beim Auto Apple Karten). Nach jeder aufgezeichneten Fahrt
+    /// schreibt `calibrate` die Messung hinein; von Hand gestellt gilt es bis
+    /// dahin.
+    var bikeOverallKmh: Double = 0 { didSet { defaults.set(bikeOverallKmh, forKey: "bikeOverallKmh") } }
+    var carOverallKmh: Double = 0 { didSet { defaults.set(carOverallKmh, forKey: "carOverallKmh") } }
+    /// Was die Autofahrten gemessen haben, zum Anzeigen neben der Einstellung.
+    var measuredCarKmh: Double? = nil { didSet { defaults.set(measuredCarKmh, forKey: "measuredCarKmh") } }
+    var measuredCarRides: Int = 0 { didSet { defaults.set(measuredCarRides, forKey: "measuredCarRides") } }
+
     /// 29 km/h rolling + 20 s per signalised junction reproduces the user's
     /// measured ~21 km/h door-to-door on the Berlin commute it was built for.
     static let defaultBikeSpeedKmh = 29.0
@@ -237,6 +249,7 @@ final class AppSettings {
         "signalStopSeconds", "learnedSignals", "replanOffRouteMeters", "replanOffRouteMinutes",
         "autoStopMinutes", "autoPauseMinutes", "rideDimSeconds", "rideSounds",
         "measuredOverallKmh", "measuredMovingKmh", "measuredRides",
+        "bikeOverallKmh", "carOverallKmh", "measuredCarKmh", "measuredCarRides",
         // Anzeige
         "orientationLock", "rideOrientationLock", "rideStartsLandscape", "language",
         // Was gelöscht wurde
@@ -348,6 +361,16 @@ final class AppSettings {
         assign(\.measuredOverallKmh, defaults.object(forKey: "measuredOverallKmh") as? Double)
         assign(\.measuredMovingKmh, defaults.object(forKey: "measuredMovingKmh") as? Double)
         assign(\.measuredRides, defaults.object(forKey: "measuredRides") as? Int ?? measuredRides)
+        assign(\.carOverallKmh, defaults.object(forKey: "carOverallKmh") as? Double ?? carOverallKmh)
+        assign(\.measuredCarKmh, defaults.object(forKey: "measuredCarKmh") as? Double)
+        assign(\.measuredCarRides, defaults.object(forKey: "measuredCarRides") as? Int ?? measuredCarRides)
+        // Bis 1.6 gab es nur den gemessenen Rad-Schnitt und keinen einstellbaren:
+        // wer schon genug Fahrten hat, findet ihn hier wieder statt „aus".
+        if let v = defaults.object(forKey: "bikeOverallKmh") as? Double {
+            assign(\.bikeOverallKmh, v)
+        } else if measuredRides >= Self.calibrationRides, let m = measuredOverallKmh {
+            bikeOverallKmh = Self.halfStep(m)
+        }
         loadedOnce = true
     }
 
@@ -411,6 +434,7 @@ final class AppSettings {
         measuredRides = relevant.count
         measuredMovingKmh = moving
         measuredOverallKmh = overall
+        bikeOverallKmh = Self.halfStep(overall)
         // Die Einstellung folgt der Messung, gerundet auf das, was der
         // Stepper hergibt.
         let speed = (moving).rounded()
@@ -423,6 +447,25 @@ final class AppSettings {
             if clamped != signalWaitSeconds { signalWaitSeconds = clamped }
         }
     }
+
+    /// Dasselbe fürs Auto, ohne Rolltempo und Ampeln: nur der Tür-zu-Tür-
+    /// Schnitt. Er ist beim Planen die Untergrenze für Apples Fahrzeit —
+    /// Apple kennt den Verkehr, aber nicht den Parkplatz vor der Tür und
+    /// nicht, wie dieser Fahrer fährt.
+    func calibrateCar(from rides: [Ride]) {
+        let relevant = rides
+            .filter { $0.travelMode == .car && $0.meters >= 2_000 && $0.movingSeconds > 60 }
+            .sorted { $0.started > $1.started }
+            .prefix(Self.calibrationWindow)
+        guard relevant.count >= Self.calibrationRides else { return }
+        let overall = Self.median(relevant.map(\.averageKmh))
+        measuredCarRides = relevant.count
+        measuredCarKmh = overall
+        carOverallKmh = overall.rounded()
+    }
+
+    /// Auf halbe km/h — so weit, wie der Stepper geht.
+    static func halfStep(_ kmh: Double) -> Double { (kmh * 2).rounded() / 2 }
 
     static func median(_ values: [Double]) -> Double {
         let s = values.sorted()
@@ -548,7 +591,8 @@ final class AppSettings {
                      rainSwitchLevel: rainSwitchLevel,
                      bikeLineStatus: bikeLines.status, timetableSource: timetableSource,
                      learnedSignals: learnedSignals,
-                     measuredOverallKmh: measuredRides >= Self.calibrationRides ? measuredOverallKmh : nil)
+                     measuredOverallKmh: bikeOverallKmh > 0 ? bikeOverallKmh : nil,
+                     carOverallKmh: carOverallKmh > 0 ? carOverallKmh : nil)
     }
 
     private func save(_ place: Place?, _ key: String) {
@@ -592,6 +636,8 @@ struct PlanSettings: Equatable {
     /// Der gemessene Tür-zu-Tür-Schnitt dieses Fahrers, aus seinen
     /// aufgezeichneten Fahrten. nil, solange es zu wenige sind.
     var measuredOverallKmh: Double? = nil
+    /// Der Tür-zu-Tür-Schnitt fürs Auto; nil heißt, Apples Fahrzeit gilt.
+    var carOverallKmh: Double? = nil
     /// Beyond this, the whole way by bike is a curiosity rather than a plan:
     /// its box moves to the end of the row and the OpenStreetMap corridor gets
     /// too big to ask Overpass for.

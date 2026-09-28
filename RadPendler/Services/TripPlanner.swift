@@ -309,12 +309,18 @@ struct TripPlanner {
         let parking = TimeInterval(req.settings.parkingMinutes * 60)
         return CarCandidate.pick(candidates, settings: req.settings, order: req.settings.carVariantOrder).enumerated().map { index, entry in
             let (c, variants) = entry
-            let drive = c.route.expectedTravelTime + parking
+            // Nie schneller, als dieser Fahrer laut seinen Autofahrten
+            // Tür zu Tür ist — Parkplatzsuche eingeschlossen.
+            let apple = c.route.expectedTravelTime + parking
+            let own = req.settings.carOverallKmh.map { c.route.distance / ($0 / 3.6) } ?? 0
+            let drive = Swift.max(apple, own.rounded())
             let leave = req.arriveBy.map { $0.addingTimeInterval(-drive) } ?? req.earliestLeave
             let leg = Leg(kind: .car, fromName: req.origin.shortName, toName: req.destination.shortName,
                           departure: leave, arrival: leave.addingTimeInterval(drive),
                           distance: c.route.distance, coordinates: c.route.coordinates)
-            let note = parking > 0 ? L("inkl. %d min Parkplatzsuche", req.settings.parkingMinutes) : L("Fahrzeit laut Apple Karten mit Verkehrslage")
+            let note = own > apple ? L("nach deinem Auto-Schnitt von %@", Fmt.kmh(req.settings.carOverallKmh ?? 0))
+                : parking > 0 ? L("inkl. %d min Parkplatzsuche", req.settings.parkingMinutes)
+                : L("Fahrzeit laut Apple Karten mit Verkehrslage")
             var option = TripOption(mode: .car, legs: [leg], prep: req.settings.prep, note: note,
                                     carRoute: CarRouteInfo(variants: variants, signals: c.stats?.signals,
                                                            signalPoints: c.stats?.signalPoints ?? []))

@@ -257,22 +257,27 @@ struct RideFacts: View {
                     .foregroundStyle(.secondary)
             }
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
-                fact(L("Fahrzeit"), Fmt.clock(ride.seconds), .primary)
-                fact(L("Strecke"), Fmt.km(ride.meters), .primary)
-                fact(ride.plannedAverageKmh == nil ? L("Ø gesamt") : L("Ø gesamt / Plan"),
-                     ride.plannedAverageKmh.map { "\(Self.number(ride.averageKmh)) / \(Self.number($0))" }
-                         ?? Fmt.kmh(ride.averageKmh),
+                // Ist / Plan, wo es einen Plan gab — und die Einheit steht im
+                // Titel, nicht hinter jeder Zahl: „52 / 49" passt in ein
+                // Drittel Bildschirmbreite, „52 min / 49 min" nicht.
+                fact(ride.plannedSeconds == nil ? L("Fahrzeit (min)") : L("Fahrzeit / Plan (min)"),
+                     versus(Self.minutes(ride.seconds), ride.plannedSeconds.map(Self.minutes)),
+                     ride.plannedSeconds.map { ride.seconds <= $0 + 60 ? Color.green : .orange } ?? .primary)
+                fact(ride.plannedMeters == nil ? L("Strecke (km)") : L("Strecke / Plan (km)"),
+                     versus(Self.kilometres(ride.meters), ride.plannedMeters.map(Self.kilometres)), .primary)
+                fact(ride.plannedAverageKmh == nil ? L("Ø gesamt (km/h)") : L("Ø gesamt / Plan (km/h)"),
+                     versus(Self.number(ride.averageKmh), ride.plannedAverageKmh.map(Self.number)),
                      ride.plannedAverageKmh.map { ride.averageKmh >= $0 ? Color.green : .orange } ?? Theme.accent)
-                fact(L("Ø rollend"), Fmt.kmh(ride.movingKmh),
+                fact(L("Ø rollend (km/h)"), Self.number(ride.movingKmh),
                      RideColors.color(ride.movingKmh, scale: .of(ride.travelMode)))
-                fact(L("Spitze"), Fmt.kmh(ride.maxKmh),
+                fact(L("Spitze (km/h)"), Self.number(ride.maxKmh),
                      RideColors.color(ride.maxKmh, scale: .of(ride.travelMode)))
-                fact(L("gestanden"), Fmt.clock(ride.standingSeconds), .orange)
+                fact(L("gestanden (m:ss)"), Fmt.clock(ride.standingSeconds), .orange)
                 fact(ride.plannedSignals == nil ? L("Ampelhalts") : L("Ampeln / Plan"),
-                     ride.plannedSignals.map { "\(ride.signalStops)/\($0)" } ?? "\(ride.signalStops)",
+                     versus("\(ride.signalStops)", ride.plannedSignals.map { "\($0)" }),
                      .yellow)
-                fact(L("Ampelwartezeit"), Fmt.clock(ride.signalWaitTotal), .yellow)
-                fact(L("Ø je Ampel"), ride.signalStops == 0 ? "–" : Fmt.clock(ride.signalWaitAverage), .yellow)
+                fact(L("Ampelwartezeit (m:ss)"), Fmt.clock(ride.signalWaitTotal), .yellow)
+                fact(L("Ø je Ampel (m:ss)"), ride.signalStops == 0 ? "–" : Fmt.clock(ride.signalWaitAverage), .yellow)
             }
             if let mix = ride.mix, !mix.isEmpty {
                 VStack(alignment: .leading, spacing: 5) {
@@ -311,7 +316,17 @@ struct RideFacts: View {
     /// „13,2 km/h / 14,7 km/h" nicht.
     static func number(_ kmh: Double) -> String {
         guard kmh.isFinite, kmh >= 0 else { return "–" }
-        return kmh.formatted(.number.precision(.fractionLength(1)))
+        return kmh.formatted(.number.precision(.fractionLength(1)).locale(Fmt.locale))
+    }
+
+    static func minutes(_ seconds: TimeInterval) -> String { "\(Int((seconds / 60).rounded()))" }
+
+    static func kilometres(_ meters: Double) -> String {
+        (meters / 1000).formatted(.number.precision(.fractionLength(1)).locale(Fmt.locale))
+    }
+
+    private func versus(_ actual: String, _ plan: String?) -> String {
+        plan.map { "\(actual) / \($0)" } ?? actual
     }
 
     private func fact(_ title: String, _ value: String, _ tint: Color) -> some View {
@@ -392,6 +407,8 @@ struct ElevationProfile: Equatable {
     /// … und wie weit der Punkt vom Start entfernt ist.
     var distances: [Double]
     var ascent: Double
+    /// Bergab, nach derselben Regel — der Anstieg rückwärts gelesen.
+    var descent: Double = 0
     var lowest: Double
     var highest: Double
 
@@ -438,6 +455,7 @@ struct ElevationProfile: Equatable {
         }
         let ascent = filteredAscent(heights)
         return ElevationProfile(heights: heights, distances: distances, ascent: ascent,
+                                descent: filteredAscent(heights.reversed()),
                                 lowest: heights.min() ?? 0, highest: heights.max() ?? 0)
     }
 }
@@ -454,7 +472,11 @@ struct ElevationProfileView: View {
                     .font(.system(size: 10, design: .rounded))
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 0)
-                Text("+\(Int(profile.ascent.rounded())) m · \(Int(profile.lowest.rounded()))–\(Int(profile.highest.rounded())) m")
+                // Die Summe steht vorn und sagt, was sie ist: bis 1.6 stand
+                // hier nur „+31 m", und das las sich wie eine Höhe.
+                Text(L("↑ %d hm bergauf · ↓ %d hm · %d–%d m ü. NN",
+                       Int(profile.ascent.rounded()), Int(profile.descent.rounded()),
+                       Int(profile.lowest.rounded()), Int(profile.highest.rounded())))
                     .font(.system(size: 10, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(.secondary)

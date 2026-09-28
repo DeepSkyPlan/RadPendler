@@ -168,13 +168,6 @@ struct NavigationSettingsView: View {
                     Hint(L("Zeit vom Planen bis zum Losgehen. Gilt für jedes Verkehrsmittel."))
                 }
                 Section {
-                    Stepper(L("Umstieg zählt wie %d min", settings.transferPenaltyMinutes), value: $settings.transferPenaltyMinutes, in: 0...30)
-                } header: {
-                    Text(L("Umsteigen"))
-                } footer: {
-                    Hint(L("Beim Sortieren und Empfehlen wird jeder Umstieg wie so viele Minuten längere Fahrt gewertet. Eine direkte Verbindung gewinnt also, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt."))
-                }
-                Section {
                     ForEach(settings.departurePresets, id: \.self) { p in
                         Text(p.title)
                     }
@@ -232,9 +225,6 @@ struct NavigationSettingsView: View {
                 } footer: {
                     Hint(L("Der Countdown oben rechts zählt bis zum Losgehen für Bahn und Bus — und bei „Ankunft um …“ für jede Fahrt. Warnungen kommen als Mitteilung, auch wenn die App zu ist; bei offener App zusätzlich als Ton."))
                 }
-                Section(L("Auto")) {
-                    Stepper(L("Parkplatzsuche: %d min", settings.parkingMinutes), value: $settings.parkingMinutes, in: 0...30)
-                }
         }
     }
 }
@@ -291,6 +281,11 @@ struct ModeSettingsView: View {
                             value: $settings.bikeStationBufferMinutes, in: 0...10)
                     Stepper(L("Wartezeit je Ampel: %d s", settings.signalWaitSeconds),
                             value: $settings.signalWaitSeconds, in: 0...90, step: 5)
+                    Stepper(value: $settings.bikeOverallKmh, in: 0...40, step: 0.5) {
+                        Text(settings.bikeOverallKmh > 0
+                             ? L("Gesamtschnitt: %@", Fmt.kmh(settings.bikeOverallKmh))
+                             : L("Gesamtschnitt: aus — nur die Rechnung"))
+                    }
                     MeasuredSpeedRow()
                     MeasuredSignalRow()
                     Stepper(value: $settings.maxBikeToStationKm, in: 1...10, step: 0.5) {
@@ -302,6 +297,28 @@ struct ModeSettingsView: View {
                     Hint(L("Zwei verschiedene Geschwindigkeiten, und sie tun Verschiedenes. Das Rolltempo ist das Tempo beim Fahren, ohne Halte: daraus plus der Wartezeit je Ampelkreuzung und den Höhenmetern rechnet die App jede Linie durch — es entscheidet also, welche Linie die schnellste ist. Der Gesamtschnitt ist die Messung deiner eigenen Fahrten, Tür zu Tür, mit allen Ampeln und Halten darin — er entscheidet, wie lange es dauert. Wäre die Rechnung schneller als dein gemessener Gesamtschnitt, gilt der Gesamtschnitt; auch bei den Zubringern zum Bahnhof, dort aber nur, wenn er die vorsichtigere Zahl ist. Beide Werte schreibt die App nach jeder aufgezeichneten Fahrt selbst fort, aus dem Median der letzten Fahrten, sobald es genug davon gibt; von Hand gestellt gelten sie bis zur nächsten Fahrt. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung addiert — außer an den Kreuzungen, die deine eigenen Fahrten schon kennen: die kosten, was dort gemessen wurde. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet."))
                 }
                 Section {
+                    Stepper(L("Parkplatzsuche: %d min", settings.parkingMinutes), value: $settings.parkingMinutes, in: 0...30)
+                    Stepper(value: $settings.carOverallKmh, in: 0...120, step: 1) {
+                        Text(settings.carOverallKmh > 0
+                             ? L("Gesamtschnitt: %@", Fmt.kmh(settings.carOverallKmh))
+                             : L("Gesamtschnitt: aus — Apple Karten"))
+                    }
+                    if settings.measuredCarRides >= AppSettings.calibrationRides, let kmh = settings.measuredCarKmh {
+                        Label(L("Gemessen aus %d Autofahrten: %@", settings.measuredCarRides, Fmt.kmh(kmh)),
+                              systemImage: "speedometer")
+                            .font(.system(size: 13, design: .rounded))
+                    } else {
+                        Label(L("Noch keine gemessenen Autofahrten"), systemImage: "speedometer")
+                            .font(.system(size: 13, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
+                } header: {
+                    Text(L("Auto"))
+                } footer: {
+                    Hint(L("Die Fahrzeit kommt von Apple Karten mit Verkehrslage, dazu die Parkplatzsuche. Der Gesamtschnitt ist deine eigene Messung, Tür zu Tür: wäre Apple schneller als er, gilt er. Die App schreibt ihn nach jeder aufgezeichneten Autofahrt fort, sobald es drei gibt; getrennt vom Rad."))
+                }
+                Section {
+                    Stepper(L("Umstieg zählt wie %d min", settings.transferPenaltyMinutes), value: $settings.transferPenaltyMinutes, in: 0...30)
                     Picker(L("Fahrplan"), selection: $settings.timetableSource) {
                         ForEach(TimetableSource.allCases) { Text($0.title).tag($0) }
                     }
@@ -312,9 +329,9 @@ struct ModeSettingsView: View {
                         Label("openstreetmap.org/copyright", systemImage: "arrow.up.right.square")
                     }
                 } header: {
-                    Text(L("Fahrplanquelle"))
+                    Text(L("Bus & Bahn"))
                 } footer: {
-                    Hint(L("„Automatisch“ fragt den VBB, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link."))
+                    Hint(L("Jeder Umstieg wird beim Sortieren und Empfehlen wie so viele Minuten längere Fahrt gewertet: eine direkte Verbindung gewinnt, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.") + "\n\n" + L("„Automatisch“ fragt den VBB, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link."))
                 }
                 Section {
                     NavigationLink {
