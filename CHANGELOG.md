@@ -8,6 +8,11 @@
   (etwa kürzest, wenig Halts, schnellst), holt die dafür fehlenden Profile nach und zeigt
   den nächsten **anderen** Weg mit seinem echten Namen. Erst wenn die ganze Liste keinen
   bringt, füllt eine „Alternative“.
+- **Kopfsteinpflaster meiden** (Einstellungen → Verkehrsmittel → Fahrrad, voreingestellt an).
+  Jedes BRouter-Profil geht dafür in einer abgewandelten Fassung zum Server: Pflaster
+  (`surface=sett|cobblestone`) kostet das Sechsfache. Probe Kleinmachnow → Heidestraße:
+  0,8–1,25 km Pflaster je Profil wurden höchstens 62 m, für höchstens 0,6 km Umweg. Apples
+  Radroute kennt keinen Belag und kommt dann nur noch, wenn BRouter nicht antwortet.
 - **Langer Druck auf einen Verkehrsmittel-Kasten** springt auf die erste Möglichkeit und
   bleibt dort. Bisher schaltete das Loslassen gleich auf die zweite weiter.
 

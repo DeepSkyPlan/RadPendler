@@ -288,6 +288,7 @@ struct ModeSettingsView: View {
                     }
                     MeasuredSpeedRow()
                     MeasuredSignalRow()
+                    Toggle(L("Kopfsteinpflaster meiden"), isOn: $settings.avoidCobbles)
                     Stepper(value: $settings.maxBikeToStationKm, in: 1...10, step: 0.5) {
                         Text(L("Radweg zum Bahnhof: bis %@ km", settings.maxBikeToStationKm.formatted(.number.precision(.fractionLength(0...1)))))
                     }

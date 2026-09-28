@@ -178,13 +178,19 @@ struct TripPlanner {
         // — und weil ein Fehlschlag hier nur eine fehlende Möglichkeit ist und
         // keinen Fehler, verschwanden die Varianten stillschweigend. Apple
         // zählt nicht mit, das ist ein anderer Dienst.
+        var br = brouter
+        br.avoidCobbles = req.settings.avoidCobbles
+        let brouter = br
         func fetch(_ list: [(String, BRouterClient.Profile?, Int)]) async -> [(String, StreetRoute)] {
-            await Self.gathered(list, atOnce: 3) { name, profile, alt in
+            // Apple Karten kennt keinen Belag: wer Pflaster meiden will,
+            // bekommt dessen Linie nur, wenn BRouter gar nicht antwortet.
+            let found = await Self.gathered(list, atOnce: 3) { name, profile, alt in
                 if let profile {
                     return try? await brouter.route(from: o, to: d, profile: profile, alternative: alt)
                 }
                 return try? await apple.route(from: o, to: d, mode: .bike, departure: nil)
             }
+            return found
         }
         func judge(_ found: [(String, StreetRoute)], _ data: RoadData?) async -> [BikeCandidate] {
             // 63 ms per route, six routes: serially that is 378 ms of the plan
@@ -208,6 +214,9 @@ struct TripPlanner {
         let asked = [("Apple", BRouterClient.Profile?.none, 0)] + requests(for: order.prefix(n))
         var found = await fetch(asked)
         guard !found.isEmpty else { throw PlannerError.noBikeRoute }
+        if req.settings.avoidCobbles, found.contains(where: { $0.0 != "Apple" }) {
+            found.removeAll { $0.0 == "Apple" }
+        }
         var data = Self.withLearned(try? await roads.data(covering: found.flatMap { $0.1.coordinates }), req.settings)
         var candidates = await judge(found, data)
         var picked = BikeCandidate.pick(candidates, settings: req.settings, fill: false)

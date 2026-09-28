@@ -14,11 +14,6 @@ final class BikeLiveTests: XCTestCase {
         var s = PlanSettings()
         s.optionsPerMode = 3
         let req = PlanRequest(origin: from, destination: to, target: .departAfter(.now), settings: s)
-        var b = BRouterClient(); b.cached = false
-        for p in [BRouterClient.Profile.quiet, .lowTraffic, .trekking] {
-            do { let r = try await b.route(from: from.coordinate, to: to.coordinate, profile: p); print("LIVE direct", p.rawValue, Int(r.distance)) }
-            catch { print("LIVE direct", p.rawValue, "ERROR", error) }
-        }
         let options = try await TripPlanner().bikeOptions(req)
         for o in options {
             let st = o.bikeRoute?.stats

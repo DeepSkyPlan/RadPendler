@@ -23,6 +23,9 @@ struct BRouterClient {
     /// Ob dieselbe Frage aus dem Zwischenspeicher beantwortet werden darf.
     /// Tests schalten es ab, damit sie messen, was sie messen wollen.
     var cached = true
+    /// Kopfsteinpflaster meiden: jedes Profil geht dann in einer abgewandelten
+    /// Fassung als eigenes Profil zum Server (`withoutCobbles`).
+    var avoidCobbles = false
 
     func route(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
                profile: Profile, alternative: Int = 0) async throws -> StreetRoute {
@@ -31,25 +34,30 @@ struct BRouterClient {
         // dieselbe Antwort. Bisher wurden bei **jeder** Neuplanung drei
         // Linien neu über das Netz geholt — von einem öffentlichen Server,
         // der ohnehin drosselt.
-        let key = String(format: "%.5f,%.5f|%.5f,%.5f|%@|%d",
+        let key = String(format: "%.5f,%.5f|%.5f,%.5f|%@|%d%@",
                          from.latitude, from.longitude, to.latitude, to.longitude,
-                         profile.rawValue, alternative)
+                         profile.rawValue, alternative, avoidCobbles ? "|ohne-pflaster" : "")
         if cached, let hit = await RouteCache.shared.route(for: key) { return hit }
         let route: StreetRoute
-        if profile.isCustom {
+        if profile.isCustom || avoidCobbles {
             // Hochgeladene Profile räumt der Server irgendwann weg. Scheitert
             // die Anfrage mit einer gemerkten Kennung, einmal neu hochladen;
-            // scheitert auch das, steht „safety" dafür — lieber die alte
-            // Antwort als gar keine „wenig Autos"-Linie.
+            // scheitert auch das, gilt die Fassung ohne Abwandlung — ohne
+            // Pflasterregel, und für „wenig Autos" am Ende „safety". Lieber
+            // eine Linie mit Pflaster als gar keine.
+            let custom = CustomProfile.Kind(profile: profile, withoutCobbles: avoidCobbles)
             do {
-                route = try await fetch(from: from, to: to, profile: try await CustomProfile.shared.id(session: session),
+                route = try await fetch(from: from, to: to,
+                                        profile: try await CustomProfile.shared.id(custom, session: session),
                                         alternative: alternative)
             } catch {
                 do {
-                    let fresh = try await CustomProfile.shared.id(session: session, renew: true)
+                    let fresh = try await CustomProfile.shared.id(custom, session: session, renew: true)
                     route = try await fetch(from: from, to: to, profile: fresh, alternative: alternative)
                 } catch {
-                    return try await self.route(from: from, to: to, profile: .safety, alternative: alternative)
+                    var plain = self
+                    if avoidCobbles { plain.avoidCobbles = false } else { return try await plain.route(from: from, to: to, profile: .safety, alternative: alternative) }
+                    return try await plain.route(from: from, to: to, profile: profile, alternative: alternative)
                 }
             }
         } else {
@@ -255,36 +263,81 @@ actor CompositeRouter: StreetRouting {
     }
 }
 
-/// Ein eigenes BRouter-Profil auf dem öffentlichen Server: einmal hochladen
+/// Eigene BRouter-Profile auf dem öffentlichen Server: einmal hochladen
 /// (`POST /brouter/profile`), die Kennung („custom_…") merken und bei jeder
 /// Anfrage als Profilnamen schicken. Parameter in der Adresse
 /// (`profile:consider_noise=true`) beantwortet brouter.de mit 500 — der
 /// Umweg über das Hochladen ist der einzige.
 ///
-/// Die Kennung gilt eine halbe Stunde; wie lange der Server sie wirklich
-/// hält, sagt er nicht. Dafür gibt es `renew`.
+/// Zwei Gründe für ein eigenes Profil: „wenig Autos" (`radpendler-quiet.brf`)
+/// und „Kopfsteinpflaster meiden" — dafür liegt jedes Serverprofil als
+/// `brouter-<name>.brf` im Paket und wird mit `withoutCobbles` abgewandelt.
+///
+/// Wie lange der Server eine Kennung hält, sagt er nicht. Dafür gibt es `renew`.
 actor CustomProfile {
     static let shared = CustomProfile()
-    static let lifetime: TimeInterval = 1800
+    /// Sechs Stunden: jedes Hochladen ist eine Anfrage mehr an einen Server,
+    /// der bei zu vielen auf einmal mit 403 antwortet — und seit „ohne
+    /// Pflaster" sind es bis zu fünf Profile. Hat er eins vorher weggeräumt,
+    /// scheitert die Anfrage, und `renew` lädt neu.
+    static let lifetime: TimeInterval = 6 * 3600
 
-    private var current: (id: String, at: Date)?
+    struct Kind: Hashable {
+        var profile: BRouterClient.Profile
+        var withoutCobbles: Bool
 
-    func id(session: URLSession, renew: Bool = false) async throws -> String {
-        if !renew, let c = current, Date.now.timeIntervalSince(c.at) < Self.lifetime { return c.id }
-        guard let url = Bundle.main.url(forResource: "radpendler-quiet", withExtension: "brf"),
-              let text = try? Data(contentsOf: url) else { throw BRouterClient.BRouterError.malformed }
+        var resource: String {
+            profile.isCustom ? profile.rawValue : "brouter-\(profile.rawValue)"
+        }
+    }
+
+    private var current: [Kind: (id: String, at: Date)] = [:]
+
+    func id(_ kind: Kind, session: URLSession, renew: Bool = false) async throws -> String {
+        if !renew, let c = current[kind], Date.now.timeIntervalSince(c.at) < Self.lifetime { return c.id }
+        guard let url = Bundle.main.url(forResource: kind.resource, withExtension: "brf"),
+              var text = try? String(contentsOf: url, encoding: .utf8) else { throw BRouterClient.BRouterError.malformed }
+        if kind.withoutCobbles { text = Self.withoutCobbles(text) }
         var request = URLRequest(url: URL(string: "https://brouter.de/brouter/profile")!, timeoutInterval: 20)
         request.httpMethod = "POST"
         request.setValue("text/plain", forHTTPHeaderField: "Content-Type")
         request.setValue("RadPendler iOS (private commute planner)", forHTTPHeaderField: "User-Agent")
-        request.httpBody = text
+        request.httpBody = Data(text.utf8)
         let (data, response) = try await session.data(for: request)
+        // Ein Profil mit Fehler bekommt trotzdem eine Kennung — und jede
+        // Anfrage damit endet in 500. Das Feld `error` sagt es vorher.
         guard (response as? HTTPURLResponse)?.statusCode == 200,
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              json["error"] == nil,
               let id = json["profileid"] as? String, id.hasPrefix("custom_") else {
             throw BRouterClient.BRouterError.server(String(data: data.prefix(200), encoding: .utf8) ?? "upload")
         }
-        current = (id, .now)
+        current[kind] = (id, .now)
         return id
+    }
+
+    /// Kopfsteinpflaster kostet das Sechsfache: die Zeile `assign costfactor`
+    /// des Profils wird zu `costfactor_base`, und vor dem Knotenteil kommt
+    /// eine neue, die fünf auf Pflaster aufschlägt. Kein Ausschluss — liegt
+    /// die Haustür an einer Pflasterstraße, muss man trotzdem hinkommen.
+    /// Probe 27.09.2026, Kleinmachnow → Heidestraße: 0,8–1,25 km Pflaster je
+    /// Profil wurden höchstens 62 m, für höchstens 0,6 km Umweg.
+    /// `unhewn_cobblestone` kennt BRouters Wertetabelle nicht (Profilfehler).
+    nonisolated static func withoutCobbles(_ text: String) -> String {
+        var out: [String] = []
+        for line in text.components(separatedBy: "\n") {
+            if line.range(of: #"^assign\s+costfactor\s*$"#, options: .regularExpression) != nil {
+                out.append("assign costfactor_base")
+                continue
+            }
+            if line.hasPrefix("---context:node") {
+                out += ["# RadPendler: Kopfsteinpflaster meiden",
+                        "assign costfactor",
+                        "  add costfactor_base",
+                        "      switch surface=sett|cobblestone 5 0", ""]
+            }
+            out.append(line)
+        }
+        return out.joined(separator: "\n")
     }
 }
