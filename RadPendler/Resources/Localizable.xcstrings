@@ -2388,6 +2388,17 @@
         }
       }
     },
+    "Kopfsteinpflaster meiden": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avoid cobblestones"
+          }
+        }
+      }
+    },
     "LOS IN": {
       "extractionState": "manual",
       "localizations": {

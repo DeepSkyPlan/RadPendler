@@ -50,6 +50,8 @@ final class AppSettings {
     var alertsOn: Bool = true { didSet { defaults.set(alertsOn, forKey: "alertsOn") } }
     /// Töne während der Fahrt: Start, Ende, Abbiegungen.
     var rideSounds: Bool = true { didSet { defaults.set(rideSounds, forKey: "rideSounds") } }
+    /// Radrouten meiden Kopfsteinpflaster (Nutzer, 28.09.2026: „fürchterlich").
+    var avoidCobbles: Bool = true { didSet { defaults.set(avoidCobbles, forKey: "avoidCobbles") } }
 
     /// Addresses that have been used before, with how often — the list the
     /// search offers before anything is typed. Device only, like the addresses.
@@ -247,7 +249,7 @@ final class AppSettings {
         "alertMinutes", "alertsOn",
         // Aufzeichnen
         "signalStopSeconds", "learnedSignals", "replanOffRouteMeters", "replanOffRouteMinutes",
-        "autoStopMinutes", "autoPauseMinutes", "rideDimSeconds", "rideSounds",
+        "autoStopMinutes", "autoPauseMinutes", "rideDimSeconds", "rideSounds", "avoidCobbles",
         "measuredOverallKmh", "measuredMovingKmh", "measuredRides",
         "bikeOverallKmh", "carOverallKmh", "measuredCarKmh", "measuredCarRides",
         // Anzeige
@@ -349,6 +351,7 @@ final class AppSettings {
         }
         assign(\.autoStopMinutes, defaults.object(forKey: "autoStopMinutes") as? Double ?? autoStopMinutes)
         assign(\.rideSounds, defaults.object(forKey: "rideSounds") as? Bool ?? rideSounds)
+        assign(\.avoidCobbles, defaults.object(forKey: "avoidCobbles") as? Bool ?? avoidCobbles)
         assign(\.autoPauseMinutes, defaults.object(forKey: "autoPauseMinutes") as? Double ?? autoPauseMinutes)
         assign(\.tombstones, defaults.data(forKey: "tombstones")
             .flatMap { try? JSONDecoder().decode(Tombstones.self, from: $0) } ?? tombstones)
@@ -592,7 +595,8 @@ final class AppSettings {
                      bikeLineStatus: bikeLines.status, timetableSource: timetableSource,
                      learnedSignals: learnedSignals,
                      measuredOverallKmh: bikeOverallKmh > 0 ? bikeOverallKmh : nil,
-                     carOverallKmh: carOverallKmh > 0 ? carOverallKmh : nil)
+                     carOverallKmh: carOverallKmh > 0 ? carOverallKmh : nil,
+                     avoidCobbles: avoidCobbles)
     }
 
     private func save(_ place: Place?, _ key: String) {
@@ -638,6 +642,8 @@ struct PlanSettings: Equatable {
     var measuredOverallKmh: Double? = nil
     /// Der Tür-zu-Tür-Schnitt fürs Auto; nil heißt, Apples Fahrzeit gilt.
     var carOverallKmh: Double? = nil
+    /// Radrouten meiden Kopfsteinpflaster.
+    var avoidCobbles = true
     /// Beyond this, the whole way by bike is a curiosity rather than a plan:
     /// its box moves to the end of the row and the OpenStreetMap corridor gets
     /// too big to ask Overpass for.

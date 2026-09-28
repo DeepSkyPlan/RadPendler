@@ -419,4 +419,18 @@ extension BikeRouteTests {
         XCTAssertEqual(picked[1].0.source, "shortest")
         XCTAssertTrue(picked[1].1.contains(.shortest), "der echte Name, keine „Alternative“")
     }
+
+    /// Jedes mitgelieferte Profil lässt sich ohne Pflaster umschreiben: genau
+    /// eine Kostenzeile wird zur Basis, eine neue kommt vor den Knotenteil.
+    func testEveryBundledProfileCanAvoidCobbles() throws {
+        for name in ["brouter-trekking", "brouter-fastbike", "brouter-shortest",
+                     "brouter-fastbike-lowtraffic", "brouter-safety", "radpendler-quiet"] {
+            let url = try XCTUnwrap(Bundle.main.url(forResource: name, withExtension: "brf"), name)
+            let text = CustomProfile.withoutCobbles(try String(contentsOf: url, encoding: .utf8))
+            XCTAssertEqual(text.components(separatedBy: "assign costfactor_base").count, 2, name)
+            let node = try XCTUnwrap(text.range(of: "---context:node"), name)
+            let added = try XCTUnwrap(text.range(of: "switch surface=sett|cobblestone 5 0"), name)
+            XCTAssertLessThan(added.lowerBound, node.lowerBound, name)
+        }
+    }
 }
