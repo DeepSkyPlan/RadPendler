@@ -4,8 +4,12 @@
 
 - **Wieder mehrere Radrouten.** Seit „wenig Autos“ mit eigenem Profil fährt, gewann dessen
   Linie oft alle drei gewünschten Rollen — und von drei angefragten Wegen stand nur einer
-  da, Tippen brachte nichts. Jetzt trägt der Gewinner weiter alle seine Namen, die übrigen
-  Wege füllen die freien Plätze als „Alternative“.
+  da, Tippen brachte nichts. Jetzt geht die App die eigene Reihenfolge weiter hinunter
+  (etwa kürzest, wenig Halts, schnellst), holt die dafür fehlenden Profile nach und zeigt
+  den nächsten **anderen** Weg mit seinem echten Namen. Erst wenn die ganze Liste keinen
+  bringt, füllt eine „Alternative“.
+- **Langer Druck auf einen Verkehrsmittel-Kasten** springt auf die erste Möglichkeit und
+  bleibt dort. Bisher schaltete das Loslassen gleich auf die zweite weiter.
 
 ## 1.8 (Build 44) — Karte in drei Farben, Ampelzähler nach Neuplanung
 

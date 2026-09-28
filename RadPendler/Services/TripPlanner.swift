@@ -158,20 +158,18 @@ struct TripPlanner {
     /// wait at every light.
     func bikeOptions(_ req: PlanRequest) async throws -> [TripOption] {
         let (o, d) = (req.origin.coordinate, req.destination.coordinate)
-        // **Nur holen, was jemand sehen will.** Jede Rolle braucht ein
-        // bestimmtes BRouter-Profil; die Rollen jenseits der eingestellten
-        // Zahl braucht niemand, und jede Anfrage dafür ist eine Anfrage an
-        // einen fremden Server für nichts. Vorher waren es immer neun.
-        let wanted = req.settings.bikeVariantOrder.prefix(Swift.max(1, req.settings.optionsPerMode))
-        var requests: [(String, BRouterClient.Profile?, Int)] = [("Apple", nil, 0)]
-        for v in wanted {
-            switch v {
-            case .balanced: requests.append(("trekking", .trekking, 0))
-            case .fastest: requests.append(("fastbike", .fastbike, 0))
-            case .shortest: requests.append(("shortest", .shortest, 0))
-            case .quiet: requests.append(("safety", .quiet, 0))
-            case .lowTraffic: requests.append((L("verkehrsarm"), .lowTraffic, 0))
-            case .alternative: break
+        let n = Swift.max(1, req.settings.optionsPerMode)
+        let order = req.settings.bikeVariantOrder.filter { $0 != .alternative }
+        func requests(for roles: some Sequence<BikeVariant>) -> [(String, BRouterClient.Profile?, Int)] {
+            roles.compactMap { v in
+                switch v {
+                case .balanced: ("trekking", .trekking, 0)
+                case .fastest: ("fastbike", .fastbike, 0)
+                case .shortest: ("shortest", .shortest, 0)
+                case .quiet: ("safety", .quiet, 0)
+                case .lowTraffic: (L("verkehrsarm"), .lowTraffic, 0)
+                case .alternative: nil
+                }
             }
         }
         // Höchstens so viele Anfragen gleichzeitig an BRouter. Der öffentliche
@@ -180,33 +178,60 @@ struct TripPlanner {
         // — und weil ein Fehlschlag hier nur eine fehlende Möglichkeit ist und
         // keinen Fehler, verschwanden die Varianten stillschweigend. Apple
         // zählt nicht mit, das ist ein anderer Dienst.
-        let found = await Self.gathered(requests, atOnce: 3) { name, profile, alt in
-            if let profile {
-                return try? await brouter.route(from: o, to: d, profile: profile, alternative: alt)
+        func fetch(_ list: [(String, BRouterClient.Profile?, Int)]) async -> [(String, StreetRoute)] {
+            await Self.gathered(list, atOnce: 3) { name, profile, alt in
+                if let profile {
+                    return try? await brouter.route(from: o, to: d, profile: profile, alternative: alt)
+                }
+                return try? await apple.route(from: o, to: d, mode: .bike, departure: nil)
             }
-            return try? await apple.route(from: o, to: d, mode: .bike, departure: nil)
         }
-        guard !found.isEmpty else { throw PlannerError.noBikeRoute }
-        // Kam von BRouter gar nichts, steht nur Apples eine Linie da — dann
-        // gibt es eine Variante statt fünf, und der Nutzer soll wissen, warum.
-        let brouterAsked = requests.contains { $0.1 != nil }
-        let brouterAnswered = found.contains { $0.0 != "Apple" }
+        func judge(_ found: [(String, StreetRoute)], _ data: RoadData?) async -> [BikeCandidate] {
+            // 63 ms per route, six routes: serially that is 378 ms of the plan
+            // for nothing. They do not depend on each other.
+            await withTaskGroup(of: (Int, BikeCandidate).self) { group in
+                for (i, (name, route)) in found.enumerated() {
+                    group.addTask {
+                        (i, BikeCandidate(source: name, route: route,
+                                          stats: data.map { RouteAnalyzer.analyze(route.coordinates, roads: $0) }))
+                    }
+                }
+                var out: [(Int, BikeCandidate)] = []
+                for await pair in group { out.append(pair) }
+                return out.sorted { $0.0 < $1.0 }.map(\.1)
+            }
+        }
 
-        let data = Self.withLearned(try? await roads.data(covering: found.flatMap { $0.1.coordinates }), req.settings)
-        // 63 ms per route, six routes: serially that is 378 ms of the plan for
-        // nothing. They do not depend on each other.
-        let candidates = await withTaskGroup(of: (Int, BikeCandidate).self) { group in
-            for (i, (name, route)) in found.enumerated() {
-                group.addTask {
-                    (i, BikeCandidate(source: name, route: route,
-                                      stats: data.map { RouteAnalyzer.analyze(route.coordinates, roads: $0) }))
+        // **Nur holen, was jemand sehen will** — zuerst. Jede Rolle braucht
+        // ein bestimmtes BRouter-Profil, und die obersten `n` Rollen der
+        // eigenen Reihenfolge sind, was gezeigt werden soll.
+        let asked = [("Apple", BRouterClient.Profile?.none, 0)] + requests(for: order.prefix(n))
+        var found = await fetch(asked)
+        guard !found.isEmpty else { throw PlannerError.noBikeRoute }
+        var data = Self.withLearned(try? await roads.data(covering: found.flatMap { $0.1.coordinates }), req.settings)
+        var candidates = await judge(found, data)
+        var picked = BikeCandidate.pick(candidates, settings: req.settings, fill: false)
+        // **Eine Route ist immer doof.** Gewinnt eine Linie mehrere der
+        // obersten Rollen, bleiben Plätze frei — dann geht es die eigene
+        // Reihenfolge weiter hinunter (Nutzer, 28.09.2026: „kürzest, wenig
+        // Halts, schnellst"), mit den Profilen, die dafür noch fehlen. Erst
+        // wenn auch das keinen anderen Weg bringt, füllt eine „Alternative".
+        if picked.count < n {
+            let have = Set(asked.compactMap { $0.1?.rawValue })
+            let more = requests(for: order.dropFirst(n)).filter { !have.contains($0.1?.rawValue ?? "") }
+            if !more.isEmpty {
+                let extra = await fetch(more)
+                if !extra.isEmpty {
+                    found += extra
+                    data = Self.withLearned(try? await roads.data(covering: found.flatMap { $0.1.coordinates }), req.settings)
+                    candidates = await judge(found, data)
                 }
             }
-            var out: [(Int, BikeCandidate)] = []
-            for await pair in group { out.append(pair) }
-            return out.sorted { $0.0 < $1.0 }.map(\.1)
         }
-        let picked = BikeCandidate.pick(candidates, settings: req.settings)
+        picked = BikeCandidate.pick(candidates, settings: req.settings)
+        // Kam von BRouter gar nichts, steht nur Apples eine Linie da — dann
+        // gibt es eine Variante statt fünf, und der Nutzer soll wissen, warum.
+        let brouterAnswered = found.contains { $0.0 != "Apple" }
 
         return picked.enumerated().map { index, entry in
             let (c, variants) = entry
@@ -220,7 +245,7 @@ struct TripPlanner {
                           departure: leave, arrival: leave.addingTimeInterval(ride),
                           distance: c.route.distance, coordinates: c.route.coordinates)
             var option = TripOption(mode: .bike, legs: [leg], prep: req.settings.prep,
-                                    note: Self.bikeNote(roadData: data, brouterMissing: brouterAsked && !brouterAnswered,
+                                    note: Self.bikeNote(roadData: data, brouterMissing: !brouterAnswered,
                                                         km: c.route.distance / 1000, settings: req.settings),
                                     bikeRoute: BikeRouteInfo(variants: variants, stats: c.stats, source: c.source,
                                                              mix: c.route.mix,

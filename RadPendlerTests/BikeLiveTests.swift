@@ -13,7 +13,6 @@ final class BikeLiveTests: XCTestCase {
         let to = Place(name: "Ziel", latitude: 52.5363, longitude: 13.3610)
         var s = PlanSettings()
         s.optionsPerMode = 3
-        s.bikeVariantOrder = [.quiet, .lowTraffic, .balanced, .fastest, .shortest]
         let req = PlanRequest(origin: from, destination: to, target: .departAfter(.now), settings: s)
         var b = BRouterClient(); b.cached = false
         for p in [BRouterClient.Profile.quiet, .lowTraffic, .trekking] {
@@ -22,8 +21,11 @@ final class BikeLiveTests: XCTestCase {
         }
         let options = try await TripPlanner().bikeOptions(req)
         for o in options {
+            let st = o.bikeRoute?.stats
             print("LIVE bike:", o.bikeRoute?.source ?? "?", o.bikeRoute?.variants.map(\.rawValue) ?? [],
-                  Int(o.totalDistance), o.note ?? "")
+                  "\(Int(o.totalDistance)) m", "\(Int(o.duration / 60)) min",
+                  "Ampeln \(st?.signals ?? -1)", "Querungen \(st?.crossings.count ?? -1)",
+                  "Hauptstr \(Int(st?.mainRoadMeters ?? -1)) m", o.note ?? "")
         }
         XCTAssertGreaterThan(options.count, 1)
     }

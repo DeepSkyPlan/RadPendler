@@ -175,8 +175,8 @@ final class BikeRouteTests: XCTestCase {
         XCTAssertEqual(picked.count, 2, "der Gewinner und die Alternative")
         XCTAssertEqual(picked[1].1, [.alternative])
         XCTAssertEqual(picked[0].0.source, "safety")
-        XCTAssertEqual(picked[0].1, Array(BikeVariant.defaultOrder.prefix(3)),
-                       "die obersten drei Namen, in der Reihenfolge des Nutzers")
+        XCTAssertEqual(picked[0].1, BikeVariant.defaultOrder,
+                       "alle Namen, in der Reihenfolge des Nutzers — die Liste wurde bis unten nach einem anderen Weg abgesucht")
     }
 
     func testTheVariantOrderTravelsThroughToWhatIsSuggested() {
@@ -364,8 +364,9 @@ extension BikeRouteTests {
         XCTAssertEqual(Set(BikeCandidate.pick([a, b, c], settings: s).flatMap { $0.1 }).count, 1)
         s.optionsPerMode = 3
         let three = BikeCandidate.pick([a, b, c], settings: s)
-        XCTAssertEqual(Set(three.flatMap { $0.1 }).subtracting([.alternative]), Set(BikeVariant.defaultOrder.prefix(3)))
-        XCTAssertLessThanOrEqual(three.count, 3, "nie mehr Kästen als eingestellt")
+        XCTAssertTrue(Set(three.flatMap { $0.1 }).isSuperset(of: BikeVariant.defaultOrder.prefix(3)),
+                      "die obersten drei Rollen sind immer vergeben")
+        XCTAssertEqual(three.count, 3, "drei verschiedene Wege, wenn es drei gibt")
         XCTAssertTrue(three.allSatisfy { !$0.1.isEmpty }, "keine namenlose Linie")
     }
 
@@ -401,5 +402,21 @@ extension BikeRouteTests {
         let text = try String(contentsOf: url, encoding: .utf8)
         XCTAssertTrue(text.contains("assign   consider_noise           = true"))
         XCTAssertTrue(text.contains("assign   consider_traffic         = true"))
+    }
+
+    /// Gewinnt eine Linie die obersten Rollen, rückt die nächste Rolle der
+    /// Liste mit einem anderen Weg nach — mit ihrem echten Namen.
+    func testASweepingWinnerMakesRoomForTheNextRoleDownTheList() {
+        var s = PlanSettings()
+        s.optionsPerMode = 2
+        s.bikeVariantOrder = [.quiet, .balanced, .shortest, .fastest, .lowTraffic]
+        let calm = candidate("safety", km: 21, signals: 10, crossings: 2, mainKm: 1)
+        let short = candidate("shortest", km: 17, signals: 40, crossings: 15, mainKm: 9)
+        let picked = BikeCandidate.pick([calm, short], settings: s)
+        XCTAssertEqual(picked.count, 2)
+        XCTAssertEqual(picked[0].0.source, "safety")
+        XCTAssertTrue(picked[0].1.starts(with: [.quiet, .balanced]))
+        XCTAssertEqual(picked[1].0.source, "shortest")
+        XCTAssertTrue(picked[1].1.contains(.shortest), "der echte Name, keine „Alternative“")
     }
 }
