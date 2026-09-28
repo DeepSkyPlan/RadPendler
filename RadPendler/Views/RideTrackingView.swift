@@ -21,7 +21,7 @@ struct RideTrackingView: View {
     @State private var confirmStop = false
     /// Der Bildschirm, der nach einer Weile dunkel wird — und beim ersten
     /// Antippen wieder hell.
-    @State private var screen = ScreenDim()
+    private let screen = ScreenDim.shared
     /// Wann zuletzt etwas passiert ist, das den Bildschirm wachhält: eine
     /// Berührung, eine Abbiegung, ein Abweichen von der Route.
     @State private var lastTouch = Date.now
@@ -92,7 +92,7 @@ struct RideTrackingView: View {
         .onChange(of: showsTurn) { _, on in if on { touched() } }
         .onChange(of: tracker.detour != nil) { _, off in if off { touched() } }
         // Während einer Pause ist ohnehin nichts zu sehen.
-        .onChange(of: tracker.isPaused) { _, paused in if paused { screen.dim() } else { touched() } }
+        .onChange(of: tracker.isPaused) { _, paused in if paused { _ = screen.dim() } else { touched() } }
         // Am Lenker in der Ladeschale ist das Abdunkeln überflüssig: der
         // Bildschirm kostet dann nichts, was nicht nachkommt.
         .onReceive(NotificationCenter.default.publisher(for: UIDevice.batteryStateDidChangeNotification)) { _ in
@@ -103,7 +103,8 @@ struct RideTrackingView: View {
             guard settings.rideDimSeconds > 0, !onPower else { return }
             try? await Task.sleep(for: .seconds(settings.rideDimSeconds))
             guard !Task.isCancelled else { return }
-            screen.dim()
+            // Läuft gerade Ton nebenher, später noch einmal fragen.
+            if !screen.dim() { lastTouch = .now }
         }
         // Fahrtende, Wechsel in den Hintergrund, Abbruch: die Helligkeit
         // gehört dem ganzen Telefon, nicht dieser Ansicht.

@@ -515,6 +515,9 @@ struct ContentView: View {
     /// Was nach jeder Fahrt passiert, egal wer sie beendet hat: nachmessen,
     /// dazulernen, die Ausrichtung wieder freigeben.
     private func afterRide() {
+        // Hell, bevor irgendetwas anderes passiert — die Zusammenfassung will
+        // gelesen werden.
+        ScreenDim.shared.wake()
         // Where this ride stood — and where it rolled straight through — is
         // what the next one knows: the junctions no map has, and what the
         // known ones really cost.

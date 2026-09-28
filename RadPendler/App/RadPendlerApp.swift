@@ -56,6 +56,10 @@ struct RadPendlerApp: App {
                 // zu sehen — `scenePhase` ist der Weg, der wirklich feuert.
                 .onChange(of: phase) { _, now in
                     if now == .background { BackgroundReplan.schedule() }
+                    // Was eine Fahrt gedunkelt hat und nicht mehr aufhellen
+                    // konnte — beendet im Hintergrund, App abgestürzt —, wird
+                    // hier wieder hell, sobald keine Fahrt mehr läuft.
+                    if now == .active, !tracker.isRecording { ScreenDim.shared.wake() }
                 }
         }
     }
