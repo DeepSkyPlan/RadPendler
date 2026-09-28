@@ -6,6 +6,9 @@ import SwiftUI
 /// one line underneath and only unfolds when it is tapped.
 struct ModeStrip: View {
     var model: PlanModel
+    /// Der Kasten, der gerade lang gedrückt wurde — sein Tipp beim Loslassen
+    /// wird verschluckt.
+    @State private var held: TravelMode?
 
     var body: some View {
         HStack(spacing: 7) {
@@ -23,6 +26,9 @@ struct ModeStrip: View {
         let active = model.activeMode == mode
         let recommended = model.recommended?.mode == mode
         return Button {
+            // Nach dem Langdruck feuert beim Loslassen auch der Knopf — und
+            // schaltete von der eben gewählten ersten gleich auf die zweite.
+            if held == mode { held = nil; return }
             withAnimation(.snappy(duration: 0.2)) {
                 if active { model.cycle(mode) } else { model.activeMode = mode }
             }
@@ -69,6 +75,10 @@ struct ModeStrip: View {
         .buttonStyle(.plain)
         // Held down: back to the first, which is the best one of this mode.
         .simultaneousGesture(LongPressGesture(minimumDuration: 0.45).onEnded { _ in
+            held = mode
+            // Kam der Tipp nicht (Finger weggezogen), darf der nächste echte
+            // nicht verschluckt werden.
+            Task { try? await Task.sleep(for: .seconds(3)); if held == mode { held = nil } }
             withAnimation(.snappy(duration: 0.2)) { model.selectFirst(mode) }
             UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
         })

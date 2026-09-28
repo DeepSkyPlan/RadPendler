@@ -190,7 +190,8 @@ struct BikeCandidate {
     ///
     /// Die Liste kommt in der Reihenfolge zurück, die der Nutzer eingestellt
     /// hat; die namenlosen Linien hängen hinten an, die schnellste zuerst.
-    static func pick(_ candidates: [BikeCandidate], settings s: PlanSettings) -> [(BikeCandidate, [BikeVariant])] {
+    static func pick(_ candidates: [BikeCandidate], settings s: PlanSettings,
+                     fill: Bool = true) -> [(BikeCandidate, [BikeVariant])] {
         let all = levelled(distinct(candidates))
         // `computedTime`, nicht `time`: die angezeigte Fahrzeit kommt aus dem
         // gemessenen Schnitt, und der kennt nur die Länge. Welche von drei
@@ -217,29 +218,35 @@ struct BikeCandidate {
             lowTraffic = all.firstIndex { $0.source == L("verkehrsarm") } ?? quiet
         }
         let shortest = all.indices.min { all[$0].route.distance < all[$1].route.distance }!
-        // **Nur die obersten Rollen der eigenen Reihenfolge.** Namenlose
-        // Linien gibt es nicht mehr: „Alternative" dreimal untereinander sagt
-        // nichts, und jede davon kostete eine Anfrage. Gewinnt eine Linie
-        // mehrere Rollen, steht sie einmal da und trägt alle ihre Namen —
-        // dann sind es eben weniger Kästen, und das ist die richtige Antwort.
-        let order = Array(s.bikeVariantOrder.prefix(Swift.max(1, s.optionsPerMode)))
+        let n = Swift.max(1, s.optionsPerMode)
+        // Die obersten `n` Rollen der eigenen Reihenfolge — und gewinnt eine
+        // Linie gleich mehrere davon, geht es die Liste weiter hinunter, bis
+        // `n` **verschiedene** Wege dastehen (Nutzer, 28.09.2026: „nur eine
+        // Route ist immer doof"). Jede Linie trägt die Namen, die sie dabei
+        // gewonnen hat; ein Name bleibt wahr.
+        let order = s.bikeVariantOrder.filter { $0 != .alternative }
         let winner: [BikeVariant: Int] = [.fastest: fastest, .shortest: shortest,
                                           .balanced: balanced, .quiet: quiet, .lowTraffic: lowTraffic]
-        var roles: [Int: [BikeVariant]] = [:]
-        for v in order { roles[winner[v]!, default: []].append(v) }
-        // **Gewinnt eine Linie alles, bleibt es nicht bei einer.** Seit „wenig
-        // Autos" mit eigenem Profil fährt, holt dessen Linie oft alle drei
-        // Rollen auf einmal — und von drei angefragten, verschiedenen Wegen
-        // stand nur einer da (Nutzer, 28.09.2026). Die übrigen füllen die
-        // freien Plätze als „Alternative", die ausgewogenste zuerst; einen
-        // Namen, den sie nicht verdient, bekommt keine.
-        let spare = all.indices.filter { roles[$0] == nil }
-            .sorted { all[$0].balancedScore(s) < all[$1].balancedScore(s) }
-        for i in spare.prefix(Swift.max(0, order.count - roles.count)) { roles[i] = [.alternative] }
-        let rank = { (v: BikeVariant) in order.firstIndex(of: v) ?? order.count }
-        return roles
-            .map { (all[$0.key], $0.value.sorted { rank($0) < rank($1) }) }
-            .sorted { rank($0.1.first!) < rank($1.1.first!) }
+        var boxes: [(key: Int, names: [BikeVariant])] = []
+        for (i, v) in order.enumerated() {
+            guard i < n || boxes.count < n else { break }
+            let w = winner[v]!
+            if let k = boxes.firstIndex(where: { $0.key == w }) {
+                boxes[k].names.append(v)
+            } else if boxes.count < n {
+                boxes.append((w, [v]))
+            }
+        }
+        // Und bringt auch die ganze Liste keinen weiteren Weg, füllt, was an
+        // anderen Linien da ist, die freien Plätze — die ausgewogenste zuerst,
+        // als „Alternative", ohne einen Namen, den sie nicht verdient.
+        if fill, boxes.count < n {
+            let used = Set(boxes.map(\.key))
+            let spare = all.indices.filter { !used.contains($0) }
+                .sorted { all[$0].balancedScore(s) < all[$1].balancedScore(s) }
+            boxes += spare.prefix(n - boxes.count).map { (key: $0, names: [BikeVariant.alternative]) }
+        }
+        return boxes.map { (all[$0.key], $0.names) }
     }
 }
 
