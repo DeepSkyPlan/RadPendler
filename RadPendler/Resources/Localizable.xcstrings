@@ -1035,13 +1035,13 @@
         }
       }
     },
-    "Der Abbiegepfeil ist grün und kommt erst 250 m vor der Abbiegung — ein Pfeil, der zwei Kilometer lang „rechts“ sagt, sieht man nicht mehr an, wenn es so weit ist. Rot ist nur eines: dass du neben der Route bist.": {
+    "Der Abbiegepfeil ist grün und kommt erst 125 m vor der Abbiegung, im Auto 250 m — ein Pfeil, der zwei Kilometer lang „rechts“ sagt, sieht man nicht mehr an, wenn es so weit ist. Rot ist nur eines: dass du neben der Route bist.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The turn arrow is green and only appears 250 m before the turn — an arrow that says “right” for two kilometres is no longer looked at when the moment comes. Red means one thing only: you are off the route."
+            "value": "The turn arrow is green and only appears 125 m before the turn, 250 m by car — an arrow that says “right” for two kilometres is no longer looked at when the moment comes. Red means one thing only: you are off the route."
           }
         }
       }
@@ -3763,13 +3763,13 @@
         }
       }
     },
-    "Vor einer Abbiegung steht oben ein grünes Band mit Pfeil und Metern — links abbiegen links, rechts abbiegen rechts. Dazu ein Ton bei 250 m und ein doppelter kurz davor, links tiefer, rechts höher. Neben der Route steht mittig ein rotes Band mit Abstand und Zeit. Die Kurven rechnet die App aus der geplanten Linie — es sind Hinweise, keine Navigation.": {
+    "Vor einer Abbiegung steht oben ein grünes Band mit Pfeil und Metern — links abbiegen links, rechts abbiegen rechts. Dazu ein Ton bei 125 m (im Auto 250 m) und ein doppelter kurz davor, links tiefer, rechts höher. Neben der Route steht mittig ein rotes Band mit Abstand und Zeit. Die Kurven rechnet die App aus der geplanten Linie — es sind Hinweise, keine Navigation.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Before a turn a green band appears at the top with an arrow and the distance — on the left for a left turn, on the right for a right turn. A tone sounds at 250 m and a double one just before, lower for left, higher for right. Off the route, a red band in the middle shows the distance and the time. The turns are worked out from the planned line — they are hints, not navigation."
+            "value": "Before a turn a green band appears at the top with an arrow and the distance — on the left for a left turn, on the right for a right turn. A tone sounds at 125 m (250 m by car) and a double one just before, lower for left, higher for right. Off the route, a red band in the middle shows the distance and the time. The turns are worked out from the planned line — they are hints, not navigation."
           }
         }
       }

@@ -301,6 +301,11 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// kurz davor, und keiner doppelt, auch wenn der Abstand um die Grenze
     /// herum zappelt.
     private var announcedTurn: TurnGuide.Step?
+    /// Ab wie vielen Metern vor einer Abbiegung Pfeil und Ton kommen — je
+    /// nachdem, womit gefahren wird.
+    var announceMeters: Double {
+        TurnGuide.announceMeters(for: subject.flatMap { TravelMode(rawValue: $0.mode) })
+    }
     private var calledTurn: TurnGuide.Step?
 
     private func soundTurn(_ step: TurnGuide.Step, meters: Double) {
@@ -308,7 +313,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
             calledTurn = step
             announcedTurn = step
             RideSounds.shared.play(.turnNow(side: step.turn.side))
-        } else if meters <= TurnGuide.announceMeters, announcedTurn != step {
+        } else if meters <= announceMeters, announcedTurn != step {
             announcedTurn = step
             RideSounds.shared.play(.turnAhead(side: step.turn.side))
         }

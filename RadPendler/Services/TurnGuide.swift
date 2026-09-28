@@ -70,8 +70,12 @@ enum TurnGuide {
 
     /// So kurz vor einer Abbiegung erscheint der Pfeil und kommt der erste Ton
     /// — und keinen Meter früher. Ein Pfeil, der zwei Kilometer lang „rechts"
-    /// sagt, ist kein Hinweis, sondern Tapete.
-    static let announceMeters = 250.0
+    /// sagt, ist kein Hinweis, sondern Tapete. Auf dem Rad die Hälfte vom
+    /// Auto: 250 m sind bei 20 km/h fast eine Minute, und in der Zeit liegen
+    /// oft noch zwei andere Querstraßen (Nutzer, 28.09.2026).
+    static func announceMeters(for mode: TravelMode?) -> Double {
+        mode == .car ? 250 : 125
+    }
     /// Und hier der doppelte Ton: jetzt abbiegen. Bei 20 km/h gut fünf Sekunden.
     static let nowMeters = 30.0
 
