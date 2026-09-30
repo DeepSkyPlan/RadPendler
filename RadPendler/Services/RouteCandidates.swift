@@ -11,20 +11,67 @@ import Foundation
 struct CarCandidate {
     var route: StreetRoute
     var stats: BikeRouteStats?
+    /// Dieselbe Linie ohne Verkehr — Apples Fahrzeit für nachts um drei.
+    /// Nur fürs Motorrad gefragt; nil heißt unbekannt.
+    var freeFlow: TimeInterval? = nil
 
     var signals: Int? { stats?.signals }
+
+    /// Welcher Teil des Staus am Motorrad vorbeigeht.
+    ///
+    /// In der Stadt ist Stau fast immer die Schlange vor der Ampel, und an der
+    /// rollt man vorbei bis an die Haltelinie — wie mit dem Rad. Bleibt, was
+    /// sich nicht vorbeirollen lässt: die Ampel selbst, wenn sie rot ist, die
+    /// Engstelle ohne Platz daneben, der stehende Verkehr auf der Autobahn.
+    static let queueShare = 0.7
+
+    /// Apples Fahrzeit mit Verkehrslage — fürs Motorrad ohne den Teil des
+    /// Staus, an dem es vorbeirollt. Stau ist, was Apple jetzt mehr braucht
+    /// als nachts; ohne die Nachtzahl gibt es keinen Abzug.
+    func driveTime(_ s: PlanSettings) -> TimeInterval {
+        (route.expectedTravelTime - queueSaving(s)).rounded()
+    }
+
+    /// Was das Motorrad gegenüber dem Auto im Stau spart. 0 fürs Auto.
+    func queueSaving(_ s: PlanSettings) -> TimeInterval {
+        guard s.motorcycle, let freeFlow else { return 0 }
+        return Swift.max(0, route.expectedTravelTime - freeFlow) * Self.queueShare
+    }
 
     /// Driving time with the waiting at the lights added, the way the bike
     /// routes count it — an Apple estimate already includes traffic, but not
     /// the difference between twelve junctions and forty.
     func time(_ s: PlanSettings) -> TimeInterval {
-        route.expectedTravelTime + Double((signals ?? 0) * s.signalWaitSeconds) * 0.5
+        driveTime(s) + Double((signals ?? 0) * s.signalWaitSeconds) * 0.5
     }
 
     /// Mittelweg: time plus half the waiting, so a line that is two minutes
     /// slower but crosses twenty fewer junctions can win it.
     func balancedScore(_ s: PlanSettings) -> Double {
-        route.expectedTravelTime + Double((signals ?? 0) * s.signalWaitSeconds)
+        driveTime(s) + Double((signals ?? 0) * s.signalWaitSeconds)
+    }
+
+    /// Zu jeder Linie mit Verkehr die Fahrzeit ohne: die Nachtlinie gleicher
+    /// Länge (auf 2 %, mindestens 150 m), sonst das Verhältnis der beiden
+    /// schnellsten. Apple bietet nachts nicht immer dieselben Linien an —
+    /// die Autobahn gewinnt, wenn sie frei ist —, aber wie stark der Verkehr
+    /// gerade bremst, gilt für die Stadtlinie nebenan ungefähr genauso.
+    /// Nie länger als mit Verkehr: schneller als nachts ist niemand, aber
+    /// eine Schätzung, die das Motorrad langsamer macht, wäre Unsinn.
+    static func freeFlow(day: [StreetRoute], night: [StreetRoute]) -> [TimeInterval?] {
+        let ratio: Double? = {
+            guard let d = day.map(\.expectedTravelTime).min(), d > 0,
+                  let n = night.map(\.expectedTravelTime).min() else { return nil }
+            return Swift.min(1, n / d)
+        }()
+        return day.map { r in
+            let tolerance = Swift.max(150, r.distance * 0.02)
+            let twin = night
+                .filter { abs($0.distance - r.distance) <= tolerance }
+                .min { abs($0.distance - r.distance) < abs($1.distance - r.distance) }
+            if let twin { return Swift.min(r.expectedTravelTime, twin.expectedTravelTime) }
+            return ratio.map { r.expectedTravelTime * $0 }
+        }
     }
 
     /// schnellst = least driving time, kürzest = fewest metres, optimal = the
@@ -39,7 +86,7 @@ struct CarCandidate {
         // One line wins everything by default; four labels on it say nothing.
         guard all.count > 1 else { return [(all[0], [.fastest])] }
         var roles: [Int: [CarVariant]] = [:]
-        if let i = all.indices.min(by: { all[$0].route.expectedTravelTime < all[$1].route.expectedTravelTime }) {
+        if let i = all.indices.min(by: { all[$0].driveTime(s) < all[$1].driveTime(s) }) {
             roles[i, default: []].append(.fastest)
         }
         if let i = all.indices.min(by: { all[$0].route.distance < all[$1].route.distance }) {

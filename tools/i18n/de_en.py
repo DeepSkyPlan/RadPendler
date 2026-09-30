@@ -660,3 +660,13 @@ T.update({"Farbskala der Geschwindigkeit, rot langsam bis grün schnell":
           "Speed colour scale, red is slow and green is fast"})
 
 T.update({"aufgezeichnet mit %@": "recorded with %@"})
+
+T.update({
+"Motorrad": "Motorcycle",
+"Motorrad statt Auto": "Motorcycle instead of car",
+"Motorrad: %d min Stau vorbeigerollt": "Motorcycle: filtered past %d min of traffic",
+"Fahrzeit laut Apple Karten — kein Stau auf der Strecke": "Travel time from Apple Maps — no traffic jams on the way",
+"Fahrzeit laut Apple Karten — Stau unbekannt, nichts abgezogen": "Travel time from Apple Maps — traffic unknown, nothing deducted",
+"Der Kasten „Auto“ fährt Motorrad: dieselben Straßen und Apples Fahrzeit mit Verkehrslage — aber am Stau rollt es vorbei bis an die Ampel, wie mit dem Rad. Wie viel Stau auf der Strecke steht, zeigt Apples Fahrzeit für dieselbe Strecke nachts um drei; davon zieht die App 70 % ab. Der Rest bleibt: die rote Ampel selbst, Engstellen, die stehende Autobahn. Parkplatzsuche und Auto-Schnitt gelten nicht; aufgezeichnete Motorradfahrten gehen nicht in den Auto-Schnitt ein.":
+"The “Car” box rides a motorcycle: the same roads and Apple’s travel time with live traffic — but it filters past queues up to the traffic light, like a bike. How much traffic there is comes from Apple’s travel time for the same route at three in the morning; the app deducts 70 % of the difference. The rest remains: the red light itself, narrow spots, a standing motorway. Parking time and the car average do not apply; recorded motorcycle rides do not count towards the car average.",
+})

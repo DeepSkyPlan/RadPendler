@@ -11,7 +11,7 @@ enum TravelMode: String, CaseIterable, Identifiable {
         case .bike: L("Fahrrad")
         case .bikeTransit: L("Rad + Bahn")
         case .transit: L("Bus & Bahn")
-        case .car: L("Auto")
+        case .car: Vehicle.title
         }
     }
 
@@ -20,7 +20,7 @@ enum TravelMode: String, CaseIterable, Identifiable {
         case .bike: "bicycle"
         case .bikeTransit: "bicycle.circle.fill"
         case .transit: "tram.fill"
-        case .car: "car.fill"
+        case .car: Vehicle.symbol
         }
     }
 
@@ -35,8 +35,29 @@ enum TravelMode: String, CaseIterable, Identifiable {
         case .bike: L("Rad")
         case .bikeTransit: L("Rad+Bahn")
         case .transit: L("ÖPNV")
-        case .car: L("Auto")
+        case .car: Vehicle.title
         }
+    }
+}
+
+/// Womit der Kasten „Auto" fährt: mit dem Auto oder mit dem Motorrad.
+///
+/// Kein fünftes Verkehrsmittel, sondern dasselbe mit anderem Fahrzeug — es
+/// fährt dieselben Straßen, dieselbe Apple-Route, zeichnet sich genauso auf.
+/// Anders ist nur, was ein Stau kostet (`CarCandidate.driveTime`), und wie es
+/// heißt. Wie `AppLanguage.current` ein Wert für die ganze App: die
+/// Einstellung schreibt ihn, Titel und Symbol lesen ihn, und die
+/// Wurzelansicht baut sich neu, wenn er wechselt.
+enum Vehicle {
+    static var motorcycle = false
+
+    static var title: String { motorcycle ? L("Motorrad") : L("Auto") }
+    static var symbol: String { motorcycle ? motorcycleSymbol : "car.fill" }
+
+    /// `motorcycle.fill` gibt es erst ab iOS 18; darunter der Roller.
+    static var motorcycleSymbol: String {
+        if #available(iOS 18, watchOS 11, *) { return "motorcycle.fill" }
+        return "scooter"
     }
 }
 

@@ -298,6 +298,10 @@ struct ModeSettingsView: View {
                     Hint(L("Zwei verschiedene Geschwindigkeiten, und sie tun Verschiedenes. Das Rolltempo ist das Tempo beim Fahren, ohne Halte: daraus plus der Wartezeit je Ampelkreuzung und den Höhenmetern rechnet die App jede Linie durch — es entscheidet also, welche Linie die schnellste ist. Der Gesamtschnitt ist die Messung deiner eigenen Fahrten, Tür zu Tür, mit allen Ampeln und Halten darin — er entscheidet, wie lange es dauert. Wäre die Rechnung schneller als dein gemessener Gesamtschnitt, gilt der Gesamtschnitt; auch bei den Zubringern zum Bahnhof, dort aber nur, wenn er die vorsichtigere Zahl ist. Beide Werte schreibt die App nach jeder aufgezeichneten Fahrt selbst fort, aus dem Median der letzten Fahrten, sobald es genug davon gibt; von Hand gestellt gelten sie bis zur nächsten Fahrt. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung addiert — außer an den Kreuzungen, die deine eigenen Fahrten schon kennen: die kosten, was dort gemessen wurde. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet."))
                 }
                 Section {
+                    Toggle(isOn: $settings.motorcycle) {
+                        Label(L("Motorrad statt Auto"), systemImage: Vehicle.motorcycleSymbol)
+                    }
+                    if !settings.motorcycle {
                     Stepper(L("Parkplatzsuche: %d min", settings.parkingMinutes), value: $settings.parkingMinutes, in: 0...30)
                     Stepper(value: $settings.carOverallKmh, in: 0...120, step: 1) {
                         Text(settings.carOverallKmh > 0
@@ -313,10 +317,13 @@ struct ModeSettingsView: View {
                             .font(.system(size: 13, design: .rounded))
                             .foregroundStyle(.secondary)
                     }
+                    }
                 } header: {
-                    Text(L("Auto"))
+                    Text(Vehicle.title)
                 } footer: {
-                    Hint(L("Die Fahrzeit kommt von Apple Karten mit Verkehrslage, dazu die Parkplatzsuche. Der Gesamtschnitt ist deine eigene Messung, Tür zu Tür: wäre Apple schneller als er, gilt er. Die App schreibt ihn nach jeder aufgezeichneten Autofahrt fort, sobald es drei gibt; getrennt vom Rad."))
+                    Hint(settings.motorcycle
+                         ? L("Der Kasten „Auto“ fährt Motorrad: dieselben Straßen und Apples Fahrzeit mit Verkehrslage — aber am Stau rollt es vorbei bis an die Ampel, wie mit dem Rad. Wie viel Stau auf der Strecke steht, zeigt Apples Fahrzeit für dieselbe Strecke nachts um drei; davon zieht die App 70 % ab. Der Rest bleibt: die rote Ampel selbst, Engstellen, die stehende Autobahn. Parkplatzsuche und Auto-Schnitt gelten nicht; aufgezeichnete Motorradfahrten gehen nicht in den Auto-Schnitt ein.")
+                         : L("Die Fahrzeit kommt von Apple Karten mit Verkehrslage, dazu die Parkplatzsuche. Der Gesamtschnitt ist deine eigene Messung, Tür zu Tür: wäre Apple schneller als er, gilt er. Die App schreibt ihn nach jeder aufgezeichneten Autofahrt fort, sobald es drei gibt; getrennt vom Rad."))
                 }
                 Section {
                     Stepper(L("Umstieg zählt wie %d min", settings.transferPenaltyMinutes), value: $settings.transferPenaltyMinutes, in: 0...30)

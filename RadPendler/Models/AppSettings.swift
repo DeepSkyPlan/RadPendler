@@ -18,6 +18,14 @@ final class AppSettings {
     var bikeStationBufferMinutes: Int = 3 { didSet { defaults.set(bikeStationBufferMinutes, forKey: "bikeStationBufferMinutes") } }
     /// Farthest station the bike+rail search rides to, at either end.
     var maxBikeToStationKm: Double = 5 { didSet { defaults.set(maxBikeToStationKm, forKey: "maxBikeToStationKm") } }
+    /// Der Kasten „Auto" fährt Motorrad: Stau kostet weniger, weil man wie mit
+    /// dem Rad bis an die Ampel vorrollt, und einen Parkplatz sucht niemand.
+    var motorcycle: Bool = false {
+        didSet {
+            defaults.set(motorcycle, forKey: "motorcycle")
+            Vehicle.motorcycle = motorcycle
+        }
+    }
     /// Added to every car trip for finding a parking space.
     var parkingMinutes: Int = 0 { didSet { defaults.set(parkingMinutes, forKey: "parkingMinutes") } }
     /// How many minutes of travel time one change of train is worth avoiding.
@@ -241,7 +249,7 @@ final class AppSettings {
         "requireAllWaypoints", "workArrivalMinutes",
         // Planung
         "prepMinutes", "bikeMovingSpeedKmh", "bikeStationBufferMinutes", "maxBikeToStationKm",
-        "parkingMinutes", "transferPenaltyMinutes", "signalWaitSeconds", "departurePresets2",
+        "parkingMinutes", "motorcycle", "transferPenaltyMinutes", "signalWaitSeconds", "departurePresets2",
         "departureBufferMinutes", "arrivalBufferMinutes", "optionsPerMode",
         "modeOrder", "bikeVariantOrder", "carVariantOrder", "rainSwitchLevel",
         "timetableSource", "bikeLines",
@@ -361,6 +369,9 @@ final class AppSettings {
         // „Deutsch" feuert das didSet also nicht, und `AppLanguage.current`
         // bliebe auf dem Voreingestellten stehen.
         AppLanguage.current = language
+        assign(\.motorcycle, defaults.object(forKey: "motorcycle") as? Bool ?? motorcycle)
+        // Aus demselben Grund wie die Sprache.
+        Vehicle.motorcycle = motorcycle
         assign(\.measuredOverallKmh, defaults.object(forKey: "measuredOverallKmh") as? Double)
         assign(\.measuredMovingKmh, defaults.object(forKey: "measuredMovingKmh") as? Double)
         assign(\.measuredRides, defaults.object(forKey: "measuredRides") as? Int ?? measuredRides)
@@ -454,10 +465,11 @@ final class AppSettings {
     /// Dasselbe fürs Auto, ohne Rolltempo und Ampeln: nur der Tür-zu-Tür-
     /// Schnitt. Er ist beim Planen die Untergrenze für Apples Fahrzeit —
     /// Apple kennt den Verkehr, aber nicht den Parkplatz vor der Tür und
-    /// nicht, wie dieser Fahrer fährt.
+    /// nicht, wie dieser Fahrer fährt. Motorradfahrten zählen nicht mit: sie
+    /// rollen am Stau vorbei und würden das Auto schneller machen, als es ist.
     func calibrateCar(from rides: [Ride]) {
         let relevant = rides
-            .filter { $0.travelMode == .car && $0.meters >= 2_000 && $0.movingSeconds > 60 }
+            .filter { $0.travelMode == .car && $0.motorcycle != true && $0.meters >= 2_000 && $0.movingSeconds > 60 }
             .sorted { $0.started > $1.started }
             .prefix(Self.calibrationWindow)
         guard relevant.count >= Self.calibrationRides else { return }
@@ -596,7 +608,7 @@ final class AppSettings {
                      learnedSignals: learnedSignals,
                      measuredOverallKmh: bikeOverallKmh > 0 ? bikeOverallKmh : nil,
                      carOverallKmh: carOverallKmh > 0 ? carOverallKmh : nil,
-                     avoidCobbles: avoidCobbles)
+                     avoidCobbles: avoidCobbles, motorcycle: motorcycle)
     }
 
     private func save(_ place: Place?, _ key: String) {
@@ -644,6 +656,8 @@ struct PlanSettings: Equatable {
     var carOverallKmh: Double? = nil
     /// Radrouten meiden Kopfsteinpflaster.
     var avoidCobbles = true
+    /// Der Kasten „Auto" fährt Motorrad — siehe `CarCandidate.driveTime`.
+    var motorcycle = false
     /// Beyond this, the whole way by bike is a curiosity rather than a plan:
     /// its box moves to the end of the row and the OpenStreetMap corridor gets
     /// too big to ask Overpass for.
