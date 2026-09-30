@@ -255,6 +255,9 @@ gehören diese Punkte an den Anfang der Liste von 1.8.1.
   dass du am Stau vorbei bis an die Ampel rollst, und zieht den größten Teil der
   Stauzeit ab. Keine Parkplatzsuche; Motorradfahrten zählen nicht in den
   Auto-Schnitt.
+• Die App lernt deine Wege: ab zwei Radfahrten auf derselben Strecke bietet sie
+  deine übliche Route als „gewohnt“ an, und Straßen, die du oft fährst, zählen
+  bei „optimal“ als gut — auch wenn die Karte sie für Hauptstraßen hält.
 • Fixpunkte führen jetzt die Radroute: eine Straße, die du gern fährst, als
   Fixpunkt eintragen — die Route fährt sie an, auch nach einer Neuplanung.
 • „optimal“ ist kein Umweg mehr: höchstens 10 % länger als die kürzeste Route.
@@ -638,6 +641,9 @@ lights,countdown  [90]
 • Motorcycle instead of car: a switch under Settings → Car. The app assumes you
   filter past queues up to the traffic light and deducts most of the time lost in
   traffic. No parking time; motorcycle rides do not count towards the car average.
+• The app learns your ways: after two bike rides on the same trip it offers your
+  usual route as “usual”, and roads you ride often count as good for “optimal” —
+  even where the map calls them main roads.
 • Fixed points now guide the bike route: add a street you like to ride as a fixed
   point and the route will take it, also after replanning.
 • “optimal” is no longer a detour: at most 10 % longer than the shortest route.

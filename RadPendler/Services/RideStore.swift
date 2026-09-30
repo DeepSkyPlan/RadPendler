@@ -31,9 +31,13 @@ final class RideStore {
     private let defaults: UserDefaults
     private var tracks: [UUID: RideTrack] = [:]
 
+    /// Die gefahrenen Wege, aus denen die Planung lernt — neben den Linien.
+    let habits: RiddenPaths
+
     init(folder: URL? = nil, defaults: UserDefaults = .standard) {
         self.folder = folder ?? Self.defaultFolder()
         self.defaults = defaults
+        habits = folder.map { RiddenPaths(file: $0.appending(path: "ridden.json")) } ?? .shared
         try? FileManager.default.createDirectory(at: self.folder.appending(path: "tracks"),
                                                  withIntermediateDirectories: true)
         reload()
@@ -81,6 +85,7 @@ final class RideStore {
         // Nichtstuer; die Fahrt ist hier schon abgelegt, bevor irgendetwas
         // reist.
         Task { await TrackCloud.shared.upload(track) }
+        Task { [habits] in await habits.add(ride, track: track) }
     }
 
     func delete(_ ride: Ride) {
@@ -93,6 +98,7 @@ final class RideStore {
         Tombstones.bury([Tombstones.key(ride: ride.id)], in: defaults)
         write()
         Task { await TrackCloud.shared.delete(ride.id) }
+        Task { [habits] in await habits.remove(ride.id) }
     }
 
     /// The line of one ride, from memory or from disk. nil means it was
@@ -246,6 +252,18 @@ final class RideStore {
     /// Start wieder dran. Jedes Gerät repariert seine eigene Liste — beim
     /// Zusammenführen gewinnt die eigene Fassung, und der Merker an der Fahrt
     /// hält fest, dass nichts zweimal abgezogen wird.
+    /// Einmal: die Radfahrten von vor 1.9 lernen nach. Was auf diesem Gerät
+    /// keine Linie hat, bleibt draußen — es kommt dazu, sobald es gefahren wird.
+    func learnHabitsIfNeeded() async {
+        let key = "habitsLearned"
+        guard !defaults.bool(forKey: key) else { return }
+        defaults.set(true, forKey: key)
+        for ride in rides where ride.travelMode == .bike {
+            guard let track = await track(for: ride) else { continue }
+            await habits.add(ride, track: track)
+        }
+    }
+
     func repairStandingBeforePauses() async {
         let todo = rides.filter { $0.pausedSeconds > 0 && $0.standingInPause != true }
         guard !todo.isEmpty else { return }

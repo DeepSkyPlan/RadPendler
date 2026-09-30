@@ -158,6 +158,12 @@ struct TripNotes: View {
     private var notes: [Note] {
         var out: [Note] = []
         if let reason { out.append(Note(text: reason, symbol: "sparkles", tint: .secondary)) }
+        if let route = option.bikeRoute, route.familiar >= 0.3 {
+            out.append(Note(text: route.isHabit
+                                ? L("fährt deine übliche Strecke nach — %d %% auf schon gefahrenen Wegen", Int((route.familiar * 100).rounded()))
+                                : L("%d %% auf schon gefahrenen Wegen", Int((route.familiar * 100).rounded())),
+                            symbol: "point.bottomleft.forward.to.point.topright.scurvepath", tint: .secondary))
+        }
         if option.bikeCarriageUnclear {
             let open = option.transitLegs.filter { $0.bikeCarriage == .unknown }.compactMap(\.lineName)
             out.append(Note(text: L("Fahrradmitnahme ungeklärt: %@ — in den Einstellungen unter „Fahrradmitnahme“ festlegen",

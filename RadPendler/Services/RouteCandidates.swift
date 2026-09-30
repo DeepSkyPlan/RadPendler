@@ -120,6 +120,9 @@ struct BikeCandidate {
     /// Die Höhenmeter, mit denen **gerechnet** wird — nicht unbedingt die
     /// gemessenen. Siehe `levelled`.
     var ascent: Double?
+    /// Anteil der Meter auf Wegen, die dieser Fahrer schon gefahren ist
+    /// (`RiddenPaths`), 0…1.
+    var familiar: Double = 0
 
     /// Was ein Höhenmeter an Zeit kostet.
     ///
@@ -176,6 +179,8 @@ struct BikeCandidate {
     static let detourLimit = 0.10
 
     func isReasonable(among all: [BikeCandidate], _ s: PlanSettings) -> Bool {
+        // Was man ohnehin fährt, ist kein Umweg, sondern eine Entscheidung.
+        if familiar >= Self.habitual { return true }
         guard let shortest = all.map(\.route.distance).min(),
               let fastest = all.map({ $0.computedTime(s) }).min() else { return true }
         return route.distance <= shortest * (1 + Self.detourLimit)
@@ -185,9 +190,15 @@ struct BikeCandidate {
     /// Mittelweg: time plus half the disturbance, converted to riding time.
     /// Wie bei `fastest` die gerechnete Zeit — hier wird verglichen, nicht
     /// angezeigt.
+    /// Vertraute Meter stören nicht: wer eine Straße immer wieder fährt,
+    /// hat sie für gut befunden, was immer die Karte über sie sagt. Eine
+    /// ganz gefahrene Linie wird so allein nach der Zeit bewertet.
     func balancedScore(_ s: PlanSettings) -> Double {
-        computedTime(s) + 0.5 * (stats?.disturbance ?? 0) / s.bikeSpeedMps
+        computedTime(s) + 0.5 * (1 - familiar) * (stats?.disturbance ?? 0) / s.bikeSpeedMps
     }
+
+    /// Ab diesem Anteil fährt man die Linie ohnehin.
+    static let habitual = 0.8
 
     /// schnellst = least riding time (traffic lights included), ruhigst =
     /// least disturbance, verkehrsarm = fewest places where traffic makes one

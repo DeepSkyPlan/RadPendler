@@ -219,13 +219,30 @@ struct BikeRouteInfo {
     /// Gesetzt, wenn nicht die Rechnung die Fahrzeit bestimmt hat, sondern der
     /// gemessene Schnitt dieses Fahrers — dann soll das auch dastehen.
     var measuredKmh: Double? = nil
+    /// Anteil auf schon gefahrenen Wegen, 0…1 — siehe `RiddenPaths`.
+    var familiar: Double = 0
+    /// Die Zwischenpunkte, über die diese Linie geplant wurde: Fixpunkte und,
+    /// bei „gewohnt", die Punkte auf der eigenen Fahrt. Eine Neuplanung
+    /// unterwegs fährt die noch vor einem liegenden ebenfalls an.
+    var via: [CLLocationCoordinate2D] = []
+
+    /// Die Linie, die die eigene typische Fahrt nachfährt.
+    var isHabit: Bool { source == RiddenPaths.source }
 
     /// Already in the order the user put the variants in; the first is the one
     /// that decides what the box says. Leer heißt: diese Linie ist in keiner
     /// Hinsicht die beste — ein anderer Weg ist sie trotzdem.
-    var title: String { variants.map(\.title).joined(separator: " · ") }
+    var title: String {
+        // Eine Linie ohne eigene Rolle, die die eigene Fahrt nachfährt, ist
+        // keine „Alternative", sondern die gewohnte.
+        if isHabit, variants == [.alternative] { return L("gewohnt") }
+        return variants.map(\.title).joined(separator: " · ")
+    }
     /// Was der Kasten schreibt: der erste Name.
-    var shortTitle: String { variants.first?.title ?? "Route" }
+    var shortTitle: String {
+        if isHabit, variants == [.alternative] { return L("gewohnt") }
+        return variants.first?.title ?? "Route"
+    }
 
     /// Warum diese Linie so heißt — und, wenn sie mehrere Rollen gewonnen hat,
     /// dass sie in **allen** diesen Hinsichten die beste ist. Eine Aufzählung

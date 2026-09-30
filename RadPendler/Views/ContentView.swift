@@ -354,7 +354,7 @@ struct ContentView: View {
                       plannedSignals: planned,
                       bikeProfile: .of(source: option.bikeRoute?.source),
                       avoidCobbles: settings.avoidCobbles,
-                      via: option.mode == .bike ? WaypointRouting.via(settings.waypoints, of: option) : [])
+                      via: option.bikeRoute?.via ?? [])
     }
 
     /// Was schiefging — und zwar **im Wortlaut**.
