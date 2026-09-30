@@ -410,7 +410,7 @@ extension BikeRouteTests {
         var s = PlanSettings()
         s.optionsPerMode = 2
         s.bikeVariantOrder = [.quiet, .balanced, .shortest, .fastest, .lowTraffic]
-        let calm = candidate("safety", km: 21, signals: 10, crossings: 2, mainKm: 1)
+        let calm = candidate("safety", km: 18, signals: 10, crossings: 2, mainKm: 1)   // höchstens 10 % Umweg, sonst ist sie nicht „optimal“
         let short = candidate("shortest", km: 17, signals: 40, crossings: 15, mainKm: 9)
         let picked = BikeCandidate.pick([calm, short], settings: s)
         XCTAssertEqual(picked.count, 2)
@@ -513,5 +513,49 @@ extension BikeRouteTests {
         XCTAssertEqual(settings.carOverallKmh, 30, accuracy: 0.5)
         XCTAssertEqual(ride(60, moto: true).symbol, Vehicle.motorcycleSymbol)
         XCTAssertEqual(ride(30, moto: false).symbol, "car.fill")
+    }
+}
+
+// MARK: Fahrt 30.09.2026
+
+extension BikeRouteTests {
+    /// Die Live-Probe vom Abend: „wenig Autos" 22,3 km mit 2,7 km Hauptstraße
+    /// gewann „optimal" gegen 19,0 km mit 12,8 km — 3 km Umweg für Ruhe.
+    /// „optimal" darf höchstens 10 % länger sein; die ruhige Linie bleibt als
+    /// „wenig Autos" wählbar.
+    func testOptimalIsNoDetour() {
+        var s = PlanSettings()
+        s.optionsPerMode = 3
+        let direct = candidate("shortest", km: 19.0, signals: 38, crossings: 15, mainKm: 12.8)
+        let fast = candidate("fastbike", km: 19.7, signals: 45, crossings: 16, mainKm: 14.5)
+        let calm = candidate("safety", km: 22.3, signals: 28, crossings: 13, mainKm: 2.7)
+        XCTAssertLessThan(calm.balancedScore(s), direct.balancedScore(s), "ohne Grenze gewönne der Umweg")
+        XCTAssertFalse(calm.isReasonable(among: [direct, fast, calm], s))
+        let picked = BikeCandidate.pick([direct, fast, calm], settings: s)
+        let optimal = picked.first { $0.1.contains(.balanced) }?.0.source
+        XCTAssertEqual(optimal, "shortest")
+        XCTAssertEqual(picked.first { $0.1.contains(.quiet) }?.0.source, "safety",
+                       "die ruhige Linie bleibt da — unter ihrem richtigen Namen")
+    }
+
+    func testReplanUsesTheProfileOfTheRiddenLine() {
+        XCTAssertEqual(BRouterClient.Profile.of(source: "fastbike"), .fastbike)
+        XCTAssertEqual(BRouterClient.Profile.of(source: "safety"), .quiet)
+        XCTAssertEqual(BRouterClient.Profile.of(source: "Apple"), .trekking)
+        XCTAssertEqual(BRouterClient.Profile.of(source: nil), .trekking)
+    }
+
+    func testAReplanThatNeverAnswersGivesUp() async {
+        let started = Date()
+        do {
+            _ = try await RideTracker.withTimeout(0.2) {
+                try await Task.sleep(nanoseconds: 5_000_000_000)
+                return 1
+            }
+            XCTFail("hätte aufgeben müssen")
+        } catch {
+            XCTAssertTrue(error is RideTracker.TimedOut)
+        }
+        XCTAssertLessThan(Date().timeIntervalSince(started), 2)
     }
 }

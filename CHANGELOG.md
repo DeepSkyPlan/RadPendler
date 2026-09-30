@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — Motorrad
+## Unveröffentlicht — Motorrad, Fahrt vom 30.09.
 
 - **Motorrad statt Auto** (Einstellungen → Verkehrsmittel → Auto, Schalter). Der Kasten
   „Auto“ heißt dann „Motorrad“, fährt dieselben Apple-Routen, rollt aber am Stau vorbei bis
@@ -12,6 +12,21 @@
   mit der Motorradzeit, die Stadtlinie im Stau kann also gewinnen. Keine Parkplatzsuche,
   kein Auto-Schnitt; aufgezeichnete Motorradfahrten tragen `motorcycle: true`, zeigen das
   Motorrad in der Fahrtenliste und gehen nicht in den Auto-Schnitt ein.
+- **Neuplanung unterwegs repariert** (Fahrt 30.09.2026, ohne Netz losgefahren, danach
+  nie wieder eine Route unter den Rädern, 0/51 Ampeln):
+  - „neben der Route“ nur noch mit Ortungen, denen das Messwerk traut (≤ 50 m) — die
+    Funkzellen-Ortungen ohne Netz lösten Neuplanungen von Orten aus, an denen niemand war;
+  - neu geplant wird mit dem **Profil der gewählten Linie** und der Pflasterregel, nicht
+    mehr immer mit „safety“, das einen auf der schnellsten Linie in die Nebenstraßen schickt;
+  - auf dem Rad wird ein Weg, der zurückführt, nicht mehr verworfen — bisher konnte
+    eine Neuplanung nach der anderen still an dieser Autobahn-Regel scheitern;
+  - eine Anfrage, die nicht antwortet, gibt nach 30 s auf, statt jede weitere zu sperren.
+- **Rad: über 60 km/h ist der Empfänger.** Keine „Spitze“ von 79 km/h mehr; die
+  Farbskala der Radfahrt ignoriert Werte über 45 km/h und beginnt ihre oberste Stufe
+  spätestens bei 34 km/h (war „> 41“).
+- **„optimal“ ist kein Umweg mehr:** höchstens 10 % länger und langsamer als die kürzeste
+  bzw. schnellste Linie. Live-Probe Kleinmachnow → Heidestraße: vorher optimal = 22,3 km
+  (wenig Autos), jetzt 19,0 km; die ruhige Linie bleibt als „wenig Autos“ wählbar.
 
 ## 1.8.1 (Build 45) — mehrere Radrouten, ohne Kopfsteinpflaster
 

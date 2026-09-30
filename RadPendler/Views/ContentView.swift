@@ -351,7 +351,9 @@ struct ContentView: View {
                       replanOffRouteMinutes: settings.replanOffRouteMinutes,
                       autoStopMinutes: settings.autoStopMinutes,
                       autoPauseMinutes: settings.autoPauseMinutes,
-                      plannedSignals: planned)
+                      plannedSignals: planned,
+                      bikeProfile: .of(source: option.bikeRoute?.source),
+                      avoidCobbles: settings.avoidCobbles)
     }
 
     /// Was schiefging — und zwar **im Wortlaut**.

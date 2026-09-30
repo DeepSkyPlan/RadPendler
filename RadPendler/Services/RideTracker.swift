@@ -160,8 +160,12 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                replanOffRouteMinutes: Double = 0,
                autoStopMinutes: Double = 0,
                autoPauseMinutes: Double = 0,
-               plannedSignals: [CLLocationCoordinate2D] = []) {
+               plannedSignals: [CLLocationCoordinate2D] = [],
+               bikeProfile: BRouterClient.Profile = .safety,
+               avoidCobbles: Bool = false) {
         guard !isRecording else { return }
+        self.bikeProfile = bikeProfile
+        self.avoidCobbles = avoidCobbles
         self.signalSeconds = signalSeconds
         self.autoStopSeconds = autoStopMinutes * 60
         self.autoPauseSeconds = autoPauseMinutes * 60
@@ -203,6 +207,9 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     }
 
     private var pending: (Subject, [CLLocationCoordinate2D])?
+    /// Womit neu geplant wird: dasselbe Profil wie die gewählte Linie.
+    private var bikeProfile: BRouterClient.Profile = .safety
+    private var avoidCobbles = false
     private var signalSeconds = RideMeter.defaultSignalSeconds
     /// Ab wann ein Halt, der keine Ampel ist, die Fahrt beendet; 0 schaltet
     /// es ab.
@@ -301,6 +308,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         stoppedByItself = false
         self.subject = subject
         meter = RideMeter()
+        if TravelMode(rawValue: subject.mode) == .bike { meter.speedLimit = RideMeter.maxBikeSpeed }
         meter.signals = signals
         meter.signalSeconds = signalSeconds
         meter.roadPoints = roadPoints
@@ -560,7 +568,13 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                                          cum: routeLengths, stations: signalStations, behind: signalsBehind)
                 if progress != next { progress = next }
             }
-            updateDetour(at: last.coordinate)
+            // Nur mit einer Ortung, der das Messwerk selbst traut. Beim
+            // Losfahren ohne Netz kommen Ortungen aus Funkzellen, Hunderte
+            // Meter daneben — und jede davon war „neben der Route" und eine
+            // Neuplanung von einem Ort, an dem niemand war (Fahrt 30.09.2026).
+            if last.accuracy >= 0, last.accuracy <= RideMeter.maxAccuracy {
+                updateDetour(at: last.coordinate)
+            }
         }
         // The receiver only reports a course while it is sure of one. Standing
         // at a light it reports nothing, and an arrow that disappears or snaps
@@ -663,10 +677,19 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         // ihm, wohin man zeigt: dort ist die Ausfahrt, die man gleich nimmt,
         // und die Wende kommt nicht mehr in Frage.
         let from = course >= 0 ? Geo.ahead(here, course: course, meters: Self.replanLookahead) : here
-        let heading = course
+        // Das Rad darf wenden — ein Weg, der zurückführt, ist dort eine
+        // Auskunft. Nur fürs Auto gilt die Wende als Witz.
+        let heading = mode == .car ? course : -1
         let known = signals
+        let (profile, cobbles) = (bikeProfile, avoidCobbles)
         replanTask = Task { [weak self] in
-            let route = try? await router.route(from: from, to: destination, mode: mode, departure: .now)
+            // Eine Anfrage, die nie zurückkommt, darf nicht jede weitere
+            // Neuplanung sperren: `replanTask` bliebe sonst für immer besetzt.
+            let route = try? await Self.withTimeout(Self.replanTimeout) {
+                mode == .bike
+                    ? try await router.bikeRoute(from: from, to: destination, profile: profile, avoidCobbles: cobbles)
+                    : try await router.route(from: from, to: destination, mode: mode, departure: .now)
+            }
             // Die Ampeln des **neuen** Wegs: aus demselben OpenStreetMap-
             // Ausschnitt, mit dem geplant wurde (meist schon im Speicher),
             // dazu alles Gelernte. Ohne Netz bleibt es beim Gelernten und bei
@@ -677,6 +700,24 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                 lights += RouteAnalyzer.analyze(line, roads: data).signalPoints
             }
             await MainActor.run { self?.adopt(route, heading: heading, lights: lights) }
+        }
+    }
+
+    /// Länger wartet eine Neuplanung nicht auf ihre Antwort.
+    static let replanTimeout: TimeInterval = 30
+
+    struct TimedOut: Error {}
+
+    nonisolated static func withTimeout<T: Sendable>(_ seconds: TimeInterval,
+                                                     _ work: @escaping @Sendable () async throws -> T) async throws -> T {
+        try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask { try await work() }
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                throw TimedOut()
+            }
+            defer { group.cancelAll() }
+            return try await group.next()!
         }
     }
 

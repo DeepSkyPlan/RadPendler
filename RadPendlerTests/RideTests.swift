@@ -557,6 +557,35 @@ final class RideTests: XCTestCase {
         XCTAssertEqual(RideColors.Scale.fitted(to: Array(repeating: 15, count: 40)), .bike)
     }
 
+    /// Ohne Netz losgefahren: Funkzellen-Ortungen, die springen. Auf dem Rad
+    /// ist über 60 km/h der Empfänger — keine „Spitze" von 79 km/h mehr.
+    func testOnABikeSixtyIsTheReceiver() {
+        var bike = RideMeter()
+        bike.speedLimit = RideMeter.maxBikeSpeed
+        var car = RideMeter()
+        for m in [0, 1] {
+            var meter = m == 0 ? bike : car
+            meter.add(fix(0, 0, speed: -1, accuracy: 40))
+            meter.add(fix(22, 1, speed: -1, accuracy: 40))     // 79 km/h in einer Sekunde
+            meter.add(fix(27, 2, speed: 5))
+            if m == 0 { bike = meter } else { car = meter }
+        }
+        XCTAssertLessThan(bike.maxSpeed * 3.6, 60)
+        XCTAssertGreaterThan(car.maxSpeed * 3.6, 70, "im Auto sind 79 km/h eine Geschwindigkeit")
+    }
+
+    func testTheBikeScaleIgnoresTheReceiversSprints() {
+        // Rollt um 25, dazu ein Viertel Sprünge zwischen 40 und 80.
+        let speeds: [Double] = (0..<200).map { (i: Int) -> Double in
+            let n = Double(i)
+            return i % 4 == 0 ? 40 + n.truncatingRemainder(dividingBy: 40) : 18 + n.truncatingRemainder(dividingBy: 12)
+        }
+        let bike = RideColors.Scale.fitted(to: speeds, fallback: .bike)
+        XCTAssertLessThanOrEqual(bike.bounds.last ?? 99, RideColors.Scale.bikeTop)
+        let car = RideColors.Scale.fitted(to: speeds, fallback: .fast)
+        XCTAssertGreaterThan(car.bounds.last ?? 0, RideColors.Scale.bikeTop)
+    }
+
     // MARK: Wording
 
     func testTheStopwatchAndTheSpeedometer() {

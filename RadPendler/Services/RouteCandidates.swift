@@ -171,6 +171,17 @@ struct BikeCandidate {
                      learned: stats?.learnedSignals ?? route.learnedSignals)
     }
 
+    /// So viel länger — in Metern wie in gerechneter Zeit — darf „optimal"
+    /// sein als die kürzeste bzw. schnellste Linie.
+    static let detourLimit = 0.10
+
+    func isReasonable(among all: [BikeCandidate], _ s: PlanSettings) -> Bool {
+        guard let shortest = all.map(\.route.distance).min(),
+              let fastest = all.map({ $0.computedTime(s) }).min() else { return true }
+        return route.distance <= shortest * (1 + Self.detourLimit)
+            && computedTime(s) <= fastest * (1 + Self.detourLimit)
+    }
+
     /// Mittelweg: time plus half the disturbance, converted to riding time.
     /// Wie bei `fastest` die gerechnete Zeit — hier wird verglichen, nicht
     /// angezeigt.
@@ -250,7 +261,14 @@ struct BikeCandidate {
         let quiet: Int, balanced: Int, lowTraffic: Int
         if all.contains(where: { $0.stats != nil }) {
             quiet = all.indices.min { (all[$0].stats?.disturbance ?? .infinity) < (all[$1].stats?.disturbance ?? .infinity) }!
-            balanced = all.indices.min { all[$0].balancedScore(s) < all[$1].balancedScore(s) }!
+            // „optimal" ist ein Kompromiss, kein Umweg: nur unter den Linien,
+            // die höchstens `detourLimit` länger und langsamer sind als die
+            // kürzeste und die schnellste (Nutzer, 30.09.2026: „optimal mit
+            // 5 km länger nicht gut"). Wer den Umweg für Ruhe will, hat
+            // „wenig Autos".
+            let reasonable = all.indices.filter { all[$0].isReasonable(among: all, s) }
+            balanced = (reasonable.isEmpty ? Array(all.indices) : reasonable)
+                .min { all[$0].balancedScore(s) < all[$1].balancedScore(s) }!
             // Fewest places where traffic makes one stop; metres beside main
             // roads only break the tie.
             lowTraffic = all.indices.min { a, b in

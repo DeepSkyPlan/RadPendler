@@ -17,6 +17,20 @@ struct BRouterClient {
         case quiet = "radpendler-quiet"
 
         var isCustom: Bool { self == .quiet }
+
+        /// Das Profil, aus dem eine geplante Linie stammt — nach dem Namen,
+        /// unter dem `TripPlanner.bikeOptions` sie angefragt hat. „safety"
+        /// steht dort für das eigene „wenig Autos"; Apples Linie hat keins,
+        /// für sie gilt „trekking", BRouters Allzweckprofil.
+        static func of(source: String?) -> Profile {
+            switch source {
+            case "fastbike": .fastbike
+            case "shortest": .shortest
+            case "safety": .quiet
+            case L("verkehrsarm"): .lowTraffic
+            default: .trekking
+            }
+        }
     }
 
     var session: URLSession = .shared
@@ -250,11 +264,24 @@ actor CompositeRouter: StreetRouting {
     func route(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
                mode: StreetMode, departure: Date?) async throws -> StreetRoute {
         guard mode == .bike else { return try await apple.route(from: from, to: to, mode: mode, departure: departure) }
-        let key = String(format: "%.5f,%.5f|%.5f,%.5f", from.latitude, from.longitude, to.latitude, to.longitude)
+        return try await bikeRoute(from: from, to: to)
+    }
+
+    /// Mit dem Profil der Linie, die gefahren wird, und der Pflasterregel —
+    /// eine Neuplanung, die „safety" fragt, schickt jemanden, der die
+    /// schnellste Linie fährt, in die Nebenstraßen, und er ist gleich wieder
+    /// daneben (Fahrt 30.09.2026).
+    func bikeRoute(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+                   profile: BRouterClient.Profile = .safety,
+                   avoidCobbles: Bool = false) async throws -> StreetRoute {
+        let key = String(format: "%.5f,%.5f|%.5f,%.5f|%@|%d", from.latitude, from.longitude,
+                         to.latitude, to.longitude, profile.rawValue, avoidCobbles ? 1 : 0)
         if let hit = cache[key] { return hit }
+        var brouter = brouter
+        brouter.avoidCobbles = avoidCobbles
         let r: StreetRoute
         do {
-            r = try await brouter.route(from: from, to: to, profile: .safety)
+            r = try await brouter.route(from: from, to: to, profile: profile)
         } catch {
             r = try await apple.route(from: from, to: to, mode: .bike, departure: nil)
         }
