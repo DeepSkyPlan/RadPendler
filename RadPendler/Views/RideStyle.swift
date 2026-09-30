@@ -29,6 +29,11 @@ enum RideColors {
         var bounds: [Double]
 
         static let bike = Scale(bounds: [8, 14, 20, 26])
+        /// Schneller fährt aufs Rad gerechnet niemand; was darüber liegt,
+        /// fällt aus der Skala …
+        static let bikeCeiling = 45.0
+        /// … und die oberste Stufe beginnt spätestens hier.
+        static let bikeTop = 34.0
         /// Auto und Bahn: Stadtverkehr, Landstraße, Schnellstraße, Autobahn.
         static let fast = Scale(bounds: [20, 50, 80, 100])
 
@@ -43,12 +48,17 @@ enum RideColors {
         /// zwischen dem langsamsten und dem schnellsten Stück. So trägt die
         /// Linie auch bei einer Fahrt Farbe, die nie über 15 km/h kam.
         static func fitted(to speeds: [Double], fallback: Scale = .bike) -> Scale {
-            let moving = speeds.filter { $0.isFinite && $0 > 1 }.sorted()
+            // Aufs Rad gilt eine Decke: was darüber liegt, war der Empfänger,
+            // nicht der Fahrer — und eine Skala bis „> 41" sagt über eine
+            // Radfahrt nichts (Fahrt 30.09.2026, ohne Netz losgefahren).
+            let ceiling = fallback == .bike ? Self.bikeCeiling : .infinity
+            let moving = speeds.filter { $0.isFinite && $0 > 1 && $0 <= ceiling }.sorted()
             guard moving.count >= 10 else { return fallback }
             // Nicht das äußerste Prozent: ein einzelner Ausreißer des
             // Empfängers verschöbe sonst die ganze Skala.
             let low = moving[moving.count / 20]
-            let high = moving[moving.count - 1 - moving.count / 20]
+            let high = Swift.min(moving[moving.count - 1 - moving.count / 20],
+                                 fallback == .bike ? Self.bikeTop : .infinity)
             guard high - low >= 4 else { return fallback }
             let step = (high - low) / 4
             return Scale(bounds: (1...4).map { (low + step * Double($0 - 1) + step).rounded() })

@@ -51,6 +51,11 @@ struct RideMeter {
     static let maxGap: TimeInterval = 30
     /// Nobody commutes faster than 108 km/h. A jump past it is the receiver.
     static let maxSpeed = 30.0
+    /// Und auf dem Rad niemand schneller als 60 km/h. Ohne Netz liefert der
+    /// Empfänger anfangs Ortungen aus Funkzellen, die ein paar Dutzend Meter
+    /// hin und her springen — bei 108 km/h Grenze wurde daraus eine „Spitze"
+    /// von 79 km/h und eine Farbskala bis über 41 (Fahrt 30.09.2026).
+    static let maxBikeSpeed = 60 / 3.6
     /// Under this the line does not move; recording it anyway would fill the
     /// track with the receiver's own noise while standing at a light.
     static let minStep = 4.0
@@ -93,6 +98,8 @@ struct RideMeter {
     private(set) var meters = 0.0
     private(set) var movingSeconds: TimeInterval = 0
     private(set) var maxSpeed = 0.0
+    /// Was schneller ist, war der Empfänger — je nach Verkehrsmittel.
+    var speedLimit = RideMeter.maxSpeed
     private(set) var started: Date?
     private(set) var lastFix: Fix?
     private(set) var currentSpeed = 0.0
@@ -238,9 +245,9 @@ struct RideMeter {
         // What the receiver says, else what the step implies. A step across a
         // gap implies nothing — it is not a stretch that was ridden.
         let speed = fix.speed >= 0 ? fix.speed : (gap ? 0 : step / dt)
-        let jump = !gap && step / dt > Self.maxSpeed
+        let jump = !gap && step / dt > speedLimit
 
-        currentSpeed = min(max(speed, 0), Self.maxSpeed)
+        currentSpeed = min(max(speed, 0), speedLimit)
         if !gap, !jump {
             // Distance only while moving: standing at a light for two minutes
             // otherwise walks the rider a hundred metres down the street.
@@ -276,7 +283,7 @@ struct RideMeter {
 
     private mutating func begin(with fix: Fix) {
         started = started ?? fix.time
-        currentSpeed = fix.speed >= 0 ? Swift.min(fix.speed, Self.maxSpeed) : 0
+        currentSpeed = fix.speed >= 0 ? Swift.min(fix.speed, speedLimit) : 0
         lastFix = fix
         record(fix, force: true)
     }

@@ -443,6 +443,15 @@ muss, um sich zurechtzufinden.
 
 ## Offen / Ideen
 
+- **Ampeln abseits der Planung werden nicht gezählt.** Die Aufzeichnung kennt nur die
+  Ampeln der geplanten (und neu geplanten) Linie plus die gelernten. Wer die ganze Fahrt
+  anders fährt, hat 0 Ampeln und alle Halte als „sonstige“ (Fahrt 30.09.2026: 0/51,
+  15 min gestanden). Abhilfe wäre, nach der Fahrt die OpenStreetMap-Ampeln entlang der
+  **gefahrenen** Linie zu holen und die Halte neu zuzuordnen.
+- **Prinzregentenstraße / Südwestkorso** nimmt keins der Profile freiwillig (nur
+  „fastbike“ streift den Südwestkorso). Fixpunkte filtern Linien bisher nur; BRouter
+  kann Zwischenpunkte (`lonlats=a|via|b`) — dann würde ein Fixpunkt die Linie **führen**.
+
 - **Motorrad** ist kein fünftes Verkehrsmittel, sondern der Kasten `.car` mit anderem
   Fahrzeug: `Vehicle.motorcycle` (global wie `AppLanguage.current`, geschrieben von
   `AppSettings.motorcycle`) gibt Titel und Zeichen, `PlanSettings.motorcycle` die Rechnung
