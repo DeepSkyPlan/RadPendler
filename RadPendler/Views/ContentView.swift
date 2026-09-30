@@ -353,7 +353,8 @@ struct ContentView: View {
                       autoPauseMinutes: settings.autoPauseMinutes,
                       plannedSignals: planned,
                       bikeProfile: .of(source: option.bikeRoute?.source),
-                      avoidCobbles: settings.avoidCobbles)
+                      avoidCobbles: settings.avoidCobbles,
+                      via: option.mode == .bike ? WaypointRouting.via(settings.waypoints, of: option) : [])
     }
 
     /// Was schiefging — und zwar **im Wortlaut**.

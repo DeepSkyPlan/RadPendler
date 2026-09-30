@@ -1,4 +1,4 @@
-# RadPendler — Übergabe (Stand 24.09.2026, abends · 1.3 / Build 35)
+# RadPendler — Übergabe (Stand 30.09.2026 · 1.9 / Build 46)
 
 Multimodaler Pendel-Planer für iPhone, iPad und Apple Watch: Büro ↔ Zuhause mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln,
 Regen und Countdown.
@@ -448,9 +448,9 @@ muss, um sich zurechtzufinden.
   anders fährt, hat 0 Ampeln und alle Halte als „sonstige“ (Fahrt 30.09.2026: 0/51,
   15 min gestanden). Abhilfe wäre, nach der Fahrt die OpenStreetMap-Ampeln entlang der
   **gefahrenen** Linie zu holen und die Halte neu zuzuordnen.
-- **Prinzregentenstraße / Südwestkorso** nimmt keins der Profile freiwillig (nur
-  „fastbike“ streift den Südwestkorso). Fixpunkte filtern Linien bisher nur; BRouter
-  kann Zwischenpunkte (`lonlats=a|via|b`) — dann würde ein Fixpunkt die Linie **führen**.
+- **Fixpunkte führen seit 1.9 die Radroute** (`WaypointRouting`, BRouter `lonlats=a|via|b`).
+  Apples Radlinie kann das nicht und wird grau, wenn sie vorbeifährt. Rad + Bahn nutzt
+  Fixpunkte weiter nur als Filter.
 
 - **Motorrad** ist kein fünftes Verkehrsmittel, sondern der Kasten `.car` mit anderem
   Fahrzeug: `Vehicle.motorcycle` (global wie `AppLanguage.current`, geschrieben von

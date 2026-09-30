@@ -1948,13 +1948,13 @@
         }
       }
     },
-    "Fixpunkte (Einstellungen) sind Orte, über die die Strecke führen soll; Verbindungen ohne sie werden ausgegraut und nie empfohlen.": {
+    "Fixpunkte (Einstellungen) sind Orte, über die die Strecke führen soll. Radrouten fahren sie an, wenn sie am Weg liegen; Verbindungen ohne sie werden ausgegraut und nie empfohlen.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fixed points (Settings) are places the route should pass; connections without them are greyed out and never recommended."
+            "value": "Fixed points (Settings) are places the route should pass. Bike routes ride through them when they lie on the way; connections without them are greyed out and never recommended."
           }
         }
       }
@@ -2982,13 +2982,13 @@
         }
       }
     },
-    "Punkte, über die die Strecke führen soll, z. B. „S Ostkreuz“ oder „Berlin Hauptbahnhof“. Verbindungen, die nicht daran vorbeikommen, werden ausgegraut ans Ende gestellt und nie empfohlen. Ohne Fixpunkte gilt keine Einschränkung.": {
+    "Punkte, über die die Strecke führen soll, z. B. „S Ostkreuz“ oder eine Straße, die du gern fährst. Radrouten fahren jeden Fixpunkt an, der am Weg liegt (höchstens ein Viertel Umweg gegenüber der Luftlinie) — auch nach einer Neuplanung unterwegs. Verbindungen, die nicht daran vorbeikommen, werden ausgegraut ans Ende gestellt und nie empfohlen. Ohne Fixpunkte gilt keine Einschränkung.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Places the route should pass, e.g. “S Ostkreuz” or “Berlin Hauptbahnhof”. Connections that miss them are greyed out at the end and never recommended. Without fixed points nothing is restricted."
+            "value": "Points the route should pass, e.g. “S Ostkreuz” or a street you like to ride. Bike routes ride through every fixed point that lies on the way (at most a quarter detour over the straight line) — also after replanning during a ride. Connections that miss them are greyed out, moved to the end and never recommended. Without fixed points there is no restriction."
           }
         }
       }

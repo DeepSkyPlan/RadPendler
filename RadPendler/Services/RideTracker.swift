@@ -162,8 +162,10 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                autoPauseMinutes: Double = 0,
                plannedSignals: [CLLocationCoordinate2D] = [],
                bikeProfile: BRouterClient.Profile = .safety,
-               avoidCobbles: Bool = false) {
+               avoidCobbles: Bool = false,
+               via: [CLLocationCoordinate2D] = []) {
         guard !isRecording else { return }
+        self.via = via
         self.bikeProfile = bikeProfile
         self.avoidCobbles = avoidCobbles
         self.signalSeconds = signalSeconds
@@ -210,6 +212,9 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// Womit neu geplant wird: dasselbe Profil wie die gewählte Linie.
     private var bikeProfile: BRouterClient.Profile = .safety
     private var avoidCobbles = false
+    /// Die Fixpunkte, die die geplante Linie anfährt — eine Neuplanung fährt
+    /// die noch vor einem liegenden ebenfalls an.
+    private var via: [CLLocationCoordinate2D] = []
     private var signalSeconds = RideMeter.defaultSignalSeconds
     /// Ab wann ein Halt, der keine Ampel ist, die Fahrt beendet; 0 schaltet
     /// es ab.
@@ -682,12 +687,14 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         let heading = mode == .car ? course : -1
         let known = signals
         let (profile, cobbles) = (bikeProfile, avoidCobbles)
+        let ahead = WaypointRouting.ahead(via, from: here, to: destination)
         replanTask = Task { [weak self] in
             // Eine Anfrage, die nie zurückkommt, darf nicht jede weitere
             // Neuplanung sperren: `replanTask` bliebe sonst für immer besetzt.
             let route = try? await Self.withTimeout(Self.replanTimeout) {
                 mode == .bike
-                    ? try await router.bikeRoute(from: from, to: destination, profile: profile, avoidCobbles: cobbles)
+                    ? try await router.bikeRoute(from: from, to: destination, via: ahead,
+                                                profile: profile, avoidCobbles: cobbles)
                     : try await router.route(from: from, to: destination, mode: mode, departure: .now)
             }
             // Die Ampeln des **neuen** Wegs: aus demselben OpenStreetMap-

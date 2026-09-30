@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — Motorrad, Fahrt vom 30.09.
+## 1.9 (Build 46) — Motorrad, Fixpunkte führen, Fahrt vom 30.09.
 
 - **Motorrad statt Auto** (Einstellungen → Verkehrsmittel → Auto, Schalter). Der Kasten
   „Auto“ heißt dann „Motorrad“, fährt dieselben Apple-Routen, rollt aber am Stau vorbei bis
@@ -24,6 +24,12 @@
 - **Rad: über 60 km/h ist der Empfänger.** Keine „Spitze“ von 79 km/h mehr; die
   Farbskala der Radfahrt ignoriert Werte über 45 km/h und beginnt ihre oberste Stufe
   spätestens bei 34 km/h (war „> 41“).
+- **Fixpunkte führen die Radroute.** BRouter bekommt jeden Fixpunkt, der am Weg liegt (Umweg
+  über ihn höchstens 25 % der Luftlinie), als Zwischenpunkt (`lonlats=a|via|b`), in
+  Reihenfolge entlang der Luftlinie — hin wie zurück. Die Neuplanung unterwegs fährt die
+  noch vor einem liegenden ebenfalls an. Weiter entfernte Fixpunkte (die S-Bahn-Station
+  für Rad + Bahn) bleiben reiner Filter. Live-Probe mit Fixpunkt Prinzregentenstraße:
+  alle drei Linien darüber, 19,1 / 19,9 / 23,6 km.
 - **„optimal“ ist kein Umweg mehr:** höchstens 10 % länger und langsamer als die kürzeste
   bzw. schnellste Linie. Live-Probe Kleinmachnow → Heidestraße: vorher optimal = 22,3 km
   (wenig Autos), jetzt 19,0 km; die ruhige Linie bleibt als „wenig Autos“ wählbar.
