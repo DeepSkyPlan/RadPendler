@@ -47,6 +47,7 @@ struct RadPendlerApp: App {
                     await rides.reuploadTracksIfNeeded()
                     // Bis 1.5 zählte das Stehen vor einer Pause als Fahrzeit.
                     await rides.repairStandingBeforePauses()
+                    await rides.learnHabitsIfNeeded()
                     // Whatever the user last chose, from this device or another.
                     settings.orientation.apply()
                 }

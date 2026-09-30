@@ -53,18 +53,17 @@ enum WaypointRouting {
                     to: CLLocationCoordinate2D) -> [CLLocationCoordinate2D] {
         let direct = from.distance(to: to)
         guard direct > 0 else { return [] }
-        let flat = Flat(latitude: from.latitude)
-        let a = flat.point(from), ab = flat.point(to) - a
-        return waypoints.map(\.coordinate)
-            .filter { from.distance(to: $0) + $0.distance(to: to) <= direct * (1 + maxDetour) }
-            .sorted { simd_dot(flat.point($0) - a, ab) < simd_dot(flat.point($1) - a, ab) }
+        return ordered(waypoints.map(\.coordinate)
+            .filter { from.distance(to: $0) + $0.distance(to: to) <= direct * (1 + maxDetour) },
+                       from: from, to: to)
     }
 
-    /// Dieselbe Auswahl für eine fertige Linie, von ihrem Anfang zu ihrem Ende.
-    static func via(_ waypoints: [Place], of option: TripOption) -> [CLLocationCoordinate2D] {
-        guard let from = option.legs.first?.coordinates.first,
-              let to = option.legs.last?.coordinates.last else { return [] }
-        return via(waypoints, from: from, to: to)
+    /// In Fahrtrichtung, entlang der Luftlinie.
+    static func ordered(_ points: [CLLocationCoordinate2D], from: CLLocationCoordinate2D,
+                        to: CLLocationCoordinate2D) -> [CLLocationCoordinate2D] {
+        let flat = Flat(latitude: from.latitude)
+        let a = flat.point(from), ab = flat.point(to) - a
+        return points.sorted { simd_dot(flat.point($0) - a, ab) < simd_dot(flat.point($1) - a, ab) }
     }
 
     /// Unterwegs: nur die, die noch vor einem liegen — näher am Ziel als man

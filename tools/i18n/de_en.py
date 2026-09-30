@@ -677,3 +677,9 @@ T.update({
 "Fixpunkte (Einstellungen) sind Orte, über die die Strecke führen soll. Radrouten fahren sie an, wenn sie am Weg liegen; Verbindungen ohne sie werden ausgegraut und nie empfohlen.":
 "Fixed points (Settings) are places the route should pass. Bike routes ride through them when they lie on the way; connections without them are greyed out and never recommended.",
 })
+
+T.update({
+"gewohnt": "usual",
+"fährt deine übliche Strecke nach — %d %% auf schon gefahrenen Wegen": "follows your usual route — %d %% on roads you have ridden",
+"%d %% auf schon gefahrenen Wegen": "%d %% on roads you have ridden",
+})

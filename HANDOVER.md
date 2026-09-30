@@ -448,6 +448,11 @@ muss, um sich zurechtzufinden.
   anders fährt, hat 0 Ampeln und alle Halte als „sonstige“ (Fahrt 30.09.2026: 0/51,
   15 min gestanden). Abhilfe wäre, nach der Fahrt die OpenStreetMap-Ampeln entlang der
   **gefahrenen** Linie zu holen und die Halte neu zuzuordnen.
+- **Gewohnte Wege seit 1.9** (`RiddenPaths`, Datei `Rides/ridden.json`, nur lokal): noch
+  nicht auf dem Gerät ausprobiert. Stellschrauben: `endRadius` 500 m, `recent` 10,
+  `familiarRadius` 40 m, `habitual` 0,8, Via-Anteile 20/40/60/80 %. Eine Fahrt mit
+  springender Ortung verliert bei „typisch“ gegen die anderen; bei nur zwei Fahrten gibt
+  es keine Mehrheit — dann gewinnt die, die der anderen mehr gleicht.
 - **Fixpunkte führen seit 1.9 die Radroute** (`WaypointRouting`, BRouter `lonlats=a|via|b`).
   Apples Radlinie kann das nicht und wird grau, wenn sie vorbeifährt. Rad + Bahn nutzt
   Fixpunkte weiter nur als Filter.

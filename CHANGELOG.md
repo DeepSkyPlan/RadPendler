@@ -1,7 +1,21 @@
 # Changelog
 
-## 1.9 (Build 46) — Motorrad, Fixpunkte führen, Fahrt vom 30.09.
+## 1.9 (Build 46) — Motorrad, Fixpunkte führen, gewohnte Wege, Fahrt vom 30.09.
 
+- **Die Planung lernt die eigenen Wege** (`RiddenPaths`). Jede Radfahrt ab 2 km bleibt als
+  Linie (alle 50 m ein Punkt, nur auf dem Gerät, die jüngsten 200). Für eine Strecke zählen
+  die jüngsten 10 Fahrten mit Anfang und Ende je ≤ 500 m an Start und Ziel, Rückfahrten
+  umgedreht. Daraus:
+  - **„gewohnt“**: ab zwei Fahrten die typischste (die, deren Meter am meisten auf den
+    anderen liegen, mindestens zur Hälfte) — BRouter fährt sie über vier Punkte bei
+    20/40/60/80 % nach („trekking“, Pflasterregel). Gewinnt sie keine Rolle, heißt sie
+    „gewohnt“ statt „Alternative“; die Neuplanung unterwegs fährt ihre Punkte ebenfalls an.
+  - **Vertrautheit** jeder Linie (Anteil der Meter ≤ 40 m neben einem gefahrenen Weg):
+    vertraute Meter zählen bei „optimal“ nicht als Störung, und ab 80 % gilt die
+    10-%-Umweggrenze nicht — was man ohnehin fährt, ist kein Umweg. Auf der Detailseite
+    steht der Anteil.
+  - Beim ersten Start von 1.9 lernen die schon aufgezeichneten Radfahrten nach, soweit ihre
+    Linie auf dem Gerät liegt.
 - **Motorrad statt Auto** (Einstellungen → Verkehrsmittel → Auto, Schalter). Der Kasten
   „Auto“ heißt dann „Motorrad“, fährt dieselben Apple-Routen, rollt aber am Stau vorbei bis
   an die Ampel. Wie viel Stau auf einer Linie steht, ist Apples Fahrzeit jetzt minus Apples

@@ -48,6 +48,8 @@ struct TripPlanner {
     var hafas = HafasClient()
     var motis = MotisClient()
     var streets: StreetRouting = CompositeRouter()
+    /// Die eigenen gefahrenen Wege. Tests geben einen eigenen, leeren.
+    var habits: RiddenPaths = .shared
     var brouter = BRouterClient()
     var apple: StreetRouting = MapKitRouter()
     var roads = RoadDataStore.shared
@@ -159,6 +161,12 @@ struct TripPlanner {
     func bikeOptions(_ req: PlanRequest) async throws -> [TripOption] {
         let (o, d) = (req.origin.coordinate, req.destination.coordinate)
         let via = WaypointRouting.via(req.settings.waypoints, from: o, to: d)
+        // Was dieser Fahrer hier schon gefahren ist — und, ab zwei Fahrten,
+        // die typische davon als Punkte zum Nachfahren.
+        let ridden = await habits.matching(from: o, to: d)
+        let habitVia = RiddenPaths.typical(ridden).map {
+            WaypointRouting.ordered(RiddenPaths.via($0) + via, from: o, to: d)
+        }
         let n = Swift.max(1, req.settings.optionsPerMode)
         let order = req.settings.bikeVariantOrder.filter { $0 != .alternative }
         func requests(for roles: some Sequence<BikeVariant>) -> [(String, BRouterClient.Profile?, Int)] {
@@ -200,7 +208,8 @@ struct TripPlanner {
                 for (i, (name, route)) in found.enumerated() {
                     group.addTask {
                         (i, BikeCandidate(source: name, route: route,
-                                          stats: data.map { RouteAnalyzer.analyze(route.coordinates, roads: $0) }))
+                                          stats: data.map { RouteAnalyzer.analyze(route.coordinates, roads: $0) },
+                                          familiar: RiddenPaths.familiarShare(route.coordinates, ridden: ridden)))
                     }
                 }
                 var out: [(Int, BikeCandidate)] = []
@@ -214,6 +223,12 @@ struct TripPlanner {
         // eigenen Reihenfolge sind, was gezeigt werden soll.
         let asked = [("Apple", BRouterClient.Profile?.none, 0)] + requests(for: order.prefix(n))
         var found = await fetch(asked)
+        // Die eigene typische Fahrt, sauber nachgefahren: danach, nicht
+        // daneben — der Server will höchstens drei Anfragen gleichzeitig.
+        if let habitVia, !found.isEmpty,
+           let usual = try? await brouter.route(from: o, to: d, via: habitVia, profile: .trekking) {
+            found.append((RiddenPaths.source, usual))
+        }
         guard !found.isEmpty else { throw PlannerError.noBikeRoute }
         if req.settings.avoidCobbles, found.contains(where: { $0.0 != "Apple" }) {
             found.removeAll { $0.0 == "Apple" }
@@ -262,7 +277,10 @@ struct TripPlanner {
                                                              roadPoints: c.route.roadPoints,
                                                              ascent: c.route.ascent,
                                                              measuredKmh: c.measuredWins(req.settings)
-                                                                 ? req.settings.measuredOverallKmh : nil))
+                                                                 ? req.settings.measuredOverallKmh : nil,
+                                                             familiar: c.familiar,
+                                                             via: c.source == RiddenPaths.source ? habitVia ?? via
+                                                                 : c.source == "Apple" ? [] : via))
             // Only the route that matches the user's first choice is the one
             // the recommendation weighs; the others are alternatives.
             option.isPreferredVariant = index == 0
@@ -450,6 +468,8 @@ struct TripPlanner {
         planner.roads = RoadDataStore(session: session)
         planner.apple = DeadRouter()
         planner.streets = DeadRouter()
+        // Und keine eigenen Fahrten: die des Simulators gehören nicht in einen Test.
+        planner.habits = RiddenPaths(file: URL.temporaryDirectory.appending(path: "ridden-\(UUID()).json"))
         return planner
     }
 

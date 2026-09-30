@@ -166,6 +166,17 @@
         }
       }
     },
+    "%d %% auf schon gefahrenen Wegen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d %% on roads you have ridden"
+          }
+        }
+      }
+    },
     "%d Ampeln": {
       "extractionState": "manual",
       "localizations": {
@@ -4335,6 +4346,17 @@
         }
       }
     },
+    "fährt deine übliche Strecke nach — %d %% auf schon gefahrenen Wegen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "follows your usual route — %d %% on roads you have ridden"
+          }
+        }
+      }
+    },
     "führt nicht über die Fixpunkte": {
       "extractionState": "manual",
       "localizations": {
@@ -4397,6 +4419,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "standing · %d other"
+          }
+        }
+      }
+    },
+    "gewohnt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "usual"
           }
         }
       }
