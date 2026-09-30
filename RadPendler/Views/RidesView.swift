@@ -131,7 +131,7 @@ struct RideRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: 7) {
-                Image(systemName: ride.travelMode?.symbol ?? "bicycle")
+                Image(systemName: ride.symbol)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(ride.travelMode?.color ?? Theme.accent)
                 Text(ride.started.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated)))
@@ -244,7 +244,7 @@ struct RideFacts: View {
     var body: some View {
         VStack(spacing: 10) {
             HStack(spacing: 6) {
-                Image(systemName: ride.travelMode?.symbol ?? "bicycle")
+                Image(systemName: ride.symbol)
                     .foregroundStyle(ride.travelMode?.color ?? Theme.accent)
                 Text("\(ride.origin) → \(ride.destination)")
                     .font(.system(.subheadline, design: .rounded, weight: .semibold))

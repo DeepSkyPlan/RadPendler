@@ -443,6 +443,14 @@ muss, um sich zurechtzufinden.
 
 ## Offen / Ideen
 
+- **Motorrad** ist kein fünftes Verkehrsmittel, sondern der Kasten `.car` mit anderem
+  Fahrzeug: `Vehicle.motorcycle` (global wie `AppLanguage.current`, geschrieben von
+  `AppSettings.motorcycle`) gibt Titel und Zeichen, `PlanSettings.motorcycle` die Rechnung
+  (`CarCandidate.driveTime`/`freeFlow`, `TripPlanner.carOptions`). Nicht angepasst: die
+  Neuplanung **während** einer Fahrt rechnet weiter mit Apples Autozeit; und der Anteil
+  von 70 % ist eine Annahme, nicht gemessen — aufgezeichnete Motorradfahrten
+  (`Ride.motorcycle`) wären der Weg, ihn zu eichen.
+
 - **Die Hänger sind gefunden und behoben** (24.09.2026, Branch
   `fix/haenger-cloudstore`). Ein `TimelineView` in einer `ToolbarItem` legt unter
   iOS 26 bei jedem Takt die Navigationsleiste neu aus, und dieses Auslegen macht

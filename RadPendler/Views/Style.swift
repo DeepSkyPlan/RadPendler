@@ -30,7 +30,7 @@ extension LegKind {
         switch self {
         case .walk: "figure.walk"
         case .bike: "bicycle"
-        case .car: "car.fill"
+        case .car: Vehicle.symbol
         case .transit(_, let p):
             switch p {
             case .bus: "bus.fill"

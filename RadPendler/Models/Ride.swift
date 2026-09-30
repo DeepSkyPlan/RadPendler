@@ -103,6 +103,9 @@ struct Ride: Codable, Identifiable, Equatable {
     /// stammt, die anders gerechnet hat. Ältere Dateien kennen das Feld nicht.
     var appVersion: String?
     var pointCount: Int = 0
+    /// Ob der Kasten „Auto" dabei Motorrad fuhr. nil heißt Auto — auch bei
+    /// allen Fahrten von vor 1.9, die das Feld nicht kennen.
+    var motorcycle: Bool?
     /// Metres per kind of road, attributed to the route that was planned.
     /// nil where nobody classified the route — Apple's lines carry no tags.
     var mix: RoadMix?
@@ -119,6 +122,12 @@ struct Ride: Codable, Identifiable, Equatable {
     }
     var stops: Int { signalStops + otherStops }
     var travelMode: TravelMode? { TravelMode(rawValue: mode) }
+    /// Das Zeichen dieser Fahrt — nach dem Fahrzeug, mit dem sie gefahren
+    /// wurde, nicht nach dem, was gerade eingestellt ist.
+    var symbol: String {
+        guard travelMode == .car else { return travelMode?.symbol ?? "bicycle" }
+        return motorcycle == true ? Vehicle.motorcycleSymbol : "car.fill"
+    }
     /// Minutes off the plan; negative means faster than announced.
     var deviationSeconds: TimeInterval? { plannedSeconds.map { seconds - $0 } }
     /// Der Schnitt, den der Plan versprochen hat — Tür zu Tür, wie `averageKmh`.

@@ -434,3 +434,84 @@ extension BikeRouteTests {
         }
     }
 }
+
+// MARK: Motorrad
+
+extension BikeRouteTests {
+    private func route(_ meters: Double, minutes: Double) -> StreetRoute {
+        StreetRoute(distance: meters, expectedTravelTime: minutes * 60, coordinates: [])
+    }
+
+    func testTheMotorcycleFiltersPastMostOfTheQueue() {
+        var s = PlanSettings()
+        var line = carLine(20_000, minutes: 40, signals: 30)
+        line.freeFlow = 25 * 60                       // 15 min Stau
+        XCTAssertEqual(line.driveTime(s), 40 * 60, "das Auto steht den ganzen Stau")
+        s.motorcycle = true
+        XCTAssertEqual(line.queueSaving(s), 15 * 60 * CarCandidate.queueShare, accuracy: 1)
+        XCTAssertEqual(line.driveTime(s), (25 + 15 * 0.3) * 60, accuracy: 1)
+    }
+
+    func testNoNightFigureMeansNoDeduction() {
+        var s = PlanSettings()
+        s.motorcycle = true
+        let line = carLine(20_000, minutes: 40, signals: 30)
+        XCTAssertEqual(line.driveTime(s), 40 * 60, "ohne Nachtzahl weiß niemand, wie viel Stau es ist")
+    }
+
+    func testTheJamOnTheTownLineCanMakeItTheMotorcyclesFastest() {
+        // Autobahn frei: 28 min, nachts 26. Stadt im Stau: 35 min, nachts 22.
+        var motorway = carLine(30_000, minutes: 28, signals: 12)
+        motorway.freeFlow = 26 * 60
+        var town = carLine(21_000, minutes: 35, signals: 41)
+        town.freeFlow = 22 * 60
+        var s = PlanSettings()
+        XCTAssertEqual(CarCandidate.pick([motorway, town], settings: s)
+            .first { $0.1.contains(.fastest) }?.0.route.distance, 30_000)
+        s.motorcycle = true   // Stadt: 22 + 13 · 0,3 ≈ 25,9 min
+        XCTAssertEqual(CarCandidate.pick([motorway, town], settings: s)
+            .first { $0.1.contains(.fastest) }?.0.route.distance, 21_000)
+    }
+
+    func testFreeFlowTakesTheNightTwinOrTheRatio() {
+        let day = [route(20_000, minutes: 40), route(25_000, minutes: 30)]
+        // Nachts nur eine Linie, und die ist die lange.
+        let night = [route(25_100, minutes: 20)]
+        let free = CarCandidate.freeFlow(day: day, night: night)
+        XCTAssertEqual(free[1], 20 * 60, "gleiche Länge auf 2 % — dieselbe Linie")
+        XCTAssertEqual(free[0]!, 40 * 60 * (20.0 / 30.0), accuracy: 1,
+                       "ohne Zwilling bremst der Verkehr wie bei den schnellsten")
+        XCTAssertEqual(CarCandidate.freeFlow(day: day, night: []), [nil, nil])
+        XCTAssertEqual(CarCandidate.freeFlow(day: [route(20_000, minutes: 30)],
+                                             night: [route(20_000, minutes: 35)]), [30 * 60],
+                       "nachts nie langsamer als mit Verkehr")
+    }
+
+    func testFreeFlowAsksForThreeAtNight() {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Berlin")!
+        let morning = cal.date(from: DateComponents(year: 2026, month: 9, day: 30, hour: 7, minute: 40))!
+        let night = TripPlanner.freeFlowDeparture(after: morning, calendar: cal)
+        XCTAssertEqual(cal.dateComponents([.day, .hour, .minute], from: night),
+                       DateComponents(day: 1, hour: 3, minute: 0))
+    }
+
+    func testMotorcycleRidesStayOutOfTheCarAverage() {
+        let suite = "moto-\(UUID())"
+        let settings = AppSettings(defaults: UserDefaults(suiteName: suite)!)
+        defer { UserDefaults().removePersistentDomain(forName: suite); Vehicle.motorcycle = false }
+        func ride(_ kmh: Double, moto: Bool) -> Ride {
+            var r = Ride(started: .now, ended: .now.addingTimeInterval(10_000 / (kmh / 3.6)),
+                         origin: "A", destination: "B", mode: "car", meters: 10_000,
+                         movingSeconds: 600, maxKmh: 80, signalStops: 0, otherStops: 0,
+                         signalWaitTotal: 0)
+            if moto { r.motorcycle = true }
+            return r
+        }
+        settings.calibrateCar(from: [ride(30, moto: false), ride(30, moto: false), ride(30, moto: false),
+                                     ride(60, moto: true), ride(60, moto: true), ride(60, moto: true)])
+        XCTAssertEqual(settings.carOverallKmh, 30, accuracy: 0.5)
+        XCTAssertEqual(ride(60, moto: true).symbol, Vehicle.motorcycleSymbol)
+        XCTAssertEqual(ride(30, moto: false).symbol, "car.fill")
+    }
+}

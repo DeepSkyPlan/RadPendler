@@ -1079,6 +1079,17 @@
         }
       }
     },
+    "Der Kasten „Auto“ fährt Motorrad: dieselben Straßen und Apples Fahrzeit mit Verkehrslage — aber am Stau rollt es vorbei bis an die Ampel, wie mit dem Rad. Wie viel Stau auf der Strecke steht, zeigt Apples Fahrzeit für dieselbe Strecke nachts um drei; davon zieht die App 70 % ab. Der Rest bleibt: die rote Ampel selbst, Engstellen, die stehende Autobahn. Parkplatzsuche und Auto-Schnitt gelten nicht; aufgezeichnete Motorradfahrten gehen nicht in den Auto-Schnitt ein.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The “Car” box rides a motorcycle: the same roads and Apple’s travel time with live traffic — but it filters past queues up to the traffic light, like a bike. How much traffic there is comes from Apple’s travel time for the same route at three in the morning; the app deducts 70 % of the difference. The rest remains: the red light itself, narrow spots, a standing motorway. Parking time and the car average do not apply; recorded motorcycle rides do not count towards the car average."
+          }
+        }
+      }
+    },
     "Der Knopf daneben hält die Ausrichtung fest — automatisch, hochkant, querformat. Am Lenker will man keine Karte, die sich in der Kurve dreht.": {
       "extractionState": "manual",
       "localizations": {
@@ -1838,6 +1849,28 @@
         }
       }
     },
+    "Fahrzeit laut Apple Karten — Stau unbekannt, nichts abgezogen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Travel time from Apple Maps — traffic unknown, nothing deducted"
+          }
+        }
+      }
+    },
+    "Fahrzeit laut Apple Karten — kein Stau auf der Strecke": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Travel time from Apple Maps — no traffic jams on the way"
+          }
+        }
+      }
+    },
     "Fahrzeiten mit dem Rad rechnen sich aus der rollenden Geschwindigkeit plus Wartezeit je Ampelkreuzung plus fünf Sekunden je Höhenmeter — Tempo und Wartezeit stehen in den Einstellungen. Wo eigene Fahrten eine Kreuzung schon kennen, gilt deren gemessene Zeit statt der eingestellten.": {
       "extractionState": "manual",
       "localizations": {
@@ -2527,6 +2560,39 @@
           "stringUnit": {
             "state": "translated",
             "value": "Notifications are off — allow them in iOS Settings"
+          }
+        }
+      }
+    },
+    "Motorrad": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Motorcycle"
+          }
+        }
+      }
+    },
+    "Motorrad statt Auto": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Motorcycle instead of car"
+          }
+        }
+      }
+    },
+    "Motorrad: %d min Stau vorbeigerollt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Motorcycle: filtered past %d min of traffic"
           }
         }
       }

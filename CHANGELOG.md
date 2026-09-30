@@ -1,5 +1,18 @@
 # Changelog
 
+## Unveröffentlicht — Motorrad
+
+- **Motorrad statt Auto** (Einstellungen → Verkehrsmittel → Auto, Schalter). Der Kasten
+  „Auto“ heißt dann „Motorrad“, fährt dieselben Apple-Routen, rollt aber am Stau vorbei bis
+  an die Ampel. Wie viel Stau auf einer Linie steht, ist Apples Fahrzeit jetzt minus Apples
+  Fahrzeit für dieselbe Linie nachts um drei (eine zweite, parallele Anfrage); davon gehen
+  70 % ab (`CarCandidate.queueShare`). Findet sich nachts keine Linie gleicher Länge (±2 %),
+  gilt das Verhältnis der beiden schnellsten. Probe Teststrecke, Mi 9:17:
+  47,9 min mit Verkehr, 30,2 nachts → Motorrad 35,5 min. „schnellst“ und „optimal“ rechnen
+  mit der Motorradzeit, die Stadtlinie im Stau kann also gewinnen. Keine Parkplatzsuche,
+  kein Auto-Schnitt; aufgezeichnete Motorradfahrten tragen `motorcycle: true`, zeigen das
+  Motorrad in der Fahrtenliste und gehen nicht in den Auto-Schnitt ein.
+
 ## 1.8.1 (Build 45) — mehrere Radrouten, ohne Kopfsteinpflaster
 
 - **Wieder mehrere Radrouten.** Seit „wenig Autos“ mit eigenem Profil fährt, gewann dessen

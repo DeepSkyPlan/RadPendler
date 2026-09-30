@@ -29,6 +29,20 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         /// was angekündigt und was gefahren wurde.
         var plannedMeters: Double?
         var plannedSignals: Int?
+        /// Der Kasten „Auto" fuhr Motorrad — landet so in der Fahrt, damit sie
+        /// nicht in den Auto-Schnitt eingeht.
+        var motorcycle = false
+    }
+
+    /// Was `RideMeter` misst, plus was nur der Anlass der Fahrt weiß.
+    private func result(_ subject: Subject, end: Date) -> (Ride, RideTrack) {
+        var (ride, track) = meter.result(id: subject.id, origin: subject.origin,
+                                         destination: subject.destination, mode: subject.mode,
+                                         plannedSeconds: subject.plannedSeconds, end: end,
+                                         plannedMeters: subject.plannedMeters,
+                                         plannedSignals: subject.plannedSignals)
+        if subject.motorcycle { ride.motorcycle = true }
+        return (ride, track)
     }
 
     private(set) var subject: Subject?
@@ -430,11 +444,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         manager.allowsBackgroundLocationUpdates = false
         meter.finish(at: end)
         RideSounds.shared.play(.stop)
-        let (ride, track) = meter.result(id: subject.id, origin: subject.origin,
-                                         destination: subject.destination, mode: subject.mode,
-                                         plannedSeconds: subject.plannedSeconds, end: end,
-                                         plannedMeters: subject.plannedMeters,
-                                         plannedSignals: subject.plannedSignals)
+        let (ride, track) = result(subject, end: end)
         self.subject = nil
         applyIdleTimer()
         // A ride of thirty seconds is a tap on the wrong button, not a commute.
@@ -468,7 +478,8 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         guard let subject else { return nil }
         return RideLive(origin: subject.origin, destination: subject.destination,
                         mode: subject.mode,
-                        symbol: TravelMode(rawValue: subject.mode)?.symbol ?? "bicycle",
+                        symbol: subject.motorcycle ? Vehicle.motorcycleSymbol
+                            : TravelMode(rawValue: subject.mode)?.symbol ?? "bicycle",
                         colorHex: UIColor(TravelMode(rawValue: subject.mode)?.color ?? .green).hexString,
                         started: meter.started ?? now, at: now, running: running,
                         meters: meter.meters, movingSeconds: meter.movingSeconds,
@@ -496,7 +507,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     private func pushFinished(_ ride: Ride) {
         WatchLink.shared.sendLive(RideLive(origin: ride.origin, destination: ride.destination,
                                            mode: ride.mode,
-                                           symbol: ride.travelMode?.symbol ?? "bicycle",
+                                           symbol: ride.symbol,
                                            colorHex: UIColor(ride.travelMode?.color ?? .green).hexString,
                                            started: ride.started, at: ride.ended, running: false,
                                            meters: ride.meters, movingSeconds: ride.movingSeconds,
@@ -598,11 +609,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     private func saveInterrupted(at now: Date) {
         guard let subject else { return }
         lastSave = now
-        store.saveInterrupted(meter.result(id: subject.id, origin: subject.origin,
-                                           destination: subject.destination, mode: subject.mode,
-                                           plannedSeconds: subject.plannedSeconds, end: now,
-                                           plannedMeters: subject.plannedMeters,
-                                           plannedSignals: subject.plannedSignals))
+        store.saveInterrupted(result(subject, end: now))
     }
 
     // MARK: Neben der Route
