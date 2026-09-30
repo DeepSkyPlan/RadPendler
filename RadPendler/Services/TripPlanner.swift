@@ -158,6 +158,7 @@ struct TripPlanner {
     /// wait at every light.
     func bikeOptions(_ req: PlanRequest) async throws -> [TripOption] {
         let (o, d) = (req.origin.coordinate, req.destination.coordinate)
+        let via = WaypointRouting.via(req.settings.waypoints, from: o, to: d)
         let n = Swift.max(1, req.settings.optionsPerMode)
         let order = req.settings.bikeVariantOrder.filter { $0 != .alternative }
         func requests(for roles: some Sequence<BikeVariant>) -> [(String, BRouterClient.Profile?, Int)] {
@@ -186,7 +187,7 @@ struct TripPlanner {
             // bekommt dessen Linie nur, wenn BRouter gar nicht antwortet.
             let found = await Self.gathered(list, atOnce: 3) { name, profile, alt in
                 if let profile {
-                    return try? await brouter.route(from: o, to: d, profile: profile, alternative: alt)
+                    return try? await brouter.route(from: o, to: d, via: via, profile: profile, alternative: alt)
                 }
                 return try? await apple.route(from: o, to: d, mode: .bike, departure: nil)
             }

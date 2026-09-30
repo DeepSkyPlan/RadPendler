@@ -559,3 +559,22 @@ extension BikeRouteTests {
         XCTAssertLessThan(Date().timeIntervalSince(started), 2)
     }
 }
+
+// MARK: Fixpunkte führen
+
+extension BikeRouteTests {
+    func testFixedPointsOnTheWayAreRiddenInOrder() {
+        let from = CLLocationCoordinate2D(latitude: 52.40, longitude: 13.20)
+        let to = CLLocationCoordinate2D(latitude: 52.54, longitude: 13.36)
+        let late = Place(name: "spät", latitude: 52.50, longitude: 13.32)
+        let early = Place(name: "früh", latitude: 52.44, longitude: 13.25)
+        let far = Place(name: "S Erkner", latitude: 52.42, longitude: 13.75)
+        let via = WaypointRouting.via([late, far, early], from: from, to: to)
+        XCTAssertEqual(via.map(\.latitude), [52.44, 52.50], "am Weg, in Fahrtrichtung; Erkner bleibt Filter")
+        XCTAssertEqual(WaypointRouting.via([late, early], from: to, to: from).map(\.latitude), [52.50, 52.44],
+                       "zurück in umgekehrter Reihenfolge")
+        // Unterwegs, zwischen den beiden: nur der spätere liegt noch vor einem.
+        let here = CLLocationCoordinate2D(latitude: 52.47, longitude: 13.29)
+        XCTAssertEqual(WaypointRouting.ahead(via, from: here, to: to).map(\.latitude), [52.50])
+    }
+}

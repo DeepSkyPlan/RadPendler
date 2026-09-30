@@ -42,6 +42,7 @@ struct BRouterClient {
     var avoidCobbles = false
 
     func route(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+               via: [CLLocationCoordinate2D] = [],
                profile: Profile, alternative: Int = 0) async throws -> StreetRoute {
         // Start und Ziel einer Pendelstrecke ändern sich nicht, und BRouter
         // kennt keine Verkehrslage: dieselbe Frage hat eine Stunde später
@@ -51,6 +52,7 @@ struct BRouterClient {
         let key = String(format: "%.5f,%.5f|%.5f,%.5f|%@|%d%@",
                          from.latitude, from.longitude, to.latitude, to.longitude,
                          profile.rawValue, alternative, avoidCobbles ? "|ohne-pflaster" : "")
+            + via.map { String(format: "|über %.5f,%.5f", $0.latitude, $0.longitude) }.joined()
         if cached, let hit = await RouteCache.shared.route(for: key) { return hit }
         let route: StreetRoute
         if profile.isCustom || avoidCobbles {
@@ -61,32 +63,36 @@ struct BRouterClient {
             // eine Linie mit Pflaster als gar keine.
             let custom = CustomProfile.Kind(profile: profile, withoutCobbles: avoidCobbles)
             do {
-                route = try await fetch(from: from, to: to,
+                route = try await fetch(from: from, to: to, via: via,
                                         profile: try await CustomProfile.shared.id(custom, session: session),
                                         alternative: alternative)
             } catch {
                 do {
                     let fresh = try await CustomProfile.shared.id(custom, session: session, renew: true)
-                    route = try await fetch(from: from, to: to, profile: fresh, alternative: alternative)
+                    route = try await fetch(from: from, to: to, via: via, profile: fresh, alternative: alternative)
                 } catch {
                     var plain = self
-                    if avoidCobbles { plain.avoidCobbles = false } else { return try await plain.route(from: from, to: to, profile: .safety, alternative: alternative) }
-                    return try await plain.route(from: from, to: to, profile: profile, alternative: alternative)
+                    if avoidCobbles { plain.avoidCobbles = false } else { return try await plain.route(from: from, to: to, via: via, profile: .safety, alternative: alternative) }
+                    return try await plain.route(from: from, to: to, via: via, profile: profile, alternative: alternative)
                 }
             }
         } else {
-            route = try await fetch(from: from, to: to, profile: profile.rawValue, alternative: alternative)
+            route = try await fetch(from: from, to: to, via: via, profile: profile.rawValue, alternative: alternative)
         }
         if cached { await RouteCache.shared.keep(route, for: key) }
         return route
     }
 
     private func fetch(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+                       via: [CLLocationCoordinate2D] = [],
                        profile: String, alternative: Int) async throws -> StreetRoute {
         var c = URLComponents(string: "https://brouter.de/brouter")!
         c.queryItems = [
-            .init(name: "lonlats", value: String(format: "%.6f,%.6f|%.6f,%.6f",
-                                                 from.longitude, from.latitude, to.longitude, to.latitude)),
+            // Zwischenpunkte stehen einfach dazwischen: BRouter fährt sie der
+            // Reihe nach an — so führt ein Fixpunkt die Linie, statt sie nur
+            // hinterher auszusortieren.
+            .init(name: "lonlats", value: ([from] + via + [to])
+                .map { String(format: "%.6f,%.6f", $0.longitude, $0.latitude) }.joined(separator: "|")),
             .init(name: "profile", value: profile),
             .init(name: "alternativeidx", value: String(alternative)),
             .init(name: "format", value: "geojson"),
@@ -272,16 +278,18 @@ actor CompositeRouter: StreetRouting {
     /// schnellste Linie fährt, in die Nebenstraßen, und er ist gleich wieder
     /// daneben (Fahrt 30.09.2026).
     func bikeRoute(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+                   via: [CLLocationCoordinate2D] = [],
                    profile: BRouterClient.Profile = .safety,
                    avoidCobbles: Bool = false) async throws -> StreetRoute {
         let key = String(format: "%.5f,%.5f|%.5f,%.5f|%@|%d", from.latitude, from.longitude,
                          to.latitude, to.longitude, profile.rawValue, avoidCobbles ? 1 : 0)
+            + via.map { String(format: "|%.5f,%.5f", $0.latitude, $0.longitude) }.joined()
         if let hit = cache[key] { return hit }
         var brouter = brouter
         brouter.avoidCobbles = avoidCobbles
         let r: StreetRoute
         do {
-            r = try await brouter.route(from: from, to: to, profile: profile)
+            r = try await brouter.route(from: from, to: to, via: via, profile: profile)
         } catch {
             r = try await apple.route(from: from, to: to, mode: .bike, departure: nil)
         }

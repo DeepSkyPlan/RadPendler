@@ -148,7 +148,7 @@ struct AddressSettingsView: View {
                 } header: {
                     Text(L("Fixpunkte"))
                 } footer: {
-                    Hint(L("Punkte, über die die Strecke führen soll, z. B. „S Ostkreuz“ oder „Berlin Hauptbahnhof“. Verbindungen, die nicht daran vorbeikommen, werden ausgegraut ans Ende gestellt und nie empfohlen. Ohne Fixpunkte gilt keine Einschränkung."))
+                    Hint(L("Punkte, über die die Strecke führen soll, z. B. „S Ostkreuz“ oder eine Straße, die du gern fährst. Radrouten fahren jeden Fixpunkt an, der am Weg liegt (höchstens ein Viertel Umweg gegenüber der Luftlinie) — auch nach einer Neuplanung unterwegs. Verbindungen, die nicht daran vorbeikommen, werden ausgegraut ans Ende gestellt und nie empfohlen. Ohne Fixpunkte gilt keine Einschränkung."))
                 }
         }
     }

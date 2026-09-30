@@ -670,3 +670,10 @@ T.update({
 "Der Kasten „Auto“ fährt Motorrad: dieselben Straßen und Apples Fahrzeit mit Verkehrslage — aber am Stau rollt es vorbei bis an die Ampel, wie mit dem Rad. Wie viel Stau auf der Strecke steht, zeigt Apples Fahrzeit für dieselbe Strecke nachts um drei; davon zieht die App 70 % ab. Der Rest bleibt: die rote Ampel selbst, Engstellen, die stehende Autobahn. Parkplatzsuche und Auto-Schnitt gelten nicht; aufgezeichnete Motorradfahrten gehen nicht in den Auto-Schnitt ein.":
 "The “Car” box rides a motorcycle: the same roads and Apple’s travel time with live traffic — but it filters past queues up to the traffic light, like a bike. How much traffic there is comes from Apple’s travel time for the same route at three in the morning; the app deducts 70 % of the difference. The rest remains: the red light itself, narrow spots, a standing motorway. Parking time and the car average do not apply; recorded motorcycle rides do not count towards the car average.",
 })
+
+T.update({
+"Punkte, über die die Strecke führen soll, z. B. „S Ostkreuz“ oder eine Straße, die du gern fährst. Radrouten fahren jeden Fixpunkt an, der am Weg liegt (höchstens ein Viertel Umweg gegenüber der Luftlinie) — auch nach einer Neuplanung unterwegs. Verbindungen, die nicht daran vorbeikommen, werden ausgegraut ans Ende gestellt und nie empfohlen. Ohne Fixpunkte gilt keine Einschränkung.":
+"Points the route should pass, e.g. “S Ostkreuz” or a street you like to ride. Bike routes ride through every fixed point that lies on the way (at most a quarter detour over the straight line) — also after replanning during a ride. Connections that miss them are greyed out, moved to the end and never recommended. Without fixed points there is no restriction.",
+"Fixpunkte (Einstellungen) sind Orte, über die die Strecke führen soll. Radrouten fahren sie an, wenn sie am Weg liegen; Verbindungen ohne sie werden ausgegraut und nie empfohlen.":
+"Fixed points (Settings) are places the route should pass. Bike routes ride through them when they lie on the way; connections without them are greyed out and never recommended.",
+})

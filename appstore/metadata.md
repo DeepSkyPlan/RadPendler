@@ -245,6 +245,25 @@ ODbL), Deutscher Wetterdienst und Open-Meteo.
 Alle Zeiten ohne Gewähr.
 ```
 
+## Was ist neu (1.9)
+
+Für das Feld „Neue Funktionen“ der Version 1.9, falls 1.8.1 schon im Store ist; sonst
+gehören diese Punkte an den Anfang der Liste von 1.8.1.
+
+```
+• Motorrad statt Auto: ein Schalter unter Einstellungen → Auto. Die App rechnet,
+  dass du am Stau vorbei bis an die Ampel rollst, und zieht den größten Teil der
+  Stauzeit ab. Keine Parkplatzsuche; Motorradfahrten zählen nicht in den
+  Auto-Schnitt.
+• Fixpunkte führen jetzt die Radroute: eine Straße, die du gern fährst, als
+  Fixpunkt eintragen — die Route fährt sie an, auch nach einer Neuplanung.
+• „optimal“ ist kein Umweg mehr: höchstens 10 % länger als die kürzeste Route.
+• Neuplanung unterwegs zuverlässiger, auch nach einem Start ohne Netz: sie folgt
+  dem Profil der gewählten Route und meidet weiter Kopfsteinpflaster.
+• Auf dem Rad keine Fantasie-Spitzen mehr durch springende Ortungen, und eine
+  Farbskala, die zu einer Radfahrt passt.
+```
+
 ## Was ist neu (1.8.1)
 
 Für das Feld „Neue Funktionen“ der Version 1.8.1 (max 4000, hier 1799). Deckt alles seit
@@ -612,6 +631,21 @@ traffic lights on the route, rain point by point, and a countdown to leaving.
 
 commute,bike,cycling,route,train,transit,bike on train,rain radar,traffic
 lights,countdown  [90]
+
+### What's New (1.9)
+
+```
+• Motorcycle instead of car: a switch under Settings → Car. The app assumes you
+  filter past queues up to the traffic light and deducts most of the time lost in
+  traffic. No parking time; motorcycle rides do not count towards the car average.
+• Fixed points now guide the bike route: add a street you like to ride as a fixed
+  point and the route will take it, also after replanning.
+• “optimal” is no longer a detour: at most 10 % longer than the shortest route.
+• Replanning during a ride is more reliable, also after starting without a
+  network: it follows the profile of the chosen route and still avoids cobbles.
+• On the bike, no more phantom top speeds from jumping positions, and a colour
+  scale that fits a bike ride.
+```
 
 ### What's New (1.8.1)
 
