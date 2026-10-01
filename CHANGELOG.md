@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — Fixpunkte je Strecke
+## 1.9.1 (Build 47) — Fixpunkte je Strecke
 
 - **Fixpunkte gehören jetzt zu einer Strecke**, nicht mehr zu allen (Nutzer, 01.10.2026).
   Eine Strecke sind zwei Enden in beiden Richtungen; ein Ende gilt als dasselbe bis 500 m
