@@ -390,8 +390,8 @@ struct ContentView: View {
     /// Everything that is not the plan itself, behind one quiet button.
     ///
     /// A popover rather than a `Menu`: an iOS menu renders plain text only, so
-    /// the version, the copyright and the sources could be neither small nor
-    /// italic nor on lines of their own in one.
+    /// the version line could not be small and grey in one, and the language
+    /// picker would not fit.
     private var menu: some View {
         Button { showMenu = true } label: {
             Image(systemName: "line.3.horizontal")
@@ -414,24 +414,15 @@ struct ContentView: View {
                 Divider()
                 languageRow
                 Divider().padding(.top, 6)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("RadPendler \(Self.version)")
-                    Text("© 2026 AK")
-                    Text("inspired by Oleg")
-                    // Names only. The links this text used to carry live in
-                    // the settings, where there is room for them to look like
-                    // links instead of like grey lines in a footer.
-                    Text(L("Datenquellen: VBB · Transitous/MOTIS · Apple Karten · BRouter und OpenStreetMap · DWD · Open-Meteo"))
-                        .font(Self.sourceFont)
-                        .padding(.top, 5)
-                }
-                .font(.system(.caption2, design: .rounded))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 16)
-                .padding(.top, 10)
-                .padding(.bottom, 14)
-                .accessibilityElement(children: .combine)
+                // Nur die Version. Rechte und Datenquellen stehen in den
+                // Einstellungen, mit Links — hier standen sie bis 1.9.1 ein
+                // zweites Mal, als graue Zeilen ohne.
+                Text("RadPendler \(Self.version)")
+                    .font(.system(.caption2, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 10)
+                    .padding(.bottom, 14)
             }
             }
             .scrollBounceBehavior(.basedOnSize)
@@ -466,11 +457,6 @@ struct ContentView: View {
         .padding(.vertical, 6)
         .onChange(of: settings.language) { _, _ in showMenu = false }
     }
-
-    /// Same size as the copyright lines above it, but slanted — and therefore
-    /// **not** rounded: SF Rounded has no italic face, and neither SwiftUI nor
-    /// the renderer synthesises one, so `.italic()` on it comes out upright.
-    private static let sourceFont = Font.system(.caption2).italic()
 
     private func menuRow(_ title: String, _ symbol: String, action: @escaping () -> Void) -> some View {
         Button {

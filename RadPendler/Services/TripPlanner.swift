@@ -448,34 +448,6 @@ struct TripPlanner {
     /// The main search uses only S/RE stations and S/RE trains; a small second
     /// search from the nearest stations of any kind lets U-Bahn/tram in, and
     /// those results are kept only as the alternative.
-    /// A planner that cannot reach anything: every client points at a host
-    /// that does not resolve, so a test using it fails fast instead of calling
-    /// five live services. Used by the tests that only care about the state a
-    /// search leaves behind, not about its result.
-    static var offline: TripPlanner {
-        let config = URLSessionConfiguration.ephemeral
-        config.timeoutIntervalForRequest = 1
-        config.protocolClasses = [BlockedProtocol.self]
-        let session = URLSession(configuration: config)
-        var planner = TripPlanner()
-        planner.hafas.session = session
-        planner.motis.session = session
-        planner.brouter.session = session
-        planner.brouter.cached = false
-        planner.rain.session = session
-        // Die beiden, die bis 1.4 trotzdem ins Netz liefen: Overpass hing an
-        // einem fest verdrahteten `URLSession.shared`, und Apple Karten ist
-        // MapKit — das lässt sich nicht umlenken, also antwortet hier gar
-        // niemand. „Offline" hieß vorher „fast offline", und das ist bei einem
-        // Test die unangenehmste Sorte von fast.
-        planner.roads = RoadDataStore(session: session)
-        planner.apple = DeadRouter()
-        planner.streets = DeadRouter()
-        // Und keine eigenen Fahrten: die des Simulators gehören nicht in einen Test.
-        planner.habits = RiddenPaths(file: URL.temporaryDirectory.appending(path: "ridden-\(UUID()).json"))
-        return planner
-    }
-
     /// Which timetable answers for this request.
     func source(_ req: PlanRequest) -> TimetableSource {
         req.settings.timetableSource.resolved(from: req.origin.coordinate, to: req.destination.coordinate)
@@ -494,13 +466,7 @@ struct TripPlanner {
             guard !transit.isEmpty, transit.allSatisfy({ !$0.cancelled }),
                   transit.allSatisfy({ s.carriage($0) != .no }),
                   legs.contains(where: { $0.kind == .bike }) else { return nil }
-            let decided = legs.map { leg -> Leg in
-                guard leg.isTransit else { return leg }
-                var l = leg
-                l.bikeCarriage = s.carriage(leg)
-                return l
-            }
-            return TripOption(mode: .bikeTransit, legs: decided, prep: s.prep,
+            return TripOption(mode: .bikeTransit, legs: s.decided(legs), prep: s.prep,
                               note: L("Fahrten von Transitous; Radzeiten nach deren Schätzung"))
         }
         return BikeTransitComposer.rank(options, preferred: 3, alternatives: 1,
@@ -724,13 +690,12 @@ enum BikeTransitComposer {
                         station1: String, ride1: StreetRoute, journey: [Leg],
                         station2: String, ride2: StreetRoute,
                         settings s: PlanSettings, earliestLeave: Date) -> TripOption? {
-        var transit = journey.filter(\.isTransit)
+        let transit = journey.filter(\.isTransit)
         guard let firstTrain = transit.first, let lastTrain = transit.last,
               transit.allSatisfy({ !$0.cancelled }) else { return nil }
         // A line the user has ruled out is out. One nobody has judged stays in,
         // with the warning — that is the whole point of the list.
         guard transit.allSatisfy({ s.carriage($0) != .no }) else { return nil }
-        transit = transit.map { var l = $0; l.bikeCarriage = s.carriage($0); return l }
 
         // Leave as late as still catches the first train. Walk legs HAFAS puts
         // in front (platform changes inside the station) count as buffer.
@@ -748,14 +713,7 @@ enum BikeTransitComposer {
         let last = Leg(kind: .bike, fromName: station2, toName: destination.shortName,
                        departure: ride2Start, arrival: ride2Start.addingTimeInterval(s.rideTime(ride2)),
                        distance: ride2.distance, coordinates: ride2.coordinates)
-        // The legs keep the decision, so the timeline and the warnings agree.
-        let decided = journey.map { leg -> Leg in
-            guard leg.isTransit else { return leg }
-            var l = leg
-            l.bikeCarriage = s.carriage(leg)
-            return l
-        }
-        return TripOption(mode: .bikeTransit, legs: [first] + decided + [last], prep: s.prep,
+        return TripOption(mode: .bikeTransit, legs: [first] + s.decided(journey) + [last], prep: s.prep,
                           note: L("%d min Puffer je Bahnhof fürs Rad", s.bikeStationBufferMinutes))
     }
 
@@ -792,11 +750,3 @@ enum BikeTransitComposer {
 
 /// One car line and how it scores. Apple gives the times; the lights come
 /// from OpenStreetMap, and without them only speed and length can be judged.
-final class BlockedProtocol: URLProtocol {
-    override class func canInit(with request: URLRequest) -> Bool { true }
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
-    override func startLoading() {
-        client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
-    }
-    override func stopLoading() {}
-}

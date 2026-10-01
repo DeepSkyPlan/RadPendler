@@ -32,8 +32,6 @@ T = {
 "Jetzt": "Now",
 "Abfahrt": "Departure",
 "Ankunft": "Arrival",
-"Datenquellen: VBB · Transitous/MOTIS · Apple Karten · BRouter und OpenStreetMap · DWD · Open-Meteo":
-    "Data: VBB · Transitous/MOTIS · Apple Maps · BRouter and OpenStreetMap · DWD · Open-Meteo",
 "Wie das Telefon": "Match the phone",
 
 # --- Verkehrsmittel und Rollen
@@ -695,3 +693,8 @@ T.update({
 })
 
 T.update({"Fixpunkte sind Orte, über die eine Strecke führen soll — gesetzt über die kleine Zeile zwischen Start und Ziel, und nur für diese Strecke, in beiden Richtungen. Radrouten fahren sie an, wenn sie am Weg liegen; Verbindungen ohne sie werden ausgegraut und nie empfohlen.": "Fixed points are places a route should pass — set via the small line between start and destination, and only for that route, in both directions. Bike routes ride through them when they lie on the way; connections without them are greyed out and never recommended."})
+
+T.update({
+"Fahrpläne außerhalb Berlin/Brandenburg: Transitous (MOTIS), Quellen unter transitous.org/sources.":
+    "Timetables outside Berlin/Brandenburg: Transitous (MOTIS), sources at transitous.org/sources.",
+})

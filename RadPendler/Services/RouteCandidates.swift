@@ -38,13 +38,6 @@ struct CarCandidate {
         return Swift.max(0, route.expectedTravelTime - freeFlow) * Self.queueShare
     }
 
-    /// Driving time with the waiting at the lights added, the way the bike
-    /// routes count it — an Apple estimate already includes traffic, but not
-    /// the difference between twelve junctions and forty.
-    func time(_ s: PlanSettings) -> TimeInterval {
-        driveTime(s) + Double((signals ?? 0) * s.signalWaitSeconds) * 0.5
-    }
-
     /// Mittelweg: time plus half the waiting, so a line that is two minutes
     /// slower but crosses twenty fewer junctions can win it.
     func balancedScore(_ s: PlanSettings) -> Double {

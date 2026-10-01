@@ -279,7 +279,7 @@ final class AppSettings {
         "measuredOverallKmh", "measuredMovingKmh", "measuredRides",
         "bikeOverallKmh", "carOverallKmh", "measuredCarKmh", "measuredCarRides",
         // Anzeige
-        "orientationLock", "rideOrientationLock", "rideStartsLandscape", "language",
+        "orientationLock", "rideOrientationLock", "language",
         // Was gelöscht wurde
         "tombstones",
     ]
@@ -375,14 +375,6 @@ final class AppSettings {
         assign(\.optionsPerMode, defaults.object(forKey: "optionsPerMode") as? Int ?? optionsPerMode)
         assign(\.rideOrientation, (defaults.string(forKey: "rideOrientationLock"))
             .flatMap(OrientationLock.init(rawValue:)) ?? rideOrientation)
-        // Einmalig, für alle, die schon eine Fassung vor 1.4 hatten: dort war
-        // „automatisch" die Voreinstellung und stand deshalb bei jedem, der
-        // nie etwas eingestellt hat. Wer es danach wieder auf „automatisch"
-        // stellt, behält das — der Merker wird nur einmal gesetzt.
-        if !defaults.bool(forKey: "rideStartsLandscape") {
-            defaults.set(true, forKey: "rideStartsLandscape")
-            if rideOrientation == .auto { rideOrientation = .landscape }
-        }
         assign(\.autoStopMinutes, defaults.object(forKey: "autoStopMinutes") as? Double ?? autoStopMinutes)
         assign(\.rideSounds, defaults.object(forKey: "rideSounds") as? Bool ?? rideSounds)
         assign(\.avoidCobbles, defaults.object(forKey: "avoidCobbles") as? Bool ?? avoidCobbles)
@@ -404,13 +396,7 @@ final class AppSettings {
         assign(\.carOverallKmh, defaults.object(forKey: "carOverallKmh") as? Double ?? carOverallKmh)
         assign(\.measuredCarKmh, defaults.object(forKey: "measuredCarKmh") as? Double)
         assign(\.measuredCarRides, defaults.object(forKey: "measuredCarRides") as? Int ?? measuredCarRides)
-        // Bis 1.6 gab es nur den gemessenen Rad-Schnitt und keinen einstellbaren:
-        // wer schon genug Fahrten hat, findet ihn hier wieder statt „aus".
-        if let v = defaults.object(forKey: "bikeOverallKmh") as? Double {
-            assign(\.bikeOverallKmh, v)
-        } else if measuredRides >= Self.calibrationRides, let m = measuredOverallKmh {
-            bikeOverallKmh = Self.halfStep(m)
-        }
+        assign(\.bikeOverallKmh, defaults.object(forKey: "bikeOverallKmh") as? Double ?? bikeOverallKmh)
         loadedOnce = true
     }
 
@@ -711,6 +697,17 @@ struct PlanSettings: Equatable {
         guard let line = leg.lineName else { return .yes }
         if let decided = bikeLineStatus[line] { return decided ? .yes : .no }
         return leg.bikeCarriage
+    }
+
+    /// Die Fahrt mit dieser Entscheidung an jedem Zug, damit Zeitstrahl und
+    /// Warnungen dasselbe sagen wie die Auswahl.
+    func decided(_ legs: [Leg]) -> [Leg] {
+        legs.map { leg in
+            guard leg.isTransit else { return leg }
+            var l = leg
+            l.bikeCarriage = carriage(leg)
+            return l
+        }
     }
 
     /// Riding time plus the expected wait at the route's traffic lights.
