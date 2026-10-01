@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — Fahrt teilen, Messwerte von Hand, Aufräumen
+## 1.10 (Build 48) — Fahrt teilen, Messwerte von Hand, Aufräumen
 
 - **Auswahl bleibt:** die gewählte Radvariante, Autolinie oder Verbindung übersteht eine
   Neuplanung (feste Kennungen statt neuer bei jedem Rechnen); ein ausgeschalteter Countdown
