@@ -175,7 +175,9 @@ struct ContentView: View {
                 WatchLink.shared.onChoice = { [model] choice in model.apply(choice) }
                 // Beendet sich eine Fahrt von selbst, muss dasselbe passieren
                 // wie beim Tippen auf „Fahrt beenden" — nur sieht es niemand.
-                tracker.onAutoStop = { afterRide() }
+                tracker.onAutoStop = { [tracker, settings, rides] in
+                    RideSession.finish(tracker: tracker, settings: settings, rides: rides)
+                }
                 model.applyDefaultWhen(settings: settings)
                 refresh()
             }
@@ -196,10 +198,7 @@ struct ContentView: View {
             // A ride under way is the whole screen: everything the planning
             // page offers is about a trip that has not started yet.
             RideTrackingView(options: model.options, selectedID: model.selected?.id,
-                             onStop: {
-                                 tracker.stop()
-                                 afterRide()
-                             })
+                             onStop: { RideSession.stop(tracker: tracker, settings: settings, rides: rides) })
         } else if isTwoColumn {
             HStack(alignment: .top, spacing: 0) {
                 VStack(spacing: isWide ? 14 : 8) {
@@ -298,7 +297,9 @@ struct ContentView: View {
 
     @ViewBuilder private var tripBar: some View {
         if let option = model.selected {
-            SelectedTripBar(model: model, option: option, onRecord: { record(option) })
+            SelectedTripBar(model: model, option: option, onRecord: {
+                RideSession.start(option, options: model.options, settings: settings, tracker: tracker)
+            })
                 .padding(.horizontal, Theme.gutter)
         }
     }
@@ -327,17 +328,6 @@ struct ContentView: View {
             model.applyDefaultWhen(settings: settings)
             refresh()
         }
-    }
-
-    /// Starts recording the trip that is on screen. The lit junctions of *this*
-    /// route come along — they decide later which standstill was a red light,
-    /// and a replan half way must not be able to change that answer.
-    private func record(_ option: TripOption) {
-        // Am Lenker gilt, was am Lenker zuletzt galt — nicht, wie die App
-        // sich sonst dreht.
-        settings.rideOrientation.apply()
-        RideSounds.shared.enabled = settings.rideSounds
-        tracker.start(RidePlan.make(option: option, options: model.options, settings: settings))
     }
 
     /// Was schiefging — und zwar **im Wortlaut**.
@@ -483,29 +473,6 @@ struct ContentView: View {
         settingsMark = nil
         guard mark == nil || mark != settingsNow else { return }
         refresh()
-    }
-
-    /// Was nach jeder Fahrt passiert, egal wer sie beendet hat: nachmessen,
-    /// dazulernen, die eigene Ausrichtung wiederherstellen.
-    private func afterRide() {
-        // Hell, bevor irgendetwas anderes passiert — die Zusammenfassung will
-        // gelesen werden.
-        ScreenDim.shared.wake()
-        // Where this ride stood — and where it rolled straight through — is
-        // what the next one knows: the junctions no map has, and what the
-        // known ones really cost.
-        settings.learn(stops: tracker.meter.stops,
-                       track: tracker.meter.points,
-                       junctions: tracker.meter.signals)
-        // Und was sie über das Tempo dieses Fahrers weiß, steht ab jetzt in
-        // den Einstellungen.
-        settings.calibrate(from: rides.rides)
-        settings.calibrateCar(from: rides.rides)
-        // Die Fahrt ist vorbei: es gilt wieder die Ausrichtung aus den
-        // Einstellungen. Bis 1.9.1 ging sie hier auf „Automatisch" — aus der
-        // Zeit, als die Fahrt dieselbe Einstellung verstellte; seit es
-        // `rideOrientation` gibt, löschte das nur die Wahl des Nutzers.
-        settings.orientation.apply()
     }
 
     private func select(_ id: TripOption.ID) {
