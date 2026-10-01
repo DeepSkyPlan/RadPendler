@@ -397,7 +397,7 @@ struct TripOption: Identifiable {
             return [mode.rawValue, roles.joined(separator: "+"), hm, mid].joined(separator: "|")
         case .transit, .bikeTransit:
             let trains = transitLegs.map {
-                "\($0.lineName ?? "?")@\($0.fromName)@\(minute($0.plannedDeparture ?? $0.departure))"
+                "\($0.lineName ?? "?")@\($0.fromName)@\(minute($0.plannedDeparture ?? $0.departure))>\($0.toName)"
             }
             // Zu Fuß ganz ohne Zug: dann eben die Abfahrt und die Strecke.
             guard !trains.isEmpty else { return [mode.rawValue, minute(leave), hm].joined(separator: "|") }

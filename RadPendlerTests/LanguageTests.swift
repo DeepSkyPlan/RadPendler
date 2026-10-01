@@ -70,3 +70,14 @@ final class ScreenDimTests: XCTestCase {
         XCTAssertTrue(ScreenDim.dims(.unknown))
     }
 }
+
+extension LanguageTests {
+    func testEnglishTimesAreTwentyFourHour() {
+        let before = AppLanguage.current
+        defer { AppLanguage.current = before }
+        AppLanguage.current = .en
+        var cal = Calendar(identifier: .gregorian); cal.timeZone = .current
+        let d = cal.date(from: DateComponents(year: 2026, month: 10, day: 1, hour: 14, minute: 20))!
+        XCTAssertEqual(Fmt.time(d), "14:20")
+    }
+}

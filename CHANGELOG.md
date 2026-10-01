@@ -1,6 +1,17 @@
 # Changelog
 
-## Unveröffentlicht — Aufräumen
+## Unveröffentlicht — Fahrt teilen, Messwerte von Hand, Aufräumen
+
+- **Auswahl bleibt:** die gewählte Radvariante, Autolinie oder Verbindung übersteht eine
+  Neuplanung (feste Kennungen statt neuer bei jedem Rechnen); ein ausgeschalteter Countdown
+  bleibt aus, solange es derselbe Zug ist. Die Karte passt sich bei gleichem Ergebnis nicht
+  mehr neu ein.
+- **Rad + Bahn außerhalb des VBB:** Transitous-Radstücke werden mit dem eigenen Tempo
+  gerechnet — wer langsamer fährt, verliert dort die knappsten Verbindungen. Zubringer zählen
+  Höhenmeter mit.
+- Autoalternativen nach Ausgewogenheit sortiert; Neuplanung ohne bekannte Radlinie mit
+  „wenig Autos“.
+- Uhrzeiten auch auf Englisch im 24-Stunden-Format (vorher 12 h ohne am/pm).
 
 - **„Alle Fixpunkte verlangen“ entfällt** — eine Verbindung muss an mindestens einem Fixpunkt
   vorbei. Das Rad fährt seit 1.9 ohnehin alle am Weg an; bei Auto und Bahn machte der Schalter
