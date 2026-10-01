@@ -429,9 +429,9 @@ final class ReplanDirectionTests: XCTestCase {
     /// Wende — auf der Autobahn keine Auskunft, sondern ein Witz.
     func testARouteThatTurnsBackIsRejected() {
         let backwards = (0...10).map { north(-Double($0) * 30) }
-        XCTAssertTrue(RideTracker.turnsBack(backwards, heading: 0))
+        XCTAssertTrue(Replanner.turnsBack(backwards, heading: 0))
         let onwards = (0...10).map { north(Double($0) * 30) }
-        XCTAssertFalse(RideTracker.turnsBack(onwards, heading: 0))
+        XCTAssertFalse(Replanner.turnsBack(onwards, heading: 0))
     }
 
     /// Ein Bogen ist keine Wende: die ersten 150 m entscheiden, und ein
@@ -442,6 +442,93 @@ final class ReplanDirectionTests: XCTestCase {
             CLLocationCoordinate2D(latitude: line.last!.latitude,
                                    longitude: base.longitude + Double(i) * 0.0005)
         }
-        XCTAssertFalse(RideTracker.turnsBack(line, heading: 0))
+        XCTAssertFalse(Replanner.turnsBack(line, heading: 0))
+    }
+}
+
+// MARK: Neuplanung unterwegs
+
+/// Ein Router mit fester Antwort — oder gar keiner.
+private struct FixedRouter: StreetRouting {
+    var line: [CLLocationCoordinate2D]?
+
+    func route(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+               mode: StreetMode, departure: Date?) async throws -> StreetRoute {
+        guard let line else { throw DeadRouter.Offline() }
+        return StreetRoute(distance: 0, expectedTravelTime: 0, coordinates: line)
+    }
+}
+
+/// Die Buchführung des `Replanner`: was eine übernommene, eine verworfene und
+/// eine gescheiterte Neuplanung hinterlassen — ohne Netz und ohne Ortung.
+@MainActor
+final class ReplannerTests: XCTestCase {
+    private let base = CLLocationCoordinate2D(latitude: 52.5, longitude: 13.4)
+    private func north(_ meters: Double) -> CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: base.latitude + meters / 111_320, longitude: base.longitude)
+    }
+    private var original: [CLLocationCoordinate2D] { (0...10).map { north(Double($0) * 100) } }
+    private let light = CLLocationCoordinate2D(latitude: 52.51, longitude: 13.41)
+    private let known = CLLocationCoordinate2D(latitude: 52.52, longitude: 13.42)
+
+    private func replanner(_ line: [CLLocationCoordinate2D]?, mode: StreetMode = .bike,
+                           active: Bool = true) -> (Replanner, () -> [String], () -> [[CLLocationCoordinate2D]]) {
+        let light = light
+        let r = Replanner(router: FixedRouter(line: line), signalsAlong: { _ in [light] })
+        var kinds: [String] = []
+        var adopted: [[CLLocationCoordinate2D]] = []
+        r.log = { kind, _, _ in kinds.append(kind) }
+        r.isActive = { active }
+        r.onAdopt = { _, lights in adopted.append(lights) }
+        r.reset(route: original, config: Replanner.Config(mode: mode, knownSignals: [known]))
+        return (r, { kinds }, { adopted })
+    }
+
+    func testAnAdoptedReplanKeepsTheOldLine() async {
+        let onward = (0...10).map { north(500 + Double($0) * 100) }
+        let (r, kinds, adopted) = replanner(onward)
+        r.replan(from: north(500), course: 0)
+        await r.settle()
+        XCTAssertEqual(r.replans, 1)
+        XCTAssertEqual(r.pastRoutes.count, 1)
+        XCTAssertEqual(r.pastRoutes.first?.count, original.count)
+        XCTAssertEqual(r.plannedRoute.first?.latitude, onward.first?.latitude)
+        XCTAssertEqual(r.originalRoute.count, original.count, "die erste Linie bleibt")
+        XCTAssertNil(r.detour)
+        XCTAssertNil(r.offSince)
+        XCTAssertEqual(kinds(), ["neuplanung", "übernommen"])
+        XCTAssertEqual(adopted().first?.count, 2, "Gelerntes plus die Ampeln des neuen Wegs")
+    }
+
+    /// Fürs Auto ist eine Wende keine Auskunft: der alte Weg bleibt, und vor
+    /// Ablauf der Minute wird nicht noch einmal gefragt.
+    func testACarReplanThatTurnsBackIsRejected() async {
+        let backwards = (0...10).map { north(500 - Double($0) * 30) }
+        let (r, kinds, adopted) = replanner(backwards, mode: .car)
+        r.replan(from: north(500), course: 0)
+        await r.settle()
+        XCTAssertEqual(r.replans, 0)
+        XCTAssertTrue(r.pastRoutes.isEmpty)
+        XCTAssertEqual(r.plannedRoute.count, original.count)
+        XCTAssertEqual(kinds(), ["neuplanung", "verworfen"])
+        XCTAssertTrue(adopted().isEmpty)
+        r.replan(from: north(520), course: 0)
+        await r.settle()
+        XCTAssertEqual(kinds().count, 2, "höchstens einmal die Minute")
+    }
+
+    func testAFailedOrLateReplanChangesNothing() async {
+        let (dead, kinds, _) = replanner(nil)
+        dead.replan(from: north(500), course: 0)
+        await dead.settle()
+        XCTAssertEqual(dead.replans, 0)
+        XCTAssertEqual(kinds(), ["neuplanung", "fehlgeschlagen"])
+
+        // Die Antwort kommt erst nach dem Ende der Fahrt.
+        let (late, _, adopted) = replanner((0...10).map { north(Double($0) * 100) }, active: false)
+        late.replan(from: north(500), course: 0)
+        await late.settle()
+        XCTAssertEqual(late.replans, 0)
+        XCTAssertTrue(adopted().isEmpty)
     }
 }

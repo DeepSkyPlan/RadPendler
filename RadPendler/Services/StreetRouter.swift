@@ -48,9 +48,20 @@ protocol StreetRouting: Sendable {
     /// keinen Belag kennt (Apple Karten), fährt die gewöhnliche Radlinie.
     func feeder(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
                 avoidCobbles: Bool) async throws -> StreetRoute
+    /// Die Radlinie mit Profil und Fixpunkten — was die Neuplanung unterwegs
+    /// fragt. Wer weder Profil noch Fixpunkte kennt, fährt die gewöhnliche.
+    func bikeRoute(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+                   via: [CLLocationCoordinate2D], profile: BRouterClient.Profile,
+                   avoidCobbles: Bool) async throws -> StreetRoute
 }
 
 extension StreetRouting {
+    func bikeRoute(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+                   via: [CLLocationCoordinate2D], profile: BRouterClient.Profile,
+                   avoidCobbles: Bool) async throws -> StreetRoute {
+        try await route(from: from, to: to, mode: .bike, departure: nil)
+    }
+
     func feeder(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
                 avoidCobbles: Bool) async throws -> StreetRoute {
         try await route(from: from, to: to, mode: .bike, departure: nil)

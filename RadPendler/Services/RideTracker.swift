@@ -92,7 +92,11 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
 
     init(store: RideStore = .shared) {
         self.store = store
+        replanner = Replanner()
         super.init()
+        replanner.log = { [weak self] kind, note, at in self?.log(kind, note, at: at) }
+        replanner.isActive = { [weak self] in self?.isRecording ?? false }
+        replanner.onAdopt = { [weak self] route, lights in self?.follow(route, lights: lights) }
         NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification,
                                                object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.applyIdleTimer() }
@@ -119,7 +123,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// Like the lit junctions, and for the same reason: a replan half way must
     /// not be able to point the arrow at a road one is not on — and a plan that
     /// quietly comes back empty must not take the guidance with it.
-    private(set) var plannedRoute: [CLLocationCoordinate2D] = []
+    var plannedRoute: [CLLocationCoordinate2D] { replanner.plannedRoute }
     private(set) var turns: [TurnGuide.Step] = []
     /// Cumulative lengths of `plannedRoute`, computed once. Without it every
     /// redraw allocated an array as long as the route.
@@ -135,12 +139,10 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// zusätzlich alles, was dieser Fahrer irgendwo gelernt hat, und das sind
     /// quer durch die Stadt ein paar hundert Punkte.
     private(set) var plannedSignals: [CLLocationCoordinate2D] = []
-    /// Die Linie, mit der die Fahrt begonnen hat. Sie bleibt, auch wenn
-    /// unterwegs neu geplant wird — auf der Karte liegt sie dann dünn neben
-    /// der neuen, und hinterher neben der gefahrenen.
-    private(set) var originalRoute: [CLLocationCoordinate2D] = []
-    /// Jede Route, die eine Neuplanung verworfen hat, älteste zuerst.
-    private(set) var pastRoutes: [[CLLocationCoordinate2D]] = []
+    /// Die Linie, mit der die Fahrt begonnen hat, und jede, die eine
+    /// Neuplanung verworfen hat — beides führt der `Replanner`.
+    var originalRoute: [CLLocationCoordinate2D] { replanner.originalRoute }
+    var pastRoutes: [[CLLocationCoordinate2D]] { replanner.pastRoutes }
     /// Wie weit jede geplante Ampel vom Anfang der Route entfernt liegt,
     /// aufsteigend. Damit ist „wie viele kommen noch" ein Vergleich und keine
     /// Suche über die halbe Stadt.
@@ -158,20 +160,12 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
 
     private(set) var progress: Progress?
 
-    /// Wo die geplante Linie liegt, solange man nicht auf ihr ist — nil,
-    /// solange man auf ihr fährt. Treibt den Pfeil und das Herauszoomen.
-    private(set) var detour: OffRoute.Fix?
-    /// Wie oft der Weg unterwegs neu berechnet wurde. Nur fürs Protokoll.
-    private(set) var replans = 0
-    private var lastReplan = Date.distantPast
-    /// Ab wann neu berechnet wird; 0 schaltet es ab.
-    private var replanOffRouteMeters = OffRoute.replanMeters
-    /// Seit wann ohne Unterbrechung neben der Route. Steht im roten Band
-    /// neben dem Abstand; zugewiesen wird nur beim Wechsel, sonst baute
-    /// `@Observable` den Fahrtbildschirm einmal die Sekunde neu auf.
-    private(set) var offSince: Date?
-    private var replanTask: Task<Void, Never>?
-    private let router = CompositeRouter()
+    /// Neben der Route und neu geplant: das macht der `Replanner`. Was die
+    /// Fahrtansicht davon braucht, steht hier unter den alten Namen.
+    private let replanner: Replanner
+    var detour: OffRoute.Fix? { replanner.detour }
+    var replans: Int { replanner.replans }
+    var offSince: Date? { replanner.offSince }
 
     /// The next turn, recomputed **per fix**, not per redraw. A view that
     /// scans the whole route on every frame is how the map starts to stutter.
@@ -180,27 +174,18 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     func start(_ plan: RidePlan) {
         guard !isRecording else { return }
         let route = plan.route
-        self.via = plan.via
-        self.bikeProfile = plan.bikeProfile
-        self.avoidCobbles = plan.avoidCobbles
         self.autoStopSeconds = plan.autoStopMinutes * 60
         self.autoPauseSeconds = plan.autoPauseMinutes * 60
         automatic = .full
-        self.replanOffRouteMeters = plan.replanOffRouteMeters
         self.roadPoints = plan.roadPoints
-        plannedRoute = route
-        originalRoute = route
-        pastRoutes = []
+        replanner.reset(route: route, config: Replanner.Config(
+            mode: plan.subject.mode == TravelMode.car.rawValue ? .car : .bike,
+            offRouteMeters: plan.replanOffRouteMeters, profile: plan.bikeProfile,
+            avoidCobbles: plan.avoidCobbles, via: plan.via, knownSignals: plan.signals))
         routeLengths = TurnGuide.cumulative(route)
         routeIndex = 0
         turns = TurnGuide.steps(on: route)
         nextTurn = nil
-        detour = nil
-        replans = 0
-        offSince = nil
-        lastReplan = .distantPast
-        replanTask?.cancel()
-        replanTask = nil
         signals = plan.signals
         plannedSignals = plan.plannedSignals
         signalsBehind = 0
@@ -208,7 +193,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         progress = Self.progress(travelled: 0, cum: routeLengths, stations: signalStations)
         switch manager.authorizationStatus {
         case .notDetermined:
-            pending = plan.subject
+            pending = plan
             // `plannedRoute` and `turns` are already set; they survive the
             // permission sheet.
             manager.requestWhenInUseAuthorization()
@@ -218,18 +203,12 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
             return
         default: break
         }
-        begin(plan.subject)
+        begin(plan)
     }
 
     /// Die Fahrt, die auf die Erlaubnis zur Ortung wartet. Der Rest des Plans
     /// ist schon übernommen und übersteht das Abfragefenster.
-    private var pending: Subject?
-    /// Womit neu geplant wird: dasselbe Profil wie die gewählte Linie.
-    private var bikeProfile: BRouterClient.Profile = .quiet
-    private var avoidCobbles = false
-    /// Die Fixpunkte, die die geplante Linie anfährt — eine Neuplanung fährt
-    /// die noch vor einem liegenden ebenfalls an.
-    private var via: [CLLocationCoordinate2D] = []
+    private var pending: RidePlan?
     /// Ab wann ein Halt, der keine Ampel ist, die Fahrt beendet; 0 schaltet
     /// es ab.
     private var autoStopSeconds: TimeInterval = 0
@@ -321,7 +300,8 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     }
     private var roadPoints: [RoadPoint] = []
 
-    private func begin(_ subject: Subject) {
+    private func begin(_ plan: RidePlan) {
+        let subject = plan.subject
         failure = nil
         finished = nil
         stoppedByItself = false
@@ -330,9 +310,9 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         if TravelMode(rawValue: subject.mode) == .bike { meter.speedLimit = RideMeter.maxBikeSpeed }
         events = []
         lastPoorFixLog = .distantPast
-        log("start", "\(subject.mode), Profil \(bikeProfile.rawValue), Pflaster meiden \(avoidCobbles ? "an" : "aus"), "
-            + "\(via.count) Fixpunkte, Route \(Int(TurnGuide.cumulative(plannedRoute).last ?? 0)) m, "
-            + "Neuplanung ab \(Int(replanOffRouteMeters)) m, App \(RideMeter.appVersion ?? "?")",
+        log("start", "\(subject.mode), Profil \(plan.bikeProfile.rawValue), Pflaster meiden \(plan.avoidCobbles ? "an" : "aus"), "
+            + "\(plan.via.count) Fixpunkte, Route \(Int(TurnGuide.cumulative(plannedRoute).last ?? 0)) m, "
+            + "Neuplanung ab \(Int(plan.replanOffRouteMeters)) m, App \(RideMeter.appVersion ?? "?")",
             at: plannedRoute.first)
         meter.signals = signals
         meter.roadPoints = roadPoints
@@ -606,7 +586,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
             // Meter daneben — und jede davon war „neben der Route" und eine
             // Neuplanung von einem Ort, an dem niemand war (Fahrt 30.09.2026).
             if last.accuracy >= 0, last.accuracy <= RideMeter.maxAccuracy {
-                updateDetour(at: last.coordinate)
+                replanner.update(at: last.coordinate, course: course)
             }
         }
         // The receiver only reports a course while it is sure of one. Standing
@@ -659,177 +639,25 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         store.saveInterrupted(result(subject, end: now))
     }
 
-    // MARK: Neben der Route
+    // MARK: Ampeln und Fortschritt
 
-    /// Einmal je Ortung, also einmal die Sekunde. Zugewiesen wird nur, was sich
-    /// unterscheidet: `@Observable` fragt nicht nach, und ein `detour = nil`
-    /// auf ein bereits leeres `detour` wäre eine gemeldete Änderung pro
-    /// Sekunde — und damit ein Neuaufbau des ganzen Fahrtbildschirms samt
-    /// Karte, die ganze Fahrt lang.
-    private func updateDetour(at here: CLLocationCoordinate2D) {
-        guard !plannedRoute.isEmpty, let fix = OffRoute.nearest(to: here, on: plannedRoute) else {
-            if detour != nil { detour = nil }
-            return
-        }
-        let next = OffRoute.isOff(fix.meters, was: detour != nil) ? fix : nil
-        if (detour == nil) != (next == nil) {
-            log(next == nil ? "zurück" : "abseits", next.map { "\(Int($0.meters)) m neben der Route" }, at: here)
-        }
-        if detour != next { detour = next }
-        guard let next else {
-            if offSince != nil { offSince = nil }
-            return
-        }
-        let since = offSince ?? .now
-        if offSince == nil { offSince = since }
-        guard OffRoute.shouldReplan(meters: next.meters,
-                                    offFor: Date.now.timeIntervalSince(since),
-                                    afterMeters: replanOffRouteMeters,
-                                    afterMinutes: OffRoute.replanMinutes) else { return }
-        replan(from: here)
-    }
-
-    /// Über einem Kilometer daneben ist die geplante Linie keine Hilfe mehr,
-    /// sondern ein Pfeil auf eine Straße, die man nicht mehr erreicht. Dann
-    /// wird der Weg zum Ziel **von hier aus** neu berechnet.
-    ///
-    /// Das ist die einzige Ausnahme von der Regel, dass die Führung beim Start
-    /// der Fahrt einfriert. Die Regel gibt es, damit eine beiläufige
-    /// Neuplanung nicht nachträglich umdeutet, was schon gemessen wurde — und
-    /// genau das passiert hier nicht: gemessen bleibt, was gemessen wurde, neu
-    /// ist nur der Weg nach vorn. Die Ampeln des neuen Wegs kommen aus dem
-    /// OpenStreetMap-Ausschnitt und dem Gelernten; die schon passierten
-    /// zählen weiter mit (`signalsBehind`).
-    private func replan(from here: CLLocationCoordinate2D) {
-        guard replanTask == nil, Date.now.timeIntervalSince(lastReplan) >= OffRoute.replanEvery,
-              let destination = plannedRoute.last else { return }
-        lastReplan = .now
-        let mode: StreetMode = subject?.mode == TravelMode.car.rawValue ? .car : .bike
-        let router = router
-        // **Nicht von hier, sondern von gleich.** Ein Router kennt nur einen
-        // Punkt, keine Fahrtrichtung — und schickt einen auf der Autobahn
-        // dorthin zurück, wo man hergekommen ist, weil das die kürzeste
-        // Verbindung zum Ziel ist. Ein Startpunkt ein Stück **voraus** sagt
-        // ihm, wohin man zeigt: dort ist die Ausfahrt, die man gleich nimmt,
-        // und die Wende kommt nicht mehr in Frage.
-        let from = course >= 0 ? Geo.ahead(here, course: course, meters: Self.replanLookahead) : here
-        // Das Rad darf wenden — ein Weg, der zurückführt, ist dort eine
-        // Auskunft. Nur fürs Auto gilt die Wende als Witz.
-        let heading = mode == .car ? course : -1
-        let known = signals
-        let (profile, cobbles) = (bikeProfile, avoidCobbles)
-        let ahead = WaypointRouting.ahead(via, from: here, to: destination)
-        log("neuplanung", "\(Int(detour?.meters ?? 0)) m daneben, Kurs \(Int(course))°, \(ahead.count) Fixpunkte voraus", at: here)
-        replanTask = Task { [weak self] in
-            // Eine Anfrage, die nie zurückkommt, darf nicht jede weitere
-            // Neuplanung sperren: `replanTask` bliebe sonst für immer besetzt.
-            var route: StreetRoute?
-            var failure: String?
-            do {
-                route = try await Self.withTimeout(Self.replanTimeout) {
-                    mode == .bike
-                        ? try await router.bikeRoute(from: from, to: destination, via: ahead,
-                                                    profile: profile, avoidCobbles: cobbles)
-                        : try await router.route(from: from, to: destination, mode: mode, departure: .now)
-                }
-            } catch {
-                failure = error is TimedOut ? "keine Antwort nach \(Int(Self.replanTimeout)) s" : "\(error)"
-            }
-            // Die Ampeln des **neuen** Wegs: aus demselben OpenStreetMap-
-            // Ausschnitt, mit dem geplant wurde (meist schon im Speicher),
-            // dazu alles Gelernte. Ohne Netz bleibt es beim Gelernten und bei
-            // den Ampeln der alten Route, die auch auf der neuen liegen.
-            var lights: [CLLocationCoordinate2D] = known
-            if let line = route?.coordinates, line.count > 1,
-               let data = try? await RoadDataStore.shared.data(covering: line) {
-                lights += RouteAnalyzer.analyze(line, roads: data).signalPoints
-            }
-            await MainActor.run {
-                if let failure { self?.log("fehlgeschlagen", failure) }
-                self?.adopt(route, heading: heading, lights: lights)
-            }
-        }
-    }
-
-    /// Länger wartet eine Neuplanung nicht auf ihre Antwort.
-    static let replanTimeout: TimeInterval = 30
-
-    struct TimedOut: Error {}
-
-    nonisolated static func withTimeout<T: Sendable>(_ seconds: TimeInterval,
-                                                     _ work: @escaping @Sendable () async throws -> T) async throws -> T {
-        try await withThrowingTaskGroup(of: T.self) { group in
-            group.addTask { try await work() }
-            group.addTask {
-                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-                throw TimedOut()
-            }
-            defer { group.cancelAll() }
-            return try await group.next()!
-        }
-    }
-
-    /// So weit voraus wird die Neuplanung angesetzt. Zwei Sekunden bei
-    /// Autobahntempo, zwanzig auf dem Rad — weit genug, dass keine Ausfahrt
-    /// zurückliegt, nah genug, dass nichts übersprungen wird.
-    static let replanLookahead = 60.0
-
-    private func adopt(_ route: StreetRoute?, heading: CLLocationDirection = -1,
-                       lights: [CLLocationCoordinate2D]? = nil) {
-        replanTask = nil
-        guard isRecording, let route, route.coordinates.count > 1 else { return }
-        // Führt der neue Weg als Erstes dorthin zurück, wo man herkommt, ist
-        // er eine Wende — auf einer Autobahn ist das keine Auskunft, sondern
-        // ein Witz. Dann lieber den alten Weg stehen lassen und es in einer
-        // Minute noch einmal versuchen.
-        if heading >= 0, Self.turnsBack(route.coordinates, heading: heading) {
-            log("verworfen", "führt zurück")
-            return
-        }
-        log("übernommen", "\(Int(TurnGuide.cumulative(route.coordinates).last ?? 0)) m bis zum Ziel")
+    /// Eine Neuplanung ist übernommen: Abbiegungen, Ampeln und Beläge gelten
+    /// ab hier gegen den neuen Weg.
+    private func follow(_ route: StreetRoute, lights: [CLLocationCoordinate2D]) {
         signalsBehind = progress?.signalsPassed ?? signalsBehind
-        pastRoutes.append(plannedRoute)
-        plannedRoute = route.coordinates
         routeLengths = TurnGuide.cumulative(route.coordinates)
         routeIndex = 0
         turns = TurnGuide.steps(on: route.coordinates)
         // Die Ampeln der alten Route liegen auf der neuen woanders — oder gar
         // nicht mehr. Gezählt wird ab hier gegen den neuen Weg; was schon
         // gemessen wurde, bleibt gemessen.
-        signalStations = Self.stations(of: lights ?? plannedSignals, on: route.coordinates, cum: routeLengths)
+        signalStations = Self.stations(of: lights, on: route.coordinates, cum: routeLengths)
         progress = Self.progress(travelled: 0, cum: routeLengths, stations: signalStations, behind: signalsBehind)
         nextTurn = nil
-        if detour != nil { detour = nil }
-        offSince = nil
-        replans += 1
         // Die Beläge des neuen Wegs kommen hinten dran. Zugeordnet wird nach
         // Nähe mit einem mitlaufenden Index — was schon zugeordnet ist, bleibt.
         meter.addRoadPoints(route.roadPoints)
     }
-
-    /// Ob eine frisch geplante Linie als Erstes zurückweist. Gemessen über
-    /// die ersten `backCheckMeters`: ein Bogen um einen Kreisverkehr zählt
-    /// nicht, eine Wende schon.
-    nonisolated static func turnsBack(_ route: [CLLocationCoordinate2D],
-                                      heading: CLLocationDirection) -> Bool {
-        guard let first = route.first else { return false }
-        var ahead = route.last!
-        var run = 0.0
-        for (a, b) in zip(route, route.dropFirst()) {
-            run += a.distance(to: b)
-            if run >= backCheckMeters { ahead = b; break }
-        }
-        guard let bearing = courseFromTrack([RidePoint(lat: first.latitude, lon: first.longitude,
-                                                       t: .distantPast, v: 0),
-                                             RidePoint(lat: ahead.latitude, lon: ahead.longitude,
-                                                       t: .distantPast, v: 0)]) else { return false }
-        let diff = abs((bearing - heading + 540).truncatingRemainder(dividingBy: 360) - 180)
-        return diff > 120
-    }
-
-    /// So weit wird hineingesehen, um „geht zurück" von „macht einen Bogen"
-    /// zu unterscheiden.
-    static let backCheckMeters = 150.0
 
     /// Wo auf der Route jede Ampel liegt, in Metern vom Anfang — nur die, die
     /// überhaupt auf ihr liegen. `RouteAnalyzer` hat sie schon einmal der
@@ -922,7 +750,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
 
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         Task { @MainActor in
-            guard let subject = self.pending else { return }
+            guard let plan = self.pending else { return }
             switch manager.authorizationStatus {
             case .notDetermined: return
             case .denied, .restricted:
@@ -930,7 +758,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                 self.failure = L("Ortung ist für RadPendler nicht erlaubt — in den iOS-Einstellungen freigeben.")
             default:
                 self.pending = nil
-                self.begin(subject)
+                self.begin(plan)
             }
         }
     }
