@@ -692,16 +692,56 @@ struct PlanSettings: Equatable {
         }
     }
 
-    /// Riding time plus the expected wait at the route's traffic lights.
+    // MARK: Das Zeitmodell fürs Rad
+
+    /// Was ein Höhenmeter an Zeit kostet.
     ///
-    /// Die Gegenprobe aus den eigenen Fahrten gilt auch hier — aber nur in
-    /// **eine** Richtung. Das sind die Zubringer zum Bahnhof: rechnet die App
-    /// sie schneller, als dieser Fahrer wirklich fährt, steht er auf dem
-    /// Bahnsteig und sieht die Rücklichter. Umgekehrt kostet ein zu
-    /// vorsichtiger Zubringer nur ein paar Minuten früher losgehen.
+    /// Fünf Sekunden je Meter sind 720 Höhenmeter in der Stunde — das Tempo
+    /// von jemandem, der in der Ebene 29 km/h rollt. Bergab wird nichts
+    /// gutgeschrieben: man holt die Zeit, die ein Anstieg kostet, auf der
+    /// anderen Seite nicht wieder herein, und eine Strecke mit hundert Metern
+    /// hoch und hundert wieder runter ist anstrengender als eine flache, auch
+    /// wenn sie am Ende gleich lang ist.
+    static let climbSecondsPerMeter = 5.0
+
+    /// Die reine Rechnung: Strecke im Rolltempo, Wartezeit an den Ampeln,
+    /// Höhenmeter. Sie allein unterscheidet zwei Linien gleicher Länge und
+    /// entscheidet deshalb, welche die schnellste ist.
+    ///
+    /// Bis 1.9.1 stand sie dreimal da — für die ganze Radroute mit
+    /// Höhenmetern, für die Zubringer ohne, und die von Transitous fuhren mit
+    /// dessen eigener Schätzung. Jetzt rechnet alles, was geplant wird, hier.
+    func computedRideTime(meters: Double, signals: Int, learned: [LearnedSignal] = [],
+                          ascent: Double? = nil) -> TimeInterval {
+        bikeTime(meters) + signalWait(signals: signals, learned: learned)
+            + (ascent ?? 0) * Self.climbSecondsPerMeter
+    }
+
+    /// Wann der gemessene Schnitt die Rechnung ersetzt.
+    enum MeasuredRule {
+        /// In beide Richtungen — die ganze Radroute, siehe `realistic`.
+        case wins
+        /// Nur, wenn er langsamer ist. Das sind die Zubringer zum Bahnhof:
+        /// rechnet die App sie schneller, als dieser Fahrer wirklich fährt,
+        /// steht er auf dem Bahnsteig und sieht die Rücklichter. Umgekehrt
+        /// kostet ein zu vorsichtiger Zubringer nur ein paar Minuten früher
+        /// losgehen.
+        case slowerOnly
+    }
+
+    /// Die Fahrzeit, mit der geplant und die angezeigt wird: die Rechnung,
+    /// gegengeprüft am eigenen gemessenen Schnitt.
+    func rideTime(meters: Double, signals: Int, learned: [LearnedSignal] = [], ascent: Double? = nil,
+                  measured rule: MeasuredRule) -> TimeInterval {
+        let computed = computedRideTime(meters: meters, signals: signals, learned: learned, ascent: ascent)
+        let measured = realistic(computed, meters: meters)
+        return rule == .wins ? measured : Swift.max(computed, measured)
+    }
+
+    /// Ein Zubringer zum oder vom Bahnhof.
     func rideTime(_ r: StreetRoute) -> TimeInterval {
-        let computed = bikeTime(r.distance) + signalWait(signals: r.signals, learned: r.learnedSignals)
-        return Swift.max(computed, realistic(computed, meters: r.distance))
+        rideTime(meters: r.distance, signals: r.signals, learned: r.learnedSignals, ascent: r.ascent,
+                 measured: .slowerOnly)
     }
 
     /// Was die Ampeln einer Route an Zeit kosten.

@@ -179,6 +179,7 @@ T.update({
 "Fahrzeit laut Apple Karten mit Verkehrslage": "Travel time from Apple Maps, traffic included",
 "Linienführung und Fahrzeit von Apple Karten, Ampeln aus OpenStreetMap": "Route and time from Apple Maps, traffic lights from OpenStreetMap",
 "Fahrten von Transitous; Radzeiten nach deren Schätzung": "Trips from Transitous; bike times are their estimate",
+"Fahrten von Transitous": "Trips from Transitous",
 "Strecke zu lang für die Ampelzählung (OpenStreetMap)": "Route too long to count traffic lights (OpenStreetMap)",
 "Ampeln und Hauptstraßen auf dieser Länge nicht gezählt": "Traffic lights and main roads not counted over this distance",
 "Ampeln und Hauptstraßen unbekannt — OpenStreetMap antwortete nicht, wird im Hintergrund nachgeholt":

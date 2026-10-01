@@ -1794,6 +1794,17 @@
         }
       }
     },
+    "Fahrten von Transitous": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trips from Transitous"
+          }
+        }
+      }
+    },
     "Fahrten von Transitous; Radzeiten nach deren Schätzung": {
       "extractionState": "manual",
       "localizations": {

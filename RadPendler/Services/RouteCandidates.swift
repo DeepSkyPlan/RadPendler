@@ -156,18 +156,6 @@ struct BikeCandidate {
     /// (`RiddenPaths`), 0…1.
     var familiar: Double = 0
 
-    /// Was ein Höhenmeter an Zeit kostet.
-    ///
-    /// Fünf Sekunden je Meter sind 720 Höhenmeter in der Stunde — das Tempo
-    /// von jemandem, der in der Ebene 29 km/h rollt. Bergab wird nichts
-    /// gutgeschrieben: man holt die Zeit, die ein Anstieg kostet, auf der
-    /// anderen Seite nicht wieder herein, und eine Strecke mit hundert Metern
-    /// hoch und hundert wieder runter ist anstrengender als eine flache, auch
-    /// wenn sie am Ende gleich lang ist.
-    static let climbSecondsPerMeter = 5.0
-
-    var climbTime: TimeInterval { (ascent ?? 0) * Self.climbSecondsPerMeter }
-
     /// Apple Karten liefert keine Höhen. Eine Linie, deren Anstieg niemand
     /// kennt, darf dadurch weder gewinnen noch verlieren — sie bekommt für
     /// die Bewertung den Durchschnitt der bekannten. Angezeigt wird trotzdem
@@ -183,14 +171,18 @@ struct BikeCandidate {
     /// what the climbing costs — und darunter nie schneller, als dieser Fahrer
     /// laut seinen eigenen Fahrten wirklich ist.
     func time(_ s: PlanSettings) -> TimeInterval {
-        s.realistic(computedTime(s), meters: route.distance)
+        s.rideTime(meters: route.distance, signals: signals, learned: learned, ascent: ascent, measured: .wins)
     }
 
     /// Die reine Rechnung, ohne die Gegenprobe. Getrennt, damit sich zeigen
     /// lässt, welche der beiden Zahlen gewonnen hat.
     func computedTime(_ s: PlanSettings) -> TimeInterval {
-        s.bikeTime(route.distance) + signalWait(s) + climbTime
+        s.computedRideTime(meters: route.distance, signals: signals, learned: learned, ascent: ascent)
     }
+
+    /// Ampeln dieser Linie: aus OpenStreetMap, wo analysiert, sonst vom Router.
+    private var signals: Int { stats?.signals ?? route.signals }
+    private var learned: [LearnedSignal] { stats?.learnedSignals ?? route.learnedSignals }
 
     /// Ob die Zeit aus der Messung kommt und nicht aus der Rechnung — dann
     /// steht das auch auf der Detailseite, sonst ist es eine Zahl ohne
@@ -202,8 +194,7 @@ struct BikeCandidate {
 
     /// Was die Ampeln dieser Linie kosten — gemessen, wo gemessen wurde.
     func signalWait(_ s: PlanSettings) -> TimeInterval {
-        s.signalWait(signals: stats?.signals ?? route.signals,
-                     learned: stats?.learnedSignals ?? route.learnedSignals)
+        s.signalWait(signals: signals, learned: learned)
     }
 
     /// So viel länger — in Metern wie in gerechneter Zeit — darf „optimal"
