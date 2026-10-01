@@ -244,13 +244,6 @@ struct ModeSettingsView: View {
                     } label: {
                         LabeledContent(L("Radrouten"), value: settings.bikeVariantOrder.first?.title ?? "")
                     }
-                    NavigationLink {
-                        PriorityList(title: L("Autorouten"), items: $settings.carVariantOrder,
-                                     footer: L("Dasselbe fürs Auto. Apple Karten liefert meist zwei oder drei Linien; welche davon oben steht, entscheidet diese Liste."),
-                                     label: \.title, symbol: { _ in nil })
-                    } label: {
-                        LabeledContent(L("Autorouten"), value: settings.carVariantOrder.first?.title ?? "")
-                    }
                     Picker(L("Rad in die Bahn ab"), selection: $settings.rainSwitchLevel) {
                         ForEach([RainLevel.possible, .light, .rain, .heavy], id: \.self) { level in
                             Text(level.label).tag(level)
@@ -664,9 +657,6 @@ struct WaypointRows: View {
             AddressSearchView(title: L("Fixpunkt")) { settings.waypoints.append($0) }
         } label: {
             Label(L("Fixpunkt hinzufügen"), systemImage: "plus.circle")
-        }
-        if settings.waypoints.count > 1 {
-            Toggle(L("Alle Fixpunkte verlangen"), isOn: $settings.requireAllWaypoints)
         }
     }
 }

@@ -203,11 +203,11 @@ final class BikeRouteTests: XCTestCase {
         let town = carLine(21_000, minutes: 35, signals: 41)       // short, slow, many lights
         let middle = carLine(24_000, minutes: 31, signals: 5)      // fewest lights
         let picked = CarCandidate.pick([town, motorway, middle])
-        // "optimal" ships first, so the line that wins it leads the list.
-        XCTAssertEqual(picked.map(\.1), [[.balanced, .fastest], [.shortest], [.fewSignals]])
+        // Feste Reihenfolge seit 1.10: optimal › schnellst › wenig Ampeln › kürzest.
+        XCTAssertEqual(picked.map(\.1), [[.balanced, .fastest], [.fewSignals], [.shortest]])
         XCTAssertEqual(picked[0].0.route.distance, 30_000, "the fastest comes first — it is the default")
-        XCTAssertEqual(picked[1].0.route.distance, 21_000)
-        XCTAssertEqual(picked[2].0.signals, 5)
+        XCTAssertEqual(picked[1].0.signals, 5)
+        XCTAssertEqual(picked[2].0.route.distance, 21_000)
     }
 
     func testOneCarLineIsJustTheFastest() {

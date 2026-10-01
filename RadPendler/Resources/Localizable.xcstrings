@@ -507,17 +507,6 @@
         }
       }
     },
-    "Alle Fixpunkte verlangen": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Require every fixed point"
-          }
-        }
-      }
-    },
     "Alle Zeiten ohne Gewähr.": {
       "extractionState": "manual",
       "localizations": {
@@ -826,17 +815,6 @@
         }
       }
     },
-    "Autorouten": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Car routes"
-          }
-        }
-      }
-    },
     "BRouter: unerwartete Antwort": {
       "extractionState": "manual",
       "localizations": {
@@ -998,17 +976,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "That plans everything again — the warnings are set to the new timetable as well. If the search finds nothing, the old warnings stay armed."
-          }
-        }
-      }
-    },
-    "Dasselbe fürs Auto. Apple Karten liefert meist zwei oder drei Linien; welche davon oben steht, entscheidet diese Liste.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The same for the car. Apple Maps usually offers two or three routes; this list decides which one comes first."
           }
         }
       }

@@ -40,7 +40,7 @@ extension TripPlanner {
         // gemessen und gilt für es nicht.
         let parking = moto ? 0 : TimeInterval(req.settings.parkingMinutes * 60)
         let carKmh = moto ? nil : req.settings.carOverallKmh
-        return CarCandidate.pick(candidates, settings: req.settings, order: req.settings.carVariantOrder).enumerated().map { index, entry in
+        return CarCandidate.pick(candidates, settings: req.settings, order: CarVariant.defaultOrder).enumerated().map { index, entry in
             let (c, variants) = entry
             // Nie schneller, als dieser Fahrer laut seinen Autofahrten
             // Tür zu Tür ist — Parkplatzsuche eingeschlossen.

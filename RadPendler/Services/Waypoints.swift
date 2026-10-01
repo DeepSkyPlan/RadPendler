@@ -6,10 +6,12 @@ import simd
 /// bakery on the way. A route passes one when any of its legs runs within
 /// `radius` of it, or when a train stops there by name.
 enum WaypointMatcher {
-    static func passes(_ option: TripOption, waypoints: [Place], requireAll: Bool, radius: Double) -> Bool {
+    /// Einer genügt. „Alle verlangen" gab es bis 1.9.2 — seit die Radroute
+    /// jeden Fixpunkt am Weg ohnehin anfährt, machte der Schalter bei Auto
+    /// (Apple kennt keine Zwischenpunkte) und Bahn nur noch alles grau.
+    static func passes(_ option: TripOption, waypoints: [Place], radius: Double) -> Bool {
         guard !waypoints.isEmpty else { return true }
-        let hits = waypoints.filter { passes(option, waypoint: $0, radius: radius) }
-        return requireAll ? hits.count == waypoints.count : !hits.isEmpty
+        return waypoints.contains { passes(option, waypoint: $0, radius: radius) }
     }
 
     static func passes(_ option: TripOption, waypoint: Place, radius: Double) -> Bool {

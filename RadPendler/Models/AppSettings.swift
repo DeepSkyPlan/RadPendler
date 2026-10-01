@@ -59,8 +59,6 @@ final class AppSettings {
                                                     origin.coordinate, destination.coordinate)
         }
     }
-    /// true: a route must touch every fixed point, false: one is enough.
-    var requireAllWaypoints: Bool = false { didSet { defaults.set(requireAllWaypoints, forKey: "requireAllWaypoints") } }
 
     /// How many minutes before the wanted arrival the trip should be there.
     var arrivalBufferMinutes: Int = 5 { didSet { defaults.set(arrivalBufferMinutes, forKey: "arrivalBufferMinutes") } }
@@ -102,9 +100,6 @@ final class AppSettings {
     /// stepped through. First = the one that gets recommended.
     var bikeVariantOrder: [BikeVariant] = BikeVariant.defaultOrder {
         didSet { defaults.set(bikeVariantOrder.map(\.rawValue), forKey: "bikeVariantOrder") }
-    }
-    var carVariantOrder: [CarVariant] = CarVariant.defaultOrder {
-        didSet { defaults.set(carVariantOrder.map(\.rawValue), forKey: "carVariantOrder") }
     }
     /// From this much rain on the bike belongs in the train rather than on the
     /// whole way. Default: leichter Regen, which is what the app always did.
@@ -274,12 +269,12 @@ final class AppSettings {
     static let storedKeys = [
         // Adressen und Orte
         "origin", "destination", "workPlace", "homePlace", "routeWaypoints", "placeHistory",
-        "requireAllWaypoints", "workArrivalMinutes",
+        "workArrivalMinutes",
         // Planung
         "prepMinutes", "bikeMovingSpeedKmh", "bikeStationBufferMinutes", "maxBikeToStationKm",
         "parkingMinutes", "motorcycle", "transferPenaltyMinutes", "signalWaitSeconds", "departurePresets2",
         "arrivalBufferMinutes", "optionsPerMode",
-        "modeOrder", "bikeVariantOrder", "carVariantOrder", "rainSwitchLevel",
+        "modeOrder", "bikeVariantOrder", "rainSwitchLevel",
         "bikeLines",
         // Countdown
         "alertMinutes", "alertsOn",
@@ -299,7 +294,9 @@ final class AppSettings {
     /// werden beim Laden gelöscht, damit sie weder herumliegen noch über
     /// iCloud zurückkommen — `CloudStore` trägt nur `storedKeys`.
     static let retiredKeys = ["departureBufferMinutes", "timetableSource",
-                              "signalStopSeconds", "replanOffRouteMinutes"]
+                              "signalStopSeconds", "replanOffRouteMinutes",
+                              // 1.10: ein Fixpunkt reicht; Autorouten in fester Reihenfolge.
+                              "requireAllWaypoints", "carVariantOrder"]
 
     private let defaults: UserDefaults
 
@@ -368,7 +365,6 @@ final class AppSettings {
             if !old.isEmpty, waypoints.isEmpty { waypoints = old }
             defaults.removeObject(forKey: "waypoints")
         }
-        assign(\.requireAllWaypoints, defaults.object(forKey: "requireAllWaypoints") as? Bool ?? requireAllWaypoints)
         assign(\.arrivalBufferMinutes, defaults.object(forKey: "arrivalBufferMinutes") as? Int ?? arrivalBufferMinutes)
         assign(\.workArrivalMinutes, defaults.object(forKey: "workArrivalMinutes") as? Int ?? workArrivalMinutes)
         assign(\.alertMinutes, defaults.array(forKey: "alertMinutes") as? [Int] ?? alertMinutes)
@@ -381,8 +377,6 @@ final class AppSettings {
                                         fallback: TravelMode.defaultOrder))
         assign(\.bikeVariantOrder, storedOrder(defaults.array(forKey: "bikeVariantOrder") as? [String],
                                                fallback: BikeVariant.defaultOrder))
-        assign(\.carVariantOrder, storedOrder(defaults.array(forKey: "carVariantOrder") as? [String],
-                                              fallback: CarVariant.defaultOrder))
         assign(\.rainSwitchLevel, (defaults.object(forKey: "rainSwitchLevel") as? Int)
             .flatMap(RainLevel.init(rawValue:)) ?? rainSwitchLevel)
         assign(\.learnedSignals, defaults.data(forKey: "learnedSignals")
@@ -429,7 +423,6 @@ final class AppSettings {
     func resetPriorities() {
         modeOrder = TravelMode.defaultOrder
         bikeVariantOrder = BikeVariant.defaultOrder
-        carVariantOrder = CarVariant.defaultOrder
         rainSwitchLevel = .light
     }
 
@@ -521,10 +514,10 @@ final class AppSettings {
                      bikeStationBufferMinutes: bikeStationBufferMinutes,
                      maxBikeToStationKm: maxBikeToStationKm, parkingMinutes: parkingMinutes,
                      transferPenaltyMinutes: transferPenaltyMinutes, signalWaitSeconds: signalWaitSeconds,
-                     waypoints: waypoints, requireAllWaypoints: requireAllWaypoints,
+                     waypoints: waypoints,
                      arrivalBufferMinutes: arrivalBufferMinutes,
                      modeOrder: modeOrder, bikeVariantOrder: bikeVariantOrder,
-                     carVariantOrder: carVariantOrder, optionsPerMode: optionsPerMode,
+                     optionsPerMode: optionsPerMode,
                      rainSwitchLevel: rainSwitchLevel,
                      bikeLineStatus: bikeLines.status,
                      learnedSignals: learnedSignals,
@@ -554,11 +547,9 @@ struct PlanSettings: Equatable {
     var transferPenaltyMinutes = 10
     var signalWaitSeconds = 20
     var waypoints: [Place] = []
-    var requireAllWaypoints = false
     var arrivalBufferMinutes = 5
     var modeOrder: [TravelMode] = TravelMode.defaultOrder
     var bikeVariantOrder: [BikeVariant] = BikeVariant.defaultOrder
-    var carVariantOrder: [CarVariant] = CarVariant.defaultOrder
     /// Wie viele Möglichkeiten je Verkehrsmittel gerechnet werden.
     var optionsPerMode = 3
     var rainSwitchLevel: RainLevel = .light

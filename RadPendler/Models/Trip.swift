@@ -190,7 +190,10 @@ enum CarVariant: String, CaseIterable, Comparable {
         allCases.firstIndex(of: a)! < allCases.firstIndex(of: b)!
     }
 
-    static let defaultOrder: [CarVariant] = [.balanced, .fastest, .shortest, .fewSignals, .alternative]
+    /// Fest seit 1.10: Apple liefert meist zwei, drei Linien, und auf die
+    /// verteilen sich die Namen ohnehin — fünf Rollen zu sortieren brachte
+    /// nichts. Der Sortier-Editor ist weg.
+    static let defaultOrder: [CarVariant] = [.balanced, .fastest, .fewSignals, .shortest, .alternative]
 }
 
 /// The chosen car line and what sets it apart from the others.

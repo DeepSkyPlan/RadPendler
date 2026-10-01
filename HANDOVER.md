@@ -512,9 +512,8 @@ Noch offen:
   und ein eigener `Replanner`; `ContentView.record()`/`afterRide()` ins Modell.
   (Erledigt am 01.10.: `RideRemaining.from` rechnet ohne Plan mit `PlanSettings.rideTime`,
   das Standardprofil der Neuplanung ist `.quiet`.)
-- **„Alle Fixpunkte verlangen"** wirkt seit 1.9 nur noch auf Bahn und Auto — prüfen, ob es
-  bleiben soll. Dazu die Auto-Routen-Reihenfolge mit fünf Rollen bei meist zwei, drei
-  Apple-Linien.
+- ~~„Alle Fixpunkte verlangen“ und Auto-Reihenfolge~~ — erledigt 01.10.2026: ein Fixpunkt
+  genügt, Autorouten fest optimal › schnellst › wenig Ampeln › kürzest.
 
 - **Ampeln abseits der Planung werden nicht gezählt.** Die Aufzeichnung kennt nur die
   Ampeln der geplanten (und neu geplanten) Linie plus die gelernten. Wer die ganze Fahrt
