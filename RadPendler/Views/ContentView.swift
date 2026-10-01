@@ -477,7 +477,7 @@ struct ContentView: View {
     /// one to get going, and which minutes are armed.
     private var alarmKey: String {
         let option = model.activeCountdown
-        return [option?.id.uuidString ?? "-",
+        return [option?.id ?? "-",
                 String(Int(option?.getReady.timeIntervalSince1970 ?? 0)),
                 settings.alertsOn ? settings.alertMinutes.map(String.init).joined(separator: ",") : "off"]
             .joined(separator: "|")

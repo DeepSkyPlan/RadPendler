@@ -107,7 +107,7 @@ extension TripSnapshot {
             let countsDown = TripRules.countsDown(option, arrivalSearch: arrivalSearch)
             // Short walks between two trains are the change, not a leg.
             let legs = option.legs.filter { $0.kind != .walk || ($0.length ?? 0) >= 150 }
-            return Option(id: option.id.uuidString,
+            return Option(id: option.id,
                           mode: option.mode.rawValue,
                           modeRank: order.firstIndex(of: option.mode) ?? 9,
                           modeTitle: option.mode.title,
@@ -127,7 +127,7 @@ extension TripSnapshot {
                                   meters: $0.length, colorHex: $0.kind.uiColor.hexString)
                           })
         }
-        self.countdownID = countdownID?.uuidString
+        self.countdownID = countdownID
         // Die Uhr spricht, was das Telefon spricht — die Texte, die sie zeigt,
         // hat ohnehin das Telefon geschrieben.
         self.language = AppLanguage.current.rawValue

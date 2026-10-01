@@ -76,10 +76,12 @@ struct TripSnapshot: Codable, Equatable {
 }
 
 
-/// What the wrist picked, on its way back to the phone. Mode plus position,
-/// not an id: every replan brings new ids, and "the second bike route"
-/// survives a replan where an id does not.
+/// What the wrist picked, on its way back to the phone: the option's id —
+/// stable across replans since `TripOption.id` is derived from the trip —
+/// and, for a phone that cannot find it, mode plus position as before.
 struct WatchChoice: Codable, Equatable {
     var mode: String
     var index: Int
+    /// Fehlt bei Uhren mit einer Fassung vor den stabilen Kennungen.
+    var id: String? = nil
 }

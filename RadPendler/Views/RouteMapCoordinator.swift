@@ -86,15 +86,15 @@ extension RouteMapView {
             }
             // New plan → redraw and fit; new selection only → redraw.
             //
-            // Die Kennung ist die **Geometrie**, nicht die Liste der Ids: eine
-            // Planung meldet vier Zwischenstände, und in jedem sind dieselben
-            // Linien mit neuen Ids. Vorher passte sich die Karte deshalb
-            // viermal je Planung neu ein, mitten ins Hinsehen hinein.
-            let plan = view.options.map { o in
-                o.legs.first.map { "\(Int($0.departure.timeIntervalSince1970))" } ?? ""
-                    + "\(Int(o.totalDistance))"
-            }.joined(separator: "|")
-            let key = plan + (view.selectedID?.uuidString ?? "")
+            // Die Kennungen sind stabil (`TripOption.id`): die vier
+            // Zwischenstände einer Planung und jede Neuplanung mit demselben
+            // Ergebnis tragen dieselben, und die Karte passt sich nicht mitten
+            // ins Hinsehen hinein neu ein. Neu gezeichnet wird trotzdem, wenn
+            // sich Abfahrt oder Dauer ändern — sie stehen an den Linien.
+            let plan = view.options.map(\.id).joined(separator: "|")
+            let times = view.options.map { "\(Int($0.leave.timeIntervalSince1970 / 60))+\(Int($0.duration / 60))" }
+                .joined(separator: "|")
+            let key = plan + times + (view.selectedID ?? "")
             if key != routeKey {
                 routeKey = key
                 drawRoutes(map, view)
