@@ -8,7 +8,13 @@
   fehlgeschlagen mit Grund —, Pausen, ungenaue Ortungen). Am Mac macht
   `tools/ride_report.py` daraus Karte und Befund. Anlass: die Fahrt vom 30.09.2026, die sich
   ohne diese Daten nicht aufklären ließ. Neue Felder sind optional; alte Linien lesen sich weiter.
-
+- **Gemessene Werte sind keine Stepper mehr.** Rolltempo, Wartezeit je Ampel und die beiden
+  Gesamtschnitte (Rad, Auto) zeigen, was gemessen ist („gemessen: 24 km/h (aus 5 Fahrten)“);
+  „Von Hand“ setzt einen eigenen Wert, und der überlebt jetzt die nächste Fahrt — bisher
+  schrieb die Messung nach jeder Fahrt darüber. Was bisher eingestellt war, gilt als gemessen.
+  Unter „Auto“ steht, wie sich Parkplatzsuche und Gesamtschnitt überschneiden.
+- **Der Doppeltipp auf die Kopfzeile wird einmal erklärt**: eine kleine Sprechblase ab dem
+  dritten Öffnen, sobald Zuhause und Arbeit gesetzt sind; wer ihn benutzt, sieht sie nicht mehr.
 - **Die Ausrichtung aus den Einstellungen bleibt.** Bisher stellte jede beendete Fahrt sie
   auf „Automatisch“ zurück; jetzt gilt nach der Fahrt wieder, was dort gewählt ist. Die
   Ausrichtung im Fahrtmodus bleibt eine eigene.

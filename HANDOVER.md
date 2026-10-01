@@ -7,7 +7,7 @@ Das Projekt ist quelloffen (MIT); Adressen und Schlüssel gehören nicht hinein.
 ## Bauen, testen, ausliefern
 
 ```bash
-./dev test      # generiert das .xcodeproj bei Bedarf, dann rund 260 Tests im Simulator
+./dev test      # generiert das .xcodeproj bei Bedarf, dann rund 270 Tests im Simulator
 #               MOTIS_LIVE=1 schaltet zusätzlich den echten Transitous-Aufruf frei
 #               (aus Xcode heraus; xcodebuild reicht die Variable nicht durch)
 ./dev open      # Xcode mit demselben DerivedData wie die Kommandozeile
@@ -89,7 +89,9 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   dreihundert Fahrten nicht dreihundert Linien in den Speicher zieht; `Ride.grouped`
   macht Jahre und Monate daraus), `Place` (mit `postalCode`/`locality`, `areaLine`, `withArea`) und `PlaceUse`
   (benutzte Adressen mit Zähler; `ranked`, `matching`, `recording` als reine Funktionen auf
-  `[PlaceUse]`), `AppSettings` (+ `PlanSettings` als Wertkopie, `DeparturePreset`), `Trip`
+  `[PlaceUse]`), `AppSettings` (+ `PlanSettings` als Wertkopie mit dem Rad-Zeitmodell; Gelerntes in
+  `AppSettings+Calibration`), `DeparturePreset`, `TimetableSource`, `OrientationLock`,
+  `RouteWaypoints`, `Trip`
   (`TripOption`, `Leg`, `TravelMode`, `BikeVariant`, `CarVariant`, `TransitProduct`).
 - `Services/` — `RideMeter` (die ganze Messlogik als **reine Struktur** ohne
   `CLLocationManager`: Strecke, Halte, Ampelzuordnung, Linie — ein Test füttert sie mit
@@ -112,10 +114,11 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   `Motis` (Transitous/MOTIS 2: `MotisClient` + `MotisParser`, inkl.
   Polylinien-Dekoder), `CloudStore` (iCloud-Schlüssel-Wert-Abgleich der Einstellungen **und** der
   Fahrt-Kennzahlen; hört auf `UserDefaults.didChangeNotification` statt auf zwanzig
-  Setter, `placeHistory` und `rides` werden zusammengeführt statt ersetzt), `WatchLink` (Plan an die Uhr), `Hafas` (VBB mgate + Parser, `StationCache`: Bahnhöfe je Punkt einen Tag), `BRouter` (+ `CompositeRouter`, `BRouterGate`, `RouteCache`), `StreetRouter`
+  Setter, `placeHistory` und `rides` werden zusammengeführt statt ersetzt), `WatchLink` (Plan an die Uhr), `Hafas` (VBB mgate + Parser, `StationCache`: Bahnhöfe je Punkt einen Tag), `BRouter` (+ `CompositeRouter`, `BRouterGate`), `RouteCache` (der eine für alle Rad- und Fußwege), `StreetRouter`
   (MapKit), `RoadData` (Overpass + `RouteAnalyzer` + `SegmentGrid`), `Rain` (Open-Meteo),
-  `RadarOverlay` (DWD-WMS-Kacheln), `Waypoints`, `TripPlanner` (+ `BikeCandidate`,
-  `BikeTransitComposer`), `Alarm`.
+  `RadarOverlay` (DWD-WMS-Kacheln), `Waypoints`, `TripPlanner` (Kern; je Modus
+  `BikePlanner`, `CarPlanner`, `BikeTransitPlanner` + `BikeTransitComposer`, dazu
+  `PlanRanking`; Rollen in `RouteCandidates` mit `RoleAssignment`), `Alarm`.
 - `App/PlanModel.swift` — Zustand: `when` (departNow / departAt / arriveAt), Auswahl je Modus,
   `countdownOption`, `applyDefaultWhen`, `publishToWatch`.
 - `Shared/` — in **beiden** Zielen: `Countdown` (Farbrampe und Text, damit Uhr und Telefon
@@ -124,7 +127,7 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   ebenso klein: nur Zahlen, klein genug für eine Nachricht je Sekunde).
 - `RadPendlerWatch/` — `WatchApp`, `WatchModel` (+ `PhoneLink`: WCSession-Empfang und
   Zwischenspeicher auf Platte), `WatchViews` (Countdown, Fahrt, Kategorien + Wege).
-- `Views/` — `ContentView` (eine Seite **ohne ScrollView**, ab regulärer Breite zweispaltig: Kopfzeile, Karte, Boxenreihe,
+- `Views/` — `ContentView` (eine Seite **ohne ScrollView**, ab regulärer Breite zweispaltig: Kopfzeile — `RouteHeader` mit `QuickCommuteTip` —, Karte, Boxenreihe,
   Fahrtzeile; alles außer der Karte hat feste Höhe, die Karte nimmt den Rest. `LastRunLine`
   in der Radarpille zeigt den Stand und ist der Knopf zum Neuberechnen), `ModeStrip`
   (+ `SelectedTripBar`), `HelpView` (Anleitung aus dem Burger-Menü),
@@ -473,36 +476,50 @@ gehört nie ins Repo.
 
 ### Aufräumen, mittlerer Aufwand (Review 01.10.2026)
 
-Was die Durchsicht vom 01.10.2026 gefunden und noch nicht erledigt hat; das Kleine ist seit
-dem Aufräumen drin (CHANGELOG „Unveröffentlicht — Aufräumen").
+Was die Durchsicht vom 01.10.2026 gefunden hat; das Kleine ist seit dem Aufräumen drin
+(CHANGELOG „Unveröffentlicht — Aufräumen"). Erledigt auf Branch `aufraeumen-mittel`:
 
-- **Ein Routen-Cache statt mehrerer**: `RouteCache` (1 h/32), `MapKitRouter.cache` (ohne
-  Ablauf und Grenze, je Instanz), dazu eigene Planer und Router in `BackgroundReplan` und
-  `RideTracker` mit eigenen Instanzen. Ein Actor mit Ablauf und Obergrenze für alle.
-  (`CompositeRouter.cache` ist schon weg.)
-- **Overpass-Cache**: `RoadDataStore.maxBoxesInMemory = 2` bei drei Abnehmern (Rad, Auto,
-  Zubringer) — sie verdrängen sich gegenseitig; `sweep` löscht womöglich zu viel (alles,
-  was der neue Kasten enthält, auch wenn dessen Schlauch es nicht deckt).
-- **Rad-Zeitmodell an einer Stelle**: `PlanSettings.rideTime`, `BikeCandidate.time` /
-  `computedTime`, der `RideRemaining`-Fallback ohne gelernte Ampeln und Höhenmeter, und
-  Transitous-Zubringer mit deren eigener Radzeit rechnen jeweils etwas anders.
-- **Rollenvergabe vereinheitlichen**: `CarCandidate.pick` gegen `BikeCandidate.pick` —
-  aufgefüllt wird nur beim Rad.
-- **Profil als Enum in `BikeRouteInfo`** statt des `source`-Strings (teils übersetzt,
-  „safety" steht für `.quiet`); `BRouterClient.Profile.of(source:)` entfällt dann.
-- **Stabile `TripOption.id`** (Modus + Variante/Linie + Abfahrt) statt UUID. Danach lassen
-  sich die Geometrie-Schlüssel-Umgehung in `RouteMapCoordinator`, der Auswahl-Reset in
-  `PlanModel` und die Uhr-Wahl per Index zurückbauen.
-- **Große Typen aufteilen**: `TripPlanner` (Bike/Car/BikeTransit/Ranking), `ContentView`
-  (`RouteHeader` & Co. in eine eigene Datei; `record()`/`afterRide()` ins Modell),
-  `RideTracker.start` mit vielen Parametern → `RidePlan` und ein eigener `Replanner`,
-  `AppSettings` → ein `Calibration`-Typ und Model-Dateien.
-- **Gemessene Werte nicht als Stepper** (Rolltempo, Ampelwartezeit, Gesamtschnitte), sondern
-  „gemessen: X" plus optionaler Override; Auto-Gesamtschnitt und Parkplatzsuche überlappen.
+- ~~Profil als Enum~~: `BikeRouteInfo.source` ist `BikeLineSource` (`.brouter(Profile)`,
+  `.apple`, `.habit`); `.profile` gibt der Neuplanung das Profil, `Profile.of(source:)` und
+  `RiddenPaths.source` sind weg.
+- ~~Rollenvergabe~~: `RoleAssignment.assign` für Rad und Auto. Das Auto hängt zusätzlich
+  Namen weiter unten an eine gezeigte Linie (`namesBeyond`); seine Alternativen kommen nach
+  `balancedScore` statt in Wörterbuch-Reihenfolge.
+- ~~Rad-Zeitmodell~~: `PlanSettings.computedRideTime` / `rideTime(meters:…measured:)`;
+  Route (`.wins`), Zubringer (`.slowerOnly`, jetzt mit Höhenmetern) und die Radstücke von
+  Transitous (`TripPlanner.retimed`, nur mit Straßendaten, sonst MOTIS' Zeit).
+- ~~Ein Routen-Cache~~: `RouteCache` (eigene Datei, 1 h, 64) auch für Apples Rad- und Fußwege;
+  damit teilen Bildschirm, `BackgroundReplan` und der Router in `RideTracker` denselben.
+- ~~Overpass-Cache~~: drei Schläuche im Speicher; `RoadDataStore.superseded` löscht nur,
+  was der neue **Schlauch** deckt.
+- ~~Stabile `TripOption.id`~~: Rad/Auto aus Rollen + Länge + Mittelpunkt (ohne Abfahrt),
+  Bahn aus Linie + Bahnhof + planmäßiger Abfahrtsminute. Auswahl bleibt über Neuplanungen,
+  die Karte erkennt Linien an der Kennung, `WatchChoice` trägt die Kennung (Index nur noch
+  für ältere Uhren). Auch der ausgeschaltete Countdown bleibt jetzt aus, solange es derselbe
+  Zug ist.
+- ~~Große Typen aufteilen~~ (soweit erlaubt): `BikePlanner`, `CarPlanner`,
+  `BikeTransitPlanner` (+ `BikeTransitComposer`), `PlanRanking`; `Views/RouteHeader.swift`;
+  `AppSettings+Calibration`, `DeparturePreset`, `TimetableSource`, `OrientationLock`,
+  `RouteWaypoints` je eigene Datei.
+- ~~Gemessene Werte als Stepper~~: `calibrated…` (Messung, alte Schlüssel) plus
+  `…Override` (von Hand); `bikeSpeedKmh`, `signalWaitSeconds`, `bikeOverallKmh`,
+  `carOverallKmh` sind jetzt nur lesbar und liefern Override ?? Messung.
+- ~~Doppeltipp-Hinweis~~: `QuickCommuteTip` (TipKit), einmal, ab dem dritten Öffnen.
+
+Noch offen:
+
+- **In den Dateien, die beim Aufräumen nicht angefasst werden durften:**
+  `RideRemaining.from` (in `RideTrackingView.swift`) rechnet ohne Plan weiter selbst
+  (Rolltempo + Ampeln oder Gesamtschnitt) — es sollte `settings.snapshot.rideTime(meters:
+  left, signals: p.signalsLeft, measured: .wins)` nehmen; dann zählen auch gelernte Ampeln.
+  Es liest bereits die wirksamen Werte (von Hand vor gemessen). `RideTracker` hat seinen
+  eigenen `CompositeRouter` — harmlos, der Cache ist geteilt —, sein Standardprofil ist noch
+  `.safety` (BRouters, nicht das eigene „wenig Autos"), und `start` mit vielen Parametern
+  → `RidePlan` und ein eigener `Replanner` steht aus. `ContentView.record()`/`afterRide()`
+  ins Modell steht ebenfalls noch aus.
 - **„Alle Fixpunkte verlangen"** wirkt seit 1.9 nur noch auf Bahn und Auto — prüfen, ob es
   bleiben soll. Dazu die Auto-Routen-Reihenfolge mit fünf Rollen bei meist zwei, drei
   Apple-Linien.
-- **Doppeltipp auf der Kopfzeile** ist unsichtbar — einen Hinweis erwägen.
 
 - **Ampeln abseits der Planung werden nicht gezählt.** Die Aufzeichnung kennt nur die
   Ampeln der geplanten (und neu geplanten) Linie plus die gelernten. Wer die ganze Fahrt
