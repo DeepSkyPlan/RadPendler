@@ -1,4 +1,5 @@
 import SwiftUI
+import TipKit
 
 @main
 struct RadPendlerApp: App {
@@ -13,6 +14,8 @@ struct RadPendlerApp: App {
         // Up before the first plan lands, so the first search already reaches
         // the watch instead of waiting for the second.
         WatchLink.shared.start()
+        // Der eine Hinweis auf den Doppeltipp (`QuickCommuteTip`).
+        try? Tips.configure()
     }
 
     var body: some Scene {
@@ -50,6 +53,8 @@ struct RadPendlerApp: App {
                     await rides.learnHabitsIfNeeded()
                     // Whatever the user last chose, from this device or another.
                     settings.orientation.apply()
+                    QuickCommuteTip.hasCommute = settings.homePlace != nil && settings.workPlace != nil
+                    await QuickCommuteTip.opened.donate()
                 }
                 // Beim Schließen anmelden: ab hier kann die App nicht mehr
                 // selbst nachplanen, und genau dafür ist die Aufgabe da. Eine

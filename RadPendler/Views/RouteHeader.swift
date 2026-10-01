@@ -1,4 +1,5 @@
 import SwiftUI
+import TipKit
 
 // Die Kopfzeile des Hauptbildschirms: Start, Ziel, Abfahrt oder Ankunft und
 // die Zeitwahl — lag bis 1.9.1 mit in ContentView.swift.
@@ -57,6 +58,7 @@ struct RouteHeader: View {
         // does not matter where exactly it lands.
         .contentShape(Rectangle())
         .onTapGesture(count: 2, perform: onQuickCommute)
+        .popoverTip(QuickCommuteTip(), arrowEdge: .top)
         .padding(.horizontal, Theme.gutter)
     }
 

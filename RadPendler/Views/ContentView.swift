@@ -1,4 +1,5 @@
 import SwiftUI
+import TipKit
 
 /// One screen, and it fits without scrolling: where from and to, when, the map,
 /// the four modes as a strip of boxes and the chosen route in two lines
@@ -309,6 +310,7 @@ struct ContentView: View {
     /// The location is fetched the same way „Mein Standort" fetches it: once,
     /// on this tap, and forgotten again.
     private func quickCommute() {
+        QuickCommuteTip().invalidate(reason: .actionPerformed)
         model.cancel()
         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
         Task {

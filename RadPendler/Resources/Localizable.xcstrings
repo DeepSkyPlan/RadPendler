@@ -1464,6 +1464,17 @@
         }
       }
     },
+    "Doppeltipp: Pendelstrecke": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Double tap: your commute"
+          }
+        }
+      }
+    },
     "Du": {
       "extractionState": "manual",
       "localizations": {
@@ -4122,6 +4133,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Two different speeds, and they do different things. The rolling speed is your speed while riding, without stops: from it, plus the waiting time per signalised junction and the metres of climb, the app works out every route — so it decides which route is the fastest. The overall average is the measurement of your own rides, door to door, with every light and stop in it — it decides how long it takes. If the calculation were faster than your measured overall average, the average wins; for the legs to the station too, but there only when it is the more cautious number. The app measures rolling speed, waiting time per light and overall average itself after every recorded ride, from the median of the recent ones, as soon as there are enough. “By hand” sets your own value against it: it holds until you switch it off, and the measurement carries on alongside. The waiting time per light is an average (roughly every second one is green) and is added per signalised junction — except at the junctions your own rides already know: those cost what was measured there. The buffer applies per station for pushing the bike, the lift and the platform. Bike + rail only takes trains the VBB service says carry bikes."
+          }
+        }
+      }
+    },
+    "Zweimal auf diese Box tippen setzt deinen Standort als Start und Zuhause oder Arbeit als Ziel.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap this box twice to set your location as the start and home or work as the destination."
           }
         }
       }
