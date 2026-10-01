@@ -421,10 +421,10 @@ extension RouteMapView {
             guard let trip = selected ?? view.options.first, let first = trip.legs.first, let last = trip.legs.last else { return }
             var pins: [Pin] = []
             let start = Pin(); start.coordinate = first.coordinates.first ?? CLLocationCoordinate2D()
-            start.title = first.fromName; start.tint = .systemGreen; start.glyph = "figure.stand"
+            start.title = first.fromName; start.tint = .systemGreen; start.glyph = "figure.stand"; start.essential = true
             pins.append(start)
             let end = Pin(); end.coordinate = last.coordinates.last ?? CLLocationCoordinate2D()
-            end.title = last.toName; end.tint = .systemRed; end.glyph = "flag.checkered"
+            end.title = last.toName; end.tint = .systemRed; end.glyph = "flag.checkered"; end.essential = true
             pins.append(end)
             for leg in trip.legs where leg.isTransit {
                 let p = Pin(); p.coordinate = leg.coordinates.first ?? CLLocationCoordinate2D()
@@ -435,7 +435,7 @@ extension RouteMapView {
             }
             for w in view.waypoints {
                 let p = Pin(); p.coordinate = w.coordinate; p.title = w.shortName
-                p.tint = .systemIndigo; p.glyph = "pin.fill"
+                p.tint = .systemIndigo; p.glyph = "pin.fill"; p.essential = true
                 pins.append(p)
             }
             map.addAnnotations(pins)
@@ -446,6 +446,9 @@ extension RouteMapView {
         private func addLabels(_ map: MKMapView, _ options: [TripOption], selected: TripOption.ID?) {
             guard options.count > 1 else { return }
             for (i, o) in options.enumerated() {
+                // Die gewählte trägt ihre Schilder je Abschnitt (`addLegBadges`);
+                // ein zweites Schild in der Mitte lag genau darauf.
+                if o.id == selected, !Self.badgedLegs(o).isEmpty { continue }
                 let path = o.legs.flatMap(\.coordinates)
                 guard path.count > 1 else { continue }
                 let f = 0.35 + 0.3 * Double(i) / Double(max(options.count - 1, 1))
@@ -479,9 +482,15 @@ extension RouteMapView {
 
         /// Small badge on every leg of the chosen trip, so it is obvious which
         /// stretch is ridden, driven or taken by train.
+        /// Die Abschnitte, die ein eigenes Schild bekommen: ab 300 m.
+        static func badgedLegs(_ trip: TripOption) -> [Leg] {
+            trip.legs.filter { $0.coordinates.count > 1 && ($0.length ?? 0) >= 300 }
+        }
+
         private func addLegBadges(_ map: MKMapView, _ trip: TripOption) {
-            for leg in trip.legs where leg.coordinates.count > 1 {
-                guard let m = leg.length, m >= 300,
+            let legs = Self.badgedLegs(trip)
+            for leg in legs {
+                guard let m = leg.length,
                       let c = RainSampler.position(on: leg.coordinates, departure: leg.departure,
                                                    arrival: leg.arrival,
                                                    at: leg.departure.addingTimeInterval(leg.duration / 2)) else { continue }
@@ -489,7 +498,11 @@ extension RouteMapView {
                 a.coordinate = c
                 a.optionID = trip.id
                 a.symbol = leg.kind.symbol
-                a.text = [leg.lineName, Fmt.km(m)].compactMap { $0 }.joined(separator: " · ")
+                // Nur ein Abschnitt (Rad, Auto): dann sagt sein Schild auch, was
+                // sonst auf dem Optionsschild stand — Zeit und Name.
+                a.text = legs.count == 1 && trip.transitLegs.isEmpty
+                    ? "\(Self.labelText(trip)) · \(Fmt.km(m))"
+                    : [leg.lineName, Fmt.km(m)].compactMap { $0 }.joined(separator: " · ")
                 a.color = leg.kind.uiColor
                 a.selected = true
                 map.addAnnotation(a)
@@ -666,7 +679,7 @@ extension RouteMapView {
             let v = mapView.dequeueReusableAnnotationView(withIdentifier: "pin", for: pin) as! MKMarkerAnnotationView
             v.markerTintColor = pin.tint
             v.glyphImage = UIImage(systemName: pin.glyph)
-            v.displayPriority = pin.isRider ? .required : .defaultHigh
+            v.displayPriority = pin.isRider || pin.essential ? .required : .defaultHigh
             v.titleVisibility = pin.isRider ? .visible : .adaptive
             v.zPriority = pin.isRider ? .max : .defaultUnselected
             return v
