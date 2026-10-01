@@ -683,3 +683,15 @@ T.update({
 "fährt deine übliche Strecke nach — %d %% auf schon gefahrenen Wegen": "follows your usual route — %d %% on roads you have ridden",
 "%d %% auf schon gefahrenen Wegen": "%d %% on roads you have ridden",
 })
+
+T.update({
+"Fixpunkte dieser Strecke": "Fixed points of this route",
+"Punkte, über die die Strecke zwischen diesem Start und diesem Ziel führen soll — in beiden Richtungen, z. B. „S Ostkreuz“ oder eine Straße, die du gern fährst. Jede Strecke hat ihre eigenen. Radrouten fahren jeden Fixpunkt an, der am Weg liegt (höchstens ein Viertel Umweg gegenüber der Luftlinie) — auch nach einer Neuplanung unterwegs. Verbindungen, die nicht daran vorbeikommen, werden ausgegraut ans Ende gestellt und nie empfohlen.":
+"Points the route between this start and this destination should pass — in both directions, e.g. “S Ostkreuz” or a street you like to ride. Every route has its own. Bike routes ride through every fixed point that lies on the way (at most a quarter detour over the straight line) — also after replanning during a ride. Connections that miss them are greyed out, moved to the end and never recommended.",
+"über %@": "via %@",
+"Gilt nur für %@ ↔ %@, in beiden Richtungen. Radrouten fahren die Fixpunkte an, die am Weg liegen.": "Applies only to %@ ↔ %@, in both directions. Bike routes ride through the fixed points that lie on the way.",
+"Fertig": "Done",
+"Fixpunkt": "Fixed point",
+})
+
+T.update({"Fixpunkte sind Orte, über die eine Strecke führen soll — gesetzt über die kleine Zeile zwischen Start und Ziel, und nur für diese Strecke, in beiden Richtungen. Radrouten fahren sie an, wenn sie am Weg liegen; Verbindungen ohne sie werden ausgegraut und nie empfohlen.": "Fixed points are places a route should pass — set via the small line between start and destination, and only for that route, in both directions. Bike routes ride through them when they lie on the way; connections without them are greyed out and never recommended."})
