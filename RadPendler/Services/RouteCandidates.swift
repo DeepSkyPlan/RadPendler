@@ -81,30 +81,66 @@ struct CarCandidate {
         guard !all.isEmpty else { return [] }
         // One line wins everything by default; four labels on it say nothing.
         guard all.count > 1 else { return [(all[0], [.fastest])] }
-        var roles: [Int: [CarVariant]] = [:]
-        if let i = all.indices.min(by: { all[$0].driveTime(s) < all[$1].driveTime(s) }) {
-            roles[i, default: []].append(.fastest)
-        }
-        if let i = all.indices.min(by: { all[$0].route.distance < all[$1].route.distance }) {
-            roles[i, default: []].append(.shortest)
-        }
-        if all.contains(where: { $0.signals != nil }) {
-            if let i = all.indices.min(by: { $0 == $1 ? false : all[$0].balancedScore(s) < all[$1].balancedScore(s) }) {
-                roles[i, default: []].append(.balanced)
+        let known = all.contains { $0.signals != nil }
+        let winner: [CarVariant: Int] = [
+            .fastest: all.indices.min { all[$0].driveTime(s) < all[$1].driveTime(s) },
+            .shortest: all.indices.min { all[$0].route.distance < all[$1].route.distance },
+            // Ohne Ampeln aus OpenStreetMap gibt es nichts abzuwägen.
+            .balanced: known ? all.indices.min { all[$0].balancedScore(s) < all[$1].balancedScore(s) } : nil,
+            .fewSignals: known ? all.indices.min { (all[$0].signals ?? .max) < (all[$1].signals ?? .max) } : nil,
+        ].compactMapValues { $0 }
+        // Was keine Rolle gewinnt, füllt freie Plätze als „Alternative" — die
+        // ausgewogenste zuerst, wie beim Rad.
+        let spare = all.indices.sorted { all[$0].balancedScore(s) < all[$1].balancedScore(s) }
+        // Anders als beim Rad trägt eine gezeigte Linie jeden Namen, den sie
+        // gewinnt, auch weiter unten in der Liste: Apple bietet meist nur zwei,
+        // drei Linien an, und „optimal · wenig Ampeln" sagt dann mehr als
+        // „optimal" allein.
+        return RoleAssignment.assign(order: order.filter { $0 != .alternative }, winner: { winner[$0] },
+                                     count: Swift.max(1, s.optionsPerMode), spare: spare,
+                                     filler: .alternative, namesBeyond: true)
+            .map { (all[$0.index], $0.roles) }
+    }
+}
+
+/// Wer welche Rolle bekommt — für Rad und Auto nach derselben Regel.
+///
+/// Die obersten `count` Rollen der eigenen Reihenfolge, jede an die Linie, die
+/// sie gewinnt. Gewinnt eine Linie gleich mehrere davon, steht sie einmal da
+/// mit allen diesen Namen, und es geht die Liste weiter hinunter, bis `count`
+/// **verschiedene** Wege dastehen (Nutzer, 28.09.2026: „nur eine Route ist
+/// immer doof"). Bringt auch die ganze Liste keinen weiteren Weg, füllen die
+/// übrigen Linien die freien Plätze, in der Reihenfolge von `spare`, unter
+/// `filler` — ohne einen Namen, den sie nicht verdient haben.
+///
+/// Bis 1.9.1 hatten Rad und Auto je eine eigene Fassung davon: das Auto
+/// vergab alle Rollen und schnitt dann ab, das Rad ging die Liste hinunter
+/// und füllte auf.
+enum RoleAssignment {
+    /// - Parameters:
+    ///   - winner: die Linie, die eine Rolle gewinnt; nil, wo sich die Rolle
+    ///     nicht beurteilen lässt.
+    ///   - namesBeyond: auch Namen, die eine schon gezeigte Linie weiter unten
+    ///     in der Liste gewinnt, an sie hängen, nachdem alle Plätze voll sind.
+    static func assign<Role: Equatable>(order: [Role], winner: (Role) -> Int?, count n: Int,
+                                        spare: [Int], filler: Role,
+                                        namesBeyond: Bool = false) -> [(index: Int, roles: [Role])] {
+        var boxes: [(index: Int, roles: [Role])] = []
+        for (i, role) in order.enumerated() {
+            let open = i < n || boxes.count < n
+            guard open || namesBeyond else { break }
+            guard let w = winner(role) else { continue }
+            if let k = boxes.firstIndex(where: { $0.index == w }) {
+                boxes[k].roles.append(role)
+            } else if open, boxes.count < n {
+                boxes.append((w, [role]))
             }
-            if let i = all.indices.min(by: { (all[$0].signals ?? .max) < (all[$1].signals ?? .max) }) {
-                roles[i, default: []].append(.fewSignals)
-            }
         }
-        // A line without a role is still a line — aber nur, solange noch ein
-        // Platz frei ist. Mehr als die eingestellte Zahl will niemand sehen.
-        for i in all.indices where roles[i] == nil { roles[i] = [.alternative] }
-        let rank = { (v: CarVariant) in order.firstIndex(of: v) ?? order.count }
-        return roles
-            .map { (all[$0.key], $0.value.sorted { rank($0) < rank($1) }) }
-            .sorted { rank($0.1.first!) < rank($1.1.first!) }
-            .prefix(Swift.max(1, s.optionsPerMode))
-            .map { $0 }
+        if boxes.count < n {
+            let used = Set(boxes.map(\.index))
+            boxes += spare.filter { !used.contains($0) }.prefix(n - boxes.count).map { ($0, [filler]) }
+        }
+        return boxes
     }
 }
 
@@ -290,34 +326,14 @@ struct BikeCandidate {
             lowTraffic = all.firstIndex { $0.source == .brouter(.lowTraffic) } ?? quiet
         }
         let shortest = all.indices.min { all[$0].route.distance < all[$1].route.distance }!
-        let n = Swift.max(1, s.optionsPerMode)
-        // Die obersten `n` Rollen der eigenen Reihenfolge — und gewinnt eine
-        // Linie gleich mehrere davon, geht es die Liste weiter hinunter, bis
-        // `n` **verschiedene** Wege dastehen (Nutzer, 28.09.2026: „nur eine
-        // Route ist immer doof"). Jede Linie trägt die Namen, die sie dabei
-        // gewonnen hat; ein Name bleibt wahr.
-        let order = s.bikeVariantOrder.filter { $0 != .alternative }
         let winner: [BikeVariant: Int] = [.fastest: fastest, .shortest: shortest,
                                           .balanced: balanced, .quiet: quiet, .lowTraffic: lowTraffic]
-        var boxes: [(key: Int, names: [BikeVariant])] = []
-        for (i, v) in order.enumerated() {
-            guard i < n || boxes.count < n else { break }
-            let w = winner[v]!
-            if let k = boxes.firstIndex(where: { $0.key == w }) {
-                boxes[k].names.append(v)
-            } else if boxes.count < n {
-                boxes.append((w, [v]))
-            }
-        }
         // Und bringt auch die ganze Liste keinen weiteren Weg, füllt, was an
-        // anderen Linien da ist, die freien Plätze — die ausgewogenste zuerst,
-        // als „Alternative", ohne einen Namen, den sie nicht verdient.
-        if fill, boxes.count < n {
-            let used = Set(boxes.map(\.key))
-            let spare = all.indices.filter { !used.contains($0) }
-                .sorted { all[$0].balancedScore(s) < all[$1].balancedScore(s) }
-            boxes += spare.prefix(n - boxes.count).map { (key: $0, names: [BikeVariant.alternative]) }
-        }
-        return boxes.map { (all[$0.key], $0.names) }
+        // anderen Linien da ist, die freien Plätze — die ausgewogenste zuerst.
+        let spare = fill ? all.indices.sorted { all[$0].balancedScore(s) < all[$1].balancedScore(s) } : []
+        return RoleAssignment.assign(order: s.bikeVariantOrder.filter { $0 != .alternative },
+                                     winner: { winner[$0] }, count: Swift.max(1, s.optionsPerMode),
+                                     spare: spare, filler: .alternative)
+            .map { (all[$0.index], $0.roles) }
     }
 }
