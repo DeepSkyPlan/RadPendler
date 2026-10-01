@@ -28,6 +28,16 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         }
     }
 
+    /// Die Ortung, die das System ohnehin schon hat — sofort, ohne Warten und
+    /// ohne zu fragen. Nil, wenn sie fehlt, älter als fünf Minuten oder
+    /// ungenauer als 200 m ist: dann entscheidet sie nichts.
+    var recent: CLLocation? {
+        guard permission == .allowed, let l = manager.location,
+              abs(l.timestamp.timeIntervalSinceNow) < 300,
+              l.horizontalAccuracy >= 0, l.horizontalAccuracy < 200 else { return nil }
+        return l
+    }
+
     /// One fix. Asks for permission the first time; throws if it is refused, so
     /// the caller can say why nothing happened instead of spinning.
     func current() async throws -> CLLocation {
