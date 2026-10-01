@@ -221,6 +221,17 @@
         }
       }
     },
+    "%d km/h": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d km/h"
+          }
+        }
+      }
+    },
     "%d m neben der Route": {
       "extractionState": "manual",
       "localizations": {
@@ -283,6 +294,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "%d open"
+          }
+        }
+      }
+    },
+    "%d s": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d s"
           }
         }
       }
@@ -1211,13 +1233,13 @@
         }
       }
     },
-    "Die Fahrzeit kommt von Apple Karten mit Verkehrslage, dazu die Parkplatzsuche. Der Gesamtschnitt ist deine eigene Messung, Tür zu Tür: wäre Apple schneller als er, gilt er. Die App schreibt ihn nach jeder aufgezeichneten Autofahrt fort, sobald es drei gibt; getrennt vom Rad.": {
+    "Die Fahrzeit kommt von Apple Karten mit Verkehrslage, dazu die Parkplatzsuche. Der Gesamtschnitt ist deine eigene Messung, Tür zu Tür: wäre Apple schneller als er, gilt er. Die App misst ihn nach jeder aufgezeichneten Autofahrt, sobald es drei gibt; getrennt vom Rad. Parkplatzsuche und Gesamtschnitt überschneiden sich: endet die Aufzeichnung erst nach dem Parken, steckt die Suche schon im Schnitt — es gilt dann das Größere von Apple plus Parkplatzsuche und deinem Schnitt, nie beides zusammen.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The driving time comes from Apple Maps with live traffic, plus looking for parking. The overall average is your own measurement, door to door: if Apple would be faster than that, the average counts. The app updates it after every recorded car trip once there are three; separately from the bike."
+            "value": "The driving time comes from Apple Maps with live traffic, plus looking for parking. The overall average is your own measurement, door to door: if Apple would be faster than that, the average counts. The app measures it after every recorded car trip once there are three; separately from the bike. Looking for parking and the overall average overlap: if the recording only ends after parking, the search is already in the average — then the larger of Apple plus parking and your average counts, never both together."
           }
         }
       }
@@ -2058,28 +2080,6 @@
         }
       }
     },
-    "Gemessen aus %d Autofahrten: %@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Measured from %d car trips: %@"
-          }
-        }
-      }
-    },
-    "Gemessen aus %d Fahrten": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Measured from %d rides"
-          }
-        }
-      }
-    },
     "Gesamtschnitt": {
       "extractionState": "manual",
       "localizations": {
@@ -2087,39 +2087,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Overall average"
-          }
-        }
-      }
-    },
-    "Gesamtschnitt: %@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Overall average: %@"
-          }
-        }
-      }
-    },
-    "Gesamtschnitt: aus — Apple Karten": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Overall average: off — Apple Maps"
-          }
-        }
-      }
-    },
-    "Gesamtschnitt: aus — nur die Rechnung": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Overall average: off — calculation only"
           }
         }
       }
@@ -2729,28 +2696,6 @@
         }
       }
     },
-    "Noch keine gemessenen Autofahrten": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No measured car trips yet"
-          }
-        }
-      }
-    },
-    "Noch keine gemessenen Fahrten": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No measured rides yet"
-          }
-        }
-      }
-    },
     "Nochmal tippen für die nächste von %d Möglichkeiten, lang drücken für die beste": {
       "extractionState": "manual",
       "localizations": {
@@ -3290,24 +3235,13 @@
         }
       }
     },
-    "Rolltempo": {
+    "Rolltempo ohne Ampeln": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rolling speed"
-          }
-        }
-      }
-    },
-    "Rolltempo ohne Ampeln: %d km/h": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rolling speed without lights: %d km/h"
+            "value": "Rolling speed without lights"
           }
         }
       }
@@ -3686,17 +3620,6 @@
         }
       }
     },
-    "Tür zu Tür, mit Ampeln und Halten — damit wird die Fahrzeit gerechnet": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Door to door, traffic lights and stops included — this is what the travel time is based on"
-          }
-        }
-      }
-    },
     "U-Bahn/Tram": {
       "extractionState": "manual",
       "localizations": {
@@ -3781,6 +3704,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Version %@"
+          }
+        }
+      }
+    },
+    "Von Hand": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "By hand"
           }
         }
       }
@@ -3939,13 +3873,13 @@
         }
       }
     },
-    "Wartezeit je Ampel: %d s": {
+    "Wartezeit je Ampel": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting time per light: %d s"
+            "value": "Waiting time per light"
           }
         }
       }
@@ -4181,13 +4115,13 @@
         }
       }
     },
-    "Zwei verschiedene Geschwindigkeiten, und sie tun Verschiedenes. Das Rolltempo ist das Tempo beim Fahren, ohne Halte: daraus plus der Wartezeit je Ampelkreuzung und den Höhenmetern rechnet die App jede Linie durch — es entscheidet also, welche Linie die schnellste ist. Der Gesamtschnitt ist die Messung deiner eigenen Fahrten, Tür zu Tür, mit allen Ampeln und Halten darin — er entscheidet, wie lange es dauert. Wäre die Rechnung schneller als dein gemessener Gesamtschnitt, gilt der Gesamtschnitt; auch bei den Zubringern zum Bahnhof, dort aber nur, wenn er die vorsichtigere Zahl ist. Beide Werte schreibt die App nach jeder aufgezeichneten Fahrt selbst fort, aus dem Median der letzten Fahrten, sobald es genug davon gibt; von Hand gestellt gelten sie bis zur nächsten Fahrt. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung addiert — außer an den Kreuzungen, die deine eigenen Fahrten schon kennen: die kosten, was dort gemessen wurde. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet.": {
+    "Zwei verschiedene Geschwindigkeiten, und sie tun Verschiedenes. Das Rolltempo ist das Tempo beim Fahren, ohne Halte: daraus plus der Wartezeit je Ampelkreuzung und den Höhenmetern rechnet die App jede Linie durch — es entscheidet also, welche Linie die schnellste ist. Der Gesamtschnitt ist die Messung deiner eigenen Fahrten, Tür zu Tür, mit allen Ampeln und Halten darin — er entscheidet, wie lange es dauert. Wäre die Rechnung schneller als dein gemessener Gesamtschnitt, gilt der Gesamtschnitt; auch bei den Zubringern zum Bahnhof, dort aber nur, wenn er die vorsichtigere Zahl ist. Rolltempo, Ampelwartezeit und Gesamtschnitt misst die App nach jeder aufgezeichneten Fahrt selbst, aus dem Median der letzten Fahrten, sobald es genug davon gibt. „Von Hand“ setzt einen eigenen Wert dagegen: er gilt, bis du ihn ausschaltest, und die Messung läuft daneben weiter. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung addiert — außer an den Kreuzungen, die deine eigenen Fahrten schon kennen: die kosten, was dort gemessen wurde. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Two different speeds, and they do different things. The rolling speed is your speed while riding, without stops: from it, plus the waiting time per signalised junction and the metres of climb, the app works out every route — so it decides which route is the fastest. The overall average is the measurement of your own rides, door to door, with every light and stop in it — it decides how long it takes. If the calculation were faster than your measured overall average, the average wins; for the legs to the station too, but there only when it is the more cautious number. The app keeps both values up to date after every recorded ride, from the median of the recent ones, as soon as there are enough; set by hand they hold until the next ride. The waiting time per light is an average (roughly every second one is green) and is added per signalised junction — except at the junctions your own rides already know: those cost what was measured there. The buffer applies per station for pushing the bike, the lift and the platform. Bike + rail only takes trains the VBB service says carry bikes."
+            "value": "Two different speeds, and they do different things. The rolling speed is your speed while riding, without stops: from it, plus the waiting time per signalised junction and the metres of climb, the app works out every route — so it decides which route is the fastest. The overall average is the measurement of your own rides, door to door, with every light and stop in it — it decides how long it takes. If the calculation were faster than your measured overall average, the average wins; for the legs to the station too, but there only when it is the more cautious number. The app measures rolling speed, waiting time per light and overall average itself after every recorded ride, from the median of the recent ones, as soon as there are enough. “By hand” sets your own value against it: it holds until you switch it off, and the measurement carries on alongside. The waiting time per light is an average (roughly every second one is green) and is added per signalised junction — except at the junctions your own rides already know: those cost what was measured there. The buffer applies per station for pushing the bike, the lift and the platform. Bike + rail only takes trains the VBB service says carry bikes."
           }
         }
       }
@@ -4265,6 +4199,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "off"
+          }
+        }
+      }
+    },
+    "aus — Apple Karten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "off — Apple Maps"
+          }
+        }
+      }
+    },
+    "aus — nur die Rechnung": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "off — calculation only"
           }
         }
       }
@@ -4364,6 +4320,39 @@
           "stringUnit": {
             "state": "translated",
             "value": "does not pass your fixed points"
+          }
+        }
+      }
+    },
+    "gemessen: %@ (aus %d Autofahrten)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "measured: %@ (from %d car trips)"
+          }
+        }
+      }
+    },
+    "gemessen: %@ (aus %d Fahrten)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "measured: %@ (from %d rides)"
+          }
+        }
+      }
+    },
+    "gemessen: %d s (aus %d Vorbeifahrten)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "measured: %d s (from %d passes)"
           }
         }
       }
@@ -4753,13 +4742,13 @@
         }
       }
     },
-    "nur die fahrende Zeit — daraus kommt die Einstellung darüber": {
+    "noch nicht gemessen": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "only the time in motion — this is where the setting above comes from"
+            "value": "not measured yet"
           }
         }
       }

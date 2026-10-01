@@ -10,10 +10,13 @@ final class AppSettings {
     var destination: Place? = nil { didSet { save(destination, "destination") } }
     /// Minutes between "plan now" and walking out of the door.
     var prepMinutes: Int = 5 { didSet { defaults.set(prepMinutes, forKey: "prepMinutes") } }
-    /// Average cycling speed; MapKit's own cycling ETA is ignored.
     /// Speed while rolling, without stops; lights are added per junction.
+    /// MapKit's own cycling ETA is ignored. Gemessen (`calibrate`) oder die
+    /// Voreinstellung; von Hand nur über `bikeSpeedOverride`.
     /// (0.1.x stored an all-in average under "bikeSpeedKmh" — deliberately not read.)
-    var bikeSpeedKmh: Double = AppSettings.defaultBikeSpeedKmh { didSet { defaults.set(bikeSpeedKmh, forKey: "bikeMovingSpeedKmh") } }
+    var calibratedBikeSpeedKmh: Double = AppSettings.defaultBikeSpeedKmh {
+        didSet { defaults.set(calibratedBikeSpeedKmh, forKey: "bikeMovingSpeedKmh") }
+    }
     /// Time to get the bike from the street onto the platform, and back.
     var bikeStationBufferMinutes: Int = 3 { didSet { defaults.set(bikeStationBufferMinutes, forKey: "bikeStationBufferMinutes") } }
     /// Farthest station the bike+rail search rides to, at either end.
@@ -117,7 +120,11 @@ final class AppSettings {
     }
 
     /// Average wait per traffic light on the bike (half of them are green).
-    var signalWaitSeconds: Int = 20 { didSet { defaults.set(signalWaitSeconds, forKey: "signalWaitSeconds") } }
+    /// Gemessen (`calibrate`) oder die Voreinstellung; von Hand nur über
+    /// `signalWaitOverride`.
+    var calibratedSignalWaitSeconds: Int = 20 {
+        didSet { defaults.set(calibratedSignalWaitSeconds, forKey: "signalWaitSeconds") }
+    }
 
     /// Junctions this rider has ridden through. Learned from the recorded
     /// rides and used from the next one on — for recognising a red light, and
@@ -208,14 +215,39 @@ final class AppSettings {
         didSet { defaults.set(measuredRides, forKey: "measuredRides") }
     }
 
-    /// Der Tür-zu-Tür-Schnitt, mit dem gerechnet wird — je Verkehrsmittel
-    /// getrennt, weil ein Auto-Schnitt das Rad nichts angeht und umgekehrt.
-    /// 0 heißt: keiner, es gilt die Rechnung (beim Rad Rolltempo, Ampeln und
-    /// Höhenmeter; beim Auto Apple Karten). Nach jeder aufgezeichneten Fahrt
-    /// schreibt `calibrate` die Messung hinein; von Hand gestellt gilt es bis
-    /// dahin.
-    var bikeOverallKmh: Double = 0 { didSet { defaults.set(bikeOverallKmh, forKey: "bikeOverallKmh") } }
-    var carOverallKmh: Double = 0 { didSet { defaults.set(carOverallKmh, forKey: "carOverallKmh") } }
+    /// Der gemessene Tür-zu-Tür-Schnitt — je Verkehrsmittel getrennt, weil
+    /// ein Auto-Schnitt das Rad nichts angeht und umgekehrt. 0 heißt: keiner,
+    /// es gilt die Rechnung (beim Rad Rolltempo, Ampeln und Höhenmeter; beim
+    /// Auto Apple Karten). Nach jeder aufgezeichneten Fahrt schreibt
+    /// `calibrate` die Messung hinein.
+    var calibratedBikeOverallKmh: Double = 0 {
+        didSet { defaults.set(calibratedBikeOverallKmh, forKey: "bikeOverallKmh") }
+    }
+    var calibratedCarOverallKmh: Double = 0 {
+        didSet { defaults.set(calibratedCarOverallKmh, forKey: "carOverallKmh") }
+    }
+
+    // MARK: Von Hand statt gemessen
+
+    // Bis 1.9.1 standen die vier gemessenen Werte als Stepper in den
+    // Einstellungen, und `calibrate` schrieb nach jeder Fahrt darüber: was von
+    // Hand gestellt war, galt bis zur nächsten Fahrt. Jetzt steht die Messung
+    // für sich, und wer etwas anderes will, stellt es daneben — das überlebt
+    // jede Fahrt. nil heißt: es gilt die Messung.
+    var bikeSpeedOverride: Double? = nil { didSet { defaults.set(bikeSpeedOverride, forKey: "bikeSpeedOverride") } }
+    var signalWaitOverride: Int? = nil { didSet { defaults.set(signalWaitOverride, forKey: "signalWaitOverride") } }
+    var bikeOverallOverride: Double? = nil {
+        didSet { defaults.set(bikeOverallOverride, forKey: "bikeOverallOverride") }
+    }
+    var carOverallOverride: Double? = nil {
+        didSet { defaults.set(carOverallOverride, forKey: "carOverallOverride") }
+    }
+
+    /// Womit geplant wird: von Hand, wo gestellt, sonst gemessen.
+    var bikeSpeedKmh: Double { bikeSpeedOverride ?? calibratedBikeSpeedKmh }
+    var signalWaitSeconds: Int { signalWaitOverride ?? calibratedSignalWaitSeconds }
+    var bikeOverallKmh: Double { bikeOverallOverride ?? calibratedBikeOverallKmh }
+    var carOverallKmh: Double { carOverallOverride ?? calibratedCarOverallKmh }
     /// Was die Autofahrten gemessen haben, zum Anzeigen neben der Einstellung.
     var measuredCarKmh: Double? = nil { didSet { defaults.set(measuredCarKmh, forKey: "measuredCarKmh") } }
     var measuredCarRides: Int = 0 { didSet { defaults.set(measuredCarRides, forKey: "measuredCarRides") } }
@@ -256,6 +288,7 @@ final class AppSettings {
         "autoStopMinutes", "autoPauseMinutes", "rideDimSeconds", "rideSounds", "avoidCobbles",
         "measuredOverallKmh", "measuredMovingKmh", "measuredRides",
         "bikeOverallKmh", "carOverallKmh", "measuredCarKmh", "measuredCarRides",
+        "bikeSpeedOverride", "signalWaitOverride", "bikeOverallOverride", "carOverallOverride",
         // Anzeige
         "orientationLock", "rideOrientationLock", "language",
         // Was gelöscht wurde
@@ -314,14 +347,15 @@ final class AppSettings {
             defaults.removeObject(forKey: key)
         }
         // 0.1.x stored an all-in average under "bikeSpeedKmh" — deliberately not read.
-        assign(\.bikeSpeedKmh, defaults.object(forKey: "bikeMovingSpeedKmh") as? Double ?? bikeSpeedKmh)
+        assign(\.calibratedBikeSpeedKmh, defaults.object(forKey: "bikeMovingSpeedKmh") as? Double ?? calibratedBikeSpeedKmh)
         assign(\.bikeStationBufferMinutes,
                defaults.object(forKey: "bikeStationBufferMinutes") as? Int ?? bikeStationBufferMinutes)
         assign(\.maxBikeToStationKm, defaults.object(forKey: "maxBikeToStationKm") as? Double ?? maxBikeToStationKm)
         assign(\.parkingMinutes, defaults.object(forKey: "parkingMinutes") as? Int ?? parkingMinutes)
         assign(\.transferPenaltyMinutes,
                defaults.object(forKey: "transferPenaltyMinutes") as? Int ?? transferPenaltyMinutes)
-        assign(\.signalWaitSeconds, defaults.object(forKey: "signalWaitSeconds") as? Int ?? signalWaitSeconds)
+        assign(\.calibratedSignalWaitSeconds,
+               defaults.object(forKey: "signalWaitSeconds") as? Int ?? calibratedSignalWaitSeconds)
         assign(\.departurePresets, (defaults.array(forKey: "departurePresets2") as? [String])?
             .compactMap(DeparturePreset.init(stored:)) ?? departurePresets)
         assign(\.routeWaypoints, defaults.data(forKey: "routeWaypoints")
@@ -378,10 +412,16 @@ final class AppSettings {
         assign(\.measuredOverallKmh, defaults.object(forKey: "measuredOverallKmh") as? Double)
         assign(\.measuredMovingKmh, defaults.object(forKey: "measuredMovingKmh") as? Double)
         assign(\.measuredRides, defaults.object(forKey: "measuredRides") as? Int ?? measuredRides)
-        assign(\.carOverallKmh, defaults.object(forKey: "carOverallKmh") as? Double ?? carOverallKmh)
+        assign(\.calibratedCarOverallKmh, defaults.object(forKey: "carOverallKmh") as? Double ?? calibratedCarOverallKmh)
         assign(\.measuredCarKmh, defaults.object(forKey: "measuredCarKmh") as? Double)
         assign(\.measuredCarRides, defaults.object(forKey: "measuredCarRides") as? Int ?? measuredCarRides)
-        assign(\.bikeOverallKmh, defaults.object(forKey: "bikeOverallKmh") as? Double ?? bikeOverallKmh)
+        assign(\.calibratedBikeOverallKmh, defaults.object(forKey: "bikeOverallKmh") as? Double ?? calibratedBikeOverallKmh)
+        // Fehlt der Schlüssel, ist nichts von Hand gestellt — auch nach dem
+        // Umstieg von 1.9.1: was dort stand, gilt als gemessen.
+        assign(\.bikeSpeedOverride, defaults.object(forKey: "bikeSpeedOverride") as? Double)
+        assign(\.signalWaitOverride, defaults.object(forKey: "signalWaitOverride") as? Int)
+        assign(\.bikeOverallOverride, defaults.object(forKey: "bikeOverallOverride") as? Double)
+        assign(\.carOverallOverride, defaults.object(forKey: "carOverallOverride") as? Double)
         loadedOnce = true
     }
 

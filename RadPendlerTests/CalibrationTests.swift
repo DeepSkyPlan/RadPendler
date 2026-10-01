@@ -246,8 +246,8 @@ final class CalibrationTests: XCTestCase {
 
     func testTheRemainingTimeFallsBackToSpeedAndLights() throws {
         let s = settings()
-        s.bikeSpeedKmh = 20
-        s.signalWaitSeconds = 30
+        s.calibratedBikeSpeedKmh = 20
+        s.calibratedSignalWaitSeconds = 30
         let p = RideTracker.Progress(metersLeft: 5_000, signalsLeft: 4, signalsPassed: 2,
                                      plannedSignals: 6, plannedMeters: 10_000)
         // Ohne laufende Fahrt und ohne Plan: Rolltempo plus Ampeln.
@@ -258,10 +258,10 @@ final class CalibrationTests: XCTestCase {
         XCTAssertEqual(try left(s).seconds, 900 + 120, accuracy: 1)
         XCTAssertEqual(try left(s).signals, 4)
         // Und auch hier gewinnt die Messung — langsamer …
-        s.bikeOverallKmh = 12
+        s.calibratedBikeOverallKmh = 12
         XCTAssertEqual(try left(s).seconds, 5_000 / (12 / 3.6), accuracy: 1)
         // … wie schneller.
-        s.bikeOverallKmh = 30
+        s.calibratedBikeOverallKmh = 30
         XCTAssertEqual(try left(s).seconds, 5_000 / (30 / 3.6), accuracy: 1)
     }
 
@@ -271,7 +271,7 @@ final class CalibrationTests: XCTestCase {
     /// Jetzt zählt der Schnitt, den der Plan dieser Fahrt versprochen hat.
     func testTheRemainingTimeFollowsThePlannedAverageOfThisRide() throws {
         let s = settings()
-        s.bikeSpeedKmh = 20
+        s.calibratedBikeSpeedKmh = 20
         let p = RideTracker.Progress(metersLeft: 30_900, signalsLeft: 4, signalsPassed: 3,
                                      plannedSignals: 7, plannedMeters: 32_000)
         // 32 km in 32 min: eine Autofahrt mit 60 km/h Schnitt, gerade erst los.
@@ -335,6 +335,60 @@ final class CalibrationTests: XCTestCase {
                       t: noon.addingTimeInterval(Double(i)), v: 5, h: nil)
         }
         XCTAssertNil(ElevationProfile.from(points))
+    }
+
+    /// Was von Hand gestellt ist, überlebt die nächste Fahrt: `calibrate`
+    /// schreibt die Messung daneben, geplant wird mit dem Wert von Hand.
+    func testAManualValueSurvivesCalibration() {
+        let s = settings()
+        s.bikeSpeedOverride = 22
+        s.signalWaitOverride = 35
+        s.bikeOverallOverride = 17
+        s.carOverallOverride = 33
+        s.learnedSignals = (0..<20).map { i in
+            LearnedSignal(lat: 52.5 + Double(i) / 1000, lon: 13.4, stops: 2,
+                          totalWait: 60, lastSeen: noon, passes: 5)
+        }
+        let rides = [ride(0, km: 20, movingKmh: 23, standing: 600),
+                     ride(1, km: 20, movingKmh: 25, standing: 600),
+                     ride(2, km: 20, movingKmh: 24, standing: 600)]
+        s.calibrate(from: rides)
+        XCTAssertEqual(s.calibratedBikeSpeedKmh, 24, "die Messung steht trotzdem da")
+        XCTAssertEqual(s.calibratedSignalWaitSeconds, 10)
+        XCTAssertEqual(s.calibratedBikeOverallKmh, 20, accuracy: 0.5)
+        XCTAssertEqual(s.bikeSpeedKmh, 22)
+        XCTAssertEqual(s.signalWaitSeconds, 35)
+        XCTAssertEqual(s.bikeOverallKmh, 17)
+        let plan = s.snapshot
+        XCTAssertEqual(plan.bikeSpeedKmh, 22)
+        XCTAssertEqual(plan.signalWaitSeconds, 35)
+        XCTAssertEqual(plan.measuredOverallKmh, 17)
+        XCTAssertEqual(plan.carOverallKmh, 33)
+        // Und wieder aus: dann gilt die Messung.
+        s.bikeSpeedOverride = nil
+        s.signalWaitOverride = nil
+        XCTAssertEqual(s.snapshot.bikeSpeedKmh, 24)
+        XCTAssertEqual(s.snapshot.signalWaitSeconds, 10)
+    }
+
+    /// Wer von 1.9.1 kommt, hat seine Werte unter den alten Schlüsseln — sie
+    /// gelten als gemessen, nichts ist von Hand gestellt.
+    func testOldValuesCountAsMeasured() {
+        let d = UserDefaults(suiteName: UUID().uuidString)!
+        d.set(26.0, forKey: "bikeMovingSpeedKmh")
+        d.set(25, forKey: "signalWaitSeconds")
+        d.set(19.5, forKey: "bikeOverallKmh")
+        d.set(38.0, forKey: "carOverallKmh")
+        let s = AppSettings(defaults: d)
+        XCTAssertEqual(s.calibratedBikeSpeedKmh, 26)
+        XCTAssertEqual(s.calibratedSignalWaitSeconds, 25)
+        XCTAssertEqual(s.calibratedBikeOverallKmh, 19.5)
+        XCTAssertEqual(s.calibratedCarOverallKmh, 38)
+        XCTAssertNil(s.bikeSpeedOverride)
+        XCTAssertNil(s.signalWaitOverride)
+        XCTAssertNil(s.bikeOverallOverride)
+        XCTAssertNil(s.carOverallOverride)
+        XCTAssertEqual(s.bikeSpeedKmh, 26)
     }
 
     /// Rad und Auto haben je ihren eigenen Schnitt: Autofahrten schieben den

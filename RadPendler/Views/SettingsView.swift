@@ -263,20 +263,36 @@ struct ModeSettingsView: View {
                     Hint(L("Womit die App plant, wenn sie die Wahl hat. Ab dem gewählten Regen wird nicht mehr die ganze Strecke geradelt, sondern das Rad in die Bahn gestellt — „starker Regen“ heißt also praktisch immer fahren."))
                 }
                 Section {
-                    Stepper(value: $settings.bikeSpeedKmh, in: 10...45, step: 1) {
-                        Text(L("Rolltempo ohne Ampeln: %d km/h", Int(settings.bikeSpeedKmh)))
-                    }
+                    MeasuredValueRow(
+                        title: L("Rolltempo ohne Ampeln"), value: settings.bikeSpeedKmh,
+                        measured: settings.measuredRides >= AppSettings.calibrationRides
+                            ? settings.measuredMovingKmh.map { L("gemessen: %@ (aus %d Fahrten)", Fmt.kmh($0), settings.measuredRides) }
+                            : nil,
+                        override: $settings.bikeSpeedOverride, start: settings.calibratedBikeSpeedKmh,
+                        range: 10...45, step: 1, format: { L("%d km/h", Int($0)) })
+                    MeasuredValueRow(
+                        title: L("Wartezeit je Ampel"), value: Double(settings.signalWaitSeconds),
+                        measured: settings.signalMeasurement.flatMap { m in
+                            m.passes >= AppSettings.signalCalibrationPasses
+                                ? L("gemessen: %d s (aus %d Vorbeifahrten)", settings.calibratedSignalWaitSeconds, m.passes)
+                                : nil
+                        },
+                        override: Binding(get: { settings.signalWaitOverride.map(Double.init) },
+                                          set: { settings.signalWaitOverride = $0.map { Int($0) } }),
+                        start: Double(settings.calibratedSignalWaitSeconds),
+                        range: 0...90, step: 5, format: { L("%d s", Int($0)) })
+                    MeasuredSignalRow()
+                    MeasuredValueRow(
+                        title: L("Gesamtschnitt"), value: settings.bikeOverallKmh,
+                        measured: settings.measuredRides >= AppSettings.calibrationRides
+                            ? settings.measuredOverallKmh.map { L("gemessen: %@ (aus %d Fahrten)", Fmt.kmh($0), settings.measuredRides) }
+                            : nil,
+                        override: $settings.bikeOverallOverride,
+                        start: settings.calibratedBikeOverallKmh > 0 ? settings.calibratedBikeOverallKmh : 20,
+                        range: 0...40, step: 0.5,
+                        format: { $0 > 0 ? Fmt.kmh($0) : L("aus — nur die Rechnung") })
                     Stepper(L("Puffer am Bahnhof: %d min", settings.bikeStationBufferMinutes),
                             value: $settings.bikeStationBufferMinutes, in: 0...10)
-                    Stepper(L("Wartezeit je Ampel: %d s", settings.signalWaitSeconds),
-                            value: $settings.signalWaitSeconds, in: 0...90, step: 5)
-                    Stepper(value: $settings.bikeOverallKmh, in: 0...40, step: 0.5) {
-                        Text(settings.bikeOverallKmh > 0
-                             ? L("Gesamtschnitt: %@", Fmt.kmh(settings.bikeOverallKmh))
-                             : L("Gesamtschnitt: aus — nur die Rechnung"))
-                    }
-                    MeasuredSpeedRow()
-                    MeasuredSignalRow()
                     Toggle(L("Kopfsteinpflaster meiden"), isOn: $settings.avoidCobbles)
                     Stepper(value: $settings.maxBikeToStationKm, in: 1...10, step: 0.5) {
                         Text(L("Radweg zum Bahnhof: bis %@ km", settings.maxBikeToStationKm.formatted(.number.precision(.fractionLength(0...1)))))
@@ -284,7 +300,7 @@ struct ModeSettingsView: View {
                 } header: {
                     Text(L("Fahrrad"))
                 } footer: {
-                    Hint(L("Zwei verschiedene Geschwindigkeiten, und sie tun Verschiedenes. Das Rolltempo ist das Tempo beim Fahren, ohne Halte: daraus plus der Wartezeit je Ampelkreuzung und den Höhenmetern rechnet die App jede Linie durch — es entscheidet also, welche Linie die schnellste ist. Der Gesamtschnitt ist die Messung deiner eigenen Fahrten, Tür zu Tür, mit allen Ampeln und Halten darin — er entscheidet, wie lange es dauert. Wäre die Rechnung schneller als dein gemessener Gesamtschnitt, gilt der Gesamtschnitt; auch bei den Zubringern zum Bahnhof, dort aber nur, wenn er die vorsichtigere Zahl ist. Beide Werte schreibt die App nach jeder aufgezeichneten Fahrt selbst fort, aus dem Median der letzten Fahrten, sobald es genug davon gibt; von Hand gestellt gelten sie bis zur nächsten Fahrt. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung addiert — außer an den Kreuzungen, die deine eigenen Fahrten schon kennen: die kosten, was dort gemessen wurde. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet."))
+                    Hint(L("Zwei verschiedene Geschwindigkeiten, und sie tun Verschiedenes. Das Rolltempo ist das Tempo beim Fahren, ohne Halte: daraus plus der Wartezeit je Ampelkreuzung und den Höhenmetern rechnet die App jede Linie durch — es entscheidet also, welche Linie die schnellste ist. Der Gesamtschnitt ist die Messung deiner eigenen Fahrten, Tür zu Tür, mit allen Ampeln und Halten darin — er entscheidet, wie lange es dauert. Wäre die Rechnung schneller als dein gemessener Gesamtschnitt, gilt der Gesamtschnitt; auch bei den Zubringern zum Bahnhof, dort aber nur, wenn er die vorsichtigere Zahl ist. Rolltempo, Ampelwartezeit und Gesamtschnitt misst die App nach jeder aufgezeichneten Fahrt selbst, aus dem Median der letzten Fahrten, sobald es genug davon gibt. „Von Hand“ setzt einen eigenen Wert dagegen: er gilt, bis du ihn ausschaltest, und die Messung läuft daneben weiter. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung addiert — außer an den Kreuzungen, die deine eigenen Fahrten schon kennen: die kosten, was dort gemessen wurde. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet."))
                 }
                 Section {
                     Toggle(isOn: $settings.motorcycle) {
@@ -292,27 +308,22 @@ struct ModeSettingsView: View {
                     }
                     if !settings.motorcycle {
                     Stepper(L("Parkplatzsuche: %d min", settings.parkingMinutes), value: $settings.parkingMinutes, in: 0...30)
-                    Stepper(value: $settings.carOverallKmh, in: 0...120, step: 1) {
-                        Text(settings.carOverallKmh > 0
-                             ? L("Gesamtschnitt: %@", Fmt.kmh(settings.carOverallKmh))
-                             : L("Gesamtschnitt: aus — Apple Karten"))
-                    }
-                    if settings.measuredCarRides >= AppSettings.calibrationRides, let kmh = settings.measuredCarKmh {
-                        Label(L("Gemessen aus %d Autofahrten: %@", settings.measuredCarRides, Fmt.kmh(kmh)),
-                              systemImage: "speedometer")
-                            .font(.system(size: 13, design: .rounded))
-                    } else {
-                        Label(L("Noch keine gemessenen Autofahrten"), systemImage: "speedometer")
-                            .font(.system(size: 13, design: .rounded))
-                            .foregroundStyle(.secondary)
-                    }
+                    MeasuredValueRow(
+                        title: L("Gesamtschnitt"), value: settings.carOverallKmh,
+                        measured: settings.measuredCarRides >= AppSettings.calibrationRides
+                            ? settings.measuredCarKmh.map { L("gemessen: %@ (aus %d Autofahrten)", Fmt.kmh($0), settings.measuredCarRides) }
+                            : nil,
+                        override: $settings.carOverallOverride,
+                        start: settings.calibratedCarOverallKmh > 0 ? settings.calibratedCarOverallKmh : 40,
+                        range: 0...120, step: 1,
+                        format: { $0 > 0 ? Fmt.kmh($0) : L("aus — Apple Karten") })
                     }
                 } header: {
                     Text(Vehicle.title)
                 } footer: {
                     Hint(settings.motorcycle
                          ? L("Der Kasten „Auto“ fährt Motorrad: dieselben Straßen und Apples Fahrzeit mit Verkehrslage — aber am Stau rollt es vorbei bis an die Ampel, wie mit dem Rad. Wie viel Stau auf der Strecke steht, zeigt Apples Fahrzeit für dieselbe Strecke nachts um drei; davon zieht die App 70 % ab. Der Rest bleibt: die rote Ampel selbst, Engstellen, die stehende Autobahn. Parkplatzsuche und Auto-Schnitt gelten nicht; aufgezeichnete Motorradfahrten gehen nicht in den Auto-Schnitt ein.")
-                         : L("Die Fahrzeit kommt von Apple Karten mit Verkehrslage, dazu die Parkplatzsuche. Der Gesamtschnitt ist deine eigene Messung, Tür zu Tür: wäre Apple schneller als er, gilt er. Die App schreibt ihn nach jeder aufgezeichneten Autofahrt fort, sobald es drei gibt; getrennt vom Rad."))
+                         : L("Die Fahrzeit kommt von Apple Karten mit Verkehrslage, dazu die Parkplatzsuche. Der Gesamtschnitt ist deine eigene Messung, Tür zu Tür: wäre Apple schneller als er, gilt er. Die App misst ihn nach jeder aufgezeichneten Autofahrt, sobald es drei gibt; getrennt vom Rad. Parkplatzsuche und Gesamtschnitt überschneiden sich: endet die Aufzeichnung erst nach dem Parken, steckt die Suche schon im Schnitt — es gilt dann das Größere von Apple plus Parkplatzsuche und deinem Schnitt, nie beides zusammen."))
                 }
                 Section {
                     Stepper(L("Umstieg zählt wie %d min", settings.transferPenaltyMinutes), value: $settings.transferPenaltyMinutes, in: 0...30)
@@ -570,45 +581,44 @@ private struct PriorityList<T: Hashable>: View {
     }
 }
 
-/// Address search: the addresses already used, most used first, and Apple's
-/// autocomplete underneath. Everything is shown with its postal code, because
-/// a street name alone is not an address in Berlin.
-struct MeasuredSpeedRow: View {
-    @Environment(AppSettings.self) private var settings
+/// Ein Wert, den die App aus den eigenen Fahrten misst: womit geplant wird,
+/// was gemessen ist, und darunter ein Wert von Hand für den, der es anders
+/// will. Bis 1.9.1 war das ein Stepper, den `calibrate` nach jeder Fahrt
+/// überschrieb — man stellte etwas ein, und am nächsten Morgen stand wieder
+/// die Messung da.
+struct MeasuredValueRow: View {
+    var title: String
+    /// Womit gerechnet wird — von Hand oder gemessen.
+    var value: Double
+    /// „gemessen: 24 km/h (aus 5 Fahrten)"; nil, solange es zu wenig Fahrten sind.
+    var measured: String?
+    @Binding var override: Double?
+    /// Wo der Stepper beim Einschalten anfängt: beim gemessenen Wert.
+    var start: Double
+    var range: ClosedRange<Double>
+    var step: Double
+    var format: (Double) -> String
 
     var body: some View {
-        if settings.measuredRides >= AppSettings.calibrationRides,
-           let moving = settings.measuredMovingKmh, let overall = settings.measuredOverallKmh {
-            VStack(alignment: .leading, spacing: 3) {
-                Label(L("Gemessen aus %d Fahrten", settings.measuredRides), systemImage: "speedometer")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                row(L("Gesamtschnitt"), Fmt.kmh(overall), L("Tür zu Tür, mit Ampeln und Halten — damit wird die Fahrzeit gerechnet"))
-                row(L("Rolltempo"), Fmt.kmh(moving), L("nur die fahrende Zeit — daraus kommt die Einstellung darüber"))
+        VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(title)
+                Spacer(minLength: 8)
+                Text(format(value)).monospacedDigit().foregroundStyle(.secondary)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityElement(children: .combine)
-        } else {
-            Label(L("Noch keine gemessenen Fahrten"), systemImage: "speedometer")
-                .font(.system(size: 13, design: .rounded))
+            Text(measured ?? L("noch nicht gemessen"))
+                .font(.system(size: 12, design: .rounded))
                 .foregroundStyle(.secondary)
         }
-    }
-
-    /// Eine gemessene Zahl mit ihrem Namen und dem Satz, wofür sie gilt. Die
-    /// beiden standen bis 1.3 in einer Zeile nebeneinander („rollend … · Tür
-    /// zu Tür …") und waren dadurch nicht auseinanderzuhalten.
-    private func row(_ title: String, _ value: String, _ what: String) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 6) {
-                Text(title).font(.system(size: 12, weight: .semibold, design: .rounded))
-                Spacer(minLength: 0)
-                Text(value)
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .monospacedDigit()
+        .accessibilityElement(children: .combine)
+        Toggle(L("Von Hand"), isOn: Binding(get: { override != nil },
+                                            set: { override = $0 ? Swift.min(Swift.max(start, range.lowerBound), range.upperBound) : nil }))
+            .padding(.leading, 16)
+        if let manual = override {
+            Stepper(value: Binding(get: { manual }, set: { override = $0 }), in: range, step: step) {
+                Text(format(manual)).monospacedDigit()
             }
-            Text(what)
-                .font(.system(size: 10, design: .rounded))
-                .foregroundStyle(.secondary)
+            .padding(.leading, 16)
         }
     }
 }
