@@ -10,6 +10,7 @@ Multimodaler Pendel-Planer (iPhone, iPad, Watch). SwiftUI, XcodeGen, iOS 17+, `d
 - Ausliefern nur auf Ansage: `./dev testflight [version]` bzw. Skill `/testflight`.
 - Eine seltsame Fahrt aufklären: geteilte `RadPendler-Fahrt-*.json` mit `python3 tools/ride_report.py`
   auswerten, nicht raten.
-- Hänger in 1.2 (Watchdog): erst `../RadPendler-Haenger.md` lesen. Nur Instruments „Hangs" auf dem
-  Gerät hat bisher nicht gelogen.
+- Hänger oder Ruckeln: **zuerst die CPU messen, dann Code lesen** (`ps -p $PID -o %cpu=`, `sample $PID 5`
+  auf dem Simulator-Prozess). Der Hänger aus 1.2 (TimelineView in einer ToolbarItem, iOS 26) ist
+  gelöst; Protokoll und Messfallen in `../RadPendler-Haenger.md`.
 - Quelloffen: keine Adressen, Koordinaten oder Schlüssel ins Repo. `Secrets.xcconfig` bleibt lokal.
