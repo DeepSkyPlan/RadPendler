@@ -184,7 +184,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                autoStopMinutes: Double = 0,
                autoPauseMinutes: Double = 0,
                plannedSignals: [CLLocationCoordinate2D] = [],
-               bikeProfile: BRouterClient.Profile = .safety,
+               bikeProfile: BRouterClient.Profile = .quiet,
                avoidCobbles: Bool = false,
                via: [CLLocationCoordinate2D] = []) {
         guard !isRecording else { return }
@@ -231,7 +231,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
 
     private var pending: (Subject, [CLLocationCoordinate2D])?
     /// Womit neu geplant wird: dasselbe Profil wie die gewählte Linie.
-    private var bikeProfile: BRouterClient.Profile = .safety
+    private var bikeProfile: BRouterClient.Profile = .quiet
     private var avoidCobbles = false
     /// Die Fixpunkte, die die geplante Linie anfährt — eine Neuplanung fährt
     /// die noch vor einem liegenden ebenfalls an.

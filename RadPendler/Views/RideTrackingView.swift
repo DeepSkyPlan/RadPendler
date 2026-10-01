@@ -621,11 +621,11 @@ struct RideRemaining: Equatable {
             return RideRemaining(meters: left, signals: p.signalsLeft,
                                  seconds: (left / (planned / 3.6)).rounded())
         }
-        let rolling = Swift.max(5.0, settings.bikeSpeedKmh) / 3.6
-        var seconds = left / rolling + Double(p.signalsLeft * settings.signalWaitSeconds)
-        if settings.bikeOverallKmh > 0 {
-            seconds = left / (settings.bikeOverallKmh / 3.6)
-        }
+        // Dieselbe Rechnung wie beim Planen, mit dem gemessenen Schnitt, wo
+        // es ihn gibt. Welche der restlichen Ampeln gelernt sind, weiß der
+        // Fortschritt nicht — sie kosten hier den Mittelwert.
+        let s = settings.snapshot
+        let seconds = s.rideTime(meters: left, signals: p.signalsLeft, measured: .wins)
         return RideRemaining(meters: left, signals: p.signalsLeft, seconds: seconds.rounded())
     }
 

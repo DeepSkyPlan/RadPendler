@@ -508,15 +508,10 @@ Was die Durchsicht vom 01.10.2026 gefunden hat; das Kleine ist seit dem Aufräum
 
 Noch offen:
 
-- **In den Dateien, die beim Aufräumen nicht angefasst werden durften:**
-  `RideRemaining.from` (in `RideTrackingView.swift`) rechnet ohne Plan weiter selbst
-  (Rolltempo + Ampeln oder Gesamtschnitt) — es sollte `settings.snapshot.rideTime(meters:
-  left, signals: p.signalsLeft, measured: .wins)` nehmen; dann zählen auch gelernte Ampeln.
-  Es liest bereits die wirksamen Werte (von Hand vor gemessen). `RideTracker` hat seinen
-  eigenen `CompositeRouter` — harmlos, der Cache ist geteilt —, sein Standardprofil ist noch
-  `.safety` (BRouters, nicht das eigene „wenig Autos"), und `start` mit vielen Parametern
-  → `RidePlan` und ein eigener `Replanner` steht aus. `ContentView.record()`/`afterRide()`
-  ins Modell steht ebenfalls noch aus.
+- **Noch offen aus dem Aufräumen:** `RideTracker.start` mit vielen Parametern → `RidePlan`
+  und ein eigener `Replanner`; `ContentView.record()`/`afterRide()` ins Modell.
+  (Erledigt am 01.10.: `RideRemaining.from` rechnet ohne Plan mit `PlanSettings.rideTime`,
+  das Standardprofil der Neuplanung ist `.quiet`.)
 - **„Alle Fixpunkte verlangen"** wirkt seit 1.9 nur noch auf Bahn und Auto — prüfen, ob es
   bleiben soll. Dazu die Auto-Routen-Reihenfolge mit fünf Rollen bei meist zwei, drei
   Apple-Linien.
