@@ -248,6 +248,27 @@ extension BikeRouteTests {
         XCTAssertEqual(picked.last?.1, [.alternative], "shown as an alternative rather than dropped")
     }
 
+    /// Ein Zwischenspeicher für alle Router: mit Ablauf und mit Obergrenze.
+    func testTheRouteCacheExpiresAndStaysBounded() async {
+        let cache = RouteCache()
+        let t0 = Date(timeIntervalSince1970: 1_800_000_000)
+        let r = StreetRoute(distance: 1000, expectedTravelTime: 0, coordinates: [])
+        await cache.keep(r, for: "a", now: t0)
+        let fresh = await cache.route(for: "a", now: t0.addingTimeInterval(RouteCache.lifetime - 1))
+        XCTAssertNotNil(fresh)
+        let stale = await cache.route(for: "a", now: t0.addingTimeInterval(RouteCache.lifetime + 1))
+        XCTAssertNil(stale, "nach einer Stunde wird neu gefragt")
+        for i in 0..<(RouteCache.limit + 10) {
+            await cache.keep(r, for: "k\(i)", now: t0.addingTimeInterval(Double(i)))
+        }
+        let count = await cache.count
+        XCTAssertEqual(count, RouteCache.limit)
+        let oldest = await cache.route(for: "k0", now: t0.addingTimeInterval(100))
+        let newest = await cache.route(for: "k\(RouteCache.limit + 9)", now: t0.addingTimeInterval(100))
+        XCTAssertNil(oldest, "das Älteste geht zuerst")
+        XCTAssertNotNil(newest)
+    }
+
     /// Auto und Rad vergeben Rollen nach derselben Regel: die namenlosen
     /// Linien füllen die freien Plätze, die ausgewogenste zuerst — bis 1.9.1
     /// stand beim Auto hier die Reihenfolge eines Wörterbuchs.

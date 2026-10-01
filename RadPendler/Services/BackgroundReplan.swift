@@ -102,8 +102,9 @@ enum BackgroundReplan {
 
     // MARK: Nachstellen
 
-    /// Einer statt einer je Wecken: `MapKitRouter` und `CompositeRouter`
-    /// haben Zwischenspeicher, und ein frisch gebauter Planer hat leere.
+    /// Die Rad- und Fußwege kommen aus `RouteCache.shared`, demselben
+    /// Zwischenspeicher, aus dem der Bildschirm plant — was er vor einer
+    /// Viertelstunde gefragt hat, geht nicht noch einmal hinaus.
     @MainActor private static let planner = TripPlanner()
 
     @MainActor static func run() async {
