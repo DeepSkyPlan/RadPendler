@@ -881,13 +881,13 @@
         }
       }
     },
-    "Beim Rad gibt es „verkehrsarm“ zusätzlich zu „ruhigst“: „ruhigst“ zählt auch Ampeln und Querungen, „verkehrsarm“ fragt nur, wo die Autos sind.": {
+    "Beim Rad beantworten „wenig Autos“ und „wenig Halts“ zwei verschiedene Fragen: die erste, wie lange man neben fahrenden Autos fährt, die zweite, wie oft man ihretwegen anhalten muss.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "For bikes there is “low traffic” next to “quietest”: “quietest” also counts lights and crossings, “low traffic” only asks where the cars are."
+            "value": "For bikes, “few cars” and “few stops” answer two different questions: the first, how long you ride next to moving cars; the second, how often you have to stop because of them."
           }
         }
       }
@@ -1607,13 +1607,13 @@
         }
       }
     },
-    "Fahrrad, Rad + Bahn, Auto, Bus & Bahn — jede Box zeigt die Fahrzeit und worum es sich handelt: bei Radrouten schnellst, kürzest, optimal oder ruhigst, bei Verbindungen die Abfahrt.": {
+    "Fahrrad, Rad + Bahn, Auto, Bus & Bahn — jede Box zeigt die Fahrzeit und worum es sich handelt: bei Radrouten optimal, schnellst, kürzest, wenig Autos oder wenig Halts, bei Verbindungen die Abfahrt.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bike, bike + rail, car, transit — each box shows the travel time and what it is: for bike routes fastest, shortest, balanced or quietest; for connections the departure."
+            "value": "Bike, bike + rail, car, transit — each box shows the travel time and what it is: for bike routes balanced, fastest, shortest, few cars or few stops; for connections the departure."
           }
         }
       }
