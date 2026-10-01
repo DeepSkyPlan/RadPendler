@@ -242,6 +242,9 @@ T.update({
 "gemessen: %d s (aus %d Vorbeifahrten)": "measured: %d s (from %d passes)",
 "noch nicht gemessen": "not measured yet",
 "Von Hand": "By hand",
+"Doppeltipp: Pendelstrecke": "Double tap: your commute",
+"Zweimal auf diese Box tippen setzt deinen Standort als Start und Zuhause oder Arbeit als Ziel.":
+    "Tap this box twice to set your location as the start and home or work as the destination.",
 "aus — nur die Rechnung": "off — calculation only",
 "aus — Apple Karten": "off — Apple Maps",
 "%d km/h": "%d km/h",
