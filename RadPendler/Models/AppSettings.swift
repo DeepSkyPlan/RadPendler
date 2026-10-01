@@ -339,6 +339,14 @@ final class AppSettings {
         // Rüstzeit. Wer einen hatte, findet ihn einmal in der Rüstzeit wieder.
         if let buffer = defaults.object(forKey: "departureBufferMinutes") as? Int, buffer > 0 {
             prepMinutes += buffer
+            // Gleich auch in iCloud: `CloudStore.start` zieht sonst gleich danach
+            // die alte Rüstzeit von dort herein, und der Puffer ist weg. Nur wenn
+            // dort schon eine steht — ein leerer Speicher gälte sonst nicht mehr
+            // als leer, und `pull` räumte alles andere hier ab.
+            let cloud = NSUbiquitousKeyValueStore.default
+            if defaults === UserDefaults.standard, cloud.object(forKey: "prepMinutes") != nil {
+                cloud.set(prepMinutes, forKey: "prepMinutes")
+            }
         }
         for key in Self.retiredKeys where defaults.object(forKey: key) != nil {
             defaults.removeObject(forKey: key)
