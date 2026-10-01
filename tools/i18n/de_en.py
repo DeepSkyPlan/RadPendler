@@ -277,15 +277,15 @@ T.update({
 
 T.update({
 # --- Anleitung (HelpView)
-"Fahrrad, Rad + Bahn, Auto, Bus & Bahn — jede Box zeigt die Fahrzeit und worum es sich handelt: bei Radrouten schnellst, kürzest, optimal oder ruhigst, bei Verbindungen die Abfahrt.":
-    "Bike, bike + rail, car, transit — each box shows the travel time and what it is: for bike routes fastest, shortest, balanced or quietest; for connections the departure.",
+"Fahrrad, Rad + Bahn, Auto, Bus & Bahn — jede Box zeigt die Fahrzeit und worum es sich handelt: bei Radrouten optimal, schnellst, kürzest, wenig Autos oder wenig Halts, bei Verbindungen die Abfahrt.":
+    "Bike, bike + rail, car, transit — each box shows the travel time and what it is: for bike routes balanced, fastest, shortest, few cars or few stops; for connections the departure.",
 "Ein Tipp wählt die Box aus, der nächste Tipp schaltet zur nächsten Möglichkeit. Die Punkte unter der Zeit zeigen, wie viele es sind.":
     "One tap selects the box, the next tap steps to the next option. The dots below the time show how many there are.",
 "Lang drücken springt zurück auf die erste und damit beste Möglichkeit dieser Box.":
     "Press and hold to jump back to the first — and therefore best — option in that box.",
 "Der gelbe Stern steht an dem, was die App empfiehlt.": "The yellow star marks what the app recommends.",
-"Beim Rad gibt es „verkehrsarm“ zusätzlich zu „ruhigst“: „ruhigst“ zählt auch Ampeln und Querungen, „verkehrsarm“ fragt nur, wo die Autos sind.":
-    "For bikes there is “low traffic” next to “quietest”: “quietest” also counts lights and crossings, “low traffic” only asks where the cars are.",
+"Beim Rad beantworten „wenig Autos“ und „wenig Halts“ zwei verschiedene Fragen: die erste, wie lange man neben fahrenden Autos fährt, die zweite, wie oft man ihretwegen anhalten muss.":
+    "For bikes, “few cars” and “few stops” answer two different questions: the first, how long you ride next to moving cars; the second, how often you have to stop because of them.",
 "Sie zeigt die gewählte Fahrt: Abfahrt → Ankunft, die Abschnitte, Kilometer, Ampeln und wann es losgeht.":
     "It shows the chosen trip: departure → arrival, the legs, kilometres, traffic lights and when to set off.",
 "Antippen öffnet die Route im Detail — Zeitstrahl mit Bahnsteigen, Verspätungen und Radabschnitten.":
