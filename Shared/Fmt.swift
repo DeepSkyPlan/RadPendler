@@ -5,8 +5,16 @@ enum Fmt {
     /// Telefons: „1,5 km" gegen „1.5 km", „13:05" gegen „1:05 pm".
     static var locale: Locale { AppLanguage.locale }
 
+    /// Immer 24 Stunden, auch auf Englisch: ohne am/pm war „02:20" für
+    /// 14:20 eine falsche Uhrzeit, und mit am/pm passt sie in keine Box.
     static func time(_ d: Date) -> String {
-        d.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(locale))
+        d.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(clock24))
+    }
+
+    static var clock24: Locale {
+        var c = Locale.Components(locale: locale)
+        c.hourCycle = .zeroToTwentyThree
+        return Locale(components: c)
     }
 
     static func duration(_ t: TimeInterval) -> String {
