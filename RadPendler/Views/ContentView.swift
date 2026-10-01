@@ -23,6 +23,7 @@ struct ContentView: View {
     /// kostet ein halbes Dutzend Anfragen und wirft die Auswahl weg.
     @State private var settingsMark: SettingsMark?
     @State private var showHelp = false
+    @State private var showWaypoints = false
     @State private var showMenu = false
     @State private var showRides = false
     @State private var editing: PlaceField?
@@ -150,6 +151,7 @@ struct ContentView: View {
                 }
             }
             .sheet(isPresented: $showHelp) { HelpView() }
+            .sheet(isPresented: $showWaypoints, onDismiss: refresh) { WaypointSheet() }
             .sheet(isPresented: $showRides) { RidesView() }
             // Right after arriving is the one moment the numbers get read.
             .sheet(item: Binding(get: { tracker.finished }, set: { if $0 == nil { tracker.clearFinished() } })) { ride in
@@ -261,7 +263,9 @@ struct ContentView: View {
                     onEdit: { model.cancel(); editing = $0 },
                     onQuickCommute: quickCommute,
                     onSwap: { settings.swapDirection(); model.applyDefaultWhen(settings: settings); refresh() },
-                    onWhenChange: refresh)
+                    onWhenChange: refresh,
+                    waypoints: settings.isReady ? settings.waypoints : nil,
+                    onWaypoints: { model.cancel(); showWaypoints = true })
     }
 
     /// The stamp rides in the radar bar, on the time axis it belongs to; since
@@ -561,6 +565,9 @@ private struct RouteHeader: View {
     var onQuickCommute: () -> Void
     var onSwap: () -> Void
     var onWhenChange: () -> Void
+    /// Die Fixpunkte dieser Strecke; nil, solange Start oder Ziel fehlt.
+    var waypoints: [Place]? = nil
+    var onWaypoints: () -> Void = {}
 
     @State private var swapTurns = 0.0
 
@@ -570,8 +577,9 @@ private struct RouteHeader: View {
             // two lines here, and a whole row saved.
             HStack(alignment: .center, spacing: 10) {
                 rail
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: waypoints == nil ? 10 : 3) {
                     field(origin, placeholder: L("Start wählen"), field: .origin)
+                    if let waypoints { via(waypoints) }
                     field(destination, placeholder: L("Ziel wählen"), field: .destination)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -598,6 +606,23 @@ private struct RouteHeader: View {
         .contentShape(Rectangle())
         .onTapGesture(count: 2, perform: onQuickCommute)
         .padding(.horizontal, Theme.gutter)
+    }
+
+    /// Zwischen Start und Ziel, klein: über welche Fixpunkte diese Strecke
+    /// führt — oder das Angebot, einen zu setzen. Sie gehören zur Strecke,
+    /// also stehen sie hier und nicht in den allgemeinen Einstellungen.
+    private func via(_ points: [Place]) -> some View {
+        Button(action: onWaypoints) {
+            Label(points.isEmpty ? L("Fixpunkt") : L("über %@", points.map(\.shortName).joined(separator: " · ")),
+                  systemImage: points.isEmpty ? "plus" : "mappin.and.ellipse")
+                .font(.system(.caption2, design: .rounded).weight(.medium))
+                .foregroundStyle(points.isEmpty ? Color.secondary : Theme.accent)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(points.isEmpty ? L("Fixpunkt hinzufügen")
+                            : L("über %@", points.map(\.shortName).joined(separator: ", ")))
     }
 
     private var rail: some View {
@@ -783,5 +808,28 @@ private struct WhenPicker: View {
             }
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// Die Fixpunkte der eingestellten Strecke, vom Tipp auf die Zeile zwischen
+/// Start und Ziel.
+private struct WaypointSheet: View {
+    @Environment(AppSettings.self) private var settings
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    WaypointRows()
+                } footer: {
+                    Text(L("Gilt nur für %@ ↔ %@, in beiden Richtungen. Radrouten fahren die Fixpunkte an, die am Weg liegen.",
+                           settings.origin?.shortName ?? "", settings.destination?.shortName ?? ""))
+                }
+            }
+            .navigationTitle(L("Fixpunkte dieser Strecke"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { Button(L("Fertig")) { dismiss() } }
+        }
     }
 }

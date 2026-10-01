@@ -103,6 +103,15 @@ struct AddressSettingsView: View {
                          ? L("Die App wird ohne Adressen ausgeliefert. Start, Ziel, die benutzten Adressen und alle Einstellungen gleichen sich über deine iCloud mit deinen anderen Geräten ab. Zum Planen gehen die Koordinaten von Start und Ziel an die Dienste, die die Strecke rechnen (VBB, Transitous, BRouter, Apple Karten, Open-Meteo) — ohne Namen und ohne Adresstext. Sonst verlässt nichts davon deine Geräte und deine iCloud.")
                          : L("Die App wird ohne Adressen ausgeliefert. Start und Ziel bleiben nur auf diesem Gerät gespeichert. Mit einem angemeldeten iCloud-Konto gleichen sie sich mit deinen anderen Geräten ab."))
                 }
+                if settings.isReady {
+                    Section {
+                        WaypointRows()
+                    } header: {
+                        Text(L("Fixpunkte dieser Strecke"))
+                    } footer: {
+                        Hint(L("Punkte, über die die Strecke zwischen diesem Start und diesem Ziel führen soll — in beiden Richtungen, z. B. „S Ostkreuz“ oder eine Straße, die du gern fährst. Jede Strecke hat ihre eigenen. Radrouten fahren jeden Fixpunkt an, der am Weg liegt (höchstens ein Viertel Umweg gegenüber der Luftlinie) — auch nach einer Neuplanung unterwegs. Verbindungen, die nicht daran vorbeikommen, werden ausgegraut ans Ende gestellt und nie empfohlen."))
+                    }
+                }
                 Section {
                     ForEach(PlaceRole.allCases, id: \.self) { role in
                         NavigationLink {
@@ -131,24 +140,6 @@ struct AddressSettingsView: View {
                     Text(L("Zuhause und Arbeit"))
                 } footer: {
                     Hint(L("Diese zwei bekommen überall ein Zeichen — in der Adresssuche, in der Liste der benutzten Adressen und oben auf der Hauptseite — und stehen in der Suche ganz oben. Fahrten zur Arbeit starten mit „Ankunft um …“, Fahrten nach Hause mit „Abfahrt jetzt“; von Hand umschaltbar."))
-                }
-                Section {
-                    ForEach(settings.waypoints, id: \.self) { p in
-                        Label(p.withArea, systemImage: "mappin.and.ellipse")
-                    }
-                    .onDelete { settings.waypoints.remove(atOffsets: $0) }
-                    NavigationLink {
-                        AddressSearchView(title: L("Fixpunkt")) { settings.waypoints.append($0) }
-                    } label: {
-                        Label(L("Fixpunkt hinzufügen"), systemImage: "plus.circle")
-                    }
-                    if settings.waypoints.count > 1 {
-                        Toggle(L("Alle Fixpunkte verlangen"), isOn: $settings.requireAllWaypoints)
-                    }
-                } header: {
-                    Text(L("Fixpunkte"))
-                } footer: {
-                    Hint(L("Punkte, über die die Strecke führen soll, z. B. „S Ostkreuz“ oder eine Straße, die du gern fährst. Radrouten fahren jeden Fixpunkt an, der am Weg liegt (höchstens ein Viertel Umweg gegenüber der Luftlinie) — auch nach einer Neuplanung unterwegs. Verbindungen, die nicht daran vorbeikommen, werden ausgegraut ans Ende gestellt und nie empfohlen. Ohne Fixpunkte gilt keine Einschränkung."))
                 }
         }
     }
@@ -654,6 +645,29 @@ struct MeasuredSignalRow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
+        }
+    }
+}
+
+/// Die Fixpunkte der eingestellten Strecke: anzeigen, löschen, hinzufügen.
+/// Steht zweimal — unter „Adressen" und hinter dem Tipp auf die Zeile
+/// zwischen Start und Ziel auf der Hauptseite.
+struct WaypointRows: View {
+    @Environment(AppSettings.self) private var settings
+
+    var body: some View {
+        @Bindable var settings = settings
+        ForEach(settings.waypoints, id: \.self) { p in
+            Label(p.withArea, systemImage: "mappin.and.ellipse")
+        }
+        .onDelete { settings.waypoints.remove(atOffsets: $0) }
+        NavigationLink {
+            AddressSearchView(title: L("Fixpunkt")) { settings.waypoints.append($0) }
+        } label: {
+            Label(L("Fixpunkt hinzufügen"), systemImage: "plus.circle")
+        }
+        if settings.waypoints.count > 1 {
+            Toggle(L("Alle Fixpunkte verlangen"), isOn: $settings.requireAllWaypoints)
         }
     }
 }

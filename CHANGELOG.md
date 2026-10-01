@@ -1,5 +1,14 @@
 # Changelog
 
+## Unveröffentlicht — Fixpunkte je Strecke
+
+- **Fixpunkte gehören jetzt zu einer Strecke**, nicht mehr zu allen (Nutzer, 01.10.2026).
+  Eine Strecke sind zwei Enden in beiden Richtungen; ein Ende gilt als dasselbe bis 500 m
+  daneben (die Ortung liegt nie genau auf der Hausnummer). Gesetzt werden sie über eine
+  kleine Zeile zwischen Start und Ziel auf der Hauptseite („+ Fixpunkt“ bzw. „über …“), oder
+  unter Adressen direkt unter Start und Ziel. Die alten, globalen Fixpunkte gehen beim ersten
+  Start an die gerade eingestellte Strecke (`waypoints` → `routeWaypoints`).
+
 ## 1.9 (Build 46) — Motorrad, Fixpunkte führen, gewohnte Wege, Fahrt vom 30.09.
 
 - **Die Planung lernt die eigenen Wege** (`RiddenPaths`). Jede Radfahrt ab 2 km bleibt als

@@ -35,9 +35,27 @@ final class AppSettings {
         didSet { defaults.set(departurePresets.map(\.stored), forKey: "departurePresets2") }
     }
 
-    /// Places a route has to touch, e.g. "S Musterhausen" — routes that miss
-    /// them are shown greyed out at the end of their section.
-    var waypoints: [Place] = [] { didSet { defaults.set(try? JSONEncoder().encode(waypoints), forKey: "waypoints") } }
+    /// Fixpunkte **je Strecke** — ein Fixpunkt auf dem Weg zur Arbeit hat auf
+    /// dem Weg zum Bäcker nichts verloren (Nutzer, 01.10.2026). Bis 1.9 galten
+    /// sie für jede Strecke.
+    var routeWaypoints: [RouteWaypoints] = [] {
+        didSet { defaults.set(try? JSONEncoder().encode(routeWaypoints), forKey: "routeWaypoints") }
+    }
+
+    /// Places the current route has to touch, e.g. "S Musterhausen" — routes
+    /// that miss them are shown greyed out at the end of their section. Gilt
+    /// für Start und Ziel, wie sie gerade stehen, in beiden Richtungen.
+    var waypoints: [Place] {
+        get {
+            guard let origin, let destination else { return [] }
+            return RouteWaypoints.find(routeWaypoints, origin.coordinate, destination.coordinate)?.points ?? []
+        }
+        set {
+            guard let origin, let destination else { return }
+            routeWaypoints = RouteWaypoints.setting(newValue, in: routeWaypoints,
+                                                    origin.coordinate, destination.coordinate)
+        }
+    }
     /// true: a route must touch every fixed point, false: one is enough.
     var requireAllWaypoints: Bool = false { didSet { defaults.set(requireAllWaypoints, forKey: "requireAllWaypoints") } }
 
@@ -245,7 +263,7 @@ final class AppSettings {
     /// Wert.
     static let storedKeys = [
         // Adressen und Orte
-        "origin", "destination", "workPlace", "homePlace", "waypoints", "placeHistory",
+        "origin", "destination", "workPlace", "homePlace", "routeWaypoints", "placeHistory",
         "requireAllWaypoints", "workArrivalMinutes",
         // Planung
         "prepMinutes", "bikeMovingSpeedKmh", "bikeStationBufferMinutes", "maxBikeToStationKm",
@@ -314,8 +332,16 @@ final class AppSettings {
         assign(\.signalWaitSeconds, defaults.object(forKey: "signalWaitSeconds") as? Int ?? signalWaitSeconds)
         assign(\.departurePresets, (defaults.array(forKey: "departurePresets2") as? [String])?
             .compactMap(DeparturePreset.init(stored:)) ?? departurePresets)
-        assign(\.waypoints, defaults.data(forKey: "waypoints")
-            .flatMap { try? JSONDecoder().decode([Place].self, from: $0) } ?? waypoints)
+        assign(\.routeWaypoints, defaults.data(forKey: "routeWaypoints")
+            .flatMap { try? JSONDecoder().decode([RouteWaypoints].self, from: $0) } ?? routeWaypoints)
+        // Die alten, für alle Strecken geltenden Fixpunkte gehören ab 1.9.1
+        // der Strecke, die gerade eingestellt ist — die, für die sie
+        // eingetragen wurden.
+        if let old = defaults.data(forKey: "waypoints").flatMap({ try? JSONDecoder().decode([Place].self, from: $0) }),
+           origin != nil, destination != nil {
+            if !old.isEmpty, waypoints.isEmpty { waypoints = old }
+            defaults.removeObject(forKey: "waypoints")
+        }
         assign(\.requireAllWaypoints, defaults.object(forKey: "requireAllWaypoints") as? Bool ?? requireAllWaypoints)
         assign(\.departureBufferMinutes,
                defaults.object(forKey: "departureBufferMinutes") as? Int ?? departureBufferMinutes)
@@ -858,5 +884,36 @@ enum OrientationLock: String, CaseIterable, Codable {
         case .portrait: .landscape
         case .landscape: .auto
         }
+    }
+}
+
+/// Die Fixpunkte einer Strecke. Eine Strecke sind zwei Enden, in beiden
+/// Richtungen dieselbe — wer abends über den Korso heimfährt, will morgens
+/// auch über ihn hin. Ein Ende gilt als dasselbe, solange es höchstens
+/// `radius` entfernt liegt: „hier" aus der Ortung liegt nie genau auf der
+/// Hausnummer.
+struct RouteWaypoints: Codable, Equatable {
+    var a: TrackPoint
+    var b: TrackPoint
+    var points: [Place]
+
+    static let radius = 500.0
+
+    func matches(_ from: CLLocationCoordinate2D, _ to: CLLocationCoordinate2D) -> Bool {
+        let (x, y) = (a.coordinate, b.coordinate)
+        return (x.distance(to: from) <= Self.radius && y.distance(to: to) <= Self.radius)
+            || (y.distance(to: from) <= Self.radius && x.distance(to: to) <= Self.radius)
+    }
+
+    static func find(_ all: [RouteWaypoints], _ from: CLLocationCoordinate2D,
+                     _ to: CLLocationCoordinate2D) -> RouteWaypoints? {
+        all.first { $0.matches(from, to) }
+    }
+
+    static func setting(_ points: [Place], in all: [RouteWaypoints], _ from: CLLocationCoordinate2D,
+                        _ to: CLLocationCoordinate2D) -> [RouteWaypoints] {
+        var out = all.filter { !$0.matches(from, to) }
+        if !points.isEmpty { out.append(RouteWaypoints(a: TrackPoint(from), b: TrackPoint(to), points: points)) }
+        return out
     }
 }

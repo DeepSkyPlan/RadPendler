@@ -95,3 +95,44 @@ final class RiddenPathsTests: XCTestCase {
         XCTAssertEqual(info.shortTitle, L("gewohnt"), "keine „Alternative“, sondern die eigene")
     }
 }
+
+// MARK: Fixpunkte je Strecke
+
+final class RouteWaypointTests: XCTestCase {
+    private func settings() -> (AppSettings, UserDefaults, String) {
+        let suite = "wp-\(UUID())"
+        let d = UserDefaults(suiteName: suite)!
+        return (AppSettings(defaults: d), d, suite)
+    }
+    private let home = Place(name: "A", latitude: 52.40, longitude: 13.23)
+    private let work = Place(name: "B", latitude: 52.53, longitude: 13.36)
+    private let bakery = Place(name: "C", latitude: 52.45, longitude: 13.30)
+    private let korso = Place(name: "Korso", latitude: 52.47, longitude: 13.32)
+
+    func testAFixedPointBelongsToItsRouteInBothDirections() {
+        let (s, _, suite) = settings()
+        defer { UserDefaults().removePersistentDomain(forName: suite) }
+        s.origin = home; s.destination = work
+        s.waypoints = [korso]
+        s.swapDirection()
+        XCTAssertEqual(s.waypoints, [korso], "zurück über denselben Korso")
+        s.destination = bakery
+        XCTAssertEqual(s.waypoints, [], "zum Bäcker gilt er nicht")
+        // Jetzt wieder B → A, nur 150 m neben der Haustür.
+        s.destination = Place(name: "A, ein Stück weiter", latitude: 52.401, longitude: 13.231)
+        XCTAssertEqual(s.waypoints, [korso], "150 m neben dem Ziel ist dasselbe Ziel")
+    }
+
+    func testTheOldGlobalFixedPointsMoveToTheCurrentRoute() throws {
+        let suite = "wp-\(UUID())"
+        let d = UserDefaults(suiteName: suite)!
+        defer { UserDefaults().removePersistentDomain(forName: suite) }
+        d.set(try JSONEncoder().encode(home), forKey: "origin")
+        d.set(try JSONEncoder().encode(work), forKey: "destination")
+        d.set(try JSONEncoder().encode([korso]), forKey: "waypoints")
+        let s = AppSettings(defaults: d)
+        XCTAssertEqual(s.waypoints, [korso])
+        XCTAssertNil(d.data(forKey: "waypoints"))
+        XCTAssertEqual(AppSettings(defaults: d).waypoints, [korso], "und bleiben nach dem nächsten Start")
+    }
+}
