@@ -162,7 +162,10 @@ final class PlanModel {
         let own = options(for: mode)
         guard !own.isEmpty else { return }
         activeMode = mode
-        selection[mode] = own[min(max(choice.index, 0), own.count - 1)].id
+        // Die Kennung, wo die Uhr eine schickt und es sie hier noch gibt; die
+        // Stelle in der Liste nur für eine Uhr mit älterer Fassung.
+        selection[mode] = choice.id.flatMap { id in own.first { $0.id == id }?.id }
+            ?? own[min(max(choice.index, 0), own.count - 1)].id
         forgetStopIfDepartureChanged()
         publishToWatch()
     }
@@ -252,8 +255,13 @@ final class PlanModel {
             }
             guard let self, !Task.isCancelled else { return }
             result = r
-            selection = [:]
-            if let rec = r.recommendation.flatMap({ rid in r.options.first { $0.id == rid.optionID } }) {
+            // Die Kennungen sind stabil: was gewählt war und wieder dabei ist,
+            // bleibt gewählt. Bis 1.9.1 brachte jeder Lauf neue, und die Wahl
+            // fiel nach jeder Neuplanung auf die Empfehlung zurück. Was es nicht
+            // mehr gibt — der Zug ist weg —, geht; dort gilt wieder die Empfehlung.
+            selection = selection.filter { _, id in r.options.contains { $0.id == id } }
+            if let rec = r.recommendation.flatMap({ rid in r.options.first { $0.id == rid.optionID } }),
+               selection[rec.mode] == nil {
                 selection[rec.mode] = rec.id
             }
             // Aktiv ist die **erste Kategorie der eigenen Reihenfolge**, die

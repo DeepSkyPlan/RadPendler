@@ -14,9 +14,9 @@ final class WatchModel {
     /// finished. The watch records nothing itself — it has no track, no
     /// junctions and no business starting a second recording of the same ride.
     private(set) var live: RideLive?
-    /// What the wrist picked: a category and which of its options. Kept as
-    /// mode plus position, never as an id — every new plan brings new ids, and
-    /// "the second bike route" survives a replan where an id does not.
+    /// What the wrist picked: a category and which of its options in the plan
+    /// on screen. A new plan resets it (`accept`), so the position is enough
+    /// here; the phone gets the id with it.
     private(set) var chosenMode: String?
     private(set) var chosenIndex = 0
 
@@ -65,8 +65,9 @@ final class WatchModel {
         if live != nil, Self.fresh(live, now: now) == nil { live = nil }
     }
 
-    /// Ein **neuer** Plan setzt die Wahl am Handgelenk zurück — genau wie auf
-    /// dem Telefon, wo `selection` nach jedem Lauf geleert wird.
+    /// Ein **neuer** Plan setzt die Wahl am Handgelenk zurück: danach zeigt
+    /// die Uhr, was das Telefon gewählt hat — und das behält seit den stabilen
+    /// Kennungen seine Wahl über die Neuplanung, auch eine vom Handgelenk.
     ///
     /// Vorher behielt die Uhr ihre Wahl über jede Neuplanung hinweg, und
     /// danach zeigten die beiden Bildschirme Verschiedenes, bis jemand
@@ -102,7 +103,8 @@ final class WatchModel {
         UserDefaults.standard.set(index, forKey: "chosenIndex")
         // The phone follows: the same trip should be on both screens, and the
         // warnings come from the phone.
-        link.send(WatchChoice(mode: mode, index: index))
+        let own = snapshot?.options(in: mode) ?? []
+        link.send(WatchChoice(mode: mode, index: index, id: own.indices.contains(index) ? own[index].id : nil))
     }
 
     /// Back to what the phone thinks is best.

@@ -353,7 +353,6 @@ struct Leg: Identifiable {
 }
 
 struct TripOption: Identifiable {
-    let id = UUID()
     var mode: TravelMode
     var legs: [Leg]
     /// Minutes of preparation before `leave`.
@@ -369,6 +368,39 @@ struct TripOption: Identifiable {
     /// The one route of its mode that matches the user's first choice — the
     /// only whole-way bike route the recommendation considers.
     var isPreferredVariant = true
+
+    /// Dieselbe Möglichkeit hat in zwei Planungen dieselbe Kennung.
+    ///
+    /// Bis 1.9.1 war das eine `UUID()` je Planung: jede Neuplanung — und jeder
+    /// ihrer vier Zwischenstände — brachte dieselben Linien mit neuen Kennungen.
+    /// Die Auswahl fiel deshalb nach jedem Lauf auf die Empfehlung zurück, die
+    /// Karte erkannte ihre Linien an der Geometrie statt an der Kennung, und
+    /// die Uhr meldete ihre Wahl als Stelle in der Liste.
+    ///
+    /// Rad und Auto: Rollen und Linie (Länge auf 100 m, Mittelpunkt auf rund
+    /// 100 m) — **ohne** Abfahrt, denn bei „jetzt los" rückt die mit jeder
+    /// Neuplanung eine Minute weiter, und es bleibt doch dieselbe Route. Bahn
+    /// und Rad + Bahn: jeder Zug mit Linie, Abfahrtsbahnhof und **planmäßiger**
+    /// Abfahrtsminute; eine Verspätung macht aus dem Zug keinen anderen.
+    var id: String {
+        let minute = { (d: Date) in String(Int((d.timeIntervalSince1970 / 60).rounded(.down))) }
+        let hm = String(Int((totalDistance / 100).rounded()))
+        switch mode {
+        case .bike, .car:
+            let roles = bikeRoute?.variants.map(\.rawValue) ?? carRoute?.variants.map(\.rawValue) ?? []
+            let line = legs.first?.coordinates ?? []
+            let mid = line.isEmpty ? "-" : String(format: "%.3f,%.3f", line[line.count / 2].latitude,
+                                                  line[line.count / 2].longitude)
+            return [mode.rawValue, roles.joined(separator: "+"), hm, mid].joined(separator: "|")
+        case .transit, .bikeTransit:
+            let trains = transitLegs.map {
+                "\($0.lineName ?? "?")@\($0.fromName)@\(minute($0.plannedDeparture ?? $0.departure))"
+            }
+            // Zu Fuß ganz ohne Zug: dann eben die Abfahrt und die Strecke.
+            guard !trains.isEmpty else { return [mode.rawValue, minute(leave), hm].joined(separator: "|") }
+            return ([mode.rawValue] + trains).joined(separator: "|")
+        }
+    }
 
     var leave: Date { legs.first?.departure ?? .distantPast }
     var arrival: Date { legs.last?.arrival ?? .distantPast }

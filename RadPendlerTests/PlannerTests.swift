@@ -593,3 +593,72 @@ extension PlannerTests {
         UserDefaults.standard.removePersistentDomain(forName: suite)
     }
 }
+
+// MARK: Stabile Kennungen
+
+/// Antwortet immer gleich: eine Radlinie, zwei Autolinien.
+private struct FixedRouter: StreetRouting {
+    func route(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+               mode: StreetMode, departure: Date?) async throws -> StreetRoute {
+        try await routes(from: from, to: to, mode: mode, departure: departure)[0]
+    }
+
+    func routes(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+                mode: StreetMode, departure: Date?) async throws -> [StreetRoute] {
+        let mid = CLLocationCoordinate2D(latitude: (from.latitude + to.latitude) / 2 + 0.01,
+                                         longitude: (from.longitude + to.longitude) / 2)
+        let direct = StreetRoute(distance: 12_000, expectedTravelTime: 1_500, coordinates: [from, to])
+        let around = StreetRoute(distance: 15_500, expectedTravelTime: 1_320, coordinates: [from, mid, to])
+        return mode == .car ? [direct, around] : [direct]
+    }
+}
+
+extension PlannerTests {
+    /// Zwei Planungen mit demselben Ergebnis haben dieselben Kennungen — auch
+    /// wenn „jetzt los" inzwischen eine Minute später ist.
+    func testTheSameResultKeepsItsIds() async {
+        var planner = TripPlanner.offline
+        planner.apple = FixedRouter()
+        var s = PlanSettings()
+        s.avoidCobbles = false        // sonst fragt niemand Apple nach der Radlinie
+        let first = await planner.plan(PlanRequest(origin: from, destination: to,
+                                                   target: .departAfter(t0), settings: s))
+        let later = await planner.plan(PlanRequest(origin: from, destination: to,
+                                                   target: .departAfter(t0.addingTimeInterval(60)), settings: s))
+        let ids = first.options.map(\.id)
+        XCTAssertEqual(first.options.filter { $0.mode == .bike }.count, 1)
+        XCTAssertEqual(first.options.filter { $0.mode == .car }.count, 2)
+        XCTAssertEqual(Set(ids).count, ids.count, "keine zwei gleich")
+        XCTAssertEqual(Set(later.options.map(\.id)), Set(ids))
+        XCTAssertNotNil(first.recommendation)
+        XCTAssertEqual(first.recommendation?.optionID, later.recommendation?.optionID)
+    }
+
+    /// Ein Zug bleibt derselbe, wenn er sich verspätet; ein späterer ist ein anderer.
+    func testATrainKeepsItsIdThroughADelay() throws {
+        func option(_ train: Leg) throws -> TripOption {
+            try XCTUnwrap(BikeTransitComposer.compose(origin: from, destination: to,
+                                                      station1: "A", ride1: line(2_000), journey: [train],
+                                                      station2: "B", ride2: line(3_000), settings: settings,
+                                                      earliestLeave: t0))
+        }
+        var onTime = train("S1", dep: 1_800, arr: 3_000)
+        onTime.plannedDeparture = onTime.departure
+        var late = onTime
+        late.departure = late.departure.addingTimeInterval(240)
+        late.arrival = late.arrival.addingTimeInterval(240)
+        XCTAssertEqual(try option(onTime).id, try option(late).id)
+        XCTAssertNotEqual(try option(onTime).id, try option(train("S1", dep: 3_000, arr: 4_200)).id)
+        XCTAssertNotEqual(try option(onTime).id, try option(train("RE1", dep: 1_800, arr: 3_000)).id)
+    }
+
+    /// Die Wahl vom Handgelenk kommt mit Kennung; die Stelle zählt nur noch,
+    /// wenn eine ältere Uhr keine schickt.
+    func testAWatchChoiceCarriesTheId() throws {
+        let choice = WatchChoice(mode: "bike", index: 1, id: "bike|balanced|120|-")
+        XCTAssertEqual(try JSONDecoder().decode(WatchChoice.self, from: JSONEncoder().encode(choice)), choice)
+        let old = try JSONDecoder().decode(WatchChoice.self, from: Data(#"{"mode":"car","index":2}"#.utf8))
+        XCTAssertNil(old.id)
+        XCTAssertEqual(old.index, 2)
+    }
+}
