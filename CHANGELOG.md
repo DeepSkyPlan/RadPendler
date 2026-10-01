@@ -1,9 +1,13 @@
 # Changelog
 
-## Unveröffentlicht — Kartenschilder
+## Unveröffentlicht — Kartenschilder, Fahrt andersherum
 
 - Die gewählte Rad- oder Autolinie trägt **ein** Schild „Zeit · Name · Länge“ statt zweier,
   die übereinander lagen. Start, Ziel und Fixpunkte verdrängt kein Schild mehr.
+- **Am Ziel losgefahren:** steht noch der Hinweg auf dem Bildschirm und die Fahrt beginnt an
+  dessen Ziel, dreht die Aufzeichnung sich beim ersten guten Fix um — Start und Ziel, Linie,
+  Ampeln, Beläge — und plant den Weg einmal neu (auch bei abgeschalteter Neuplanung). Bisher
+  zählten Restweg und Restzeit hoch, und geführt wurde auf der Gegenfahrbahn (Fahrt 01.10.).
 
 ## 1.10 (Build 48) — Fahrt teilen, Messwerte von Hand, Aufräumen
 
