@@ -1464,6 +1464,17 @@
         }
       }
     },
+    "Du stehst am Ziel — Richtung gedreht. Gleich noch einmal auf „Fahrt“ tippen.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You're at the destination — direction reversed. Tap “Ride” again in a moment."
+          }
+        }
+      }
+    },
     "Du stehst seit %d Minuten. Die Aufzeichnung läuft weiter, sobald es weitergeht.": {
       "extractionState": "manual",
       "localizations": {

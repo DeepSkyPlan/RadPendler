@@ -8,6 +8,9 @@
   dessen Ziel, dreht die Aufzeichnung sich beim ersten guten Fix um — Start und Ziel, Linie,
   Ampeln, Beläge — und plant den Weg einmal neu (auch bei abgeschalteter Neuplanung). Bisher
   zählten Restweg und Restzeit hoch, und geführt wurde auf der Gegenfahrbahn (Fahrt 01.10.).
+- **Schon beim Knopf „Fahrt“:** steht man laut der letzten Ortung des Systems am Ziel der
+  Route, dreht die App die Richtung, plant neu und sagt es — der zweite Tipp nimmt den
+  richtigen Weg. Ohne frische Ortung greift die Umkehr beim ersten Fix der Fahrt.
 
 ## 1.10 (Build 48) — Fahrt teilen, Messwerte von Hand, Aufräumen
 
