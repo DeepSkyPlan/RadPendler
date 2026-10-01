@@ -26,5 +26,7 @@ case "${1:-test}" in
   test)   need_project; xcodebuild -project "$PROJ" -scheme "$SCHEME" -destination "$DEST" test ;;
   open)   need_project; open "$PROJ" ;;
   clean)  rm -rf "$PROJ"; xcodebuild -scheme "$SCHEME" clean 2>/dev/null || true ;;
-  *) echo "usage: ./dev [generate|build|test|open|clean]" >&2; exit 2 ;;
+  # Nur auf Ansage: Buildnummer +1, Tests, Archiv, Upload, Commit, Push.
+  testflight) shift; exec tools/testflight.sh "$@" ;;
+  *) echo "usage: ./dev [generate|build|test|open|clean|testflight [version]]" >&2; exit 2 ;;
 esac
