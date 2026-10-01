@@ -1,4 +1,4 @@
-# RadPendler — Übergabe (Stand 30.09.2026 · 1.9 / Build 46)
+# RadPendler — Übergabe (Stand 01.10.2026 · 1.9.1 / Build 47, plus Aufräumen)
 
 Multimodaler Pendel-Planer für iPhone, iPad und Apple Watch: Büro ↔ Zuhause mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln,
 Regen und Countdown.
@@ -7,7 +7,7 @@ Das Projekt ist quelloffen (MIT); Adressen und Schlüssel gehören nicht hinein.
 ## Bauen, testen, ausliefern
 
 ```bash
-./dev test      # generiert das .xcodeproj bei Bedarf, dann 154 Tests im Simulator
+./dev test      # generiert das .xcodeproj bei Bedarf, dann rund 260 Tests im Simulator
 #               MOTIS_LIVE=1 schaltet zusätzlich den echten Transitous-Aufruf frei
 #               (aus Xcode heraus; xcodebuild reicht die Variable nicht durch)
 ./dev open      # Xcode mit demselben DerivedData wie die Kommandozeile
@@ -101,7 +101,7 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   `TurnGuide` (Abbiegehinweise **aus der gezeichneten Linie**, rein und testbar:
   kein Router sagt sie an, und keiner muss es),
   `OffRoute` (wo die geplante Linie liegt, wenn man nicht auf ihr ist — reine
-  Geometrie mit Hysterese, plus `shouldReplan`: Entfernung **oder** Zeit),
+  Geometrie mit Hysterese, plus `shouldReplan`: Entfernung **oder** Zeit, die Zeit fest auf aus),
   `BackgroundReplan` (`BGAppRefreshTask`; stellt die Warnungen auf den aktuellen
   Fahrplan nach, während die App zu ist — dieselbe Frage, die auf dem Bildschirm
   stand, liegt als `countdownQuestion` in den UserDefaults),
@@ -112,7 +112,7 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   `Motis` (Transitous/MOTIS 2: `MotisClient` + `MotisParser`, inkl.
   Polylinien-Dekoder), `CloudStore` (iCloud-Schlüssel-Wert-Abgleich der Einstellungen **und** der
   Fahrt-Kennzahlen; hört auf `UserDefaults.didChangeNotification` statt auf zwanzig
-  Setter, `placeHistory` und `rides` werden zusammengeführt statt ersetzt), `WatchLink` (Plan an die Uhr), `Hafas` (VBB mgate + Parser), `BRouter` (+ `CompositeRouter`), `StreetRouter`
+  Setter, `placeHistory` und `rides` werden zusammengeführt statt ersetzt), `WatchLink` (Plan an die Uhr), `Hafas` (VBB mgate + Parser, `StationCache`: Bahnhöfe je Punkt einen Tag), `BRouter` (+ `CompositeRouter`, `BRouterGate`, `RouteCache`), `StreetRouter`
   (MapKit), `RoadData` (Overpass + `RouteAnalyzer` + `SegmentGrid`), `Rain` (Open-Meteo),
   `RadarOverlay` (DWD-WMS-Kacheln), `Waypoints`, `TripPlanner` (+ `BikeCandidate`,
   `BikeTransitComposer`), `Alarm`.
@@ -155,9 +155,10 @@ geprüft — an einer Kreuzung steht man auch mal drei Minuten:
   wieder (`wokeUp`: Tempo oder 50 m vom Ort der Pause), läuft sie von selbst weiter.
 - **Beenden nach `autoStopMinutes`** (20): der Fahrer ist angekommen und hat es
   vergessen. Gezählt wird bis zum **Anfang** des Stillstands.
-- **`setAutomatics(off:)`** schaltet beides für die laufende Fahrt ab; der Knopf
-  sitzt oben links neben Folgen und Ausrichtung. Beim nächsten Start ist die
-  Automatik wieder an — eine Ausnahme, keine Einstellung.
+- **`cycleAutomatic()`** schaltet für die laufende Fahrt durch drei Stufen:
+  anhalten und beenden (`full`) → nur beenden (`stopOnly`) → nichts (`off`). Der
+  Knopf sitzt oben links neben Folgen und Ausrichtung. Beim nächsten Start ist die
+  Automatik wieder ganz an — eine Ausnahme, keine Einstellung.
 
 Der Unterschied zwischen den beiden Pausen steckt in `RideMeter.pause(at:keepingStop:)`:
 die automatische **behält** den Halt (an der Schranke hat man gestanden), die per
@@ -215,14 +216,23 @@ Fahrradmitnahme-Texte der VBB-Auskunft!), der User-Agent, JSON-Schlüssel und al
   erst Testserver, dann Produktivsystem.
 - Fahrradmitnahme = Vermerk **`FK`** je Fahrt. Der Filter `{"type":"BC"…}` liefert nur zwischen
   Haltestellen Ergebnisse, mit Adressen kommt H890 → die App wählt die Bahnhöfe selbst (3 × 4
-  bevorzugte S/RE-Paare plus 2 × 2 beliebige für die U-Bahn-Alternative).
+  bevorzugte S/RE-Paare plus 3 × 3 beliebige für die U-Bahn/Tram-Alternative: je Ende die zwei
+  nächsten Haltestellen jeder Art und die nächste Tram). Die Bahnhofslisten hält
+  `StationCache` einen Tag, auf ~10 m gerundet.
+- **Welcher Fahrplan**: `TimetableSource.resolved` — liegen Start und Ziel im VBB-Gebiet, der
+  VBB, sonst Transitous. Bis 1.9.1 ließ sich das in den Einstellungen festnageln; das ist weg.
 - Ankunftssuche = `outFrwd: false`; mehrere `arrLocL` funktionieren **nicht**.
 - **BRouter** (brouter.de): Profile trekking/fastbike/safety/shortest/fastbike-lowtraffic.
   **Höchstens drei Anfragen gleichzeitig** — auf acht auf einmal antwortet der öffentliche
   Server mit `403 Please, retry later!`, und zwar dauerhaft für diese IP (nachgemessen,
-  auch einzeln nach zwanzig Minuten Pause). Gefragt wird nur, was die eingestellten Rollen
-  brauchen: voreingestellt vier Anfragen statt neun. Antwortet er gar nicht, steht das
-  unter der Route.
+  auch einzeln nach zwanzig Minuten Pause). Das hält `BRouterGate` **app-weit** fest, an der
+  Stelle, wo die Anfrage hinausgeht (Route und Profil-Upload); `TripPlanner.gathered(atOnce: 3)`
+  ordnet davor die Radrouten und die Zubringer von Rad + Bahn (beide Enden in einer Liste).
+  Gefragt wird nur, was die eingestellten Rollen brauchen: voreingestellt drei Anfragen, dazu die gewohnte Fahrt.
+  Apples Radlinie nur, wenn Pflaster erlaubt ist oder BRouter nichts liefert; antwortet er
+  gar nicht, steht das unter der Route. Antworten hält `RouteCache` eine Stunde (32 Stück);
+  `CompositeRouter` hat keinen eigenen Speicher mehr, damit eine Ersatzlinie von Apple nicht
+  bis zum Neustart stehen bleibt.
 - **Overpass**: **entlang der Route**, nicht im umschließenden Kasten. Gemessen an 20 km
   quer durch Berlin, beide Abfragen gegen overpass-api.de:
 
@@ -244,7 +254,8 @@ Fahrradmitnahme-Texte der VBB-Auskunft!), der User-Agent, JSON-Schlüssel und al
   hinaus, intermodal (`preTransitModes`/`postTransitModes=BIKE` liefert Rad–Bahn–Rad in einer
   Antwort). Bedingungen: quelloffen, nicht kommerziell, `User-Agent` mit Name, Version und
   Kontakt bei **jeder** Anfrage, sichtbarer Link auf <https://transitous.org/sources/>. Alles
-  drei ist umgesetzt — `MotisClient.userAgent`, Menü und Einstellungen. Bei Zweifeln über die
+  drei ist umgesetzt — `MotisClient.userAgent` und die Einstellungen (Bus & Bahn sowie Daten,
+  Rechte und Version; das Menü zeigt seit dem Aufräumen nur noch die Version). Bei Zweifeln über die
   Last: deren Matrix-Kanal. `routeType` (GTFS-erweitert) sagt mehr als `mode`, das eine S-Bahn
   „METRO" nennt. `bikesAllowed: false` heißt **nicht** nein, sondern „nicht gesetzt".
 
@@ -310,9 +321,10 @@ Fahrradmitnahme-Texte der VBB-Auskunft!), der User-Agent, JSON-Schlüssel und al
   Ampel war, noch den Abbiegepfeil auf eine Straße zeigen lassen, auf der man nicht ist —
   und ein Plan, der still leer zurückkommt, darf die Führung nicht mitnehmen. Genau das
   ist am 23.09. im Simulator passiert, bevor die Route mit einfror.
-  Die Ausnahme ist die **Neuplanung beim Verlassen der Route** (einstellbar, voreingestellt
-  ab 200 m und fünfzehn Sekunden am Stück daneben, oder nach einer eingestellten Zahl
-  Minuten — was zuerst eintritt). Sie ändert nur den Weg nach vorn; gemessen bleibt, was
+  Die Ausnahme ist die **Neuplanung beim Verlassen der Route** (einstellbar ab wie viel
+  Metern, voreingestellt 200 m, und erst nach fünfzehn Sekunden am Stück daneben). Die Regel
+  „oder nach so vielen Minuten" steckt noch in `OffRoute.shouldReplan`, steht aber fest auf
+  aus (`OffRoute.replanMinutes`); als Einstellung gab es sie bis 1.9.1. Sie ändert nur den Weg nach vorn; gemessen bleibt, was
   gemessen wurde.
 - **Eine Zeile der BRouter-Tabelle ist eine Strecke, kein Punkt.** Bis zu zwei Kilometer
   lang. `BRouterClient.roads` legt sie deshalb entlang der Linie aus und setzt alle
@@ -327,7 +339,7 @@ Fahrradmitnahme-Texte der VBB-Auskunft!), der User-Agent, JSON-Schlüssel und al
 - **Was geplant war, steht in der Fahrt**: `Ride.plannedMeters`, `plannedSignals`,
   `plannedSeconds` und `RideTrack.planned` (die ausgedünnte Linie). Alles optional, alles
   aus der Zeit der Planung — die Planung von morgen ist eine andere.
-- **Ein Halt ab `signalStopSeconds` (30 s) ist eine Ampel**, auch ohne Kartendaten, und
+- **Ein Halt ab `RideMeter.defaultSignalSeconds` (30 s, fest; bis 1.9.1 einstellbar) ist eine Ampel**, auch ohne Kartendaten, und
   wird als `LearnedSignal` behalten. Gelernte Ampeln wirken in zwei Richtungen zurück:
   in `RideMeter.signals` der nächsten Fahrt und über `TripPlanner.withLearned` in
   `RoadData.learned`, also in die Ampelzahl **und** in die Wartezeit jeder Route.
@@ -352,8 +364,8 @@ Fahrradmitnahme-Texte der VBB-Auskunft!), der User-Agent, JSON-Schlüssel und al
   ursprüngliche Linie liegt ab der ersten Neuplanung dünn und grau daneben
   (`plannedLine`), und solange `guidedLine` gesetzt ist, zeichnet `drawRoutes` weder
   Streckenlinien noch Planampeln — sonst läge alles doppelt übereinander.
-- **Abbiegepfeil grün, Abweichung rot, und der Pfeil erst 250 m vorher**
-  (`RideTrackingView.announceMeters`). Rot ist auf diesem Bildschirm reserviert für „du
+- **Abbiegepfeil grün, Abweichung rot, und der Pfeil erst kurz vorher** — mit dem Rad
+  125 m, mit dem Auto 250 m (`TurnGuide.announceMeters(for:)`, über `RideTracker.announceMeters`). Rot ist auf diesem Bildschirm reserviert für „du
   bist falsch"; ein Pfeil, der die halbe Strecke lang dasteht, wird zu Tapete und nimmt
   der Karte die obersten hundert Punkte.
 - **Die Fahrtansicht zeigt, was noch kommt**: `RideTracker.progress` (Reststrecke,
@@ -363,9 +375,10 @@ Fahrradmitnahme-Texte der VBB-Auskunft!), der User-Agent, JSON-Schlüssel und al
   Schnitt. Dieselbe Zahl steht während einer Fahrt in der Werkzeugleiste statt des
   Countdowns (`RideArrivalPill`).
 - **Die Ausrichtung im Fahrtmodus ist `rideOrientation`, nicht `orientation`.** Sie wird
-  beim Start der Fahrt angewendet und bleibt für die nächste stehen; am Ende geht
-  `orientation` auf `.auto`. Vorher blieb die ganze App hochkant, nur weil sie es am
-  Lenker einmal sein sollte.
+  beim Start der Fahrt angewendet und bleibt für die nächste stehen; am Ende wird
+  `orientation` — die aus den Einstellungen — wieder angewendet, nicht verändert. Bis 1.9.1
+  setzte `afterRide` sie auf `.auto`, ein Überbleibsel aus der Zeit vor `rideOrientation`, und
+  die Einstellung hielt deshalb nie.
 - **Der Pfeil der Fahrtansicht dreht sich um `Kurs − Blickrichtung der Karte`.** Beim
   Folgen dreht sich die Karte selbst in den Kurs; wer den Pfeil zusätzlich um den Kurs
   dreht, zeigt doppelt daneben. Erster Befund der ersten Testfahrt.
@@ -396,7 +409,7 @@ Fahrradmitnahme-Texte der VBB-Auskunft!), der User-Agent, JSON-Schlüssel und al
   `CloudStore.ridesKey` (komprimiert,
   gedeckelt auf `RideStore.maxRides`), die Linien als Dateien unter `Rides/tracks/` **und**
   als `CKAsset` in der privaten CloudKit-Datenbank (`TrackCloud`, Container
-  `iCloud.org.afjk.radpendler`).
+  `iCloud.de.keese.radpendler` — die App ist veröffentlicht und behält ihre alte Kennung).
   `rides` ist wie `placeHistory` ein **zusammengeführter** Schlüssel — deshalb wirkt ein
   Löschen nur auf dem Gerät, auf dem gelöscht wurde, und die App sagt das auch.
   `CloudStore.settingsKeys` ist die Liste, gegen die
@@ -404,9 +417,11 @@ Fahrradmitnahme-Texte der VBB-Auskunft!), der User-Agent, JSON-Schlüssel und al
 - **Wie viele Möglichkeiten je Verkehrsmittel, entscheidet der Nutzer** (1–3,
   voreingestellt 3). Die Zahl begrenzt nicht nur die Anzeige, sondern das **Rechnen**:
   geholt wird nur, was die obersten Rollen der eigenen Reihenfolge brauchen. Gewinnt eine
-  Linie mehrere Rollen, steht sie einmal da und trägt alle ihre Namen — dann sind es eben
-  weniger Kästen. Eine namenlose „Alternative" danebenzustellen war ein Versuch in 1.3 und
-  ist wieder draußen: dreimal „Alternative" untereinander sagt nichts.
+  Linie mehrere Rollen, steht sie einmal da und trägt alle ihre Namen. Beim **Rad** werden
+  die freien Plätze aufgefüllt (Nutzer: „eine Route ist immer doof"): erst mit den
+  Profilen weiter unten in der eigenen Reihenfolge, und bringt das keinen anderen Weg, mit der
+  ausgewogensten übrigen Linie als „Alternative" (`BikeCandidate.pick(fill:)`). Beim Auto
+  bleibt es bei weniger Kästen.
 - **Die Namen der Radvarianten sagen, was sie messen.** „wenig Autos" (die wenigsten Meter
   neben fahrenden Autos) und „wenig Halts" (am seltensten ihretwegen anhalten) — vorher
   hießen sie „ruhigst" und „verkehrsarm" und waren am Wort nicht auseinanderzuhalten.
@@ -438,13 +453,46 @@ muss, um sich zurechtzufinden.
   `filtered ascend`. Eine Linie ohne Höhen (Apple Karten) bekommt für die Bewertung den
   Durchschnitt der bekannten, damit sie weder gewinnt noch verliert.
 - **Neben der Route**: Pfeil zurück, Karte geht heraus und bleibt in Fahrtrichtung, und
-  eine Neuplanung nach Entfernung oder Zeit.
+  eine Neuplanung nach Entfernung (nach Zeit nur noch als feste, abgeschaltete Regel).
 - **Warnungen stimmen auch, während die App zu ist** (`BackgroundReplan`).
 - **Das Regenradar wird geglättet** — über den Kachelrand hinaus, sonst Nähte.
 - **Der Straßenbalken** steht auch auf der Hauptseite, dünn und ohne Legende.
 - **Die Fahrtansicht zeigt die Gesamtstandzeit** neben der Zeit an den Ampeln.
 
 ## Offen / Ideen
+
+### Aufräumen, mittlerer Aufwand (Review 01.10.2026)
+
+Was die Durchsicht vom 01.10.2026 gefunden und noch nicht erledigt hat; das Kleine ist seit
+dem Aufräumen drin (CHANGELOG „Unveröffentlicht — Aufräumen").
+
+- **Ein Routen-Cache statt mehrerer**: `RouteCache` (1 h/32), `MapKitRouter.cache` (ohne
+  Ablauf und Grenze, je Instanz), dazu eigene Planer und Router in `BackgroundReplan` und
+  `RideTracker` mit eigenen Instanzen. Ein Actor mit Ablauf und Obergrenze für alle.
+  (`CompositeRouter.cache` ist schon weg.)
+- **Overpass-Cache**: `RoadDataStore.maxBoxesInMemory = 2` bei drei Abnehmern (Rad, Auto,
+  Zubringer) — sie verdrängen sich gegenseitig; `sweep` löscht womöglich zu viel (alles,
+  was der neue Kasten enthält, auch wenn dessen Schlauch es nicht deckt).
+- **Rad-Zeitmodell an einer Stelle**: `PlanSettings.rideTime`, `BikeCandidate.time` /
+  `computedTime`, der `RideRemaining`-Fallback ohne gelernte Ampeln und Höhenmeter, und
+  Transitous-Zubringer mit deren eigener Radzeit rechnen jeweils etwas anders.
+- **Rollenvergabe vereinheitlichen**: `CarCandidate.pick` gegen `BikeCandidate.pick` —
+  aufgefüllt wird nur beim Rad.
+- **Profil als Enum in `BikeRouteInfo`** statt des `source`-Strings (teils übersetzt,
+  „safety" steht für `.quiet`); `BRouterClient.Profile.of(source:)` entfällt dann.
+- **Stabile `TripOption.id`** (Modus + Variante/Linie + Abfahrt) statt UUID. Danach lassen
+  sich die Geometrie-Schlüssel-Umgehung in `RouteMapCoordinator`, der Auswahl-Reset in
+  `PlanModel` und die Uhr-Wahl per Index zurückbauen.
+- **Große Typen aufteilen**: `TripPlanner` (Bike/Car/BikeTransit/Ranking), `ContentView`
+  (`RouteHeader` & Co. in eine eigene Datei; `record()`/`afterRide()` ins Modell),
+  `RideTracker.start` mit vielen Parametern → `RidePlan` und ein eigener `Replanner`,
+  `AppSettings` → ein `Calibration`-Typ und Model-Dateien.
+- **Gemessene Werte nicht als Stepper** (Rolltempo, Ampelwartezeit, Gesamtschnitte), sondern
+  „gemessen: X" plus optionaler Override; Auto-Gesamtschnitt und Parkplatzsuche überlappen.
+- **„Alle Fixpunkte verlangen"** wirkt seit 1.9 nur noch auf Bahn und Auto — prüfen, ob es
+  bleiben soll. Dazu die Auto-Routen-Reihenfolge mit fünf Rollen bei meist zwei, drei
+  Apple-Linien.
+- **Doppeltipp auf der Kopfzeile** ist unsichtbar — einen Hinweis erwägen.
 
 - **Ampeln abseits der Planung werden nicht gezählt.** Die Aufzeichnung kennt nur die
   Ampeln der geplanten (und neu geplanten) Linie plus die gelernten. Wer die ganze Fahrt
@@ -487,13 +535,8 @@ muss, um sich zurechtzufinden.
   sample $PID 5 -file /tmp/rp.txt                             # „Version:" im Kopf prüfen
   ```
 
-- **Englische Fassung: Mechanismus steht, Übersetzung liegt beiseite.** Ein Umschalter
-  im Burger-Menü war gebaut und bewiesen — ohne Neustart, mit zwei Fähnchen. Übersetzt
-  sind 14 von rund 260 Texten, deshalb wieder ausgebaut. Alles, was man dafür wissen
-  muss, steht in `_claude.code/RadPendler-Englisch.md`: der funktionierende Weg (`L(…)`
-  liest unmittelbar aus `en.lproj`, weil SwiftUI sich von innen nicht umstellen lässt),
-  **vier nachgemessene Sackgassen**, die man nicht nochmal gehen muss, und wo der
-  erhaltene Stand liegt. Dort anfangen.
+- **Englisch ist drin** — siehe „Zweisprachig" oben. Neue Texte brauchen ihre englische
+  Fassung in `tools/i18n/de_en.py`; `sync.py` muss „0 offen" melden.
 
 - **Die Linien reisen** (seit Build 29, Schema seit 24.09.2026 in Production).
   `TrackCloud` hängt an `RideStore.add` / `delete` / `track(for:)`.
@@ -531,8 +574,9 @@ muss, um sich zurechtzufinden.
   Ressourcenpfad wandern.
 
 - Mitteilungen laufen als `UNTimeIntervalNotificationTrigger` und werden bei jeder Planänderung
-  neu gesetzt (`Alarm.schedule`, Schlüssel `ContentView.alarmKey`). Im Hintergrund plant die App
-  nichts nach — fährt der Zug später ab, als beim letzten Öffnen bekannt war, warnt sie zu früh.
+  neu gesetzt (`Alarm.schedule`, Schlüssel `ContentView.alarmKey`). Ist die App zu, stellt
+  `BackgroundReplan` sie nach (`BGAppRefreshTask`, nur die Kategorie des Countdowns) — wann
+  iOS das zulässt, entscheidet iOS; ohne Weckruf bleibt es beim Stand des letzten Öffnens.
 - Externe TestFlight-Tester bräuchten Beta-Prüfung und Datenschutz-URL.
 - Radar visuell nur bei trockenem Wetter geprüft — Regenflächen nie auf der Karte gesehen.
 - Kreuzungserkennung ist Heuristik (Brücken zählen als Querung, Tunnel nicht).

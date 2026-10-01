@@ -1,13 +1,16 @@
 import CoreLocation
 import Foundation
 
-/// Welche Linie welche Rolle bekommt — „schnellst", „kürzest", „optimal",
-/// „ruhigst" — und was eine Linie an Zeit kostet.
-///
-/// Das ist die fachlich dichteste Stelle der App und die einzige, die ohne
-/// Netz auskommt: reine Rechnung auf fertigen Routen. Sie lag in derselben
-/// Datei wie die vier Modus-Funktionen, die nichts anderes tun, als Dienste zu
-/// fragen; wer an der Bewertung etwas ändern wollte, scrollte an HAFAS vorbei.
+// Welche Linie welche Rolle bekommt — „schnellst", „kürzest", „optimal",
+// „wenig Autos", „wenig Halts" — und was eine Linie an Zeit kostet.
+//
+// Das ist die fachlich dichteste Stelle der App und die einzige, die ohne
+// Netz auskommt: reine Rechnung auf fertigen Routen. Sie lag in derselben
+// Datei wie die vier Modus-Funktionen, die nichts anderes tun, als Dienste zu
+// fragen; wer an der Bewertung etwas ändern wollte, scrollte an HAFAS vorbei.
+
+/// One car line and how it scores. Apple gives the times; the lights come
+/// from OpenStreetMap, and without them only speed and length can be judged.
 struct CarCandidate {
     var route: StreetRoute
     var stats: BikeRouteStats?
@@ -318,6 +321,3 @@ struct BikeCandidate {
         return boxes.map { (all[$0.key], $0.names) }
     }
 }
-
-
-/// Refuses every request. Lets a test run a real planner without a network.

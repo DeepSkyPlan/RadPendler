@@ -153,8 +153,10 @@ struct TripPlanner {
 
     // MARK: Modes
 
-    /// Whole way by bike, as up to three distinct routes: kürzest, Mittelweg,
-    /// ruhigst. Candidates come from Apple Maps and several BRouter profiles;
+    /// Whole way by bike, as up to `optionsPerMode` distinct routes, one per
+    /// role in the user's own order (optimal, schnellst, kürzest, wenig Autos,
+    /// wenig Halts). Candidates come from BRouter profiles — Apple Maps only
+    /// when cobbles are allowed or BRouter does not answer;
     /// OpenStreetMap data then counts traffic lights, large roads crossed and
     /// metres beside large roads for each. Riding time includes an expected
     /// wait at every light.
@@ -291,11 +293,6 @@ struct TripPlanner {
         }
     }
 
-    /// The car as the two or three lines Apple actually offers, labelled the
-    /// way the bike routes are: schnellst (the default), kürzest, wenig Ampeln.
-    /// The lights come from the same OpenStreetMap data the bike routes use —
-    /// on a commute that is the difference between the autobahn detour and the
-    /// straight run through town.
     /// Läuft die Liste ab, aber nie mehr als `atOnce` gleichzeitig. Die
     /// Reihenfolge der Antworten ist wieder die der Liste — sie entscheidet,
     /// welche Route bei Gleichstand eine Rolle bekommt.
@@ -330,8 +327,6 @@ struct TripPlanner {
         return noRoadDataNote(km: km, settings: settings)
     }
 
-    /// Why a route has no traffic-light count: too long to ask Overpass for,
-    /// or Overpass simply did not answer.
     /// OpenStreetMap's lit junctions plus the ones this rider has ridden
     /// through. `RouteAnalyzer` merges signal nodes within 60 m, so a learned
     /// light sitting on top of a mapped one does not count twice — and where
@@ -342,12 +337,19 @@ struct TripPlanner {
         return data
     }
 
+    /// Why a route has no traffic-light count: too long to ask Overpass for,
+    /// or Overpass simply did not answer.
     static func noRoadDataNote(km: Double, settings: PlanSettings) -> String {
         km > settings.longTripKm
             ? L("Ampeln und Hauptstraßen auf dieser Länge nicht gezählt")
             : L("Ampeln und Hauptstraßen unbekannt — OpenStreetMap antwortete nicht, wird im Hintergrund nachgeholt")
     }
 
+    /// The car as the two or three lines Apple actually offers, labelled the
+    /// way the bike routes are: schnellst (the default), kürzest, wenig Ampeln.
+    /// The lights come from the same OpenStreetMap data the bike routes use —
+    /// on a commute that is the difference between the autobahn detour and the
+    /// straight run through town.
     func carOptions(_ req: PlanRequest) async throws -> [TripOption] {
         let guess = req.arriveBy ?? req.earliestLeave
         let moto = req.settings.motorcycle
@@ -439,15 +441,6 @@ struct TripPlanner {
         return Array(options.prefix(3))
     }
 
-    /// Ride to a station, take only trains that carry bikes, ride on from the
-    /// arrival station. The app does the station choice itself: VBB's HAFAS has
-    /// a "bike & ride" mode in its web app, but the mgate request for it is not
-    /// documented, and with address endpoints plus the bike filter it finds nothing.
-    ///
-    /// S-Bahn and regional trains first — they always have a bike compartment.
-    /// The main search uses only S/RE stations and S/RE trains; a small second
-    /// search from the nearest stations of any kind lets U-Bahn/tram in, and
-    /// those results are kept only as the alternative.
     /// Which timetable answers for this request.
     func source(_ req: PlanRequest) -> TimetableSource {
         TimetableSource.resolved(from: req.origin.coordinate, to: req.destination.coordinate)
@@ -455,7 +448,7 @@ struct TripPlanner {
 
     /// Bike at both ends, planned by Transitous in one request: MOTIS routes
     /// intermodally, so it picks the stations itself and the app does not have
-    /// to try sixteen station pairs as it does with HAFAS.
+    /// to try up to twenty-one station pairs as it does with HAFAS.
     func motisBikeTransitOptions(_ req: PlanRequest) async throws -> [TripOption] {
         let s = req.settings
         let journeys = try await motis.journeys(from: req.origin.coordinate, to: req.destination.coordinate,
@@ -473,6 +466,15 @@ struct TripPlanner {
                                         penalty: s.transferPenalty, arrival: req.isArrival)
     }
 
+    /// Ride to a station, take only trains that carry bikes, ride on from the
+    /// arrival station. The app does the station choice itself: VBB's HAFAS has
+    /// a "bike & ride" mode in its web app, but the mgate request for it is not
+    /// documented, and with address endpoints plus the bike filter it finds nothing.
+    ///
+    /// S-Bahn and regional trains first — they always have a bike compartment.
+    /// The main search uses only S/RE stations and S/RE trains; a small second
+    /// search from the nearest stations of any kind lets U-Bahn/tram in, and
+    /// those results are kept only as the alternative.
     func bikeTransitOptions(_ req: PlanRequest) async throws -> [TripOption] {
         guard source(req) == .vbb else { return try await motisBikeTransitOptions(req) }
         let s = req.settings
@@ -747,6 +749,3 @@ enum BikeTransitComposer {
             .prefix(count).map { $0 }
     }
 }
-
-/// One car line and how it scores. Apple gives the times; the lights come
-/// from OpenStreetMap, and without them only speed and length can be judged.
