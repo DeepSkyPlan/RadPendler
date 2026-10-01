@@ -721,3 +721,47 @@ extension RideTests {
         XCTAssertNil(t.events)
     }
 }
+
+// MARK: Was eine Fahrt aus dem Plan mitnimmt
+
+final class RidePlanTests: XCTestCase {
+    private let now = Date(timeIntervalSince1970: 1_780_000_000)
+    private let a = CLLocationCoordinate2D(latitude: 52.42, longitude: 13.18)
+    private let b = CLLocationCoordinate2D(latitude: 52.41, longitude: 13.24)
+    private let c = CLLocationCoordinate2D(latitude: 52.45, longitude: 13.30)
+
+    private func leg(_ kind: LegKind, _ from: Double, _ to: Double,
+                     _ line: [CLLocationCoordinate2D]) -> Leg {
+        var l = Leg(kind: kind, fromName: "A", toName: "B",
+                    departure: now.addingTimeInterval(from), arrival: now.addingTimeInterval(to),
+                    distance: 1000)
+        l.coordinates = line
+        return l
+    }
+
+    func testThePlanCarriesSubjectRouteAndSettings() {
+        let d = UserDefaults(suiteName: "plan-\(UUID())")!
+        let settings = AppSettings(defaults: d)
+        settings.origin = Place(name: "Zuhause", latitude: 52.42, longitude: 13.18)
+        settings.autoStopMinutes = 20
+        settings.autoPauseMinutes = 3
+        let bike = TripOption(mode: .bike, legs: [leg(.bike, 0, 1800, [a, b])], prep: 0,
+                              bikeRoute: BikeRouteInfo(variants: [.balanced], source: .brouter(.quiet)))
+        let train = TripOption(mode: .transit,
+                               legs: [leg(.walk, 0, 300, [a]),
+                                      leg(.transit(line: "S7", product: .suburban), 400, 1500, [b, c]),
+                                      leg(.walk, 1500, 1700, [c])],
+                               prep: 0)
+        let plan = RidePlan.make(option: bike, options: [train, bike], settings: settings)
+        XCTAssertEqual(plan.subject.mode, TravelMode.bike.rawValue)
+        XCTAssertEqual(plan.subject.plannedSeconds, 1800)
+        XCTAssertEqual(plan.subject.origin, settings.origin?.shortName)
+        XCTAssertFalse(plan.subject.motorcycle)
+        XCTAssertEqual(plan.route.count, 2, "die Linie der gewählten Fahrt, nicht die erste")
+        XCTAssertEqual(plan.bikeProfile, .quiet)
+        XCTAssertEqual(plan.autoStopMinutes, 20)
+        XCTAssertEqual(plan.autoPauseMinutes, 3)
+        // Die Bahn steuert jemand anderes: geführt wird nur, was man selbst fährt.
+        XCTAssertEqual(RidePlan.route(of: [train], selected: train.id).count, 2)
+    }
+}

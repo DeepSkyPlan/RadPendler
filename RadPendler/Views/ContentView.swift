@@ -333,32 +333,11 @@ struct ContentView: View {
     /// route come along — they decide later which standstill was a red light,
     /// and a replan half way must not be able to change that answer.
     private func record(_ option: TripOption) {
-        let planned = option.bikeRoute?.stats?.signalPoints ?? option.carRoute?.signalPoints ?? []
-        // What OpenStreetMap knows, plus what this rider has learned. The
-        // learned ones are the point: the crossing that is only a light in
-        // practice is exactly the one no map has.
-        let signals = planned + settings.learnedSignals.map(\.coordinate)
         // Am Lenker gilt, was am Lenker zuletzt galt — nicht, wie die App
         // sich sonst dreht.
         settings.rideOrientation.apply()
         RideSounds.shared.enabled = settings.rideSounds
-        tracker.start(subject: RideTracker.Subject(origin: settings.origin?.shortName ?? "Start",
-                                                   destination: settings.destination?.shortName ?? "Ziel",
-                                                   mode: option.mode.rawValue,
-                                                   plannedSeconds: option.duration,
-                                                   plannedMeters: option.totalDistance,
-                                                   plannedSignals: planned.count,
-                                                   motorcycle: option.mode == .car && settings.motorcycle),
-                      signals: signals,
-                      route: RideTrackingView.route(of: model.options, selected: option.id),
-                      roadPoints: option.bikeRoute?.roadPoints ?? [],
-                      replanOffRouteMeters: settings.replanOffRouteMeters,
-                      autoStopMinutes: settings.autoStopMinutes,
-                      autoPauseMinutes: settings.autoPauseMinutes,
-                      plannedSignals: planned,
-                      bikeProfile: option.bikeRoute?.source.profile ?? .trekking,
-                      avoidCobbles: settings.avoidCobbles,
-                      via: option.bikeRoute?.via ?? [])
+        tracker.start(RidePlan.make(option: option, options: model.options, settings: settings))
     }
 
     /// Was schiefging — und zwar **im Wortlaut**.
