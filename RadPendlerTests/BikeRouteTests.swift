@@ -248,6 +248,42 @@ extension BikeRouteTests {
         XCTAssertEqual(picked.last?.1, [.alternative], "shown as an alternative rather than dropped")
     }
 
+    /// Auto und Rad vergeben Rollen nach derselben Regel: die namenlosen
+    /// Linien füllen die freien Plätze, die ausgewogenste zuerst — bis 1.9.1
+    /// stand beim Auto hier die Reihenfolge eines Wörterbuchs.
+    func testCarAlternativesComeInABalancedOrder() {
+        var s = PlanSettings()
+        s.signalWaitSeconds = 20
+        let best = carLine(20_000, minutes: 25, signals: 5)
+        let slow = carLine(26_000, minutes: 40, signals: 30)
+        let near = carLine(22_000, minutes: 27, signals: 10)
+        for _ in 0..<5 {
+            let picked = CarCandidate.pick([slow, best, near], settings: s)
+            XCTAssertEqual(picked.map(\.0.route.distance), [20_000, 22_000, 26_000])
+            XCTAssertEqual(picked.dropFirst().map(\.1), [[.alternative], [.alternative]])
+        }
+        s.optionsPerMode = 2
+        XCTAssertEqual(CarCandidate.pick([slow, best, near], settings: s).map(\.0.route.distance), [20_000, 22_000],
+                       "die eingestellte Zahl gilt, und die bessere Alternative bleibt")
+    }
+
+    /// Die gemeinsame Regel selbst: gewinnt eine Linie mehrere der obersten
+    /// Rollen, geht es die Liste hinunter, bis genug verschiedene Wege dastehen.
+    func testRoleAssignmentGoesDownTheListBeforeItFills() {
+        let winner = ["a": 0, "b": 0, "c": 1, "d": 2]
+        let boxes = RoleAssignment.assign(order: ["a", "b", "c", "d"], winner: { winner[$0] }, count: 2,
+                                          spare: [3, 2, 1, 0], filler: "-")
+        XCTAssertEqual(boxes.map(\.index), [0, 1])
+        XCTAssertEqual(boxes.map(\.roles), [["a", "b"], ["c"]], "d liegt hinter dem letzten Platz")
+        let beyond = RoleAssignment.assign(order: ["a", "c", "b"], winner: { winner[$0] }, count: 2,
+                                           spare: [], filler: "-", namesBeyond: true)
+        XCTAssertEqual(beyond.map(\.roles), [["a", "b"], ["c"]], "b hängt sich an die gezeigte Linie")
+        let filled = RoleAssignment.assign(order: ["a", "b"], winner: { winner[$0] }, count: 3,
+                                           spare: [3, 2, 1, 0], filler: "-")
+        XCTAssertEqual(filled.map(\.index), [0, 3, 2])
+        XCTAssertEqual(filled.map(\.roles), [["a", "b"], ["-"], ["-"]])
+    }
+
     // MARK: Höhenmeter
 
     /// BRouter rechnet den Anstieg selbst aus und nennt ihn `filtered ascend` —
