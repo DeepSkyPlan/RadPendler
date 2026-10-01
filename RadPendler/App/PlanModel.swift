@@ -133,14 +133,6 @@ final class PlanModel {
         isLoading = false
     }
 
-    /// Pull-to-refresh: run and stay in flight until the plan is in, so the
-    /// spinner lives as long as the search does. **Immer**: wer von Hand
-    /// nachfragt, will eine neue Antwort, auch wenn die alte noch frisch ist.
-    func refreshAndWait(settings: AppSettings) async {
-        refresh(settings: settings, force: true)
-        await task?.value
-    }
-
     /// Woran eine Planung hängt — die beiden Adressen, die Frage und die
     /// Wertkopie der Einstellungen. Ist alles davon gleich geblieben, kommt
     /// dieselbe Antwort heraus.

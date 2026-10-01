@@ -1024,17 +1024,6 @@
         }
       }
     },
-    "Datenquellen: VBB · Transitous/MOTIS · Apple Karten · BRouter und OpenStreetMap · DWD · Open-Meteo": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Data: VBB · Transitous/MOTIS · Apple Maps · BRouter and OpenStreetMap · DWD · Open-Meteo"
-          }
-        }
-      }
-    },
     "Datenschutz": {
       "extractionState": "manual",
       "localizations": {
@@ -1614,6 +1603,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Timetable and real time: VBB Verkehrsverbund Berlin-Brandenburg (HAFAS Fahrinfo)."
+          }
+        }
+      }
+    },
+    "Fahrpläne außerhalb Berlin/Brandenburg: Transitous (MOTIS), Quellen unter transitous.org/sources.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timetables outside Berlin/Brandenburg: Transitous (MOTIS), sources at transitous.org/sources."
           }
         }
       }

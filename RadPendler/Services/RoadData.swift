@@ -336,12 +336,7 @@ actor RoadDataStore {
     private func sidecar(of file: URL) -> Sidecar? {
         let url = file.deletingPathExtension().appendingPathExtension("box")
         guard let data = try? Data(contentsOf: url) else { return nil }
-        if let decoded = try? JSONDecoder().decode(Sidecar.self, from: data) { return decoded }
-        // Die alte Form: vier Zahlen, durch Leerzeichen getrennt.
-        guard let text = String(data: data, encoding: .utf8) else { return nil }
-        let parts = text.split(separator: " ").compactMap { Double($0) }
-        guard parts.count == 4 else { return nil }
-        return Sidecar(south: parts[0], west: parts[1], north: parts[2], east: parts[3], corridor: nil)
+        return try? JSONDecoder().decode(Sidecar.self, from: data)
     }
 
     private static func writeSidecar(_ box: Box, corridor: Corridor, next file: URL) {

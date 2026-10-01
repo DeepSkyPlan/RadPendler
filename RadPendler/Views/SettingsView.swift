@@ -439,12 +439,14 @@ struct SettingsView: View {
                 } footer: {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(L("Fahrplan und Echtzeit: VBB Verkehrsverbund Berlin-Brandenburg (HAFAS-Fahrinfo)."))
+                        Text(L("Fahrpläne außerhalb Berlin/Brandenburg: Transitous (MOTIS), Quellen unter transitous.org/sources."))
                         Text(L("Karten, Adresssuche und Autorouten: Apple Karten. © Apple Inc. und Mitwirkende."))
                         Text(L("Radrouten: BRouter (brouter.de), auf Basis von OpenStreetMap."))
                         Text(L("Ampeln, Straßen und Kartendaten: © OpenStreetMap-Mitwirkende, ODbL 1.0, abgefragt über die Overpass API."))
                         Text(L("Regenradar und Niederschlagsvorhersage: Deutscher Wetterdienst (DWD), Datenlizenz Deutschland – Namensnennung 2.0."))
                         Text(L("Regen entlang der Strecke: Open-Meteo.com, CC BY 4.0, auf Basis von DWD ICON-D2."))
                         Text(L("© 2026 AK. Alle Zeiten ohne Gewähr."))
+                        Text("inspired by Oleg")
                     }
                 }
         }
