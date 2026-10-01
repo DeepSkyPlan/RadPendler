@@ -65,6 +65,19 @@ final class CountdownTests: XCTestCase {
                                           arrival: leave.addingTimeInterval(900))], prep: 300)
     }
 
+    /// „Countdown aus" gilt für eine Abfahrt. Rad und Auto tragen keine in der
+    /// Kennung — eine andere Zielzeit ist trotzdem eine neue Frage.
+    @MainActor func testAStoppedCountdownBelongsToOneDeparture() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let at9 = trip(.bike, .bike, leave: now)
+        let at10 = trip(.bike, .bike, leave: now.addingTimeInterval(3_600))
+        XCTAssertEqual(at9.id, at10.id, "dieselbe Route")
+        XCTAssertNotEqual(PlanModel.stopKey(at9), PlanModel.stopKey(at10))
+        XCTAssertEqual(PlanModel.stopKey(at9), PlanModel.stopKey(trip(.bike, .bike, leave: now.addingTimeInterval(20))))
+        let train = trip(.transit, .transit(line: "S1", product: .suburban), leave: now)
+        XCTAssertEqual(PlanModel.stopKey(train), train.id)
+    }
+
     /// Die im Hintergrund geweckte App muss dieselbe Frage stellen wie der
     /// Bildschirm: dieselbe Kategorie, die beste Möglichkeit darin, die
     /// Alternative zuletzt. Sucht sie sich selbst eine Verbindung, warnt sie

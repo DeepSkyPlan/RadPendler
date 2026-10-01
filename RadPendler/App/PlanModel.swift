@@ -85,7 +85,19 @@ final class PlanModel {
     /// one is not going to take should not shout. Forgotten again as soon as a
     /// different departure takes over.
     private(set) var countdownStopped = false
-    private var stoppedFor: TripOption.ID?
+    private var stoppedFor: String?
+
+    /// Wofür „aus" gilt. Die Kennung allein reicht bei Rad und Auto nicht: sie
+    /// trägt keine Abfahrt, und bei „um 9 da" bliebe der Countdown sonst auch
+    /// für eine andere Zielzeit oder die Gegenrichtung aus. Beim Zug steckt die
+    /// planmäßige Abfahrt schon in der Kennung, eine Verspätung ändert nichts.
+    static func stopKey(_ option: TripOption?) -> String? {
+        guard let option else { return nil }
+        switch option.mode {
+        case .bike, .car: return "\(option.id)@\(Int((option.leave.timeIntervalSince1970 / 60).rounded(.down)))"
+        case .transit, .bikeTransit: return option.id
+        }
+    }
 
     /// What the countdown actually runs on: nothing while it is switched off.
     var activeCountdown: TripOption? { countdownStopped ? nil : countdownOption }
@@ -93,13 +105,13 @@ final class PlanModel {
     /// Tap on the pill.
     func toggleCountdown() {
         countdownStopped.toggle()
-        stoppedFor = countdownStopped ? countdownOption?.id : nil
+        stoppedFor = countdownStopped ? Self.stopKey(countdownOption) : nil
         publishToWatch()
     }
 
     /// A new departure is a new question; the old "no thanks" does not carry.
     private func forgetStopIfDepartureChanged() {
-        guard countdownStopped, stoppedFor != countdownOption?.id else { return }
+        guard countdownStopped, stoppedFor != Self.stopKey(countdownOption) else { return }
         countdownStopped = false
         stoppedFor = nil
     }
