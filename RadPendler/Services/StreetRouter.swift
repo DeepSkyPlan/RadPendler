@@ -62,21 +62,20 @@ extension StreetRouting {
     }
 }
 
-/// Apple Maps directions. Bike and walk routes are cached for the life of the
-/// app: the station legs from the two default addresses repeat on every refresh,
-/// and MKDirections throttles clients that ask too often (~50 requests/min).
+/// Apple Maps directions. Bike and walk routes go through the shared
+/// `RouteCache`: the station legs from the two default addresses repeat on
+/// every refresh, and MKDirections throttles clients that ask too often
+/// (~50 requests/min).
 actor MapKitRouter: StreetRouting {
-    private var cache: [String: StreetRoute] = [:]
-
     func route(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
                mode: StreetMode, departure: Date?) async throws -> StreetRoute {
-        let key = String(format: "%d|%.5f,%.5f|%.5f,%.5f", mode.hashValue,
+        let key = String(format: "apple|%@|%.5f,%.5f|%.5f,%.5f", mode == .bike ? "bike" : "walk",
                          from.latitude, from.longitude, to.latitude, to.longitude)
-        if mode != .car, let hit = cache[key] { return hit }
+        if mode != .car, let hit = await RouteCache.shared.route(for: key) { return hit }
 
         let response = try await ask(from: from, to: to, mode: mode, departure: departure, alternatives: false)
         guard let route = response.first else { throw MKError(.directionsNotFound) }
-        if mode != .car { cache[key] = route }
+        if mode != .car { await RouteCache.shared.keep(route, for: key) }
         return route
     }
 

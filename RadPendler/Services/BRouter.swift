@@ -214,38 +214,6 @@ struct BRouterClient {
     }
 }
 
-/// Gefahrene Wege, die sich nicht ändern, solange man sie fährt.
-///
-/// Eine Linie von A nach B ist bei BRouter eine Funktion der beiden Punkte
-/// und des Profils — keine Verkehrslage, keine Uhrzeit. Was sie ändern kann,
-/// sind die OpenStreetMap-Daten, und die ändern sich nicht in einer Stunde.
-actor RouteCache {
-    static let shared = RouteCache()
-
-    /// So lange gilt eine Antwort. Danach ist sie nicht falsch, aber es ist
-    /// billig genug, sie neu zu holen.
-    static let lifetime: TimeInterval = 3600
-    /// Und so viele werden behalten: eine Pendelstrecke mit allen Profilen
-    /// und beiden Richtungen sind ein Dutzend.
-    static let limit = 32
-
-    private var entries: [String: (route: StreetRoute, at: Date)] = [:]
-
-    func route(for key: String) -> StreetRoute? {
-        guard let hit = entries[key], Date.now.timeIntervalSince(hit.at) < Self.lifetime else { return nil }
-        return hit.route
-    }
-
-    func keep(_ route: StreetRoute, for key: String) {
-        if entries.count >= Self.limit, let oldest = entries.min(by: { $0.value.at < $1.value.at })?.key {
-            entries.removeValue(forKey: oldest)
-        }
-        entries[key] = (route, .now)
-    }
-
-    func forget() { entries.removeAll() }
-}
-
 /// Höchstens drei Anfragen gleichzeitig an brouter.de — für die ganze App,
 /// nicht je Aufrufer.
 ///
@@ -297,10 +265,10 @@ actor BRouterGate {
 /// Bike legs through BRouter's "safety" profile (bike paths and quiet streets
 /// first), falling back to Apple Maps; the car always through Apple Maps.
 ///
-/// Kein eigener Zwischenspeicher: BRouters Antworten hält `RouteCache` (eine
-/// Stunde, gedeckelt), Apples Radlinien `MapKitRouter`. Bis 1.9.1 stand hier
-/// ein dritter, ohne Ablauf — und weil er auch die Ersatzlinie von Apple
-/// behielt, blieb ein einziger Aussetzer von BRouter bis zum Neustart stehen.
+/// Kein eigener Zwischenspeicher: BRouters und Apples Antworten hält
+/// `RouteCache` (eine Stunde, gedeckelt). Bis 1.9.1 stand hier ein dritter,
+/// ohne Ablauf — und weil er auch die Ersatzlinie von Apple behielt, blieb
+/// ein einziger Aussetzer von BRouter bis zum Neustart stehen.
 actor CompositeRouter: StreetRouting {
     private let apple = MapKitRouter()
     private let brouter = BRouterClient()
