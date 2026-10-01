@@ -50,10 +50,10 @@ extension AppSettings {
     /// rollendes Tempo und Tür-zu-Tür-Schnitt. Der Median, nicht der
     /// Mittelwert — eine Fahrt mit Platten darf den Schnitt nicht kippen.
     ///
-    /// Das rollende Tempo landet in `bikeSpeedKmh`, also in der Einstellung,
-    /// die der Nutzer auch selbst stellen kann: er soll sehen, womit gerechnet
-    /// wird. Der Tür-zu-Tür-Schnitt bleibt daneben stehen, weil er beim Planen
-    /// die Gegenprobe ist.
+    /// Das rollende Tempo landet in `calibratedBikeSpeedKmh`, der
+    /// Tür-zu-Tür-Schnitt in `calibratedBikeOverallKmh` — beim Planen die
+    /// Gegenprobe. Was der Nutzer von Hand gestellt hat (`…Override`), bleibt
+    /// stehen: die Messung schreibt daneben, nicht darüber.
     func calibrate(from rides: [Ride], mode: TravelMode = .bike) {
         let relevant = rides
             .filter { $0.travelMode == mode && $0.meters >= 2_000 && $0.movingSeconds > 60 }
@@ -65,17 +65,16 @@ extension AppSettings {
         measuredRides = relevant.count
         measuredMovingKmh = moving
         measuredOverallKmh = overall
-        bikeOverallKmh = Self.halfStep(overall)
-        // Die Einstellung folgt der Messung, gerundet auf das, was der
-        // Stepper hergibt.
+        calibratedBikeOverallKmh = Self.halfStep(overall)
+        // Gerundet auf das, was der Stepper für den Wert von Hand hergibt.
         let speed = (moving).rounded()
-        if speed >= 10, speed <= 45, speed != bikeSpeedKmh { bikeSpeedKmh = speed }
+        if speed >= 10, speed <= 45, speed != calibratedBikeSpeedKmh { calibratedBikeSpeedKmh = speed }
         // Und die Ampelwartezeit folgt dem, was an Ampeln wirklich gewartet
         // wurde — siehe `signalMeasurement`.
         if let m = signalMeasurement, m.passes >= Self.signalCalibrationPasses {
             let seconds = Int((m.wait / Double(m.passes) / 5).rounded() * 5)
             let clamped = Swift.min(90, Swift.max(0, seconds))
-            if clamped != signalWaitSeconds { signalWaitSeconds = clamped }
+            if clamped != calibratedSignalWaitSeconds { calibratedSignalWaitSeconds = clamped }
         }
     }
 
@@ -93,7 +92,7 @@ extension AppSettings {
         let overall = Self.median(relevant.map(\.averageKmh))
         measuredCarRides = relevant.count
         measuredCarKmh = overall
-        carOverallKmh = overall.rounded()
+        calibratedCarOverallKmh = overall.rounded()
     }
 
     /// Auf halbe km/h — so weit, wie der Stepper geht.

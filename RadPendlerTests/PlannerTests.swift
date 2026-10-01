@@ -494,8 +494,13 @@ final class PlannerTests: XCTestCase {
         // Fahrten sie ergeben haben.
         settings.measuredMovingKmh = 24
         settings.measuredOverallKmh = 20
-        settings.bikeOverallKmh = 20
+        settings.calibratedBikeOverallKmh = 20
         settings.measuredCarKmh = 45
+        // Und die Werte von Hand: ohne sie gilt die Messung, und nil schreibt nichts.
+        settings.bikeSpeedOverride = 25
+        settings.signalWaitOverride = 15
+        settings.bikeOverallOverride = 19
+        settings.carOverallOverride = 35
         let saved = Set((UserDefaults.standard.persistentDomain(forName: suite) ?? [:]).keys)
         XCTAssertFalse(saved.isEmpty, "the settings must write something, or this test proves nothing")
         // `settingsKeys`, not `keys`: the rides travel in the same store but
