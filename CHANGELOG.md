@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — Kartenschilder, Fahrt andersherum
+## 1.10.1 (Build 49) — Kartenschilder, Fahrt andersherum
 
 - Die gewählte Rad- oder Autolinie trägt **ein** Schild „Zeit · Name · Länge“ statt zweier,
   die übereinander lagen. Start, Ziel und Fixpunkte verdrängt kein Schild mehr.
