@@ -605,13 +605,13 @@ extension BikeRouteTests {
     func testAReplanThatNeverAnswersGivesUp() async {
         let started = Date()
         do {
-            _ = try await RideTracker.withTimeout(0.2) {
+            _ = try await Replanner.withTimeout(0.2) {
                 try await Task.sleep(nanoseconds: 5_000_000_000)
                 return 1
             }
             XCTFail("hätte aufgeben müssen")
         } catch {
-            XCTAssertTrue(error is RideTracker.TimedOut)
+            XCTAssertTrue(error is Replanner.TimedOut)
         }
         XCTAssertLessThan(Date().timeIntervalSince(started), 2)
     }
