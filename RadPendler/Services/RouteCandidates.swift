@@ -110,7 +110,7 @@ struct CarCandidate {
 
 /// One bike route candidate and how it scores.
 struct BikeCandidate {
-    var source: String
+    var source: BikeLineSource
     var route: StreetRoute
     var stats: BikeRouteStats?
     /// Die Höhenmeter, mit denen **gerechnet** wird — nicht unbedingt die
@@ -285,9 +285,9 @@ struct BikeCandidate {
                 return (sa?.mainRoadMeters ?? .infinity) < (sb?.mainRoadMeters ?? .infinity)
             }!
         } else {
-            quiet = all.firstIndex { $0.source == "safety" } ?? fastest
-            balanced = all.firstIndex { $0.source == "trekking" } ?? fastest
-            lowTraffic = all.firstIndex { $0.source == L("verkehrsarm") } ?? quiet
+            quiet = all.firstIndex { $0.source == .brouter(.quiet) } ?? fastest
+            balanced = all.firstIndex { $0.source == .brouter(.trekking) } ?? fastest
+            lowTraffic = all.firstIndex { $0.source == .brouter(.lowTraffic) } ?? quiet
         }
         let shortest = all.indices.min { all[$0].route.distance < all[$1].route.distance }!
         let n = Swift.max(1, s.optionsPerMode)

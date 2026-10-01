@@ -16,7 +16,7 @@ final class WatchLinkTests: XCTestCase {
 
     private func bike() -> TripOption {
         TripOption(mode: .bike, legs: [leg(.bike, 0, 1800, meters: 9000)], prep: 300,
-                   bikeRoute: BikeRouteInfo(variants: [.balanced], source: "safety"))
+                   bikeRoute: BikeRouteInfo(variants: [.balanced], source: .brouter(.quiet)))
     }
 
     private func train() -> TripOption {

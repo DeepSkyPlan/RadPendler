@@ -393,10 +393,10 @@ final class PlannerTests: XCTestCase {
     }
 
     func testVariantOrderDecidesWhichRouteIsSuggested() {
-        let quick = BikeCandidate(source: "fastbike",
+        let quick = BikeCandidate(source: .brouter(.fastbike),
                                   route: StreetRoute(distance: 22_000, expectedTravelTime: 0, coordinates: []),
                                   stats: BikeRouteStats(signals: 40, crossings: ["B 1"], mainRoadMeters: 4000))
-        let calm = BikeCandidate(source: "safety",
+        let calm = BikeCandidate(source: .brouter(.quiet),
                                  route: StreetRoute(distance: 24_000, expectedTravelTime: 0, coordinates: []),
                                  stats: BikeRouteStats(signals: 12, crossings: [], mainRoadMeters: 200))
         var s = PlanSettings(bikeSpeedKmh: 21)
@@ -507,7 +507,7 @@ final class PlannerTests: XCTestCase {
     func testTheRouterIsAskedInSmallHelpingsAndKeepsItsOrder() async {
         let counter = Counter()
         let items: [(String, Int, Int)] = (0..<9).map { ("r\($0)", $0, 0) }
-        let got = await TripPlanner.gathered(items, atOnce: 3) { name, _, _ in
+        let got = await TripPlanner.gathered(items, atOnce: 3) { _ in
             await counter.enter()
             try? await Task.sleep(for: .milliseconds(20))
             await counter.leave()
@@ -517,7 +517,7 @@ final class PlannerTests: XCTestCase {
         }
         let peak = await counter.peak
         XCTAssertLessThanOrEqual(peak, 3, "nie mehr als drei gleichzeitig")
-        XCTAssertEqual(got.map(\.0), items.map(\.0), "und am Ende wieder in der Reihenfolge der Liste")
+        XCTAssertEqual(got.map(\.0.0), items.map(\.0), "und am Ende wieder in der Reihenfolge der Liste")
     }
 
     /// Ohne BRouter bleibt eine einzige Linie von Apple übrig — eine Variante

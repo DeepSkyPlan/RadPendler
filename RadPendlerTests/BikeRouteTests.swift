@@ -95,7 +95,7 @@ final class BikeRouteTests: XCTestCase {
                              "wer auf der geplanten Linie fährt, fährt nicht auf „sonstiges“")
     }
 
-    private func candidate(_ name: String, km: Double, signals: Int, crossings: Int, mainKm: Double) -> BikeCandidate {
+    private func candidate(_ name: BikeLineSource, km: Double, signals: Int, crossings: Int, mainKm: Double) -> BikeCandidate {
         BikeCandidate(source: name, route: StreetRoute(distance: km * 1000, expectedTravelTime: 0, coordinates: []),
                       stats: BikeRouteStats(signals: signals, crossings: Array(repeating: "B 1", count: crossings),
                                             mainRoadMeters: mainKm * 1000))
@@ -105,9 +105,9 @@ final class BikeRouteTests: XCTestCase {
         let s = PlanSettings()
         // Fastest is not the shortest here: 19.7 km with 45 lights beats
         // 19.5 km with 50 at 20 s each.
-        let short = candidate("fastbike", km: 19.5, signals: 55, crossings: 18, mainKm: 13.5)
-        let middle = candidate("trekking", km: 19.7, signals: 45, crossings: 14, mainKm: 9)
-        let quiet = candidate("safety", km: 24.0, signals: 43, crossings: 12, mainKm: 7.6)
+        let short = candidate(.brouter(.fastbike), km: 19.5, signals: 55, crossings: 18, mainKm: 13.5)
+        let middle = candidate(.brouter(.trekking), km: 19.7, signals: 45, crossings: 14, mainKm: 9)
+        let quiet = candidate(.brouter(.quiet), km: 24.0, signals: 43, crossings: 12, mainKm: 7.6)
         var all = s
         all.optionsPerMode = 5      // hier geht es um alle fünf Rollen
         let picked = BikeCandidate.pick([quiet, short, middle], settings: all)
@@ -117,7 +117,7 @@ final class BikeRouteTests: XCTestCase {
         // optimal › schnellst › kürzest › wenig Autos › wenig Halts — so
         // trekking (optimal und schnellst) führt, dann fastbike (kürzest),
         // dann safety (wenig Autos und wenig Halts).
-        XCTAssertEqual(picked.map(\.0.source), ["trekking", "fastbike", "safety"])
+        XCTAssertEqual(picked.map(\.0.source), [.brouter(.trekking), .brouter(.fastbike), .brouter(.quiet)])
         // safety has both the least disturbance and the fewest metres beside a
         // main road, so it carries both labels — one route, listed once.
         XCTAssertEqual(picked.map(\.1), [[.balanced, .fastest], [.shortest], [.quiet, .lowTraffic]])
@@ -133,16 +133,16 @@ final class BikeRouteTests: XCTestCase {
         var s = PlanSettings()
         s.optionsPerMode = 5      // beide Rollen stehen erst dann zur Wahl
         // Wenig Halte, aber lange neben der Hauptstraße.
-        let fewStops = candidate("verkehrsarm", km: 21, signals: 5, crossings: 2, mainKm: 12.0)
+        let fewStops = candidate(.brouter(.lowTraffic), km: 21, signals: 5, crossings: 2, mainKm: 12.0)
         // Abseits der Autos, dafür durch lauter kleine Kreuzungen.
-        let calm = candidate("safety", km: 21, signals: 40, crossings: 15, mainKm: 2.0)
-        let quick = candidate("fastbike", km: 19, signals: 25, crossings: 10, mainKm: 8.0)
+        let calm = candidate(.brouter(.quiet), km: 21, signals: 40, crossings: 15, mainKm: 2.0)
+        let quick = candidate(.brouter(.fastbike), km: 19, signals: 25, crossings: 10, mainKm: 8.0)
         let picked = BikeCandidate.pick([fewStops, calm, quick], settings: s)
         let roles = Dictionary(uniqueKeysWithValues: picked.map { ($0.0.source, $0.1) })
-        XCTAssertTrue(roles["verkehrsarm"]?.contains(.lowTraffic) ?? false,
+        XCTAssertTrue(roles[.brouter(.lowTraffic)]?.contains(.lowTraffic) ?? false,
                       "die wenigsten Stellen, an denen der Verkehr zum Halten zwingt")
-        XCTAssertTrue(roles["safety"]?.contains(.quiet) ?? false, "die geringste Störung insgesamt")
-        XCTAssertFalse(roles["safety"]?.contains(.lowTraffic) ?? true, "und eben nicht dasselbe")
+        XCTAssertTrue(roles[.brouter(.quiet)]?.contains(.quiet) ?? false, "die geringste Störung insgesamt")
+        XCTAssertFalse(roles[.brouter(.quiet)]?.contains(.lowTraffic) ?? true, "und eben nicht dasselbe")
         XCTAssertEqual(fewStops.stats?.stops, 7)
         XCTAssertEqual(calm.stats?.stops, 55)
     }
@@ -150,17 +150,17 @@ final class BikeRouteTests: XCTestCase {
     /// Ohne OpenStreetMap-Daten lässt sich nur die Zeit beurteilen — dann
     /// vertritt BRouters eigenes Profil die Rolle.
     func testWithoutRoadDataTheProfileNamesTheVariant() {
-        let plain = { (name: String, km: Double) in
+        let plain = { (name: BikeLineSource, km: Double) in
             BikeCandidate(source: name, route: StreetRoute(distance: km * 1000, expectedTravelTime: 0,
                                                            coordinates: [], signals: 0), stats: nil)
         }
         var s = PlanSettings()
         s.optionsPerMode = 5      // alle fünf Rollen, nicht nur die obersten drei
-        let picked = BikeCandidate.pick([plain("trekking", 20), plain("safety", 21),
-                                         plain("verkehrsarm", 22)], settings: s)
+        let picked = BikeCandidate.pick([plain(.brouter(.trekking), 20), plain(.brouter(.quiet), 21),
+                                         plain(.brouter(.lowTraffic), 22)], settings: s)
         let roles = Dictionary(uniqueKeysWithValues: picked.map { ($0.0.source, $0.1) })
-        XCTAssertTrue(roles["safety"]?.contains(.quiet) ?? false)
-        XCTAssertTrue(roles["verkehrsarm"]?.contains(.lowTraffic) ?? false)
+        XCTAssertTrue(roles[.brouter(.quiet)]?.contains(.quiet) ?? false)
+        XCTAssertTrue(roles[.brouter(.lowTraffic)]?.contains(.lowTraffic) ?? false)
     }
 
     /// Eine Linie, die alles gewinnt, steht **einmal** da und trägt alle
@@ -169,23 +169,23 @@ final class BikeRouteTests: XCTestCase {
     /// eigenen „wenig Autos"-Profil gewann oft eine Linie alles, und von drei
     /// angefragten Wegen blieb einer übrig).
     func testTheWinnerIsListedOnceWithAllItsNames() {
-        let best = candidate("safety", km: 19, signals: 10, crossings: 2, mainKm: 1)
-        let worse = candidate("fastbike", km: 20, signals: 50, crossings: 18, mainKm: 13)
+        let best = candidate(.brouter(.quiet), km: 19, signals: 10, crossings: 2, mainKm: 1)
+        let worse = candidate(.brouter(.fastbike), km: 20, signals: 50, crossings: 18, mainKm: 13)
         let picked = BikeCandidate.pick([worse, best], settings: PlanSettings())
         XCTAssertEqual(picked.count, 2, "der Gewinner und die Alternative")
         XCTAssertEqual(picked[1].1, [.alternative])
-        XCTAssertEqual(picked[0].0.source, "safety")
+        XCTAssertEqual(picked[0].0.source, .brouter(.quiet))
         XCTAssertEqual(picked[0].1, BikeVariant.defaultOrder,
                        "alle Namen, in der Reihenfolge des Nutzers — die Liste wurde bis unten nach einem anderen Weg abgesucht")
     }
 
     func testTheVariantOrderTravelsThroughToWhatIsSuggested() {
-        let short = candidate("fastbike", km: 19.5, signals: 55, crossings: 18, mainKm: 13.5)
-        let quiet = candidate("safety", km: 24.0, signals: 43, crossings: 12, mainKm: 7.6)
+        let short = candidate(.brouter(.fastbike), km: 19.5, signals: 55, crossings: 18, mainKm: 13.5)
+        let quiet = candidate(.brouter(.quiet), km: 24.0, signals: 43, crossings: 12, mainKm: 7.6)
         var s = PlanSettings()
         s.bikeVariantOrder = [.shortest, .quiet, .balanced, .fastest]
         let picked = BikeCandidate.pick([quiet, short], settings: s)
-        XCTAssertEqual(picked.first?.0.source, "fastbike")
+        XCTAssertEqual(picked.first?.0.source, .brouter(.fastbike))
         XCTAssertEqual(picked.first?.1.first, .shortest)
     }
 
@@ -278,15 +278,15 @@ extension BikeRouteTests {
     /// gewinnen noch verlieren — für die Bewertung bekommt sie den
     /// Durchschnitt der bekannten, angezeigt wird weiter nichts.
     func testAnUnknownAscentIsNeitherRewardedNorPunished() {
-        func candidate(_ name: String, ascent: Double?) -> BikeCandidate {
+        func candidate(_ name: BikeLineSource, ascent: Double?) -> BikeCandidate {
             BikeCandidate(source: name,
                           route: StreetRoute(distance: 10_000, expectedTravelTime: 1800, coordinates: [],
                                              ascent: ascent),
                           stats: nil)
         }
-        let levelled = BikeCandidate.levelled([candidate("Apple", ascent: nil),
-                                               candidate("a", ascent: 20),
-                                               candidate("b", ascent: 60)])
+        let levelled = BikeCandidate.levelled([candidate(.apple, ascent: nil),
+                                               candidate(.brouter(.fastbike), ascent: 20),
+                                               candidate(.brouter(.shortest), ascent: 60)])
         XCTAssertEqual(levelled[0].ascent, 40, "der Durchschnitt der beiden bekannten")
         XCTAssertNil(levelled[0].route.ascent, "gemessen ist weiterhin nichts")
         XCTAssertEqual(levelled[1].ascent, 20)
@@ -294,8 +294,8 @@ extension BikeRouteTests {
         // Und der Anstieg kostet Zeit: 40 m × 5 s sind gut drei Minuten.
         var s = PlanSettings()
         s.signalWaitSeconds = 0
-        let flat = candidate("flach", ascent: 0)
-        let hilly = candidate("bergig", ascent: 100)
+        let flat = candidate(.brouter(.fastbike), ascent: 0)
+        let hilly = candidate(.brouter(.shortest), ascent: 100)
         XCTAssertEqual(BikeCandidate.levelled([flat, hilly])[1].time(s) - flat.time(s), 500, accuracy: 1)
     }
 
@@ -304,24 +304,24 @@ extension BikeRouteTests {
     func testTheFlatterRouteWinsOnTime() {
         var s = PlanSettings()
         s.signalWaitSeconds = 0
-        func candidate(_ name: String, km: Double, ascent: Double) -> BikeCandidate {
+        func candidate(_ name: BikeLineSource, km: Double, ascent: Double) -> BikeCandidate {
             BikeCandidate(source: name,
                           route: StreetRoute(distance: km * 1000, expectedTravelTime: 0, coordinates: [],
                                              ascent: ascent),
                           stats: nil)
         }
-        let over = candidate("über den Berg", km: 10, ascent: 120)
-        let around = candidate("drumherum", km: 10.5, ascent: 5)
+        let over = candidate(.brouter(.shortest), km: 10, ascent: 120)
+        let around = candidate(.brouter(.safety), km: 10.5, ascent: 5)
         let picked = BikeCandidate.pick([over, around], settings: s)
         let fastest = picked.first { $0.1.contains(.fastest) }
-        XCTAssertEqual(fastest?.0.source, "drumherum", "der halbe Kilometer Umweg ist billiger als 115 Höhenmeter")
+        XCTAssertEqual(fastest?.0.source, .brouter(.safety), "der halbe Kilometer Umweg ist billiger als 115 Höhenmeter")
         let shortest = picked.first { $0.1.contains(.shortest) }
-        XCTAssertEqual(shortest?.0.source, "über den Berg", "kürzest bleibt kürzest")
+        XCTAssertEqual(shortest?.0.source, .brouter(.shortest), "kürzest bleibt kürzest")
     }
 
     // MARK: Wie viele Radrouten der Bildschirm zeigt
 
-    private func line(_ name: String, km: Double, seconds: Double, offset: Double = 0,
+    private func line(_ name: BikeLineSource, km: Double, seconds: Double, offset: Double = 0,
                       disturbance: Double? = nil, stops: Int = 0) -> BikeCandidate {
         // Eine gerade Linie nach Osten, um `offset` Grad nach Norden versetzt.
         let points = (0...20).map {
@@ -343,13 +343,13 @@ extension BikeRouteTests {
     /// Mehrere Profile liefern oft dieselbe Straße. Zwei gleiche Linien sind
     /// keine zwei Möglichkeiten.
     func testIdenticalLinesCountOnce() {
-        let a = line("trekking", km: 10, seconds: 1800)
-        let b = line("fastbike", km: 10.05, seconds: 1800)      // dieselbe Straße
-        let c = line("umweg", km: 10, seconds: 1800, offset: 0.02)  // gut 2 km daneben
+        let a = line(.brouter(.trekking), km: 10, seconds: 1800)
+        let b = line(.brouter(.fastbike), km: 10.05, seconds: 1800)      // dieselbe Straße
+        let c = line(.brouter(.safety), km: 10, seconds: 1800, offset: 0.02)  // gut 2 km daneben
         XCTAssertTrue(BikeCandidate.sameLine(a.route, b.route))
         XCTAssertFalse(BikeCandidate.sameLine(a.route, c.route))
         XCTAssertEqual(BikeCandidate.distinct([a, b, c]).count, 2)
-        XCTAssertEqual(BikeCandidate.distinct([a, b, c]).map { $0.source }, ["trekking", "umweg"])
+        XCTAssertEqual(BikeCandidate.distinct([a, b, c]).map { $0.source }, [.brouter(.trekking), .brouter(.safety)])
     }
 
     /// Wie viele Möglichkeiten gerechnet werden, entscheidet die Einstellung —
@@ -357,9 +357,9 @@ extension BikeRouteTests {
     func testOnlyAsManyRolesAsAsked() {
         var s = PlanSettings()
         s.signalWaitSeconds = 0
-        let a = line("a", km: 9.0, seconds: 0, offset: 0.000, disturbance: 100)
-        let b = line("b", km: 9.5, seconds: 0, offset: 0.02, disturbance: 900)
-        let c = line("c", km: 12.0, seconds: 0, offset: 0.04, disturbance: 500)
+        let a = line(.brouter(.fastbike), km: 9.0, seconds: 0, offset: 0.000, disturbance: 100)
+        let b = line(.brouter(.shortest), km: 9.5, seconds: 0, offset: 0.02, disturbance: 900)
+        let c = line(.brouter(.safety), km: 12.0, seconds: 0, offset: 0.04, disturbance: 500)
         s.optionsPerMode = 1
         XCTAssertEqual(Set(BikeCandidate.pick([a, b, c], settings: s).flatMap { $0.1 }).count, 1)
         s.optionsPerMode = 3
@@ -385,12 +385,12 @@ extension BikeRouteTests {
     /// eine Aufzählung „optimal · schnellst · wenig Autos" liest sich aber wie
     /// eine Auswahl, aus der man etwas anklicken müsste.
     func testAMultiRoleLineExplainsItself() {
-        let one = BikeRouteInfo(variants: [.balanced], stats: nil, source: "safety")
+        let one = BikeRouteInfo(variants: [.balanced], stats: nil, source: .brouter(.quiet))
         XCTAssertEqual(one.reason, BikeVariant.balanced.explanation)
-        let three = BikeRouteInfo(variants: [.balanced, .fastest, .quiet], stats: nil, source: "safety")
+        let three = BikeRouteInfo(variants: [.balanced, .fastest, .quiet], stats: nil, source: .brouter(.quiet))
         XCTAssertTrue(three.reason.contains("zugleich"), three.reason)
         XCTAssertTrue(three.reason.contains("schnellst und wenig Autos"), three.reason)
-        XCTAssertEqual(BikeRouteInfo(variants: [], stats: nil, source: "trekking").reason, "",
+        XCTAssertEqual(BikeRouteInfo(variants: [], stats: nil, source: .brouter(.trekking)).reason, "",
                        "ohne Rolle gibt es nichts zu erklären — solche Linien zeigt die App nicht mehr")
     }
 
@@ -410,13 +410,13 @@ extension BikeRouteTests {
         var s = PlanSettings()
         s.optionsPerMode = 2
         s.bikeVariantOrder = [.quiet, .balanced, .shortest, .fastest, .lowTraffic]
-        let calm = candidate("safety", km: 18, signals: 10, crossings: 2, mainKm: 1)   // höchstens 10 % Umweg, sonst ist sie nicht „optimal“
-        let short = candidate("shortest", km: 17, signals: 40, crossings: 15, mainKm: 9)
+        let calm = candidate(.brouter(.quiet), km: 18, signals: 10, crossings: 2, mainKm: 1)   // höchstens 10 % Umweg, sonst ist sie nicht „optimal“
+        let short = candidate(.brouter(.shortest), km: 17, signals: 40, crossings: 15, mainKm: 9)
         let picked = BikeCandidate.pick([calm, short], settings: s)
         XCTAssertEqual(picked.count, 2)
-        XCTAssertEqual(picked[0].0.source, "safety")
+        XCTAssertEqual(picked[0].0.source, .brouter(.quiet))
         XCTAssertTrue(picked[0].1.starts(with: [.quiet, .balanced]))
-        XCTAssertEqual(picked[1].0.source, "shortest")
+        XCTAssertEqual(picked[1].0.source, .brouter(.shortest))
         XCTAssertTrue(picked[1].1.contains(.shortest), "der echte Name, keine „Alternative“")
     }
 
@@ -526,23 +526,23 @@ extension BikeRouteTests {
     func testOptimalIsNoDetour() {
         var s = PlanSettings()
         s.optionsPerMode = 3
-        let direct = candidate("shortest", km: 19.0, signals: 38, crossings: 15, mainKm: 12.8)
-        let fast = candidate("fastbike", km: 19.7, signals: 45, crossings: 16, mainKm: 14.5)
-        let calm = candidate("safety", km: 22.3, signals: 28, crossings: 13, mainKm: 2.7)
+        let direct = candidate(.brouter(.shortest), km: 19.0, signals: 38, crossings: 15, mainKm: 12.8)
+        let fast = candidate(.brouter(.fastbike), km: 19.7, signals: 45, crossings: 16, mainKm: 14.5)
+        let calm = candidate(.brouter(.quiet), km: 22.3, signals: 28, crossings: 13, mainKm: 2.7)
         XCTAssertLessThan(calm.balancedScore(s), direct.balancedScore(s), "ohne Grenze gewönne der Umweg")
         XCTAssertFalse(calm.isReasonable(among: [direct, fast, calm], s))
         let picked = BikeCandidate.pick([direct, fast, calm], settings: s)
         let optimal = picked.first { $0.1.contains(.balanced) }?.0.source
-        XCTAssertEqual(optimal, "shortest")
-        XCTAssertEqual(picked.first { $0.1.contains(.quiet) }?.0.source, "safety",
+        XCTAssertEqual(optimal, .brouter(.shortest))
+        XCTAssertEqual(picked.first { $0.1.contains(.quiet) }?.0.source, .brouter(.quiet),
                        "die ruhige Linie bleibt da — unter ihrem richtigen Namen")
     }
 
     func testReplanUsesTheProfileOfTheRiddenLine() {
-        XCTAssertEqual(BRouterClient.Profile.of(source: "fastbike"), .fastbike)
-        XCTAssertEqual(BRouterClient.Profile.of(source: "safety"), .quiet)
-        XCTAssertEqual(BRouterClient.Profile.of(source: "Apple"), .trekking)
-        XCTAssertEqual(BRouterClient.Profile.of(source: nil), .trekking)
+        XCTAssertEqual(BikeLineSource.brouter(.fastbike).profile, .fastbike)
+        XCTAssertEqual(BikeLineSource.brouter(.quiet).profile, .quiet)
+        XCTAssertEqual(BikeLineSource.apple.profile, .trekking)
+        XCTAssertEqual(BikeLineSource.habit.profile, .trekking, "die gewohnte wurde mit trekking nachgefahren")
     }
 
     func testAReplanThatNeverAnswersGivesUp() async {

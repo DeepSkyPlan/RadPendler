@@ -82,16 +82,16 @@ final class RiddenPathsTests: XCTestCase {
     func testAHabitualLineCanBeOptimal() {
         var s = PlanSettings()
         s.optionsPerMode = 3
-        func cand(_ name: String, km: Double, mainKm: Double, familiar: Double) -> BikeCandidate {
+        func cand(_ name: BikeLineSource, km: Double, mainKm: Double, familiar: Double) -> BikeCandidate {
             BikeCandidate(source: name, route: StreetRoute(distance: km * 1000, expectedTravelTime: 0, coordinates: []),
                           stats: BikeRouteStats(signals: 30, crossings: [], mainRoadMeters: mainKm * 1000),
                           familiar: familiar)
         }
-        let direct = cand("shortest", km: 19, mainKm: 3, familiar: 0.2)
-        let usual = cand(RiddenPaths.source, km: 20.5, mainKm: 12, familiar: 0.95)
+        let direct = cand(.brouter(.shortest), km: 19, mainKm: 3, familiar: 0.2)
+        let usual = cand(.habit, km: 20.5, mainKm: 12, familiar: 0.95)
         let picked = BikeCandidate.pick([direct, usual], settings: s)
-        XCTAssertEqual(picked.first { $0.1.contains(.balanced) }?.0.source, RiddenPaths.source)
-        let info = BikeRouteInfo(variants: [.alternative], stats: nil, source: RiddenPaths.source)
+        XCTAssertEqual(picked.first { $0.1.contains(.balanced) }?.0.source, .habit)
+        let info = BikeRouteInfo(variants: [.alternative], stats: nil, source: .habit)
         XCTAssertEqual(info.shortTitle, L("gewohnt"), "keine „Alternative“, sondern die eigene")
     }
 }
