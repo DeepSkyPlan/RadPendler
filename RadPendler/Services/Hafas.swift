@@ -63,7 +63,9 @@ struct HafasClient {
         let key = StationCache.key(c, radius: radius, productMask: productMask)
         if let hit = await StationCache.shared.stations(for: key) { return hit }
         let found = try await askNearbyStations(around: c, radius: radius, productMask: productMask)
-        await StationCache.shared.keep(found, for: key)
+        // Eine leere Antwort kann ein Aussetzer sein; einen Tag lang „kein
+        // Bahnhof" wäre zu teuer für eine Anfrage, die man sich sparen wollte.
+        if !found.isEmpty { await StationCache.shared.keep(found, for: key) }
         return found
     }
 
