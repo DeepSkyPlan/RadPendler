@@ -693,3 +693,31 @@ final class RideTests: XCTestCase {
         try? FileManager.default.removeItem(at: folder)
     }
 }
+
+// MARK: Auswertung
+
+extension RideTests {
+    func testTheExportCarriesAccuracyEventsAndRoutes() throws {
+        let id = UUID()
+        let ride = Ride(id: id, started: Date(timeIntervalSince1970: 1_790_000_000), ended: Date(timeIntervalSince1970: 1_790_001_000),
+                        origin: "A", destination: "B", mode: "bike", meters: 5_000, movingSeconds: 900,
+                        maxKmh: 30, signalStops: 1, otherStops: 0, signalWaitTotal: 20)
+        var track = RideTrack(id: id, points: [RidePoint(lat: 52.5, lon: 13.4, t: ride.started, v: 5, h: nil, a: 65)])
+        track.events = [RideEvent(t: ride.started, lat: 52.5, lon: 13.4, kind: "neuplanung", note: "300 m daneben")]
+        track.routes = [[TrackPoint(lat: 52.5, lon: 13.4)], [TrackPoint(lat: 52.51, lon: 13.41)]]
+        let url = try XCTUnwrap(RideExport.write(ride, track))
+        XCTAssertTrue(url.lastPathComponent.hasPrefix("RadPendler-Fahrt-"))
+        let d = JSONDecoder(); d.dateDecodingStrategy = .iso8601
+        let back = try d.decode(RideExport.File.self, from: Data(contentsOf: url))
+        XCTAssertEqual(back.track, track)
+        XCTAssertEqual(back.ride.id, id)
+    }
+
+    /// Linien aus der Zeit vor 1.9.2 kennen weder Genauigkeit noch Protokoll.
+    func testOldTracksStillDecode() throws {
+        let old = #"{"id":"8D7A1E8E-6C3B-4C61-9E0B-5A4B2F1D3C11","points":[{"lat":52.5,"lon":13.4,"t":800000000,"v":5}],"stops":[],"planned":[]}"#
+        let t = try JSONDecoder().decode(RideTrack.self, from: Data(old.utf8))
+        XCTAssertNil(t.points[0].a)
+        XCTAssertNil(t.events)
+    }
+}

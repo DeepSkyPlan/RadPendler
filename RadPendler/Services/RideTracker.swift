@@ -42,8 +42,34 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                                          plannedMeters: subject.plannedMeters,
                                          plannedSignals: subject.plannedSignals)
         if subject.motorcycle { ride.motorcycle = true }
+        track.events = events.isEmpty ? nil : events
+        if replans > 0 {
+            track.routes = (pastRoutes + [plannedRoute]).map { Geo.thinned($0).map(TrackPoint.init) }
+        }
         return (ride, track)
     }
+
+    // MARK: Protokoll für die Auswertung
+
+    /// Was während der Fahrt geschah — landet in der Linie und in der
+    /// geteilten Auswertung (Fahrten → Fahrt → Teilen). Die Fahrt vom
+    /// 30.09.2026 ließ sich nicht aufklären, weil niemand wusste, wann neu
+    /// geplant wurde und woran es scheiterte; das steht jetzt hier.
+    private var events: [RideEvent] = []
+    /// Mehr wird es auf keiner Pendelfahrt; eine Endlosschleife soll die
+    /// Datei nicht aufblähen.
+    static let maxEvents = 400
+
+    private func log(_ kind: String, _ note: String? = nil, at c: CLLocationCoordinate2D? = nil) {
+        guard events.count < Self.maxEvents else { return }
+        let p = c ?? here ?? CLLocationCoordinate2D()
+        events.append(RideEvent(t: .now, lat: (p.latitude * 1e5).rounded() / 1e5,
+                                lon: (p.longitude * 1e5).rounded() / 1e5, kind: kind, note: note))
+    }
+
+    /// Wann zuletzt eine ungenaue Ortung protokolliert wurde — eine je
+    /// halbe Minute reicht, um ein Funkloch zu sehen.
+    private var lastPoorFixLog = Date.distantPast
 
     private(set) var subject: Subject?
     private(set) var meter = RideMeter()
@@ -308,6 +334,12 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         self.subject = subject
         meter = RideMeter()
         if TravelMode(rawValue: subject.mode) == .bike { meter.speedLimit = RideMeter.maxBikeSpeed }
+        events = []
+        lastPoorFixLog = .distantPast
+        log("start", "\(subject.mode), Profil \(bikeProfile.rawValue), Pflaster meiden \(avoidCobbles ? "an" : "aus"), "
+            + "\(via.count) Fixpunkte, Route \(Int(TurnGuide.cumulative(plannedRoute).last ?? 0)) m, "
+            + "Neuplanung ab \(Int(replanOffRouteMeters)) m, App \(RideMeter.appVersion ?? "?")",
+            at: plannedRoute.first)
         meter.signals = signals
         meter.roadPoints = roadPoints
         meter.plannedLine = originalRoute
@@ -355,6 +387,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     func pause() {
         guard isRecording, !meter.isPaused else { return }
         meter.pause()
+        log("pause", "von Hand")
         autoPaused = false
         stopPauseWatch()
         // Von Hand angehalten heißt: die Ortung darf ganz aus. Weiter geht es
@@ -374,6 +407,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     private func pauseAutomatically(at now: Date) {
         guard isRecording, !meter.isPaused else { return }
         meter.pause(at: now)
+        log("pause", "von selbst")
         autoPaused = true
         startPauseWatch()
         pausedAt = here
@@ -427,6 +461,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     func resume() {
         guard isRecording, meter.isPaused else { return }
         meter.resume()
+        log("weiter")
         autoPaused = false
         pausedAt = nil
         stopPauseWatch()
@@ -444,6 +479,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     @discardableResult
     func stop(at end: Date = .now) -> Ride? {
         guard let subject else { return nil }
+        log("ende", "\(replans)× neu geplant")
         stopPauseWatch()
         autoPaused = false
         manager.stopUpdatingLocation()
@@ -553,6 +589,11 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
             return
         }
         for fix in fixes { meter.add(fix) }
+        if let poor = fixes.last(where: { $0.accuracy < 0 || $0.accuracy > RideMeter.maxAccuracy }),
+           Date.now.timeIntervalSince(lastPoorFixLog) >= 30 {
+            lastPoorFixLog = .now
+            log("ungenau", "±\(Int(poor.accuracy)) m — verworfen", at: poor.coordinate)
+        }
         if let last = fixes.last {
             here = last.coordinate
             if !turns.isEmpty,
@@ -637,6 +678,9 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
             return
         }
         let next = OffRoute.isOff(fix.meters, was: detour != nil) ? fix : nil
+        if (detour == nil) != (next == nil) {
+            log(next == nil ? "zurück" : "abseits", next.map { "\(Int($0.meters)) m neben der Route" }, at: here)
+        }
         if detour != next { detour = next }
         guard let next else {
             if offSince != nil { offSince = nil }
@@ -681,14 +725,21 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         let known = signals
         let (profile, cobbles) = (bikeProfile, avoidCobbles)
         let ahead = WaypointRouting.ahead(via, from: here, to: destination)
+        log("neuplanung", "\(Int(detour?.meters ?? 0)) m daneben, Kurs \(Int(course))°, \(ahead.count) Fixpunkte voraus", at: here)
         replanTask = Task { [weak self] in
             // Eine Anfrage, die nie zurückkommt, darf nicht jede weitere
             // Neuplanung sperren: `replanTask` bliebe sonst für immer besetzt.
-            let route = try? await Self.withTimeout(Self.replanTimeout) {
-                mode == .bike
-                    ? try await router.bikeRoute(from: from, to: destination, via: ahead,
-                                                profile: profile, avoidCobbles: cobbles)
-                    : try await router.route(from: from, to: destination, mode: mode, departure: .now)
+            var route: StreetRoute?
+            var failure: String?
+            do {
+                route = try await Self.withTimeout(Self.replanTimeout) {
+                    mode == .bike
+                        ? try await router.bikeRoute(from: from, to: destination, via: ahead,
+                                                    profile: profile, avoidCobbles: cobbles)
+                        : try await router.route(from: from, to: destination, mode: mode, departure: .now)
+                }
+            } catch {
+                failure = error is TimedOut ? "keine Antwort nach \(Int(Self.replanTimeout)) s" : "\(error)"
             }
             // Die Ampeln des **neuen** Wegs: aus demselben OpenStreetMap-
             // Ausschnitt, mit dem geplant wurde (meist schon im Speicher),
@@ -699,7 +750,10 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                let data = try? await RoadDataStore.shared.data(covering: line) {
                 lights += RouteAnalyzer.analyze(line, roads: data).signalPoints
             }
-            await MainActor.run { self?.adopt(route, heading: heading, lights: lights) }
+            await MainActor.run {
+                if let failure { self?.log("fehlgeschlagen", failure) }
+                self?.adopt(route, heading: heading, lights: lights)
+            }
         }
     }
 
@@ -734,7 +788,11 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         // er eine Wende — auf einer Autobahn ist das keine Auskunft, sondern
         // ein Witz. Dann lieber den alten Weg stehen lassen und es in einer
         // Minute noch einmal versuchen.
-        if heading >= 0, Self.turnsBack(route.coordinates, heading: heading) { return }
+        if heading >= 0, Self.turnsBack(route.coordinates, heading: heading) {
+            log("verworfen", "führt zurück")
+            return
+        }
+        log("übernommen", "\(Int(TurnGuide.cumulative(route.coordinates).last ?? 0)) m bis zum Ziel")
         signalsBehind = progress?.signalsPassed ?? signalsBehind
         pastRoutes.append(plannedRoute)
         plannedRoute = route.coordinates

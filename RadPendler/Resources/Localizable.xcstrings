@@ -1772,6 +1772,17 @@
         }
       }
     },
+    "Fahrt zur Auswertung teilen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share ride for analysis"
+          }
+        }
+      }
+    },
     "Fahrten": {
       "extractionState": "manual",
       "localizations": {

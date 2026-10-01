@@ -184,7 +184,9 @@ final class RideStore {
         // Die geplante Linie bleibt: sie ist ohnehin ausgedünnt, und gerade
         // bei einer abgebrochenen Fahrt ist der Vergleich „geplant gegen
         // gefahren" das Interessante.
-        return RideTrack(id: track.id, points: kept, stops: track.stops, planned: track.planned)
+        var out = track
+        out.points = kept
+        return out
     }
 
     /// Written while recording, so a ride does not die with the process.

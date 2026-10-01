@@ -15,9 +15,27 @@ struct RidePoint: Codable, Equatable {
     /// der Empfänger sagt sie nur, wenn er sie hat, und die Fassungen vor dem
     /// Höhenprofil haben sie nie mitgeschrieben.
     var h: Double?
+    /// Wie genau der Empfänger sich war, in Metern (horizontal). nil bei
+    /// Fahrten vor 1.9.2. Für die Auswertung: eine Fahrt, die ohne Netz
+    /// beginnt, sieht man hier, bevor man sie auf der Karte sucht.
+    var a: Double? = nil
 
     var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: lat, longitude: lon) }
     var kmh: Double { v * 3.6 }
+}
+
+/// Etwas, das während einer Fahrt geschah und das man hinterher wissen will,
+/// wenn sie seltsam war: neben der Route, neu geplant (und mit welchem
+/// Ergebnis), Pause, ungenaue Ortung. Liegt nur in der geteilten Auswertung
+/// und in der Linie, nirgends auf dem Bildschirm.
+struct RideEvent: Codable, Equatable {
+    var t: Date
+    var lat: Double
+    var lon: Double
+    /// start, abseits, zurück, neuplanung, übernommen, verworfen, fehlgeschlagen,
+    /// pause, weiter, ungenau, ende
+    var kind: String
+    var note: String? = nil
 }
 
 /// Eine Ecke einer geplanten Linie. Zwei Zahlen, weil mehr nicht gebraucht
@@ -58,6 +76,11 @@ struct RideTrack: Codable, Equatable {
     /// was man auf einer Karte unterscheiden kann. Sie liegt hinterher dünn
     /// neben der gefahrenen: der Unterschied ist die eigentliche Auskunft.
     var planned: [TrackPoint] = []
+    /// Was während der Fahrt geschah — seit 1.9.2, sonst nil.
+    var events: [RideEvent]? = nil
+    /// Jede Linie, die während der Fahrt galt, in Reihenfolge: die geplante
+    /// und jede Neuplanung, ausgedünnt. nil, wenn nie neu geplant wurde.
+    var routes: [[TrackPoint]]? = nil
 
     var coordinates: [CLLocationCoordinate2D] { points.map(\.coordinate) }
     var plannedCoordinates: [CLLocationCoordinate2D] { planned.map(\.coordinate) }

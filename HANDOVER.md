@@ -461,6 +461,16 @@ muss, um sich zurechtzufinden.
 
 ## Offen / Ideen
 
+### Eine Fahrt auswerten
+
+Fahrten → Fahrt → Teilen schreibt `RadPendler-Fahrt-<datum>-<uhrzeit>.json` (`RideExport`):
+`Ride`, `RideTrack` mit `RidePoint.a` (Genauigkeit, seit 1.9.2), `routes` (jede geltende Linie)
+und `events` (`RideEvent`: start, abseits, zurück, neuplanung, übernommen, verworfen,
+fehlgeschlagen, pause, weiter, ungenau, ende). Der Nutzer legt sie per „In Dateien sichern“
+in iCloud Drive oder per AirDrop in ~/Downloads; `python3 tools/ride_report.py` findet die
+jüngste dort und öffnet Karte und Befund in Chrome. Die Datei enthält die Wohnadresse — sie
+gehört nie ins Repo.
+
 ### Aufräumen, mittlerer Aufwand (Review 01.10.2026)
 
 Was die Durchsicht vom 01.10.2026 gefunden und noch nicht erledigt hat; das Kleine ist seit
