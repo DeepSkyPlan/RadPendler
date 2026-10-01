@@ -181,9 +181,51 @@ struct RideDetailView: View {
         .background(Theme.background)
         .navigationTitle(ride.started.formatted(.dateTime.day().month().year().hour().minute()))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if let export {
+                ShareLink(item: export) {
+                    Label(L("Fahrt zur Auswertung teilen"), systemImage: "square.and.arrow.up")
+                }
+            }
+        }
         // Die Linie wird ohnehin für die Karte geholt; das Höhenprofil liest
         // aus derselben.
-        .task { track = await store.track(for: ride) }
+        .task {
+            track = await store.track(for: ride)
+            if let track { export = RideExport.write(ride, track) }
+        }
+    }
+
+    @State private var export: URL?
+}
+
+/// Eine Fahrt als Datei, für die Auswertung am Mac: Zusammenfassung, jeder
+/// Punkt mit Genauigkeit, die geplante Linie, jede Neuplanung und das
+/// Protokoll der Fahrt (`RideEvent`). Geteilt über das Teilen-Menü — „In
+/// Dateien sichern" nach iCloud Drive oder AirDrop an den Mac; TestFlight
+/// selbst nimmt nur Text und Bildschirmfotos mit.
+///
+/// Die Datei enthält Start und Ziel als Koordinaten, also die Wohnadresse —
+/// sie entsteht nur auf Tippen und geht nur dorthin, wohin man sie schickt.
+enum RideExport {
+    struct File: Codable {
+        var format = 1
+        var app: String?
+        var ride: Ride
+        var track: RideTrack
+    }
+
+    static func write(_ ride: Ride, _ track: RideTrack) -> URL? {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd-HHmm"
+        let stamp = f.string(from: ride.started)
+        let url = URL.temporaryDirectory.appending(path: "RadPendler-Fahrt-\(stamp).json")
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        guard let data = try? encoder.encode(File(app: RideMeter.appVersion, ride: ride, track: track)),
+              (try? data.write(to: url, options: .atomic)) != nil else { return nil }
+        return url
     }
 }
 

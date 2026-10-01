@@ -2,6 +2,13 @@
 
 ## Unveröffentlicht — Aufräumen
 
+- **Fahrt zur Auswertung teilen** (Fahrten → Fahrt → Teilen-Knopf oben rechts): eine JSON-Datei
+  mit Zusammenfassung, jedem Punkt samt Genauigkeit, geplanter Linie, jeder Neuplanung und einem
+  Protokoll der Fahrt (neben der Route, Neuplanung mit Ergebnis — übernommen, verworfen,
+  fehlgeschlagen mit Grund —, Pausen, ungenaue Ortungen). Am Mac macht
+  `tools/ride_report.py` daraus Karte und Befund. Anlass: die Fahrt vom 30.09.2026, die sich
+  ohne diese Daten nicht aufklären ließ. Neue Felder sind optional; alte Linien lesen sich weiter.
+
 - **Die Ausrichtung aus den Einstellungen bleibt.** Bisher stellte jede beendete Fahrt sie
   auf „Automatisch“ zurück; jetzt gilt nach der Fahrt wieder, was dort gewählt ist. Die
   Ausrichtung im Fahrtmodus bleibt eine eigene.

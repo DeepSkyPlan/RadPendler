@@ -303,7 +303,8 @@ struct RideMeter {
         let height = fix.verticalAccuracy >= 0 && fix.verticalAccuracy <= Self.maxVerticalAccuracy
             ? fix.altitude : nil
         points.append(RidePoint(lat: fix.coordinate.latitude, lon: fix.coordinate.longitude,
-                                t: fix.time, v: currentSpeed, h: height))
+                                t: fix.time, v: currentSpeed, h: height,
+                                a: fix.accuracy >= 0 ? fix.accuracy.rounded() : nil))
     }
 
     /// Standing starts under `stopSpeed` and ends over `goSpeed`. A gap ends a

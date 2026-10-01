@@ -698,3 +698,5 @@ T.update({
 "Fahrpläne außerhalb Berlin/Brandenburg: Transitous (MOTIS), Quellen unter transitous.org/sources.":
     "Timetables outside Berlin/Brandenburg: Transitous (MOTIS), sources at transitous.org/sources.",
 })
+
+T.update({"Fahrt zur Auswertung teilen": "Share ride for analysis"})
