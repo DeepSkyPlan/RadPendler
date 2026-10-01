@@ -564,4 +564,27 @@ final class ReplannerTests: XCTestCase {
         XCTAssertEqual(r.plannedRoute.count, next.count)
         XCTAssertEqual(kinds, ["neuplanung"], "kein „fehlgeschlagen“ der alten Fahrt im Protokoll der neuen")
     }
+
+    /// Losgefahren am Ziel der Linie: die Fahrt geht andersherum (Fahrt
+    /// 01.10.2026 — Hinweg auf dem Bildschirm, Heimweg gefahren). Mitten auf
+    /// der Linie oder am Anfang ist nichts verkehrt.
+    func testStartingAtTheEndOfTheRouteMeansTheRideGoesTheOtherWay() {
+        let line = (0...20).map { north(Double($0) * 100) }
+        XCTAssertTrue(RideTracker.startsAtEnd(north(2_050), route: line))
+        XCTAssertFalse(RideTracker.startsAtEnd(north(30), route: line))
+        XCTAssertFalse(RideTracker.startsAtEnd(north(1_000), route: line))
+        // Eine Runde, die dort endet, wo sie beginnt, ist nicht verkehrt.
+        let loop = line + line.reversed()
+        XCTAssertFalse(RideTracker.startsAtEnd(north(10), route: loop))
+    }
+
+    func testTurningAroundReversesLineAndWaypoints() {
+        let (r, _, _) = replanner(nil)
+        r.reset(route: original, config: Replanner.Config(mode: .bike, via: [north(300), north(700)], knownSignals: []))
+        r.turnAround()
+        XCTAssertEqual(r.plannedRoute.first?.latitude, original.last?.latitude)
+        XCTAssertEqual(r.originalRoute.last?.latitude, original.first?.latitude)
+        XCTAssertEqual(r.config.via.first?.latitude, north(700).latitude)
+    }
 }
+

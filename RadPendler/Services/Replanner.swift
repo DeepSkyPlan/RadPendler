@@ -88,6 +88,16 @@ final class Replanner {
         task = nil
     }
 
+    /// Die Fahrt geht andersherum als geplant: am Ziel losgefahren, zum Start
+    /// hin. Linie und Fixpunkte drehen sich mit; neu geplant wird danach
+    /// über `replan`, denn die umgedrehte Linie liegt auf der Gegenfahrbahn
+    /// und in Einbahnstraßen falsch herum.
+    func turnAround() {
+        plannedRoute.reverse()
+        originalRoute.reverse()
+        config.via.reverse()
+    }
+
     /// Wartet, bis die laufende Neuplanung durch ist — für Tests.
     func settle() async { await task?.value }
 

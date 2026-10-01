@@ -310,6 +310,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         if TravelMode(rawValue: subject.mode) == .bike { meter.speedLimit = RideMeter.maxBikeSpeed }
         events = []
         lastPoorFixLog = .distantPast
+        directionChecked = false
         log("start", "\(subject.mode), Profil \(plan.bikeProfile.rawValue), Pflaster meiden \(plan.avoidCobbles ? "an" : "aus"), "
             + "\(plan.via.count) Fixpunkte, Route \(Int(TurnGuide.cumulative(plannedRoute).last ?? 0)) m, "
             + "Neuplanung ab \(Int(plan.replanOffRouteMeters)) m, App \(RideMeter.appVersion ?? "?")",
@@ -562,6 +563,13 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
             if autoPaused, let last = fixes.last, wokeUp(last) { resume() } else { stopIfPausedTooLong() }
             return
         }
+        // Vor dem ersten Fix, den das Messwerk annimmt: danach hat es die
+        // Beläge schon in der falschen Richtung zugeordnet.
+        if !directionChecked,
+           let first = fixes.first(where: { $0.accuracy >= 0 && $0.accuracy <= RideMeter.maxAccuracy }) {
+            directionChecked = true
+            if Self.startsAtEnd(first.coordinate, route: plannedRoute) { turnAround(at: first.coordinate) }
+        }
         for fix in fixes { meter.add(fix) }
         if let poor = fixes.last(where: { $0.accuracy < 0 || $0.accuracy > RideMeter.maxAccuracy }),
            Date.now.timeIntervalSince(lastPoorFixLog) >= 30 {
@@ -631,6 +639,51 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         // läuft und die Kopie gedeckelt ist, kauft das nichts mehr.)
         let every: TimeInterval = meter.points.count > 3_000 ? 120 : 30
         if now.timeIntervalSince(lastSave) >= every { saveInterrupted(at: now) }
+    }
+
+    // MARK: Falsch herum
+
+    /// Ob die erste brauchbare Ortung schon geprüft hat, in welche Richtung
+    /// die Fahrt geht.
+    private var directionChecked = false
+
+    /// Losgefahren am **Ziel** der geplanten Linie, nicht an ihrem Anfang:
+    /// auf dem Bildschirm stand noch der Hinweg vom Morgen, gefahren wird der
+    /// Heimweg (Fahrt 01.10.2026). Die Linie deckt sich fast mit dem
+    /// Rückweg, also merkt die Neuplanung nichts — aber Restweg und Restzeit
+    /// zählen hoch statt herunter, und geführt wird auf der Gegenfahrbahn.
+    nonisolated static func startsAtEnd(_ here: CLLocationCoordinate2D,
+                                        route: [CLLocationCoordinate2D]) -> Bool {
+        guard let start = route.first, let end = route.last,
+              start.distance(to: end) >= 2 * endMeters else { return false }
+        return here.distance(to: end) < endMeters && here.distance(to: start) > endMeters
+    }
+
+    /// So nah am Ende heißt „dort losgefahren" — dieselbe Grenze wie beim
+    /// Erraten der Pendelrichtung (`AppSettings.commuteDestination`).
+    static let endMeters = 400.0
+
+    /// Dreht die Fahrt um: Anlass, Linie, Abbiegungen, Ampeln, Beläge — und
+    /// plant den Weg zum bisherigen Start neu, auch wenn die Neuplanung
+    /// unterwegs abgeschaltet ist; die umgedrehte Linie ist nur ein Behelf.
+    private func turnAround(at here: CLLocationCoordinate2D) {
+        if var s = subject {
+            (s.origin, s.destination) = (s.destination, s.origin)
+            subject = s
+        }
+        replanner.turnAround()
+        let route = plannedRoute
+        routeLengths = TurnGuide.cumulative(route)
+        routeIndex = 0
+        turns = TurnGuide.steps(on: route)
+        nextTurn = nil
+        signalStations = Self.stations(of: plannedSignals, on: route, cum: routeLengths)
+        progress = Self.progress(travelled: 0, cum: routeLengths, stations: signalStations)
+        roadPoints.reverse()
+        meter.roadPoints = roadPoints
+        meter.plannedLine = originalRoute
+        log("verkehrt", "am Ziel losgefahren — Richtung gedreht", at: here)
+        replanner.replan(from: here, course: course)
     }
 
     private func saveInterrupted(at now: Date) {
