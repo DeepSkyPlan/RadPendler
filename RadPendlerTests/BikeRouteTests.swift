@@ -578,3 +578,88 @@ extension BikeRouteTests {
         XCTAssertEqual(WaypointRouting.ahead(via, from: here, to: to).map(\.latitude), [52.50])
     }
 }
+
+// MARK: Schonend mit BRouter
+
+/// Zählt mit, wie viele Zubringer gleichzeitig gefragt werden, und ob die
+/// Pflasterregel ankommt.
+private actor RecordingRouter: StreetRouting {
+    private(set) var running = 0
+    private(set) var peak = 0
+    private(set) var cobbles: [Bool] = []
+
+    func route(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+               mode: StreetMode, departure: Date?) async throws -> StreetRoute {
+        throw DeadRouter.Offline()
+    }
+
+    func feeder(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+                avoidCobbles: Bool) async throws -> StreetRoute {
+        running += 1
+        peak = max(peak, running)
+        cobbles.append(avoidCobbles)
+        try? await Task.sleep(for: .milliseconds(20))
+        running -= 1
+        return StreetRoute(distance: from.distance(to: to), expectedTravelTime: 0, coordinates: [from, to])
+    }
+}
+
+extension BikeRouteTests {
+    /// Höchstens drei Anfragen gleichzeitig, egal wie viele warten.
+    func testTheBRouterGateLetsThreeThroughAtATime() async throws {
+        let gate = BRouterGate(limit: 3)
+        try await withThrowingTaskGroup(of: Int.self) { group in
+            for i in 0..<10 {
+                group.addTask {
+                    try await gate.limited {
+                        try await Task.sleep(for: .milliseconds(15))
+                        return i
+                    }
+                }
+            }
+            var done = 0
+            for try await _ in group { done += 1 }
+            XCTAssertEqual(done, 10)
+        }
+        let peak = await gate.peak
+        XCTAssertEqual(peak, 3)
+    }
+
+    /// Die Zubringer an beiden Enden: eine Liste, drei zugleich, mit der
+    /// Pflasterregel — und jede Linie an ihrem Platz.
+    func testFeederLegsAreThrottledAndAvoidCobbles() async {
+        let router = RecordingRouter()
+        var planner = TripPlanner.offline
+        planner.streets = router
+        let home = c(0, 0), work = c(0, 10_000)
+        let starts = (1...3).map { c(Double($0) * 100, 0) }
+        let ends = (1...4).map { c(Double($0) * 100, 10_000) }
+        let (first, last) = await planner.feederRoutes(origin: home, starts: starts, destination: work,
+                                                       ends: ends, avoidCobbles: true)
+        XCTAssertEqual(first.count, 3)
+        XCTAssertEqual(last.count, 4)
+        XCTAssertEqual(first[1]?.coordinates.last?.longitude, starts[1].longitude)
+        XCTAssertEqual(last[2]?.coordinates.first?.longitude, ends[2].longitude)
+        let peak = await router.peak
+        let cobbles = await router.cobbles
+        XCTAssertLessThanOrEqual(peak, 3)
+        XCTAssertEqual(cobbles, Array(repeating: true, count: 7))
+    }
+
+    func testNearbyStationsAreKeptForADay() async {
+        let cache = StationCache()
+        let here = CLLocationCoordinate2D(latitude: 52.50001, longitude: 13.30001)
+        let near = CLLocationCoordinate2D(latitude: 52.50003, longitude: 13.30002)
+        let station = HafasClient.Station(name: "S Test", lid: "A=1", coordinate: here, distance: 100, productMask: 1)
+        await cache.keep([station], for: StationCache.key(here, radius: 5000, productMask: 1))
+        let hit = await cache.stations(for: StationCache.key(near, radius: 5000, productMask: 1))
+        XCTAssertEqual(hit?.map(\.lid), ["A=1"], "ein paar Meter daneben ist dieselbe Frage")
+        let other = await cache.stations(for: StationCache.key(near, radius: 5000, productMask: 2))
+        XCTAssertNil(other, "andere Verkehrsmittel, andere Frage")
+        for i in 0..<StationCache.limit {
+            await cache.keep([], for: "k\(i)")
+        }
+        let evicted = await cache.stations(for: StationCache.key(here, radius: 5000, productMask: 1))
+        XCTAssertNil(evicted, "die älteste fliegt hinaus")
+    }
+}

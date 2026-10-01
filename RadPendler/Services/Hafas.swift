@@ -54,8 +54,21 @@ struct HafasClient {
 
     /// Rail stations within `radius` metres, nearest first, one entry per station
     /// (HAFAS lists "S+U Berlin Hauptbahnhof" and its "[Gleis 1-8]" part separately).
+    ///
+    /// Aus `StationCache`, solange dieselbe Frage keinen Tag alt ist: die
+    /// Bahnhöfe um die eigene Haustür ändern sich nicht zwischen zwei
+    /// Planungen, und Rad + Bahn fragt bei jeder vier Mal danach.
     func nearbyStations(around c: CLLocationCoordinate2D, radius: Double,
                         productMask: Int = TransitProduct.bikeStationMask) async throws -> [Station] {
+        let key = StationCache.key(c, radius: radius, productMask: productMask)
+        if let hit = await StationCache.shared.stations(for: key) { return hit }
+        let found = try await askNearbyStations(around: c, radius: radius, productMask: productMask)
+        await StationCache.shared.keep(found, for: key)
+        return found
+    }
+
+    private func askNearbyStations(around c: CLLocationCoordinate2D, radius: Double,
+                                   productMask: Int) async throws -> [Station] {
         let req: [String: Any] = [
             "ring": ["cCrd": HafasCoord.encode(c), "maxDist": Int(radius)],
             "getPOIs": false, "getStops": true, "maxLoc": 20,
@@ -103,6 +116,38 @@ struct HafasClient {
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, _) = try await session.data(for: request)
         return try HafasParser.serviceResult(data)
+    }
+}
+
+/// Die Bahnhöfe um einen Punkt, einen Tag lang.
+///
+/// Der Schlüssel rundet auf vier Stellen (gut 10 m): „hier" aus der Ortung
+/// liegt jedes Mal ein paar Meter anders, und die Entfernungen in der Antwort
+/// sind auf diese Meter ohnehin egal — sie ordnen nur.
+actor StationCache {
+    static let shared = StationCache()
+    static let lifetime: TimeInterval = 24 * 3600
+    /// Start und Ziel je mit S/RE und Tram, in beiden Richtungen und für ein
+    /// paar Strecken — mehr hält niemand im Kopf.
+    static let limit = 24
+
+    private var entries: [String: (stations: [HafasClient.Station], at: Date)] = [:]
+
+    static func key(_ c: CLLocationCoordinate2D, radius: Double, productMask: Int) -> String {
+        String(format: "%.4f,%.4f|%d|%d", c.latitude, c.longitude, Int(radius), productMask)
+    }
+
+    func stations(for key: String) -> [HafasClient.Station]? {
+        guard let hit = entries[key], Date.now.timeIntervalSince(hit.at) < Self.lifetime else { return nil }
+        return hit.stations
+    }
+
+    func keep(_ stations: [HafasClient.Station], for key: String) {
+        if entries[key] == nil, entries.count >= Self.limit,
+           let oldest = entries.min(by: { $0.value.at < $1.value.at })?.key {
+            entries.removeValue(forKey: oldest)
+        }
+        entries[key] = (stations, .now)
     }
 }
 
