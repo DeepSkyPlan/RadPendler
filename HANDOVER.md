@@ -98,7 +98,16 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   erfundenen Fixes, siehe `RideTests`), `RideTracker` (der Manager drumherum; schaltet
   `allowsBackgroundLocationUpdates` **nur** zwischen Start und Ende einer Fahrt ein und
   danach wieder aus, schickt die Zahlen im Sekundentakt an die Uhr und sichert alle 30 s
-  einen Zwischenstand), `RideStore` (Zusammenfassungen im
+  einen Zwischenstand; gestartet wird er mit **einem** Wert `RidePlan` — Subjekt, Linie,
+  Ampeln, Profil, Fixpunkte, Auto-Pause/-Ende —, den `RidePlan.make(option:options:settings:)`
+  an einer Stelle aus Auswahl und Einstellungen baut), `Replanner` (gehört dem Tracker:
+  führt die geplante Linie samt verworfenen, `detour`/`offSince`, Neuplanung mit Zeitlimit
+  und Vorausblick, Übernehmen oder Verwerfen (`turnsBack`) und die Protokollzeilen dazu;
+  meldet eine übernommene Linie über `onAdopt`, der Tracker rechnet daraus Abbiegungen,
+  Ampeln und Fortschritt neu; Router und Ampelsuche sind injizierbar, siehe
+  `ReplannerTests`), `RideSession` (was um eine Fahrt herum passiert und keine Ansicht
+  braucht: Start mit Lenker-Ausrichtung und Tönen, nach der Fahrt — Knopf oder
+  `onAutoStop` — dazulernen, nachmessen, Ausrichtung zurück), `RideStore` (Zusammenfassungen im
   Schlüssel-Wert-Speicher und damit in iCloud, Linien je eine Datei und damit nur lokal),
   `TurnGuide` (Abbiegehinweise **aus der gezeichneten Linie**, rein und testbar:
   kein Router sagt sie an, und keiner muss es),
@@ -489,7 +498,7 @@ Was die Durchsicht vom 01.10.2026 gefunden hat; das Kleine ist seit dem Aufräum
   Route (`.wins`), Zubringer (`.slowerOnly`, jetzt mit Höhenmetern) und die Radstücke von
   Transitous (`TripPlanner.retimed`, nur mit Straßendaten, sonst MOTIS' Zeit).
 - ~~Ein Routen-Cache~~: `RouteCache` (eigene Datei, 1 h, 64) auch für Apples Rad- und Fußwege;
-  damit teilen Bildschirm, `BackgroundReplan` und der Router in `RideTracker` denselben.
+  damit teilen Bildschirm, `BackgroundReplan` und der Router im `Replanner` denselben.
 - ~~Overpass-Cache~~: drei Schläuche im Speicher; `RoadDataStore.superseded` löscht nur,
   was der neue **Schlauch** deckt.
 - ~~Stabile `TripOption.id`~~: Rad/Auto aus Rollen + Länge + Mittelpunkt (ohne Abfahrt),
@@ -508,10 +517,6 @@ Was die Durchsicht vom 01.10.2026 gefunden hat; das Kleine ist seit dem Aufräum
 
 Noch offen:
 
-- **Noch offen aus dem Aufräumen:** `RideTracker.start` mit vielen Parametern → `RidePlan`
-  und ein eigener `Replanner`; `ContentView.record()`/`afterRide()` ins Modell.
-  (Erledigt am 01.10.: `RideRemaining.from` rechnet ohne Plan mit `PlanSettings.rideTime`,
-  das Standardprofil der Neuplanung ist `.quiet`.)
 - ~~„Alle Fixpunkte verlangen“ und Auto-Reihenfolge~~ — erledigt 01.10.2026: ein Fixpunkt
   genügt, Autorouten fest optimal › schnellst › wenig Ampeln › kürzest.
 
