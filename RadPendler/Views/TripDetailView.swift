@@ -246,7 +246,7 @@ struct TripFacts: View {
                     .tint(.secondary)
                 }
             }
-            Text(bike.source == "Apple" ? L("Route von Apple Karten") : L("Route von BRouter (%@)", bike.source))
+            Text(bike.source == .apple ? L("Route von Apple Karten") : L("Route von BRouter (%@)", bike.source.label))
                 .font(.system(.caption2, design: .rounded)).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

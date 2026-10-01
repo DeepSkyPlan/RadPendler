@@ -354,7 +354,7 @@ struct ContentView: View {
                       autoStopMinutes: settings.autoStopMinutes,
                       autoPauseMinutes: settings.autoPauseMinutes,
                       plannedSignals: planned,
-                      bikeProfile: .of(source: option.bikeRoute?.source),
+                      bikeProfile: option.bikeRoute?.source.profile ?? .trekking,
                       avoidCobbles: settings.avoidCobbles,
                       via: option.bikeRoute?.via ?? [])
     }

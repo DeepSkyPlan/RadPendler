@@ -171,14 +171,14 @@ struct TripPlanner {
         }
         let n = Swift.max(1, req.settings.optionsPerMode)
         let order = req.settings.bikeVariantOrder.filter { $0 != .alternative }
-        func requests(for roles: some Sequence<BikeVariant>) -> [(String, BRouterClient.Profile?, Int)] {
+        func requests(for roles: some Sequence<BikeVariant>) -> [BikeLineSource] {
             roles.compactMap { v in
                 switch v {
-                case .balanced: ("trekking", .trekking, 0)
-                case .fastest: ("fastbike", .fastbike, 0)
-                case .shortest: ("shortest", .shortest, 0)
-                case .quiet: ("safety", .quiet, 0)
-                case .lowTraffic: (L("verkehrsarm"), .lowTraffic, 0)
+                case .balanced: .brouter(.trekking)
+                case .fastest: .brouter(.fastbike)
+                case .shortest: .brouter(.shortest)
+                case .quiet: .brouter(.quiet)
+                case .lowTraffic: .brouter(.lowTraffic)
                 case .alternative: nil
                 }
             }
@@ -192,16 +192,15 @@ struct TripPlanner {
         var br = brouter
         br.avoidCobbles = req.settings.avoidCobbles
         let brouter = br
-        func fetch(_ list: [(String, BRouterClient.Profile?, Int)]) async -> [(String, StreetRoute)] {
-            let found = await Self.gathered(list, atOnce: 3) { name, profile, alt in
-                if let profile {
-                    return try? await brouter.route(from: o, to: d, via: via, profile: profile, alternative: alt)
+        func fetch(_ list: [BikeLineSource]) async -> [(BikeLineSource, StreetRoute)] {
+            await Self.gathered(list, atOnce: 3) { source in
+                if case .brouter(let profile) = source {
+                    return try? await brouter.route(from: o, to: d, via: via, profile: profile)
                 }
                 return try? await apple.route(from: o, to: d, mode: .bike, departure: nil)
             }
-            return found
         }
-        func judge(_ found: [(String, StreetRoute)], _ data: RoadData?) async -> [BikeCandidate] {
+        func judge(_ found: [(BikeLineSource, StreetRoute)], _ data: RoadData?) async -> [BikeCandidate] {
             // 63 ms per route, six routes: serially that is 378 ms of the plan
             // for nothing. They do not depend on each other.
             await withTaskGroup(of: (Int, BikeCandidate).self) { group in
@@ -225,7 +224,7 @@ struct TripPlanner {
         // Voreinstellung), bekommt dessen Linie nur, wenn BRouter gar nicht
         // antwortet — und dann wird sie auch erst gefragt. Bis 1.9.1 kam sie
         // bei jeder Planung mit und wurde gleich wieder weggeworfen.
-        let appleLine: [(String, BRouterClient.Profile?, Int)] = [("Apple", nil, 0)]
+        let appleLine: [BikeLineSource] = [.apple]
         let asked = (req.settings.avoidCobbles ? [] : appleLine) + requests(for: order.prefix(n))
         var found = await fetch(asked)
         if req.settings.avoidCobbles, found.isEmpty {
@@ -235,7 +234,7 @@ struct TripPlanner {
         // daneben — der Server will höchstens drei Anfragen gleichzeitig.
         if let habitVia, !found.isEmpty,
            let usual = try? await brouter.route(from: o, to: d, via: habitVia, profile: .trekking) {
-            found.append((RiddenPaths.source, usual))
+            found.append((.habit, usual))
         }
         guard !found.isEmpty else { throw PlannerError.noBikeRoute }
         var data = Self.withLearned(try? await roads.data(covering: found.flatMap { $0.1.coordinates }), req.settings)
@@ -247,8 +246,7 @@ struct TripPlanner {
         // Halts, schnellst"), mit den Profilen, die dafür noch fehlen. Erst
         // wenn auch das keinen anderen Weg bringt, füllt eine „Alternative".
         if picked.count < n {
-            let have = Set(asked.compactMap { $0.1?.rawValue })
-            let more = requests(for: order.dropFirst(n)).filter { !have.contains($0.1?.rawValue ?? "") }
+            let more = requests(for: order.dropFirst(n)).filter { !asked.contains($0) }
             if !more.isEmpty {
                 let extra = await fetch(more)
                 if !extra.isEmpty {
@@ -261,7 +259,7 @@ struct TripPlanner {
         picked = BikeCandidate.pick(candidates, settings: req.settings)
         // Kam von BRouter gar nichts, steht nur Apples eine Linie da — dann
         // gibt es eine Variante statt fünf, und der Nutzer soll wissen, warum.
-        let brouterAnswered = found.contains { $0.0 != "Apple" }
+        let brouterAnswered = found.contains { $0.0 != .apple }
 
         return picked.enumerated().map { index, entry in
             let (c, variants) = entry
@@ -284,8 +282,8 @@ struct TripPlanner {
                                                              measuredKmh: c.measuredWins(req.settings)
                                                                  ? req.settings.measuredOverallKmh : nil,
                                                              familiar: c.familiar,
-                                                             via: c.source == RiddenPaths.source ? habitVia ?? via
-                                                                 : c.source == "Apple" ? [] : via))
+                                                             via: c.source == .habit ? habitVia ?? via
+                                                                 : c.source == .apple ? [] : via))
             // Only the route that matches the user's first choice is the one
             // the recommendation weighs; the others are alternatives.
             option.isPreferredVariant = index == 0
@@ -296,25 +294,25 @@ struct TripPlanner {
     /// Läuft die Liste ab, aber nie mehr als `atOnce` gleichzeitig. Die
     /// Reihenfolge der Antworten ist wieder die der Liste — sie entscheidet,
     /// welche Route bei Gleichstand eine Rolle bekommt.
-    static func gathered<T>(_ items: [(String, T, Int)], atOnce: Int,
-                            _ run: @escaping @Sendable (String, T, Int) async -> StreetRoute?)
-        async -> [(String, StreetRoute)] where T: Sendable {
-        var out: [(Int, String, StreetRoute)] = []
-        await withTaskGroup(of: (Int, String, StreetRoute?).self) { group in
+    static func gathered<T: Sendable>(_ items: [T], atOnce: Int,
+                                      _ run: @escaping @Sendable (T) async -> StreetRoute?)
+        async -> [(T, StreetRoute)] {
+        var out: [(Int, StreetRoute)] = []
+        await withTaskGroup(of: (Int, StreetRoute?).self) { group in
             var next = 0
             func add() {
                 guard next < items.count else { return }
                 let (i, item) = (next, items[next])
                 next += 1
-                group.addTask { (i, item.0, await run(item.0, item.1, item.2)) }
+                group.addTask { (i, await run(item)) }
             }
             for _ in 0..<Swift.min(atOnce, items.count) { add() }
-            for await (i, name, r) in group {
-                if let r { out.append((i, name, r)) }
+            for await (i, r) in group {
+                if let r { out.append((i, r)) }
                 add()
             }
         }
-        return out.sorted { $0.0 < $1.0 }.map { ($0.1, $0.2) }
+        return out.sorted { $0.0 < $1.0 }.map { (items[$0.0], $0.1) }
     }
 
     /// Was unter der Radroute steht, wenn etwas fehlte. Beides kann zutreffen;
@@ -573,13 +571,12 @@ struct TripPlanner {
                               destination: CLLocationCoordinate2D, ends: [CLLocationCoordinate2D],
                               avoidCobbles: Bool) async -> (first: [StreetRoute?], last: [StreetRoute?]) {
         let pairs = starts.map { (origin, $0) } + ends.map { ($0, destination) }
-        let items = pairs.indices.map { (String($0), $0, 0) }
         let streets = streets
-        let found = await Self.gathered(items, atOnce: 3) { _, i, _ in
+        let found = await Self.gathered(Array(pairs.indices), atOnce: 3) { i in
             try? await streets.feeder(from: pairs[i].0, to: pairs[i].1, avoidCobbles: avoidCobbles)
         }
         var out = [StreetRoute?](repeating: nil, count: pairs.count)
-        for (name, route) in found { if let i = Int(name) { out[i] = route } }
+        for (i, route) in found { out[i] = route }
         return (Array(out.prefix(starts.count)), Array(out.dropFirst(starts.count)))
     }
 

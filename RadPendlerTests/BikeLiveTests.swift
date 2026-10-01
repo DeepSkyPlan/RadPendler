@@ -17,7 +17,7 @@ final class BikeLiveTests: XCTestCase {
         let options = try await TripPlanner().bikeOptions(req)
         for o in options {
             let st = o.bikeRoute?.stats
-            print("LIVE bike:", o.bikeRoute?.source ?? "?", o.bikeRoute?.variants.map(\.rawValue) ?? [],
+            print("LIVE bike:", o.bikeRoute?.source.label ?? "?", o.bikeRoute?.variants.map(\.rawValue) ?? [],
                   "\(Int(o.totalDistance)) m", "\(Int(o.duration / 60)) min",
                   "Ampeln \(st?.signals ?? -1)", "Querungen \(st?.crossings.count ?? -1)",
                   "Hauptstr \(Int(st?.mainRoadMeters ?? -1)) m", o.note ?? "")

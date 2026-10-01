@@ -6,7 +6,7 @@ import Foundation
 /// route and no notion of quiet streets; BRouter gives several distinct
 /// candidates per request (`alternativeidx` 0…3).
 struct BRouterClient {
-    enum Profile: String {
+    enum Profile: String, Sendable {
         case trekking, safety, fastbike, shortest
         /// BRouter's own low-traffic profile: it pays a detour to stay off
         /// roads that carry cars, where "safety" only prefers what is safe.
@@ -17,20 +17,6 @@ struct BRouterClient {
         case quiet = "radpendler-quiet"
 
         var isCustom: Bool { self == .quiet }
-
-        /// Das Profil, aus dem eine geplante Linie stammt — nach dem Namen,
-        /// unter dem `TripPlanner.bikeOptions` sie angefragt hat. „safety"
-        /// steht dort für das eigene „wenig Autos"; Apples Linie hat keins,
-        /// für sie gilt „trekking", BRouters Allzweckprofil.
-        static func of(source: String?) -> Profile {
-            switch source {
-            case "fastbike": .fastbike
-            case "shortest": .shortest
-            case "safety": .quiet
-            case L("verkehrsarm"): .lowTraffic
-            default: .trekking
-            }
-        }
     }
 
     var session: URLSession = .shared

@@ -68,7 +68,7 @@ final class CalibrationTests: XCTestCase {
         var s = PlanSettings(bikeSpeedKmh: 29)
         s.signalWaitSeconds = 20
         let route = StreetRoute(distance: 20_000, expectedTravelTime: 0, coordinates: [])
-        let c = BikeCandidate(source: "trekking", route: route,
+        let c = BikeCandidate(source: .brouter(.trekking), route: route,
                               stats: BikeRouteStats(signals: 10, crossings: [], mainRoadMeters: 0))
         // Gerechnet: 20 km bei 29 km/h + 10 Ampeln = 41,4 + 3,3 min ≈ 45 min.
         let computed = c.computedTime(s)
@@ -86,7 +86,7 @@ final class CalibrationTests: XCTestCase {
         var s = PlanSettings(bikeSpeedKmh: 15)
         s.signalWaitSeconds = 60
         s.measuredOverallKmh = 25
-        let c = BikeCandidate(source: "safety",
+        let c = BikeCandidate(source: .brouter(.quiet),
                               route: StreetRoute(distance: 10_000, expectedTravelTime: 0, coordinates: []),
                               stats: BikeRouteStats(signals: 20, crossings: [], mainRoadMeters: 0))
         XCTAssertGreaterThan(c.computedTime(s), c.time(s))
@@ -121,18 +121,18 @@ final class CalibrationTests: XCTestCase {
         s.measuredOverallKmh = 18
         s.optionsPerMode = 5
         // Kurz mit vielen Ampeln gegen etwas länger mit fast keinen.
-        let short = BikeCandidate(source: "fastbike",
+        let short = BikeCandidate(source: .brouter(.fastbike),
                                   route: StreetRoute(distance: 10_000, expectedTravelTime: 0, coordinates: []),
                                   stats: BikeRouteStats(signals: 30, crossings: [], mainRoadMeters: 8_000))
-        let round = BikeCandidate(source: "trekking",
+        let round = BikeCandidate(source: .brouter(.trekking),
                                   route: StreetRoute(distance: 11_000, expectedTravelTime: 0, coordinates: []),
                                   stats: BikeRouteStats(signals: 2, crossings: [], mainRoadMeters: 500))
         XCTAssertEqual(short.time(s), 10_000 / (18 / 3.6), accuracy: 1, "angezeigt wird die Messung")
         let picked = BikeCandidate.pick([short, round], settings: s)
         let fastest = picked.first { $0.1.contains(.fastest) }
-        XCTAssertEqual(fastest?.0.source, "trekking", "dreißig Ampeln sind fünfzehn Minuten")
+        XCTAssertEqual(fastest?.0.source, .brouter(.trekking), "dreißig Ampeln sind fünfzehn Minuten")
         let shortest = picked.first { $0.1.contains(.shortest) }
-        XCTAssertEqual(shortest?.0.source, "fastbike")
+        XCTAssertEqual(shortest?.0.source, .brouter(.fastbike))
     }
 
     // MARK: Ampeln in Zahlen

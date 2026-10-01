@@ -204,11 +204,49 @@ struct CarRouteInfo {
     var title: String { variants.map(\.title).joined(separator: " · ") }
 }
 
+/// Woher eine Radlinie stammt — welcher Router sie mit welchem Profil
+/// gezeichnet hat.
+///
+/// Bis 1.9.1 stand hier ein Text: der Name, unter dem der Planer angefragt
+/// hatte, teils übersetzt („verkehrsarm"), teils irreführend („safety" für
+/// das eigene „wenig Autos"). Eine Neuplanung unterwegs musste daraus das
+/// Profil zurückraten.
+enum BikeLineSource: Hashable, Sendable {
+    case brouter(BRouterClient.Profile)
+    /// Apples eine Radlinie, ohne Profil.
+    case apple
+    /// Die eigene typische Fahrt, mit „trekking" über ihre Punkte nachgefahren
+    /// — siehe `RiddenPaths`.
+    case habit
+
+    /// Womit eine Neuplanung unterwegs diese Linie weiterzeichnet. Apples
+    /// Linie hat kein Profil; für sie gilt „trekking", BRouters Allzweckprofil
+    /// — wie für die gewohnte, die damit angefragt wurde.
+    var profile: BRouterClient.Profile {
+        if case .brouter(let p) = self { p } else { .trekking }
+    }
+
+    /// Was die Detailseite in Klammern hinter „BRouter" schreibt — die Namen,
+    /// die dort schon immer standen.
+    var label: String {
+        switch self {
+        case .apple: "Apple"
+        case .habit: L("gewohnt")
+        case .brouter(let p):
+            switch p {
+            case .quiet: "safety"
+            case .lowTraffic: L("verkehrsarm")
+            default: p.rawValue
+            }
+        }
+    }
+}
+
 struct BikeRouteInfo {
     var variants: [BikeVariant]
     var stats: BikeRouteStats?
-    /// BRouter profile or "Apple" — which router drew this line.
-    var source: String
+    /// Welcher Router mit welchem Profil diese Linie gezeichnet hat.
+    var source: BikeLineSource
     /// Metres per road class, where the router said. Empty for Apple's line.
     var mix = RoadMix()
     /// The same with positions, handed to a recording so the ride can be
@@ -227,7 +265,7 @@ struct BikeRouteInfo {
     var via: [CLLocationCoordinate2D] = []
 
     /// Die Linie, die die eigene typische Fahrt nachfährt.
-    var isHabit: Bool { source == RiddenPaths.source }
+    var isHabit: Bool { source == .habit }
 
     /// Already in the order the user put the variants in; the first is the one
     /// that decides what the box says. Leer heißt: diese Linie ist in keiner

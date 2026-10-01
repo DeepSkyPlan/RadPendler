@@ -25,8 +25,6 @@ import simd
 /// (ein Megabyte für alles) gehören sie nicht.
 actor RiddenPaths {
     static let shared = RiddenPaths()
-    /// Unter diesem Namen steht die nachgefahrene Linie unter den Kandidaten.
-    nonisolated static let source = "gewohnt"
 
     struct Line: Codable, Equatable {
         var id: UUID
