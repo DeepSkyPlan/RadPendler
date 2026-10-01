@@ -356,6 +356,34 @@ final class PlannerTests: XCTestCase {
         XCTAssertTrue(toHamburg.isTooLarge, "hundreds of megabytes is not a query, it is a hang")
     }
 
+    /// Rad, Auto und Zubringer fragen je Planung einen Schlauch; drei
+    /// passen in den Speicher.
+    func testThreeCorridorsStayInMemory() {
+        XCTAssertGreaterThanOrEqual(RoadDataStore.maxBoxesInMemory, 3)
+    }
+
+    /// Eine ältere Antwort geht nur, wenn der neue **Schlauch** sie deckt —
+    /// dass der neue Kasten den alten enthält, reicht nicht.
+    func testOnlyACoveredCorridorIsSweptAway() {
+        func line(_ lat: Double) -> [CLLocationCoordinate2D] {
+            (0...40).map { CLLocationCoordinate2D(latitude: lat, longitude: 13.30 + Double($0) * 0.005) }
+        }
+        // Die Radroute nach Osten, und ein Zubringer im Norden, gut 5 km daneben.
+        let route = line(52.42), north = line(52.47)
+        let big = RoadDataStore.Box(around: route + north)
+        let routeBox = RoadDataStore.Box(around: route), northBox = RoadDataStore.Box(around: north)
+        XCTAssertTrue(big.contains(northBox), "der Kasten enthält ihn — das war bisher das ganze Kriterium")
+        let wide = Corridor.around(route)
+        XCTAssertFalse(RoadDataStore.superseded(northBox, Corridor.around(north), by: big, wide),
+                       "der Schlauch der Radroute hat den Norden nie geholt")
+        XCTAssertTrue(RoadDataStore.superseded(routeBox, Corridor.around(Array(route.prefix(20))), by: big, wide),
+                      "ein Stück derselben Strecke beantwortet der neue Schlauch")
+        XCTAssertFalse(RoadDataStore.superseded(routeBox, nil, by: big, wide),
+                       "ein ganz geholter Kasten ersetzt kein Schlauch")
+        XCTAssertFalse(RoadDataStore.superseded(big, Corridor.around(route), by: routeBox, wide),
+                       "und ein kleinerer Kasten nie einen größeren")
+    }
+
     /// Overpass antwortet auf eine kleine Frage in zwei Sekunden und auf die
     /// Korridor-Anfrage einer Pendelstrecke mit `504` — die Abfrage ist teuer,
     /// nicht der Server kaputt. Der Plan wartet nicht darauf, sagt aber, dass

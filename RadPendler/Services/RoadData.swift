@@ -151,6 +151,17 @@ struct Corridor: Codable, Equatable {
         }
         return true
     }
+
+    /// Beantwortet dieser Schlauch alles, was jener beantwortet hat? Mit
+    /// demselben Maß wie beim Lesen, nur an **jedem** Stützpunkt des anderen:
+    /// dessen Punkte liegen ohnehin 150 m auseinander, und ein übersprungener
+    /// wäre ein Loch von 750 m.
+    func covers(_ other: Corridor) -> Bool {
+        let mine = coordinates
+        let limit = radius - Self.needed
+        guard !mine.isEmpty, limit > 0, radius >= other.radius else { return false }
+        return other.coordinates.allSatisfy { c in mine.contains { $0.distance(to: c) <= limit } }
+    }
 }
 
 /// Fetches `RoadData` for a bounding box from the Overpass API and keeps it
@@ -223,8 +234,10 @@ actor RoadDataStore {
     private var inFlight: [Box: Task<RoadData, Error>] = [:]
     /// Korridore, für die gerade ein zweiter, geduldigerer Versuch läuft.
     private var warming: Set<Box> = []
-    /// Two corridors are all a trip has; more is a leak, not a cache.
-    private let maxBoxesInMemory = 2
+    /// Drei fragen je Planung: Rad, Auto und die Zubringer von Rad + Bahn.
+    /// Mit zweien verdrängten sie sich gegenseitig, und der dritte fragte
+    /// jedes Mal die Platte. Mehr ist ein Leck, kein Zwischenspeicher.
+    static let maxBoxesInMemory = 3
     private let maxAge: TimeInterval = 30 * 86_400
     private var directory: URL {
         FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent("osm-roads")
@@ -270,7 +283,7 @@ actor RoadDataStore {
         do {
             let parsed = try await task.value
             remember(box, parsed, corridor)
-            sweep(keeping: box)
+            sweep(keeping: box, corridor)
             return parsed
         } catch {
             // Overpass antwortet auf eine kleine Frage in zwei Sekunden und
@@ -304,19 +317,36 @@ actor RoadDataStore {
             try? raw.write(to: file, options: .completeFileProtection)
             Self.writeSidecar(box, corridor: corridor, next: file)
             remember(box, parsed, corridor)
-            sweep(keeping: box)
+            sweep(keeping: box, corridor)
         }
     }
 
-    /// Keeps the memory cache to the two corridors a trip can have.
+    /// Keeps the memory cache to the three corridors a plan asks for.
     private func remember(_ box: Box, _ data: RoadData, _ corridor: Corridor?) {
         memory[box] = (data, corridor)
-        guard memory.count > maxBoxesInMemory else { return }
-        // Drop boxes that the new one already covers first, then anything.
-        for key in memory.keys where key != box && box.contains(key) { memory[key] = nil }
-        while memory.count > maxBoxesInMemory, let victim = memory.keys.first(where: { $0 != box }) {
+        guard memory.count > Self.maxBoxesInMemory else { return }
+        // Drop what the new one really answers first, then anything.
+        for (key, value) in memory where key != box
+            && Self.superseded(key, value.corridor, by: box, corridor) { memory[key] = nil }
+        while memory.count > Self.maxBoxesInMemory, let victim = memory.keys.first(where: { $0 != box }) {
             memory[victim] = nil
         }
+    }
+
+    /// Ob eine ältere Antwort weg kann, weil die neue alles beantwortet, was
+    /// sie beantwortet hat. Bis 1.9.1 reichte dafür, dass der neue **Kasten**
+    /// den alten enthielt — aber geholt wird nur der Schlauch darin: die
+    /// Zubringer-Antwort für den Bahnhof im Norden ging, sobald die Radroute
+    /// im Süden einen größeren Kasten brauchte, und wurde beim nächsten Plan
+    /// neu geholt.
+    ///
+    /// Eine alte Antwort ohne Schlauch ist ein ganz geholter Kasten; den
+    /// ersetzt kein Schlauch.
+    static func superseded(_ oldBox: Box, _ old: Corridor?, by box: Box, _ corridor: Corridor?) -> Bool {
+        guard box.contains(oldBox) else { return false }
+        guard let corridor else { return true }
+        guard let old else { return false }
+        return corridor.covers(old)
     }
 
     /// Was neben einer zwischengespeicherten Antwort steht: welcher Kasten,
@@ -351,10 +381,10 @@ actor RoadDataStore {
         try? data.write(to: url, options: [.atomic, .completeFileProtection])
     }
 
-    /// Deletes what is stale or already contained in the box just written — the
+    /// Deletes what is stale or answered by the corridor just written — the
     /// files were only ever skipped on read, never removed, and three
     /// overlapping corridors had grown to 13 MB.
-    private func sweep(keeping box: Box) {
+    private func sweep(keeping box: Box, _ corridor: Corridor) {
         let fm = FileManager.default
         guard let files = try? fm.contentsOfDirectory(at: directory,
                                                       includingPropertiesForKeys: [.contentModificationDateKey])
@@ -365,8 +395,8 @@ actor RoadDataStore {
                 .map { Date.now.timeIntervalSince($0) } ?? .infinity
             // No sidecar means the file predates this scheme: it is unreadable
             // to us now, so it is rubbish either way.
-            let contained = self.sidecar(of: f).map { box.contains($0.box) } ?? true
-            guard age > maxAge || contained else { continue }
+            let redundant = self.sidecar(of: f).map { Self.superseded($0.box, $0.corridor, by: box, corridor) } ?? true
+            guard age > maxAge || redundant else { continue }
             try? fm.removeItem(at: f)
             try? fm.removeItem(at: f.deletingPathExtension().appendingPathExtension("box"))
         }
