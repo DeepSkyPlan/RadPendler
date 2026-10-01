@@ -350,9 +350,7 @@ struct ContentView: View {
                       signals: signals,
                       route: RideTrackingView.route(of: model.options, selected: option.id),
                       roadPoints: option.bikeRoute?.roadPoints ?? [],
-                      signalSeconds: TimeInterval(settings.signalStopSeconds),
                       replanOffRouteMeters: settings.replanOffRouteMeters,
-                      replanOffRouteMinutes: settings.replanOffRouteMinutes,
                       autoStopMinutes: settings.autoStopMinutes,
                       autoPauseMinutes: settings.autoPauseMinutes,
                       plannedSignals: planned,
@@ -507,7 +505,7 @@ struct ContentView: View {
     }
 
     /// Was nach jeder Fahrt passiert, egal wer sie beendet hat: nachmessen,
-    /// dazulernen, die Ausrichtung wieder freigeben.
+    /// dazulernen, die eigene Ausrichtung wiederherstellen.
     private func afterRide() {
         // Hell, bevor irgendetwas anderes passiert — die Zusammenfassung will
         // gelesen werden.
@@ -522,8 +520,10 @@ struct ContentView: View {
         // den Einstellungen.
         settings.calibrate(from: rides.rides)
         settings.calibrateCar(from: rides.rides)
-        // Die Fahrt ist vorbei: die App dreht sich wieder wie jede andere.
-        settings.orientation = .auto
+        // Die Fahrt ist vorbei: es gilt wieder die Ausrichtung aus den
+        // Einstellungen. Bis 1.9.1 ging sie hier auf „Automatisch" — aus der
+        // Zeit, als die Fahrt dieselbe Einstellung verstellte; seit es
+        // `rideOrientation` gibt, löschte das nur die Wahl des Nutzers.
         settings.orientation.apply()
     }
 

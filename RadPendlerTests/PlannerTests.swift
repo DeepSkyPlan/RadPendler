@@ -543,3 +543,25 @@ private actor Counter {
     func enter() { now += 1; peak = Swift.max(peak, now) }
     func leave() { now -= 1 }
 }
+
+// MARK: Eingeschmolzene Einstellungen (1.9.1)
+
+extension PlannerTests {
+    /// Der alte Abfahrtspuffer landet einmal in der Rüstzeit, und die
+    /// Schlüssel der abgeschafften Einstellungen verschwinden.
+    func testTheDepartureBufferMovesIntoThePrepTimeOnce() {
+        let suite = UUID().uuidString
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.set(5, forKey: "prepMinutes")
+        defaults.set(4, forKey: "departureBufferMinutes")
+        defaults.set("transitous", forKey: "timetableSource")
+        defaults.set(45, forKey: "signalStopSeconds")
+        defaults.set(5.0, forKey: "replanOffRouteMinutes")
+        XCTAssertEqual(AppSettings(defaults: defaults).prepMinutes, 9)
+        XCTAssertEqual(AppSettings(defaults: defaults).prepMinutes, 9, "nur einmal")
+        for key in AppSettings.retiredKeys {
+            XCTAssertNil(defaults.object(forKey: key), key)
+        }
+        UserDefaults.standard.removePersistentDomain(forName: suite)
+    }
+}

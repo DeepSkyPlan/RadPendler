@@ -59,8 +59,6 @@ final class AppSettings {
     /// true: a route must touch every fixed point, false: one is enough.
     var requireAllWaypoints: Bool = false { didSet { defaults.set(requireAllWaypoints, forKey: "requireAllWaypoints") } }
 
-    /// Extra minutes before every departure that are not travel time.
-    var departureBufferMinutes: Int = 0 { didSet { defaults.set(departureBufferMinutes, forKey: "departureBufferMinutes") } }
     /// How many minutes before the wanted arrival the trip should be there.
     var arrivalBufferMinutes: Int = 5 { didSet { defaults.set(arrivalBufferMinutes, forKey: "arrivalBufferMinutes") } }
     /// The address the commute goes to in the morning; trips towards it default
@@ -118,20 +116,8 @@ final class AppSettings {
         didSet { defaults.set(try? JSONEncoder().encode(bikeLines), forKey: "bikeLines") }
     }
 
-    /// Which timetable answers. Automatic keeps the VBB for the region it
-    /// knows best and hands everything beyond it to Transitous.
-    var timetableSource: TimetableSource = .automatic {
-        didSet { defaults.set(timetableSource.rawValue, forKey: "timetableSource") }
-    }
-
     /// Average wait per traffic light on the bike (half of them are green).
     var signalWaitSeconds: Int = 20 { didSet { defaults.set(signalWaitSeconds, forKey: "signalWaitSeconds") } }
-
-    /// A standstill this long counts as a red light even where no map knows
-    /// one. Nobody waits half a minute in the middle of a street for fun, and
-    /// OpenStreetMap does not know every light — least of all the crossings
-    /// that only behave like one.
-    var signalStopSeconds: Int = 30 { didSet { defaults.set(signalStopSeconds, forKey: "signalStopSeconds") } }
 
     /// Junctions this rider has ridden through. Learned from the recorded
     /// rides and used from the next one on — for recognising a red light, and
@@ -146,14 +132,6 @@ final class AppSettings {
     /// zur alten Route.
     var replanOffRouteMeters: Double = 200 {
         didSet { defaults.set(replanOffRouteMeters, forKey: "replanOffRouteMeters") }
-    }
-
-    /// Oder: nach so vielen Minuten ohne Unterbrechung neben der Route, egal
-    /// wie weit. 0 schaltet es ab. Beides zusammen heißt „was zuerst
-    /// eintritt" — wer im Kreis um einen gesperrten Weg fährt, kommt nie weit
-    /// genug weg und braucht trotzdem irgendwann einen neuen Vorschlag.
-    var replanOffRouteMinutes: Double = 0 {
-        didSet { defaults.set(replanOffRouteMinutes, forKey: "replanOffRouteMinutes") }
     }
 
     /// Wie viele Möglichkeiten je Verkehrsmittel gerechnet und angeboten
@@ -268,13 +246,13 @@ final class AppSettings {
         // Planung
         "prepMinutes", "bikeMovingSpeedKmh", "bikeStationBufferMinutes", "maxBikeToStationKm",
         "parkingMinutes", "motorcycle", "transferPenaltyMinutes", "signalWaitSeconds", "departurePresets2",
-        "departureBufferMinutes", "arrivalBufferMinutes", "optionsPerMode",
+        "arrivalBufferMinutes", "optionsPerMode",
         "modeOrder", "bikeVariantOrder", "carVariantOrder", "rainSwitchLevel",
-        "timetableSource", "bikeLines",
+        "bikeLines",
         // Countdown
         "alertMinutes", "alertsOn",
         // Aufzeichnen
-        "signalStopSeconds", "learnedSignals", "replanOffRouteMeters", "replanOffRouteMinutes",
+        "learnedSignals", "replanOffRouteMeters",
         "autoStopMinutes", "autoPauseMinutes", "rideDimSeconds", "rideSounds", "avoidCobbles",
         "measuredOverallKmh", "measuredMovingKmh", "measuredRides",
         "bikeOverallKmh", "carOverallKmh", "measuredCarKmh", "measuredCarRides",
@@ -283,6 +261,12 @@ final class AppSettings {
         // Was gelöscht wurde
         "tombstones",
     ]
+
+    /// Einstellungen, die es nicht mehr gibt (seit 1.9.1). Ihre Schlüssel
+    /// werden beim Laden gelöscht, damit sie weder herumliegen noch über
+    /// iCloud zurückkommen — `CloudStore` trägt nur `storedKeys`.
+    static let retiredKeys = ["departureBufferMinutes", "timetableSource",
+                              "signalStopSeconds", "replanOffRouteMinutes"]
 
     private let defaults: UserDefaults
 
@@ -321,6 +305,14 @@ final class AppSettings {
         assign(\.workPlace, Self.place("workPlace", defaults) ?? workPlace)
         assign(\.homePlace, Self.place("homePlace", defaults) ?? homePlace)
         assign(\.prepMinutes, defaults.object(forKey: "prepMinutes") as? Int ?? prepMinutes)
+        // Der „Puffer vor der Abfahrt" tat auf das Losgehen dasselbe wie die
+        // Rüstzeit. Wer einen hatte, findet ihn einmal in der Rüstzeit wieder.
+        if let buffer = defaults.object(forKey: "departureBufferMinutes") as? Int, buffer > 0 {
+            prepMinutes += buffer
+        }
+        for key in Self.retiredKeys where defaults.object(forKey: key) != nil {
+            defaults.removeObject(forKey: key)
+        }
         // 0.1.x stored an all-in average under "bikeSpeedKmh" — deliberately not read.
         assign(\.bikeSpeedKmh, defaults.object(forKey: "bikeMovingSpeedKmh") as? Double ?? bikeSpeedKmh)
         assign(\.bikeStationBufferMinutes,
@@ -343,8 +335,6 @@ final class AppSettings {
             defaults.removeObject(forKey: "waypoints")
         }
         assign(\.requireAllWaypoints, defaults.object(forKey: "requireAllWaypoints") as? Bool ?? requireAllWaypoints)
-        assign(\.departureBufferMinutes,
-               defaults.object(forKey: "departureBufferMinutes") as? Int ?? departureBufferMinutes)
         assign(\.arrivalBufferMinutes, defaults.object(forKey: "arrivalBufferMinutes") as? Int ?? arrivalBufferMinutes)
         assign(\.workArrivalMinutes, defaults.object(forKey: "workArrivalMinutes") as? Int ?? workArrivalMinutes)
         assign(\.alertMinutes, defaults.array(forKey: "alertMinutes") as? [Int] ?? alertMinutes)
@@ -353,8 +343,6 @@ final class AppSettings {
             .flatMap { try? JSONDecoder().decode([PlaceUse].self, from: $0) } ?? placeHistory)
         assign(\.bikeLines, defaults.data(forKey: "bikeLines")
             .flatMap { try? JSONDecoder().decode([BikeLine].self, from: $0) } ?? bikeLines)
-        assign(\.timetableSource, (defaults.string(forKey: "timetableSource"))
-            .flatMap(TimetableSource.init(rawValue:)) ?? timetableSource)
         assign(\.modeOrder, storedOrder(defaults.array(forKey: "modeOrder") as? [String],
                                         fallback: TravelMode.defaultOrder))
         assign(\.bikeVariantOrder, storedOrder(defaults.array(forKey: "bikeVariantOrder") as? [String],
@@ -363,15 +351,12 @@ final class AppSettings {
                                               fallback: CarVariant.defaultOrder))
         assign(\.rainSwitchLevel, (defaults.object(forKey: "rainSwitchLevel") as? Int)
             .flatMap(RainLevel.init(rawValue:)) ?? rainSwitchLevel)
-        assign(\.signalStopSeconds, defaults.object(forKey: "signalStopSeconds") as? Int ?? signalStopSeconds)
         assign(\.learnedSignals, defaults.data(forKey: "learnedSignals")
             .flatMap { try? JSONDecoder().decode([LearnedSignal].self, from: $0) } ?? learnedSignals)
         assign(\.orientation, (defaults.string(forKey: "orientationLock"))
             .flatMap(OrientationLock.init(rawValue:)) ?? orientation)
         assign(\.replanOffRouteMeters,
                defaults.object(forKey: "replanOffRouteMeters") as? Double ?? replanOffRouteMeters)
-        assign(\.replanOffRouteMinutes,
-               defaults.object(forKey: "replanOffRouteMinutes") as? Double ?? replanOffRouteMinutes)
         assign(\.optionsPerMode, defaults.object(forKey: "optionsPerMode") as? Int ?? optionsPerMode)
         assign(\.rideOrientation, (defaults.string(forKey: "rideOrientationLock"))
             .flatMap(OrientationLock.init(rawValue:)) ?? rideOrientation)
@@ -612,11 +597,11 @@ final class AppSettings {
                      maxBikeToStationKm: maxBikeToStationKm, parkingMinutes: parkingMinutes,
                      transferPenaltyMinutes: transferPenaltyMinutes, signalWaitSeconds: signalWaitSeconds,
                      waypoints: waypoints, requireAllWaypoints: requireAllWaypoints,
-                     departureBufferMinutes: departureBufferMinutes, arrivalBufferMinutes: arrivalBufferMinutes,
+                     arrivalBufferMinutes: arrivalBufferMinutes,
                      modeOrder: modeOrder, bikeVariantOrder: bikeVariantOrder,
                      carVariantOrder: carVariantOrder, optionsPerMode: optionsPerMode,
                      rainSwitchLevel: rainSwitchLevel,
-                     bikeLineStatus: bikeLines.status, timetableSource: timetableSource,
+                     bikeLineStatus: bikeLines.status,
                      learnedSignals: learnedSignals,
                      measuredOverallKmh: bikeOverallKmh > 0 ? bikeOverallKmh : nil,
                      carOverallKmh: carOverallKmh > 0 ? carOverallKmh : nil,
@@ -645,7 +630,6 @@ struct PlanSettings: Equatable {
     var signalWaitSeconds = 20
     var waypoints: [Place] = []
     var requireAllWaypoints = false
-    var departureBufferMinutes = 0
     var arrivalBufferMinutes = 5
     var modeOrder: [TravelMode] = TravelMode.defaultOrder
     var bikeVariantOrder: [BikeVariant] = BikeVariant.defaultOrder
@@ -656,7 +640,6 @@ struct PlanSettings: Equatable {
     /// Line name → whether the bike may come. Missing means undecided, which
     /// is shown with a warning rather than hidden.
     var bikeLineStatus: [String: Bool] = [:]
-    var timetableSource: TimetableSource = .automatic
     /// Junctions this rider has ridden through. They join the ones
     /// OpenStreetMap knows before a route is judged — and they bring their
     /// measured wait, where the mapped ones only get `signalWaitSeconds`.
@@ -675,7 +658,6 @@ struct PlanSettings: Equatable {
     /// too big to ask Overpass for.
     var longTripKm = 100.0
 
-    var departureBuffer: TimeInterval { TimeInterval(departureBufferMinutes * 60) }
     var arrivalBuffer: TimeInterval { TimeInterval(arrivalBufferMinutes * 60) }
     /// How close a route has to come to a fixed point to count as passing it.
     var waypointRadius: Double = 300
@@ -817,25 +799,16 @@ func storedOrder<T: RawRepresentable & Equatable>(_ stored: [T.RawValue]?, fallb
     return known + fallback.filter { !known.contains($0) }
 }
 
-/// Where the timetable comes from.
-enum TimetableSource: String, CaseIterable, Identifiable {
-    /// VBB inside Berlin and Brandenburg, Transitous everywhere else.
-    case automatic
+/// Where the timetable comes from: VBB inside Berlin and Brandenburg,
+/// Transitous everywhere else. Bis 1.9.1 ließ sich das in den Einstellungen
+/// festnageln; gebraucht hat das niemand, und falsch gewählt fand die App
+/// außerhalb des VBB-Gebiets gar nichts.
+enum TimetableSource: String {
     /// The VBB's own HAFAS: the best real-time data for the region, and the
     /// only one that states bike carriage per train.
     case vbb
     /// Transitous (MOTIS) on the nationwide DELFI dataset and beyond.
     case transitous
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .automatic: L("Automatisch")
-        case .vbb: "VBB"
-        case .transitous: "Transitous"
-        }
-    }
 
     /// Berlin and Brandenburg, generously drawn. Inside it the VBB knows more
     /// than a nationwide dataset does — outside it, it knows nothing.
@@ -846,10 +819,9 @@ enum TimetableSource: String, CaseIterable, Identifiable {
             && c.longitude >= vbbArea.west && c.longitude <= vbbArea.east
     }
 
-    /// The source that actually answers for this pair of places.
-    func resolved(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D) -> TimetableSource {
-        guard self == .automatic else { return self }
-        return Self.covers(from) && Self.covers(to) ? .vbb : .transitous
+    /// The source that answers for this pair of places.
+    static func resolved(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D) -> TimetableSource {
+        covers(from) && covers(to) ? .vbb : .transitous
     }
 }
 

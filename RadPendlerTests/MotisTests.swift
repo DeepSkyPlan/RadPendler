@@ -100,21 +100,10 @@ extension MotisTests {
         let berlin = CLLocationCoordinate2D(latitude: 52.52, longitude: 13.41)
         let potsdam = CLLocationCoordinate2D(latitude: 52.39, longitude: 13.07)
         let hamburg = CLLocationCoordinate2D(latitude: 53.55, longitude: 10.00)
-        XCTAssertEqual(TimetableSource.automatic.resolved(from: berlin, to: potsdam), .vbb,
+        XCTAssertEqual(TimetableSource.resolved(from: berlin, to: potsdam), .vbb,
                        "inside the VBB area the VBB knows more")
-        XCTAssertEqual(TimetableSource.automatic.resolved(from: berlin, to: hamburg), .transitous,
+        XCTAssertEqual(TimetableSource.resolved(from: berlin, to: hamburg), .transitous,
                        "one end outside is enough")
-        XCTAssertEqual(TimetableSource.vbb.resolved(from: berlin, to: hamburg), .vbb,
-                       "a fixed choice is not overruled")
-        XCTAssertEqual(TimetableSource.transitous.resolved(from: berlin, to: potsdam), .transitous)
-    }
-
-    func testTheSourceSurvivesALaunch() {
-        let suite = UUID().uuidString
-        let s = AppSettings(defaults: UserDefaults(suiteName: suite)!)
-        XCTAssertEqual(s.timetableSource, .automatic)
-        s.timetableSource = .transitous
-        XCTAssertEqual(AppSettings(defaults: UserDefaults(suiteName: suite)!).timetableSource, .transitous)
     }
 }
 

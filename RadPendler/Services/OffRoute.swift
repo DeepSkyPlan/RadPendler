@@ -41,6 +41,11 @@ enum OffRoute {
     /// Und erst, wenn man so lange ohne Unterbrechung daneben ist. Ein kurzer
     /// Bogen um eine Baustelle ist kein neuer Weg.
     static let offFor: TimeInterval = 15
+    /// Neu berechnen nach so vielen Minuten daneben, egal wie weit: aus. Bis
+    /// 1.9.1 war das eine Einstellung („… oder nach"), voreingestellt aus und
+    /// kaum je benutzt; die Regel in `shouldReplan` bleibt, falls sie einmal
+    /// eine feste Zahl bekommen soll.
+    static let replanMinutes = 0.0
 
     /// Ob jetzt neu geplant werden soll: **was zuerst eintritt**.
     ///
