@@ -99,7 +99,7 @@ struct BRouterClient {
         ]
         var request = URLRequest(url: c.url!, timeoutInterval: 20)
         request.setValue("RadPendler iOS (private commute planner)", forHTTPHeaderField: "User-Agent")
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await BRouterGate.shared.limited { try await session.data(for: request) }
         if let http = response as? HTTPURLResponse, http.statusCode != 200 {
             throw BRouterError.server(String(data: data.prefix(200), encoding: .utf8) ?? "HTTP \(http.statusCode)")
         }
@@ -260,17 +260,74 @@ actor RouteCache {
     func forget() { entries.removeAll() }
 }
 
+/// Höchstens drei Anfragen gleichzeitig an brouter.de — für die ganze App,
+/// nicht je Aufrufer.
+///
+/// Auf acht auf einmal antwortet der öffentliche Server mit `403 Please,
+/// retry later!`, und zwar für Stunden. Eine Planung fragt aber an mehreren
+/// Stellen zugleich: die Radrouten, und daneben die Zubringer von Rad + Bahn
+/// an beiden Enden — jede Stelle für sich gedrosselt waren das bis zu
+/// dreizehn gleichzeitig. Die Schranke sitzt deshalb dort, wo die Anfrage
+/// wirklich hinausgeht, und zählt alle.
+actor BRouterGate {
+    static let shared = BRouterGate(limit: 3)
+
+    let limit: Int
+    private var running = 0
+    private var waiting: [CheckedContinuation<Void, Never>] = []
+    /// Wie viele höchstens gleichzeitig drin waren — nur für den Test.
+    private(set) var peak = 0
+
+    init(limit: Int) { self.limit = limit }
+
+    private func enter() async {
+        if running < limit {
+            running += 1
+            peak = Swift.max(peak, running)
+            return
+        }
+        // Der Platz wird beim Verlassen direkt weitergereicht; `running`
+        // bleibt dabei stehen.
+        await withCheckedContinuation { waiting.append($0) }
+    }
+
+    private func leave() {
+        if waiting.isEmpty { running -= 1 } else { waiting.removeFirst().resume() }
+    }
+
+    nonisolated func limited<T: Sendable>(_ work: @Sendable () async throws -> T) async throws -> T {
+        await enter()
+        do {
+            let result = try await work()
+            await leave()
+            return result
+        } catch {
+            await leave()
+            throw error
+        }
+    }
+}
+
 /// Bike legs through BRouter's "safety" profile (bike paths and quiet streets
 /// first), falling back to Apple Maps; the car always through Apple Maps.
+///
+/// Kein eigener Zwischenspeicher: BRouters Antworten hält `RouteCache` (eine
+/// Stunde, gedeckelt), Apples Radlinien `MapKitRouter`. Bis 1.9.1 stand hier
+/// ein dritter, ohne Ablauf — und weil er auch die Ersatzlinie von Apple
+/// behielt, blieb ein einziger Aussetzer von BRouter bis zum Neustart stehen.
 actor CompositeRouter: StreetRouting {
     private let apple = MapKitRouter()
     private let brouter = BRouterClient()
-    private var cache: [String: StreetRoute] = [:]
 
     func route(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
                mode: StreetMode, departure: Date?) async throws -> StreetRoute {
         guard mode == .bike else { return try await apple.route(from: from, to: to, mode: mode, departure: departure) }
         return try await bikeRoute(from: from, to: to)
+    }
+
+    func feeder(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+                avoidCobbles: Bool) async throws -> StreetRoute {
+        try await bikeRoute(from: from, to: to, avoidCobbles: avoidCobbles)
     }
 
     /// Mit dem Profil der Linie, die gefahren wird, und der Pflasterregel —
@@ -281,20 +338,13 @@ actor CompositeRouter: StreetRouting {
                    via: [CLLocationCoordinate2D] = [],
                    profile: BRouterClient.Profile = .safety,
                    avoidCobbles: Bool = false) async throws -> StreetRoute {
-        let key = String(format: "%.5f,%.5f|%.5f,%.5f|%@|%d", from.latitude, from.longitude,
-                         to.latitude, to.longitude, profile.rawValue, avoidCobbles ? 1 : 0)
-            + via.map { String(format: "|%.5f,%.5f", $0.latitude, $0.longitude) }.joined()
-        if let hit = cache[key] { return hit }
         var brouter = brouter
         brouter.avoidCobbles = avoidCobbles
-        let r: StreetRoute
         do {
-            r = try await brouter.route(from: from, to: to, via: via, profile: profile)
+            return try await brouter.route(from: from, to: to, via: via, profile: profile)
         } catch {
-            r = try await apple.route(from: from, to: to, mode: .bike, departure: nil)
+            return try await apple.route(from: from, to: to, mode: .bike, departure: nil)
         }
-        cache[key] = r
-        return r
     }
 }
 
@@ -338,7 +388,7 @@ actor CustomProfile {
         request.setValue("text/plain", forHTTPHeaderField: "Content-Type")
         request.setValue("RadPendler iOS (private commute planner)", forHTTPHeaderField: "User-Agent")
         request.httpBody = Data(text.utf8)
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await BRouterGate.shared.limited { try await session.data(for: request) }
         // Ein Profil mit Fehler bekommt trotzdem eine Kennung — und jede
         // Anfrage damit endet in 500. Das Feld `error` sagt es vorher.
         guard (response as? HTTPURLResponse)?.statusCode == 200,

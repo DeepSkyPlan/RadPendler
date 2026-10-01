@@ -191,8 +191,6 @@ struct TripPlanner {
         br.avoidCobbles = req.settings.avoidCobbles
         let brouter = br
         func fetch(_ list: [(String, BRouterClient.Profile?, Int)]) async -> [(String, StreetRoute)] {
-            // Apple Karten kennt keinen Belag: wer Pflaster meiden will,
-            // bekommt dessen Linie nur, wenn BRouter gar nicht antwortet.
             let found = await Self.gathered(list, atOnce: 3) { name, profile, alt in
                 if let profile {
                     return try? await brouter.route(from: o, to: d, via: via, profile: profile, alternative: alt)
@@ -221,8 +219,16 @@ struct TripPlanner {
         // **Nur holen, was jemand sehen will** — zuerst. Jede Rolle braucht
         // ein bestimmtes BRouter-Profil, und die obersten `n` Rollen der
         // eigenen Reihenfolge sind, was gezeigt werden soll.
-        let asked = [("Apple", BRouterClient.Profile?.none, 0)] + requests(for: order.prefix(n))
+        // Apple Karten kennt keinen Belag: wer Pflaster meiden will (die
+        // Voreinstellung), bekommt dessen Linie nur, wenn BRouter gar nicht
+        // antwortet — und dann wird sie auch erst gefragt. Bis 1.9.1 kam sie
+        // bei jeder Planung mit und wurde gleich wieder weggeworfen.
+        let appleLine: [(String, BRouterClient.Profile?, Int)] = [("Apple", nil, 0)]
+        let asked = (req.settings.avoidCobbles ? [] : appleLine) + requests(for: order.prefix(n))
         var found = await fetch(asked)
+        if req.settings.avoidCobbles, found.isEmpty {
+            found = await fetch(appleLine)
+        }
         // Die eigene typische Fahrt, sauber nachgefahren: danach, nicht
         // daneben — der Server will höchstens drei Anfragen gleichzeitig.
         if let habitVia, !found.isEmpty,
@@ -230,9 +236,6 @@ struct TripPlanner {
             found.append((RiddenPaths.source, usual))
         }
         guard !found.isEmpty else { throw PlannerError.noBikeRoute }
-        if req.settings.avoidCobbles, found.contains(where: { $0.0 != "Apple" }) {
-            found.removeAll { $0.0 == "Apple" }
-        }
         var data = Self.withLearned(try? await roads.data(covering: found.flatMap { $0.1.coordinates }), req.settings)
         var candidates = await judge(found, data)
         var picked = BikeCandidate.pick(candidates, settings: req.settings, fill: false)
@@ -536,12 +539,9 @@ struct TripPlanner {
         guard !searches.isEmpty else { throw PlannerError.noStations(km: s.maxBikeToStationKm) }
 
         let starts = unique(searches.map(\.from)), ends = unique(searches.map(\.to))
-        // The two ends do not wait for each other: measured 935 ms + 187 ms
-        // sequentially, 935 ms together.
-        async let firstGroup = bikeRoutes(from: req.origin.coordinate, to: starts.map(\.coordinate), reverse: false)
-        async let lastGroup = bikeRoutes(from: req.destination.coordinate, to: ends.map(\.coordinate), reverse: true)
-        var firstLegs = await firstGroup
-        var lastLegs = await lastGroup
+        var (firstLegs, lastLegs) = await feederRoutes(origin: req.origin.coordinate, starts: starts.map(\.coordinate),
+                                                       destination: req.destination.coordinate,
+                                                       ends: ends.map(\.coordinate), avoidCobbles: s.avoidCobbles)
         // Same traffic-light wait as on the whole-way bike routes.
         let rides = (firstLegs + lastLegs).compactMap { $0 }
         if !rides.isEmpty, let data = try? await roads.data(covering: rides.flatMap(\.coordinates)) {
@@ -593,22 +593,26 @@ struct TripPlanner {
         return stations.filter { seen.insert($0.lid).inserted }
     }
 
-    /// Bike routes between `anchor` and each station, nil where MapKit found none.
-    /// `reverse` rides from the station to the anchor.
-    private func bikeRoutes(from anchor: CLLocationCoordinate2D, to stations: [CLLocationCoordinate2D],
-                            reverse: Bool) async -> [StreetRoute?] {
-        await withTaskGroup(of: (Int, StreetRoute?).self) { group in
-            for (i, st) in stations.enumerated() {
-                group.addTask {
-                    let r = try? await streets.route(from: reverse ? st : anchor, to: reverse ? anchor : st,
-                                                     mode: .bike, departure: nil)
-                    return (i, r)
-                }
-            }
-            var out = [StreetRoute?](repeating: nil, count: stations.count)
-            for await (i, r) in group { out[i] = r }
-            return out
+    /// Die Zubringer an beiden Enden, nil, wo keiner gefunden wurde: `first`
+    /// vom Start zu jedem Bahnhof, `last` von jedem Bahnhof zum Ziel.
+    ///
+    /// In **einer** Liste und höchstens drei zugleich, wie die Radrouten. Bis
+    /// 1.9.1 gingen alle auf einmal hinaus, beide Enden nebeneinander — bis zu
+    /// dreizehn Anfragen an BRouter, der ab acht mit 403 antwortet. Mit der
+    /// Pflasterregel aus den Einstellungen; vorher fuhren die Zubringer über
+    /// jedes Kopfsteinpflaster, das die ganze Radroute mied.
+    func feederRoutes(origin: CLLocationCoordinate2D, starts: [CLLocationCoordinate2D],
+                              destination: CLLocationCoordinate2D, ends: [CLLocationCoordinate2D],
+                              avoidCobbles: Bool) async -> (first: [StreetRoute?], last: [StreetRoute?]) {
+        let pairs = starts.map { (origin, $0) } + ends.map { ($0, destination) }
+        let items = pairs.indices.map { (String($0), $0, 0) }
+        let streets = streets
+        let found = await Self.gathered(items, atOnce: 3) { _, i, _ in
+            try? await streets.feeder(from: pairs[i].0, to: pairs[i].1, avoidCobbles: avoidCobbles)
         }
+        var out = [StreetRoute?](repeating: nil, count: pairs.count)
+        for (name, route) in found { if let i = Int(name) { out[i] = route } }
+        return (Array(out.prefix(starts.count)), Array(out.dropFirst(starts.count)))
     }
 
     // MARK: Rain

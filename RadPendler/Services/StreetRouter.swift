@@ -55,9 +55,18 @@ protocol StreetRouting: Sendable {
     /// fürs Auto. Wer nur eine kennt, liefert eben die eine.
     func routes(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
                 mode: StreetMode, departure: Date?) async throws -> [StreetRoute]
+    /// Ein Zubringer zum Bahnhof mit dem Rad, mit der Pflasterregel. Wer
+    /// keinen Belag kennt (Apple Karten), fährt die gewöhnliche Radlinie.
+    func feeder(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+                avoidCobbles: Bool) async throws -> StreetRoute
 }
 
 extension StreetRouting {
+    func feeder(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+                avoidCobbles: Bool) async throws -> StreetRoute {
+        try await route(from: from, to: to, mode: .bike, departure: nil)
+    }
+
     func routes(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
                 mode: StreetMode, departure: Date?) async throws -> [StreetRoute] {
         [try await route(from: from, to: to, mode: mode, departure: departure)]
