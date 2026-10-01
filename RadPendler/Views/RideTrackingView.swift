@@ -131,13 +131,6 @@ struct RideTrackingView: View {
         }
     }
 
-    /// The way that is actually ridden: the transit legs are somebody else's
-    /// steering.
-    static func route(of options: [TripOption], selected: TripOption.ID?) -> [CLLocationCoordinate2D] {
-        guard let option = options.first(where: { $0.id == selected }) ?? options.first else { return [] }
-        return option.legs.filter { !$0.isTransit }.flatMap(\.coordinates)
-    }
-
     private var map: some View {
         RouteMapView(options: options, selectedID: selectedID, radarFrames: [], radarTime: nil,
                      track: tracker.meter.points, speedScale: scale, trackTint: .systemGreen,

@@ -177,25 +177,17 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// scans the whole route on every frame is how the map starts to stutter.
     private(set) var nextTurn: (step: TurnGuide.Step, meters: Double)?
 
-    func start(subject: Subject, signals: [CLLocationCoordinate2D],
-               route: [CLLocationCoordinate2D] = [],
-               roadPoints: [RoadPoint] = [],
-               replanOffRouteMeters: Double = OffRoute.replanMeters,
-               autoStopMinutes: Double = 0,
-               autoPauseMinutes: Double = 0,
-               plannedSignals: [CLLocationCoordinate2D] = [],
-               bikeProfile: BRouterClient.Profile = .quiet,
-               avoidCobbles: Bool = false,
-               via: [CLLocationCoordinate2D] = []) {
+    func start(_ plan: RidePlan) {
         guard !isRecording else { return }
-        self.via = via
-        self.bikeProfile = bikeProfile
-        self.avoidCobbles = avoidCobbles
-        self.autoStopSeconds = autoStopMinutes * 60
-        self.autoPauseSeconds = autoPauseMinutes * 60
+        let route = plan.route
+        self.via = plan.via
+        self.bikeProfile = plan.bikeProfile
+        self.avoidCobbles = plan.avoidCobbles
+        self.autoStopSeconds = plan.autoStopMinutes * 60
+        self.autoPauseSeconds = plan.autoPauseMinutes * 60
         automatic = .full
-        self.replanOffRouteMeters = replanOffRouteMeters
-        self.roadPoints = roadPoints
+        self.replanOffRouteMeters = plan.replanOffRouteMeters
+        self.roadPoints = plan.roadPoints
         plannedRoute = route
         originalRoute = route
         pastRoutes = []
@@ -209,14 +201,14 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         lastReplan = .distantPast
         replanTask?.cancel()
         replanTask = nil
-        self.signals = signals
-        self.plannedSignals = plannedSignals
+        signals = plan.signals
+        plannedSignals = plan.plannedSignals
         signalsBehind = 0
         signalStations = Self.stations(of: plannedSignals, on: route, cum: routeLengths)
         progress = Self.progress(travelled: 0, cum: routeLengths, stations: signalStations)
         switch manager.authorizationStatus {
         case .notDetermined:
-            pending = (subject, signals)
+            pending = plan.subject
             // `plannedRoute` and `turns` are already set; they survive the
             // permission sheet.
             manager.requestWhenInUseAuthorization()
@@ -226,10 +218,12 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
             return
         default: break
         }
-        begin(subject, signals)
+        begin(plan.subject)
     }
 
-    private var pending: (Subject, [CLLocationCoordinate2D])?
+    /// Die Fahrt, die auf die Erlaubnis zur Ortung wartet. Der Rest des Plans
+    /// ist schon übernommen und übersteht das Abfragefenster.
+    private var pending: Subject?
     /// Womit neu geplant wird: dasselbe Profil wie die gewählte Linie.
     private var bikeProfile: BRouterClient.Profile = .quiet
     private var avoidCobbles = false
@@ -327,7 +321,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     }
     private var roadPoints: [RoadPoint] = []
 
-    private func begin(_ subject: Subject, _ signals: [CLLocationCoordinate2D]) {
+    private func begin(_ subject: Subject) {
         failure = nil
         finished = nil
         stoppedByItself = false
@@ -928,7 +922,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
 
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         Task { @MainActor in
-            guard let (subject, signals) = self.pending else { return }
+            guard let subject = self.pending else { return }
             switch manager.authorizationStatus {
             case .notDetermined: return
             case .denied, .restricted:
@@ -936,7 +930,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                 self.failure = L("Ortung ist für RadPendler nicht erlaubt — in den iOS-Einstellungen freigeben.")
             default:
                 self.pending = nil
-                self.begin(subject, signals)
+                self.begin(subject)
             }
         }
     }
