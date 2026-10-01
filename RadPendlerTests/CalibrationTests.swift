@@ -113,6 +113,43 @@ final class CalibrationTests: XCTestCase {
         XCTAssertEqual(s.rideTime(leg), computed, accuracy: 1)
     }
 
+    /// Ein Zeitmodell für alles: die Zubringer von Transitous fahren mit
+    /// derselben Rechnung wie die von HAFAS — und ohne Straßendaten, also
+    /// ohne Ampeln, mit Transitous' eigener Schätzung.
+    func testTransitousFeedersRideOnTheOwnTimeModel() {
+        let s = PlanSettings(bikeSpeedKmh: 29)
+        let t0 = Date(timeIntervalSince1970: 1_800_000_000)
+        let a = CLLocationCoordinate2D(latitude: 52.50, longitude: 13.40)
+        let b = CLLocationCoordinate2D(latitude: 52.52, longitude: 13.40)
+        let ride1 = Leg(kind: .bike, fromName: "A", toName: "S1", departure: t0, arrival: t0.addingTimeInterval(900),
+                        distance: 3_000, coordinates: [a, b])
+        let train = Leg(kind: .transit(line: "S1", product: .suburban), fromName: "S1", toName: "S2",
+                        departure: t0.addingTimeInterval(1_000), arrival: t0.addingTimeInterval(2_000))
+        let ride2 = Leg(kind: .bike, fromName: "S2", toName: "B", departure: t0.addingTimeInterval(2_100),
+                        arrival: t0.addingTimeInterval(3_000), distance: 3_000, coordinates: [b, a])
+        let legs = [ride1, train, ride2]
+        let own = s.rideTime(StreetRoute(distance: 3_000, expectedTravelTime: 0, coordinates: [a, b]))
+        let timed = TripPlanner.retimed(legs, roads: RoadData(signals: [], roads: []), settings: s)
+        XCTAssertEqual(timed[0].arrival, ride1.arrival, "am Bahnhof wie geplant")
+        XCTAssertEqual(timed[0].duration, own, accuracy: 1)
+        XCTAssertEqual(timed[1].departure, train.departure)
+        XCTAssertEqual(timed[2].departure, ride2.departure)
+        XCTAssertEqual(timed[2].duration, own, accuracy: 1)
+        let untouched = TripPlanner.retimed(legs, roads: nil, settings: s)
+        XCTAssertEqual(untouched.map(\.duration), legs.map(\.duration))
+    }
+
+    /// Die ganze Radroute und der Zubringer rechnen mit derselben Formel;
+    /// nur die Gegenprobe am gemessenen Schnitt gilt verschieden.
+    func testWholeRouteAndFeederShareTheModel() {
+        var s = PlanSettings(bikeSpeedKmh: 29)
+        let route = StreetRoute(distance: 5_000, expectedTravelTime: 0, coordinates: [], signals: 4, ascent: 30)
+        let c = BikeCandidate(source: .brouter(.trekking), route: route, stats: nil, ascent: 30)
+        XCTAssertEqual(c.computedTime(s), s.rideTime(route), accuracy: 1)
+        s.measuredOverallKmh = 40
+        XCTAssertLessThan(c.time(s), s.rideTime(route), "die ganze Route glaubt dem schnelleren Schnitt, der Zubringer nicht")
+    }
+
     /// Der Schnitt sagt, wie lange es dauert — nicht, wo es langgeht. Sonst
     /// wäre „schnellst" immer dieselbe Linie wie „kürzest".
     func testTheRolesAreStillDecidedByTheCalculation() {

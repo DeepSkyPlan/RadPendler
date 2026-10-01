@@ -452,16 +452,51 @@ struct TripPlanner {
         let journeys = try await motis.journeys(from: req.origin.coordinate, to: req.destination.coordinate,
                                                 at: req.arriveBy ?? req.earliestLeave,
                                                 arriveBy: req.isArrival, access: .bike, results: 5)
-        let options = journeys.compactMap { legs -> TripOption? in
+        let usable = journeys.filter { legs in
             let transit = legs.filter(\.isTransit)
-            guard !transit.isEmpty, transit.allSatisfy({ !$0.cancelled }),
-                  transit.allSatisfy({ s.carriage($0) != .no }),
-                  legs.contains(where: { $0.kind == .bike }) else { return nil }
-            return TripOption(mode: .bikeTransit, legs: s.decided(legs), prep: s.prep,
-                              note: L("Fahrten von Transitous; Radzeiten nach deren Schätzung"))
+            return !transit.isEmpty && transit.allSatisfy({ !$0.cancelled })
+                && transit.allSatisfy({ s.carriage($0) != .no })
+                && legs.contains(where: { $0.kind == .bike })
+        }
+        // Die Radstücke mit dem eigenen Zeitmodell, wie bei HAFAS — dafür
+        // braucht es die Ampeln an ihnen. Ohne sie bliebe nur Rolltempo ohne
+        // Wartezeit, und das ist optimistischer als Transitous' eigene
+        // Schätzung; dann gilt die.
+        let bikeLines = usable.flatMap { $0.filter { $0.kind == .bike }.flatMap(\.coordinates) }
+        let data = bikeLines.isEmpty ? nil
+            : Self.withLearned(try? await roads.data(covering: bikeLines), s)
+        let options = usable.compactMap { legs -> TripOption? in
+            let timed = Self.retimed(s.decided(legs), roads: data, settings: s)
+            let option = TripOption(mode: .bikeTransit, legs: timed, prep: s.prep,
+                                    note: data == nil ? L("Fahrten von Transitous; Radzeiten nach deren Schätzung")
+                                                      : L("Fahrten von Transitous"))
+            // Mit dem eigenen Tempo kann der Weg zum ersten Zug länger
+            // werden als Transitous dachte — dann reicht die Zeit nicht.
+            if let by = req.arriveBy { return option.arrival <= by.addingTimeInterval(60) ? option : nil }
+            return option.leave >= req.earliestLeave.addingTimeInterval(-30) ? option : nil
         }
         return BikeTransitComposer.rank(options, preferred: 3, alternatives: 1,
                                         penalty: s.transferPenalty, arrival: req.isArrival)
+    }
+
+    /// Die Radstücke einer Transitous-Fahrt nach dem eigenen Zeitmodell
+    /// (`PlanSettings.rideTime`): das vor dem ersten Zug endet, wo es endet,
+    /// und beginnt entsprechend früher oder später; das nach dem letzten
+    /// beginnt, wo es beginnt. Ohne Straßendaten bleibt alles, wie es kam.
+    static func retimed(_ legs: [Leg], roads: RoadData?, settings s: PlanSettings) -> [Leg] {
+        guard let roads, let first = legs.firstIndex(where: \.isTransit),
+              let last = legs.lastIndex(where: \.isTransit) else { return legs }
+        return legs.enumerated().map { i, leg in
+            guard leg.kind == .bike, i < first || i > last,
+                  let meters = leg.length, leg.coordinates.count > 1 else { return leg }
+            let st = RouteAnalyzer.analyze(leg.coordinates, roads: roads)
+            let t = s.rideTime(meters: meters, signals: st.signals, learned: st.learnedSignals,
+                               measured: .slowerOnly)
+            var l = leg
+            if i < first { l.departure = leg.arrival.addingTimeInterval(-t) }
+            else { l.arrival = leg.departure.addingTimeInterval(t) }
+            return l
+        }
     }
 
     /// Ride to a station, take only trains that carry bikes, ride on from the
