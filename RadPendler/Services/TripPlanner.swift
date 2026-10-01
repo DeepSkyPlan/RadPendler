@@ -13,12 +13,12 @@ struct PlanRequest {
     var target: PlanTarget
     var settings: PlanSettings
 
-    /// Earliest moment to walk out of the door: preparation and the departure
-    /// buffer come on top of the chosen start.
+    /// Earliest moment to walk out of the door: preparation comes on top of
+    /// the chosen start.
     var earliestLeave: Date {
         switch target {
-        case .departAfter(let d): d.addingTimeInterval(settings.prep + settings.departureBuffer)
-        case .arriveBy: .now.addingTimeInterval(settings.prep + settings.departureBuffer)
+        case .departAfter(let d): d.addingTimeInterval(settings.prep)
+        case .arriveBy: .now.addingTimeInterval(settings.prep)
         }
     }
 
@@ -450,7 +450,7 @@ struct TripPlanner {
     /// those results are kept only as the alternative.
     /// Which timetable answers for this request.
     func source(_ req: PlanRequest) -> TimetableSource {
-        req.settings.timetableSource.resolved(from: req.origin.coordinate, to: req.destination.coordinate)
+        TimetableSource.resolved(from: req.origin.coordinate, to: req.destination.coordinate)
     }
 
     /// Bike at both ends, planned by Transitous in one request: MOTIS routes

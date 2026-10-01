@@ -179,14 +179,12 @@ struct NavigationSettingsView: View {
                     Hint(L("Diese Vorschläge stehen oben neben „Jetzt“ zur Wahl — relativ („in 15 min“) oder als Uhrzeit („um 8 Uhr“, heute oder morgen)."))
                 }
                 Section {
-                    Stepper(L("Puffer vor der Abfahrt: %d min", settings.departureBufferMinutes),
-                            value: $settings.departureBufferMinutes, in: 0...30)
                     Stepper(L("Puffer vor der Ankunft: %d min", settings.arrivalBufferMinutes),
                             value: $settings.arrivalBufferMinutes, in: 0...30)
                 } header: {
                     Text(L("Puffer"))
                 } footer: {
-                    Hint(L("Der Abfahrtspuffer verschiebt das Losgehen nach vorn, der Ankunftspuffer lässt die Verbindung früher ankommen. Beide zählen nicht zur angezeigten Fahrzeit."))
+                    Hint(L("Der Puffer lässt die Verbindung so viel früher ankommen. Er zählt nicht zur angezeigten Fahrzeit; Spielraum vor dem Losgehen ist die Rüstzeit."))
                 }
                 Section {
                     Toggle(L("Warnung vor dem Losgehen"), isOn: $settings.alertsOn)
@@ -220,7 +218,7 @@ struct NavigationSettingsView: View {
     }
 }
 
-/// Womit gefahren wird: wie viele Möglichkeiten, in welcher Reihenfolge, welcher Fahrplan, welche Linie nimmt das Rad mit.
+/// Womit gefahren wird: wie viele Möglichkeiten, in welcher Reihenfolge, welche Linie nimmt das Rad mit.
 struct ModeSettingsView: View {
     @Environment(AppSettings.self) private var settings
     @State private var notifications: Alarm.Permission = .unknown
@@ -318,9 +316,6 @@ struct ModeSettingsView: View {
                 }
                 Section {
                     Stepper(L("Umstieg zählt wie %d min", settings.transferPenaltyMinutes), value: $settings.transferPenaltyMinutes, in: 0...30)
-                    Picker(L("Fahrplan"), selection: $settings.timetableSource) {
-                        ForEach(TimetableSource.allCases) { Text($0.title).tag($0) }
-                    }
                     Link(destination: URL(string: "https://transitous.org/sources/")!) {
                         Label("transitous.org/sources", systemImage: "arrow.up.right.square")
                     }
@@ -330,7 +325,7 @@ struct ModeSettingsView: View {
                 } header: {
                     Text(L("Bus & Bahn"))
                 } footer: {
-                    Hint(L("Jeder Umstieg wird beim Sortieren und Empfehlen wie so viele Minuten längere Fahrt gewertet: eine direkte Verbindung gewinnt, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.") + "\n\n" + L("„Automatisch“ fragt den VBB, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link."))
+                    Hint(L("Jeder Umstieg wird beim Sortieren und Empfehlen wie so viele Minuten längere Fahrt gewertet: eine direkte Verbindung gewinnt, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.") + "\n\n" + L("Den Fahrplan liefert der VBB, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link."))
                 }
                 Section {
                     NavigationLink {
@@ -371,14 +366,6 @@ struct SettingsView: View {
                             Text(L("%d m neben der Route", Int(m))).tag(m)
                         }
                     }
-                    Picker(L("… oder nach"), selection: $settings.replanOffRouteMinutes) {
-                        Text(L("aus")).tag(0.0)
-                        ForEach([1.0, 2.0, 5.0, 10.0], id: \.self) { m in
-                            Text(L("%d min daneben", Int(m))).tag(m)
-                        }
-                    }
-                    Stepper(L("Ampelhalt ab %d s", settings.signalStopSeconds),
-                            value: $settings.signalStopSeconds, in: 10...120, step: 5)
                     Picker(L("Bildschirm abdunkeln nach"), selection: $settings.rideDimSeconds) {
                         Text(L("aus")).tag(0.0)
                         ForEach([15.0, 30.0, 60.0, 120.0], id: \.self) { s in
@@ -413,7 +400,7 @@ struct SettingsView: View {
                 } header: {
                     Text(L("Fahrt aufzeichnen"))
                 } footer: {
-                    Hint(L("„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — Eine Fahrt beginnt quer, oder so, wie du es während der letzten Fahrt zuletzt eingestellt hast; der Knopf dafür steht oben links auf dem Fahrtbildschirm. — Steht die Aufzeichnung an derselben Stelle und ist dort keine bekannte Ampel, hält sie nach der ersten eingestellten Zeit von selbst an — und läuft weiter, sobald es weitergeht; die Ortung bleibt dabei an, aber sparsam. Nach der zweiten Zeit beendet sie sich und zählt bis zum Anfang des Stillstands: das ist der Fall „angekommen und vergessen, auf beenden zu tippen“. Der Knopf oben links auf dem Fahrtbildschirm schaltet beides für eine Fahrt ab, für den Stau, der gleich weitergeht. Eine gewollte Unterbrechung ist dagegen der Knopf „Pause“: er hält die Uhr an und schaltet die Ortung ganz ab, und die Pause zählt weder zur Fahrzeit noch als Halt — anders als das Stehen vor einer automatischen Pause, das ein Halt war wie jeder andere. — Während einer Aufzeichnung bleibt der Bildschirm an, bis du die Fahrt beendest; das kostet Strom und ist so gewollt. Er wird aber dunkel, solange du ihn nicht anfasst — und beim ersten Antippen wieder hell, ebenso wenn eine Abbiegung ansteht oder du neben der Route bist. Das ist während einer Fahrt der größte Posten auf der Stromrechnung, größer als die Ortung. Am Strom bleibt er hell, ohne dass du etwas umstellen musst. — Verlässt du die Route, zeigt ein Pfeil zurück. Neu berechnet wird, was zuerst eintritt: die eingestellte Entfernung (und dann erst nach ein paar Sekunden am Stück, damit ein Bogen um eine Baustelle keine Neuplanung auslöst) oder die eingestellte Zeit, egal wie weit — wer im Kreis um einen gesperrten Weg fährt, kommt nie weit genug weg. Beides „aus“ lässt es beim Pfeil. — Wer länger als die eingestellte Zeit steht, stand an einer Ampel, auch wenn keine Karte dort eine kennt — nur das Stehen vor dem Losfahren und nach dem Ankommen zählt nie, das ist die eigene Haustür. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein. Mitgezählt wird auch, wo eine Aufzeichnung ohne Halt durchkam: eine gelernte Kreuzung kostet beim Planen ihre gemessene Zeit über alle Vorbeifahrten, nicht den eingestellten Mittelwert. Sie bleiben auf deinen Geräten und in deiner iCloud."))
+                    Hint(L("„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — Eine Fahrt beginnt quer, oder so, wie du es während der letzten Fahrt zuletzt eingestellt hast; der Knopf dafür steht oben links auf dem Fahrtbildschirm. Nach der Fahrt gilt wieder die Ausrichtung von hier. — Steht die Aufzeichnung an derselben Stelle und ist dort keine bekannte Ampel, hält sie nach der ersten eingestellten Zeit von selbst an — und läuft weiter, sobald es weitergeht; die Ortung bleibt dabei an, aber sparsam. Nach der zweiten Zeit beendet sie sich und zählt bis zum Anfang des Stillstands: das ist der Fall „angekommen und vergessen, auf beenden zu tippen“. Der Knopf oben links auf dem Fahrtbildschirm schaltet beides für eine Fahrt ab, für den Stau, der gleich weitergeht. Eine gewollte Unterbrechung ist dagegen der Knopf „Pause“: er hält die Uhr an und schaltet die Ortung ganz ab, und die Pause zählt weder zur Fahrzeit noch als Halt — anders als das Stehen vor einer automatischen Pause, das ein Halt war wie jeder andere. — Während einer Aufzeichnung bleibt der Bildschirm an, bis du die Fahrt beendest; das kostet Strom und ist so gewollt. Er wird aber dunkel, solange du ihn nicht anfasst — und beim ersten Antippen wieder hell, ebenso wenn eine Abbiegung ansteht oder du neben der Route bist. Das ist während einer Fahrt der größte Posten auf der Stromrechnung, größer als die Ortung. Am Strom bleibt er hell, ohne dass du etwas umstellen musst. — Verlässt du die Route, zeigt ein Pfeil zurück. Neu berechnet wird ab der eingestellten Entfernung, und erst nach ein paar Sekunden am Stück daneben, damit ein Bogen um eine Baustelle keine Neuplanung auslöst; „aus“ lässt es beim Pfeil. — Wer länger als 30 Sekunden steht, stand an einer Ampel, auch wenn keine Karte dort eine kennt — nur das Stehen vor dem Losfahren und nach dem Ankommen zählt nie, das ist die eigene Haustür. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein. Mitgezählt wird auch, wo eine Aufzeichnung ohne Halt durchkam: eine gelernte Kreuzung kostet beim Planen ihre gemessene Zeit über alle Vorbeifahrten, nicht den eingestellten Mittelwert. Sie bleiben auf deinen Geräten und in deiner iCloud."))
                 }
                 Section {
                     // Kontakt als Seite, nicht als Adresse: eine Adresse im

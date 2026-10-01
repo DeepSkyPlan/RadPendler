@@ -140,7 +140,6 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     private var lastReplan = Date.distantPast
     /// Ab wann neu berechnet wird; 0 schaltet es ab.
     private var replanOffRouteMeters = OffRoute.replanMeters
-    private var replanOffRouteMinutes = 0.0
     /// Seit wann ohne Unterbrechung neben der Route. Steht im roten Band
     /// neben dem Abstand; zugewiesen wird nur beim Wechsel, sonst baute
     /// `@Observable` den Fahrtbildschirm einmal die Sekunde neu auf.
@@ -155,9 +154,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     func start(subject: Subject, signals: [CLLocationCoordinate2D],
                route: [CLLocationCoordinate2D] = [],
                roadPoints: [RoadPoint] = [],
-               signalSeconds: TimeInterval = RideMeter.defaultSignalSeconds,
                replanOffRouteMeters: Double = OffRoute.replanMeters,
-               replanOffRouteMinutes: Double = 0,
                autoStopMinutes: Double = 0,
                autoPauseMinutes: Double = 0,
                plannedSignals: [CLLocationCoordinate2D] = [],
@@ -168,12 +165,10 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         self.via = via
         self.bikeProfile = bikeProfile
         self.avoidCobbles = avoidCobbles
-        self.signalSeconds = signalSeconds
         self.autoStopSeconds = autoStopMinutes * 60
         self.autoPauseSeconds = autoPauseMinutes * 60
         automatic = .full
         self.replanOffRouteMeters = replanOffRouteMeters
-        self.replanOffRouteMinutes = replanOffRouteMinutes
         self.roadPoints = roadPoints
         plannedRoute = route
         originalRoute = route
@@ -215,7 +210,6 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// Die Fixpunkte, die die geplante Linie anfährt — eine Neuplanung fährt
     /// die noch vor einem liegenden ebenfalls an.
     private var via: [CLLocationCoordinate2D] = []
-    private var signalSeconds = RideMeter.defaultSignalSeconds
     /// Ab wann ein Halt, der keine Ampel ist, die Fahrt beendet; 0 schaltet
     /// es ab.
     private var autoStopSeconds: TimeInterval = 0
@@ -315,7 +309,6 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         meter = RideMeter()
         if TravelMode(rawValue: subject.mode) == .bike { meter.speedLimit = RideMeter.maxBikeSpeed }
         meter.signals = signals
-        meter.signalSeconds = signalSeconds
         meter.roadPoints = roadPoints
         meter.plannedLine = originalRoute
         // Only now, and only for as long as the ride lasts.
@@ -654,7 +647,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         guard OffRoute.shouldReplan(meters: next.meters,
                                     offFor: Date.now.timeIntervalSince(since),
                                     afterMeters: replanOffRouteMeters,
-                                    afterMinutes: replanOffRouteMinutes) else { return }
+                                    afterMinutes: OffRoute.replanMinutes) else { return }
         replan(from: here)
     }
 

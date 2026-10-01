@@ -73,6 +73,9 @@ struct RideMeter {
     /// OpenStreetMap does not know every light, and it knows none of the
     /// crossings that merely behave like one; half a minute standing on a
     /// commute is not something one does for the view.
+    /// Fest seit 1.9.1 — als Einstellung („Ampelhalt ab") hat sie niemand
+    /// verstellt, und wer es tat, verschob nur, was als gelernte Ampel gilt.
+    /// Veränderlich bleibt sie für die Tests.
     var signalSeconds: TimeInterval = RideMeter.defaultSignalSeconds
     static let defaultSignalSeconds: TimeInterval = 30
 
