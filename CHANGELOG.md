@@ -2,6 +2,12 @@
 
 ## Unveröffentlicht — Aufräumen
 
+- **„Alle Fixpunkte verlangen“ entfällt** — eine Verbindung muss an mindestens einem Fixpunkt
+  vorbei. Das Rad fährt seit 1.9 ohnehin alle am Weg an; bei Auto und Bahn machte der Schalter
+  meist nur alles grau.
+- **Autorouten in fester Reihenfolge** optimal › schnellst › wenig Ampeln › kürzest; der
+  Sortier-Editor ist weg (Apple liefert meist zwei, drei Linien).
+
 - **Fahrt zur Auswertung teilen** (Fahrten → Fahrt → Teilen-Knopf oben rechts): eine JSON-Datei
   mit Zusammenfassung, jedem Punkt samt Genauigkeit, geplanter Linie, jeder Neuplanung und einem
   Protokoll der Fahrt (neben der Route, Neuplanung mit Ergebnis — übernommen, verworfen,

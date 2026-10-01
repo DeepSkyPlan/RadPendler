@@ -133,7 +133,7 @@ struct TripPlanner {
         for i in result.options.indices {
             result.options[i].passesWaypoints = WaypointMatcher.passes(
                 result.options[i], waypoints: req.settings.waypoints,
-                requireAll: req.settings.requireAllWaypoints, radius: req.settings.waypointRadius)
+                radius: req.settings.waypointRadius)
         }
         let penalty = req.settings.transferPenalty
         let order = req.settings.modeOrder
