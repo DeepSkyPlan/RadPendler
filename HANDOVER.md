@@ -21,7 +21,10 @@ Die Watch-App hängt als Abhängigkeit am iPhone-Ziel und wird nach `Watch/` kop
 `./dev build` baut sie mit. Einzeln: `-scheme RadPendlerWatch` mit einem
 `platform=watchOS Simulator`-Ziel.
 
-TestFlight (nur auf Ansage des Nutzers): Buildnummer in `project.yml` hochzählen →
+TestFlight (nur auf Ansage des Nutzers): **`./dev testflight [version]`** macht alles in einem Zug
+(sauberer Baum vorausgesetzt; Buildnummer +1, „## Unveröffentlicht“ im CHANGELOG wird zur
+Version, Tests, Archiv, Upload, Commit, Push; `DRY_RUN=1` baut nur, `SKIP_TESTS=1`).
+Von Hand dasselbe: Buildnummer in `project.yml` hochzählen →
 `xcodegen generate` → `clean archive` → `-exportArchive` mit einer `ExportOptions.plist`
 (method `app-store-connect`, destination `upload`) und den App-Store-Connect-Schlüsseln
 aus `~/.appstoreconnect/`. `tools/asc_jwt.swift` druckt ein API-Token für Abfragen; es
