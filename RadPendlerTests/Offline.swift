@@ -35,7 +35,8 @@ extension TripPlanner {
     }
 }
 
-/// Beantwortet jede Anfrage mit „kein Netz" — sofort, ohne DNS.
+/// Refuses every request. Lets a test run a real planner without a network:
+/// jede Anfrage endet sofort mit „kein Netz", ohne DNS.
 final class BlockedProtocol: URLProtocol {
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }

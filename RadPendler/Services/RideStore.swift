@@ -245,13 +245,6 @@ final class RideStore {
         }
     }
 
-    /// Einmal je Fahrt: das Stehen vor den Pausen älterer Fahrten wird zur
-    /// Pause, so wie es neue Fahrten von selbst tun. Gerechnet wird aus der
-    /// Linie; wo sie fehlt (auf einem anderen Gerät gezeichnet und noch nicht
-    /// in CloudKit), bleibt die Fahrt, wie sie ist, und kommt beim nächsten
-    /// Start wieder dran. Jedes Gerät repariert seine eigene Liste — beim
-    /// Zusammenführen gewinnt die eigene Fassung, und der Merker an der Fahrt
-    /// hält fest, dass nichts zweimal abgezogen wird.
     /// Einmal: die Radfahrten von vor 1.9 lernen nach. Was auf diesem Gerät
     /// keine Linie hat, bleibt draußen — es kommt dazu, sobald es gefahren wird.
     func learnHabitsIfNeeded() async {
@@ -264,6 +257,17 @@ final class RideStore {
         }
     }
 
+    /// Einmal je Fahrt: das Stehen vor den Pausen älterer Fahrten wird zur
+    /// Pause, so wie es neue Fahrten von selbst tun. Gerechnet wird aus der
+    /// Linie; wo sie fehlt (auf einem anderen Gerät gezeichnet und noch nicht
+    /// in CloudKit), bleibt die Fahrt, wie sie ist, und kommt beim nächsten
+    /// Start wieder dran. Jedes Gerät repariert seine eigene Liste — beim
+    /// Zusammenführen gewinnt die eigene Fassung, und der Merker an der Fahrt
+    /// hält fest, dass nichts zweimal abgezogen wird.
+    ///
+    /// Bleibt, obwohl es aus 1.6 stammt: eine Fahrt, deren Linie erst noch
+    /// aus CloudKit kommt, wartet hier auf ihre Reparatur — und wann das
+    /// ist, weiß niemand. Kostet nach getaner Arbeit einen Filter beim Start.
     func repairStandingBeforePauses() async {
         let todo = rides.filter { $0.pausedSeconds > 0 && $0.standingInPause != true }
         guard !todo.isEmpty else { return }

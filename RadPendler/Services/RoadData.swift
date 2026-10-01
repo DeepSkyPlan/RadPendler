@@ -319,9 +319,6 @@ actor RoadDataStore {
         }
     }
 
-    /// Reads the box back from the little sidecar next to each cached answer.
-    /// The data file is named by a hash, so a directory listing no longer
-    /// spells out the corridor between home and work.
     /// Was neben einer zwischengespeicherten Antwort steht: welcher Kasten,
     /// und welcher Schlauch tatsächlich abgefragt wurde.
     private struct Sidecar: Codable {
@@ -333,6 +330,10 @@ actor RoadDataStore {
         var box: Box { Box(south: south, west: west, north: north, east: east) }
     }
 
+    /// Reads the box back from the little sidecar next to each cached answer.
+    /// The data file is named by a hash, so a directory listing no longer
+    /// spells out the corridor between home and work. Eine Datei, deren
+    /// Beiwagen sich nicht lesen lässt, räumt `sweep` weg.
     private func sidecar(of file: URL) -> Sidecar? {
         let url = file.deletingPathExtension().appendingPathExtension("box")
         guard let data = try? Data(contentsOf: url) else { return nil }

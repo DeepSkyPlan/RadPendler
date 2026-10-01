@@ -1,5 +1,24 @@
 # Changelog
 
+## Unveröffentlicht — Aufräumen
+
+- **Die Ausrichtung aus den Einstellungen bleibt.** Bisher stellte jede beendete Fahrt sie
+  auf „Automatisch“ zurück; jetzt gilt nach der Fahrt wieder, was dort gewählt ist. Die
+  Ausrichtung im Fahrtmodus bleibt eine eigene.
+- **„Puffer vor der Abfahrt“ ist in der Rüstzeit aufgegangen** — er tat dasselbe. Wer einen
+  eingestellt hatte, findet ihn einmal zur Rüstzeit addiert. Der Ankunftspuffer bleibt.
+- **Weg aus den Einstellungen:** „Fahrplan“ (jetzt immer VBB in Berlin/Brandenburg, sonst
+  Transitous), „Ampelhalt ab … s“ (fest 30 s) und „Neu berechnen … oder nach … min“ (aus;
+  „Neu berechnen ab … m“ bleibt).
+- **Weniger Anfragen.** BRouter bekommt von der ganzen App höchstens drei gleichzeitig, auch
+  die Zubringer zum Bahnhof; Apples Radlinie wird nur noch gefragt, wenn Pflaster erlaubt ist
+  oder BRouter nicht antwortet; die Bahnhöfe um Start und Ziel bleiben einen Tag im Speicher.
+- **Zubringer zum Bahnhof meiden jetzt auch Kopfsteinpflaster**, wenn das eingestellt ist.
+- **Ein Aussetzer von BRouter bleibt nicht mehr bis zum Neustart hängen** — die Ersatzlinie
+  von Apple wurde bisher für immer behalten.
+- Das Menü zeigt unten nur noch die Version; Rechte und Datenquellen stehen in den
+  Einstellungen (jetzt auch Transitous).
+
 ## 1.9.1 (Build 47) — Fixpunkte je Strecke
 
 - **Fixpunkte gehören jetzt zu einer Strecke**, nicht mehr zu allen (Nutzer, 01.10.2026).

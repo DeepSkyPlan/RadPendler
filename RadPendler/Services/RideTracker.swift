@@ -278,7 +278,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// sonst fragt sich der Fahrer, wer da auf „beenden" getippt hat.
     private(set) var stoppedByItself = false
     /// Was sonst der Knopf „Fahrt beenden" auslöst — nachmessen, dazulernen,
-    /// die Ausrichtung wieder freigeben. Beendet die Fahrt sich selbst, muss
+    /// die eigene Ausrichtung wiederherstellen. Beendet die Fahrt sich selbst, muss
     /// dasselbe passieren, und der Bildschirm ist dabei aus.
     var onAutoStop: (() -> Void)?
     /// Während einer Fahrt bleibt der Bildschirm an, bis die Fahrt beendet
