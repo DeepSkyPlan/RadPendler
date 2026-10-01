@@ -175,6 +175,10 @@ final class Replanner {
                 lights += await signalsAlong(line)
             }
             await MainActor.run {
+                // Abgebrochen heißt: `reset` hat eine neue Fahrt begonnen. Die
+                // Antwort gehört zur alten und darf weder deren Linie in die
+                // neue tragen noch `task` der neuen leeren.
+                guard !Task.isCancelled else { return }
                 if let failure { self?.log("fehlgeschlagen", failure, nil) }
                 self?.adopt(route, heading: heading, lights: lights)
             }

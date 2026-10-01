@@ -459,6 +459,19 @@ private struct FixedRouter: StreetRouting {
     }
 }
 
+/// Ein Router, der erst nach einer Weile antwortet — und sich dabei nicht
+/// abbrechen lässt, wie eine Anfrage, die schon unterwegs ist.
+private struct SlowRouter: StreetRouting {
+    var line: [CLLocationCoordinate2D]
+
+    func route(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+               mode: StreetMode, departure: Date?) async throws -> StreetRoute {
+        let until = Date.now.addingTimeInterval(0.3)
+        while Date.now < until { try? await Task.sleep(nanoseconds: 20_000_000) }
+        return StreetRoute(distance: 0, expectedTravelTime: 0, coordinates: line)
+    }
+}
+
 /// Die Buchführung des `Replanner`: was eine übernommene, eine verworfene und
 /// eine gescheiterte Neuplanung hinterlassen — ohne Netz und ohne Ortung.
 @MainActor
@@ -530,5 +543,25 @@ final class ReplannerTests: XCTestCase {
         await late.settle()
         XCTAssertEqual(late.replans, 0)
         XCTAssertTrue(adopted().isEmpty)
+    }
+
+    /// Eine Neuplanung der letzten Fahrt, die erst nach dem Start der nächsten
+    /// antwortet, gehört nicht in die nächste.
+    func testAReplanFromTheLastRideIsNotAdoptedIntoTheNext() async throws {
+        let onward = (0...10).map { north(500 + Double($0) * 100) }
+        let r = Replanner(router: SlowRouter(line: onward), signalsAlong: { _ in [] })
+        var kinds: [String] = []
+        var adopted = 0
+        r.log = { kind, _, _ in kinds.append(kind) }
+        r.onAdopt = { _, _ in adopted += 1 }
+        r.reset(route: original, config: Replanner.Config(mode: .bike, knownSignals: []))
+        r.replan(from: north(500), course: 0)
+        let next = (0...5).map { north(Double($0) * 50) }
+        r.reset(route: next, config: Replanner.Config(mode: .bike, knownSignals: []))
+        try await Task.sleep(nanoseconds: 800_000_000)
+        XCTAssertEqual(r.replans, 0)
+        XCTAssertEqual(adopted, 0)
+        XCTAssertEqual(r.plannedRoute.count, next.count)
+        XCTAssertEqual(kinds, ["neuplanung"], "kein „fehlgeschlagen“ der alten Fahrt im Protokoll der neuen")
     }
 }
