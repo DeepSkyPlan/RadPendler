@@ -1,4 +1,13 @@
-# RadPendler — Übergabe (Stand 01.10.2026 · 1.9.1 / Build 47, plus Aufräumen)
+# RadPendler — Übergabe (Stand 01.10.2026 · 1.10 / Build 48 in TestFlight, `main` = ca9d022)
+
+> **Zum Wiedereinstieg (Sitzung 28.09.–01.10.2026):** 1.10 (48) ist in TestFlight — Motorrad,
+> Fixpunkte je Strecke und als Zwischenpunkte, gewohnte Wege (`RiddenPaths`), Fahrt teilen
+> zur Auswertung, Messwerte „gemessen / Von Hand", Aufräumen (kleiner und mittlerer Aufwand,
+> `RidePlan`/`Replanner`/`RideSession`). Nach 48 nur die Kartenschilder (CHANGELOG
+> „Unveröffentlicht"). **Nichts davon ist auf dem iPhone geprüft.** Prüfliste des Nutzers:
+> Fahrt ohne Ortungsfreigabe starten · absichtlich > 200 m abweichen (Neuplanung, „1×“) ·
+> Auto-Pause 3 min / Auto-Ende 20 min · danach eine Fahrt teilen → `python3 tools/ride_report.py`.
+> Ausliefern nur auf Ansage: `./dev testflight [version]`.
 
 Multimodaler Pendel-Planer für iPhone, iPad und Apple Watch: Büro ↔ Zuhause mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln,
 Regen und Countdown.
