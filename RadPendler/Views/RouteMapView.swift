@@ -119,6 +119,10 @@ struct RouteMapView: UIViewRepresentable {
         var tint: UIColor = .systemGreen
         var glyph: String = "mappin"
         var isRider = false
+        /// Start, Ziel und Fixpunkte: die verdrängt kein Schild. Seit das
+        /// Schild der gewählten Linie Zeit und Länge zusammen trägt, ist es
+        /// breit genug, um einen Fixpunkt in der Streckenmitte zu verdecken.
+        var essential = false
     }
 
     /// A junction with traffic lights. `fromPlan` says who owns it: the ones

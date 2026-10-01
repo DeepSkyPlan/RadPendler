@@ -1,5 +1,10 @@
 # Changelog
 
+## Unveröffentlicht — Kartenschilder
+
+- Die gewählte Rad- oder Autolinie trägt **ein** Schild „Zeit · Name · Länge“ statt zweier,
+  die übereinander lagen. Start, Ziel und Fixpunkte verdrängt kein Schild mehr.
+
 ## 1.10 (Build 48) — Fahrt teilen, Messwerte von Hand, Aufräumen
 
 - **Auswahl bleibt:** die gewählte Radvariante, Autolinie oder Verbindung übersteht eine
