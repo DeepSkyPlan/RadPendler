@@ -661,14 +661,23 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// zählen hoch statt herunter, und geführt wird auf der Gegenfahrbahn.
     nonisolated static func startsAtEnd(_ here: CLLocationCoordinate2D,
                                         route: [CLLocationCoordinate2D]) -> Bool {
-        guard let start = route.first, let end = route.last,
-              start.distance(to: end) >= 2 * endMeters else { return false }
-        return here.distance(to: end) < endMeters && here.distance(to: start) > endMeters
+        guard let start = route.first, let end = route.last else { return false }
+        // Auf einer kurzen Strecke ist 400 m die halbe Strecke: der Test am
+        // 02.10.2026 (Start und Ziel 480 m auseinander, 84 m vom Ziel
+        // losgegangen) fiel deshalb ganz aus der Prüfung. Die Grenze ist ein
+        // Drittel des Abstands, höchstens 400 m — näher am Ziel heißt dann
+        // immer auch: weit genug vom Start.
+        let radius = Swift.min(endMeters, start.distance(to: end) / 3)
+        guard radius >= minEndMeters else { return false }
+        return here.distance(to: end) < radius && here.distance(to: start) > radius
     }
 
     /// So nah am Ende heißt „dort losgefahren" — dieselbe Grenze wie beim
     /// Erraten der Pendelrichtung (`AppSettings.commuteDestination`).
     static let endMeters = 400.0
+    /// Darunter liegen Start und Ziel so dicht, dass die Ortung sie nicht
+    /// auseinanderhält (Start und Ziel unter 150 m).
+    static let minEndMeters = 50.0
     /// So genau muss die Ortung für diese Frage sein — die Hälfte der Grenze.
     static let directionAccuracy = 200.0
 

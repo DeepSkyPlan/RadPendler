@@ -573,6 +573,10 @@ final class ReplannerTests: XCTestCase {
         XCTAssertTrue(RideTracker.startsAtEnd(north(2_050), route: line))
         XCTAssertFalse(RideTracker.startsAtEnd(north(30), route: line))
         XCTAssertFalse(RideTracker.startsAtEnd(north(1_000), route: line))
+        // Kurze Strecke (Test 02.10.2026): 480 m, 84 m vom Ziel losgegangen.
+        let short = (0...6).map { north(Double($0) * 80) }
+        XCTAssertTrue(RideTracker.startsAtEnd(north(400), route: short))
+        XCTAssertFalse(RideTracker.startsAtEnd(north(240), route: short))
         // Eine Runde, die dort endet, wo sie beginnt, ist nicht verkehrt.
         let loop = line + line.reversed()
         XCTAssertFalse(RideTracker.startsAtEnd(north(10), route: loop))

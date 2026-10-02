@@ -6,7 +6,8 @@
   nahm nur die gespeicherte Systemortung (meist keine) und die Fahrt nur eine Ortung unter
   50 m (drinnen selten). Jetzt holt der Knopf notfalls eine frische Ortung (höchstens 3 s),
   und für „Start oder Ziel?“ reichen 200 m. Das Protokoll der Fahrt hält die Prüfung fest
-  (`richtung`: Abstand zu Start und Ziel).
+  (`richtung`: Abstand zu Start und Ziel). Die Grenze „am Ziel“ ist ein Drittel des Abstands
+  Start–Ziel, höchstens 400 m — kurze Strecken unter 800 m fielen bisher ganz aus der Prüfung.
 - **Doppeltipp auf Start/Ziel:** zählt für die ganze Box, egal auf welcher Zeile die beiden
   Tipps landen, mit 0,35 s Fenster. Bisher ging oft die Adresssuche auf.
 
