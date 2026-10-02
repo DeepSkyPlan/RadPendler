@@ -2377,6 +2377,17 @@
         }
       }
     },
+    "Keine Ortung bekommen.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't get a location fix."
+          }
+        }
+      }
+    },
     "Keine Radroute gefunden (Apple Karten und BRouter)": {
       "extractionState": "manual",
       "localizations": {

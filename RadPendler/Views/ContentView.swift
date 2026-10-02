@@ -32,6 +32,8 @@ struct ContentView: View {
     @State private var locator = LocationService()
     /// Warum der Knopf „Fahrt“ gerade nicht aufgezeichnet hat.
     @State private var startNote: String?
+    /// Der Knopf „Fahrt“ wartet gerade auf die Ortung; ein zweiter Tipp zählt nicht.
+    @State private var checkingStart = false
 
     /// Die vier Einträge im Menü. Aus einer Seite mit sechzehn Abschnitten
     /// sind vier geworden, jede mit einer Frage: wohin, wie, womit, und wie
@@ -319,22 +321,29 @@ struct ContentView: View {
     /// Start, gilt noch die Richtung vom letzten Mal — morgens geplant, abends
     /// zurück (Fahrt 01.10.2026). Dann wird gedreht und neu geplant statt
     /// aufgezeichnet; der nächste Tipp nimmt den richtigen Weg. Gefragt wird
-    /// nur die Ortung, die das System schon hat: der Knopf soll nicht warten.
-    /// Fehlt sie, dreht sich die Fahrt beim ersten Fix selbst um
+    /// die Ortung, die das System schon hat, sonst eine frische — höchstens
+    /// drei Sekunden lang (1.10.1 nahm nur die gespeicherte, und die fehlte
+    /// meist). Kommt keine, dreht sich die Fahrt beim ersten Fix selbst um
     /// (`RideTracker.startsAtEnd`).
     private func record(_ option: TripOption) {
-        if let here = locator.recent?.coordinate,
-           let from = settings.origin?.coordinate, let to = settings.destination?.coordinate,
-           RideTracker.startsAtEnd(here, route: [from, to]) {
-            settings.swapDirection()
-            model.applyDefaultWhen(settings: settings)
-            refresh()
-            UINotificationFeedbackGenerator().notificationOccurred(.warning)
-            withAnimation { startNote = L("Du stehst am Ziel — Richtung gedreht. Gleich noch einmal auf „Fahrt“ tippen.") }
-            return
+        guard !checkingStart else { return }
+        checkingStart = true
+        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        Task {
+            let here = await locator.current(within: 3)?.coordinate
+            checkingStart = false
+            if let here, let from = settings.origin?.coordinate, let to = settings.destination?.coordinate,
+               RideTracker.startsAtEnd(here, route: [from, to]) {
+                settings.swapDirection()
+                model.applyDefaultWhen(settings: settings)
+                refresh()
+                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                withAnimation { startNote = L("Du stehst am Ziel — Richtung gedreht. Gleich noch einmal auf „Fahrt“ tippen.") }
+                return
+            }
+            startNote = nil
+            RideSession.start(option, options: model.options, settings: settings, tracker: tracker)
         }
-        startNote = nil
-        RideSession.start(option, options: model.options, settings: settings, tracker: tracker)
     }
 
     /// Double tap on the address box: the commute, without typing. Where one
