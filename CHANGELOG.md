@@ -1,5 +1,15 @@
 # Changelog
 
+## Unveröffentlicht — Umkehr, die greift; Doppeltipp
+
+- **Am Ziel losgefahren, zweiter Anlauf:** 1.10.1 drehte im Test nicht um. Der Knopf „Fahrt“
+  nahm nur die gespeicherte Systemortung (meist keine) und die Fahrt nur eine Ortung unter
+  50 m (drinnen selten). Jetzt holt der Knopf notfalls eine frische Ortung (höchstens 3 s),
+  und für „Start oder Ziel?“ reichen 200 m. Das Protokoll der Fahrt hält die Prüfung fest
+  (`richtung`: Abstand zu Start und Ziel).
+- **Doppeltipp auf Start/Ziel:** zählt für die ganze Box, egal auf welcher Zeile die beiden
+  Tipps landen, mit 0,35 s Fenster. Bisher ging oft die Adresssuche auf.
+
 ## 1.10.1 (Build 49) — Kartenschilder, Fahrt andersherum
 
 - Die gewählte Rad- oder Autolinie trägt **ein** Schild „Zeit · Name · Länge“ statt zweier,

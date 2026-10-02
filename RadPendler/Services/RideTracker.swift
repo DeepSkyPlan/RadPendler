@@ -564,11 +564,18 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
             return
         }
         // Vor dem ersten Fix, den das Messwerk annimmt: danach hat es die
-        // Beläge schon in der falschen Richtung zugeordnet.
+        // Beläge schon in der falschen Richtung zugeordnet. Für die Frage
+        // „Start oder Ziel?“ bei 400 m reicht eine gröbere Ortung als fürs
+        // Messen — drinnen, vor dem Losfahren, kommt oft nichts unter 50 m
+        // (1.10.1 drehte deshalb im Test nie um).
         if !directionChecked,
-           let first = fixes.first(where: { $0.accuracy >= 0 && $0.accuracy <= RideMeter.maxAccuracy }) {
+           let first = fixes.first(where: { $0.accuracy >= 0 && $0.accuracy <= Self.directionAccuracy }) {
             directionChecked = true
-            if Self.startsAtEnd(first.coordinate, route: plannedRoute) { turnAround(at: first.coordinate) }
+            let here = first.coordinate
+            if let a = plannedRoute.first, let b = plannedRoute.last {
+                log("richtung", "\(Int(here.distance(to: a))) m vom Start, \(Int(here.distance(to: b))) m vom Ziel, ±\(Int(first.accuracy)) m", at: here)
+            }
+            if Self.startsAtEnd(here, route: plannedRoute) { turnAround(at: here) }
         }
         for fix in fixes { meter.add(fix) }
         if let poor = fixes.last(where: { $0.accuracy < 0 || $0.accuracy > RideMeter.maxAccuracy }),
@@ -662,6 +669,8 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// So nah am Ende heißt „dort losgefahren" — dieselbe Grenze wie beim
     /// Erraten der Pendelrichtung (`AppSettings.commuteDestination`).
     static let endMeters = 400.0
+    /// So genau muss die Ortung für diese Frage sein — die Hälfte der Grenze.
+    static let directionAccuracy = 200.0
 
     /// Dreht die Fahrt um: Anlass, Linie, Abbiegungen, Ampeln, Beläge — und
     /// plant den Weg zum bisherigen Start neu, auch wenn die Neuplanung

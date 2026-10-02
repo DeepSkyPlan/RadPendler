@@ -38,6 +38,21 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         return l
     }
 
+    /// Die gespeicherte Ortung, sonst eine frische — aber nicht länger als
+    /// `seconds` darauf gewartet. Fragt nicht nach der Erlaubnis: der Knopf,
+    /// der das braucht, soll keinen Dialog auslösen.
+    func current(within seconds: TimeInterval) async -> CLLocation? {
+        if let recent { return recent }
+        guard permission == .allowed else { return nil }
+        let timer = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(seconds))
+            guard !Task.isCancelled else { return }
+            self?.resume(.failure(LocationError.timedOut))
+        }
+        defer { timer.cancel() }
+        return try? await current()
+    }
+
     /// One fix. Asks for permission the first time; throws if it is refused, so
     /// the caller can say why nothing happened instead of spinning.
     func current() async throws -> CLLocation {
@@ -103,9 +118,12 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     }
 
     enum LocationError: LocalizedError {
-        case refused
+        case refused, timedOut
         var errorDescription: String? {
-            L("Ortung ist für RadPendler nicht erlaubt — in den iOS-Einstellungen unter Datenschutz freigeben.")
+            switch self {
+            case .refused: L("Ortung ist für RadPendler nicht erlaubt — in den iOS-Einstellungen unter Datenschutz freigeben.")
+            case .timedOut: L("Keine Ortung bekommen.")
+            }
         }
     }
 }

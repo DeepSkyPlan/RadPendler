@@ -14,7 +14,7 @@ struct RouteHeader: View {
     /// Whether this address is the user's home or work, for the little mark.
     var role: (Place?) -> PlaceRole?
     var onEdit: (ContentView.PlaceField) -> Void
-    /// Double tap anywhere on the box: the commute, without typing.
+    /// Double tap anywhere on the box: the commute, without typing (`tap`).
     var onQuickCommute: () -> Void
     var onSwap: () -> Void
     var onWhenChange: () -> Void
@@ -23,6 +23,9 @@ struct RouteHeader: View {
     var onWaypoints: () -> Void = {}
 
     @State private var swapTurns = 0.0
+    /// Der erste Tipp, der noch auf seinen zweiten wartet — für die **ganze**
+    /// Box, nicht je Zeile.
+    @State private var pendingTap: Task<Void, Never>?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -57,7 +60,7 @@ struct RouteHeader: View {
         // The empty parts of the box answer to the double tap as well, so it
         // does not matter where exactly it lands.
         .contentShape(Rectangle())
-        .onTapGesture(count: 2, perform: onQuickCommute)
+        .onTapGesture { tap(nil) }
         .popoverTip(QuickCommuteTip(), arrowEdge: .top)
         .padding(.horizontal, Theme.gutter)
     }
@@ -92,12 +95,38 @@ struct RouteHeader: View {
         .padding(.vertical, 4)
     }
 
+    /// Ein Tipp öffnet die Adresssuche, zwei kurz hintereinander setzen die
+    /// Pendelstrecke — **egal wo in der Box** die beiden landen.
+    ///
+    /// Bis 1.10.1 hatte jede Zeile ihren eigenen Doppeltipp
+    /// (`TapGesture(count: 2).exclusively(before: TapGesture())`) und die Box
+    /// einen dritten. Landete der zweite Tipp ein paar Punkte daneben — auf
+    /// der anderen Zeile oder dazwischen —, zählte der erste allein, und es
+    /// ging die Suche auf statt der Pendelstrecke. Jetzt zählt die Box selbst
+    /// mit, mit einem Fenster, das hier steht und nicht im System.
+    private func tap(_ field: ContentView.PlaceField?) {
+        if let pending = pendingTap {
+            pending.cancel()
+            pendingTap = nil
+            onQuickCommute()
+            return
+        }
+        pendingTap = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(Self.doubleTapWindow))
+            guard !Task.isCancelled else { return }
+            pendingTap = nil
+            if let field { onEdit(field) }
+        }
+    }
+
+    /// So lange wartet ein Tipp auf seinen zweiten. Etwas länger als das
+    /// System (rund 0,3 s): wer mit dem Daumen tippt, ist langsamer.
+    static let doubleTapWindow = 0.35
+
     /// Street big, postal code and town small beside it — in Berlin a street
     /// name alone is not an address.
     /// Not a `Button`: a button would swallow the first of the two taps, and
     /// the shortcut has to work on the address rows as well as beside them.
-    /// `exclusively(before:)` gives the double tap the first refusal and lets
-    /// the single tap through when it does not come.
     private func field(_ place: Place?, placeholder: String, field: ContentView.PlaceField) -> some View {
         Group {
             HStack(alignment: .firstTextBaseline, spacing: 5) {
@@ -117,8 +146,7 @@ struct RouteHeader: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
         }
-        .gesture(TapGesture(count: 2).onEnded(onQuickCommute)
-            .exclusively(before: TapGesture().onEnded { onEdit(field) }))
+        .onTapGesture { tap(field) }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel((field == .origin ? L("Start: ") : L("Ziel: ")) + (place?.name ?? L("nicht gesetzt")))
