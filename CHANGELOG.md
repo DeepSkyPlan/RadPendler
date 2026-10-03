@@ -1,7 +1,12 @@
 # Changelog
 
-## Unveröffentlicht — Umkehr, die greift; Doppeltipp
+## Unveröffentlicht — Absturz beim Start, Umkehr, die greift; Doppeltipp
 
+- **Absturz beim Start behoben** (ab 03.10., jede Version, auch nach Neuinstallation): gelernte
+  Ampeln wurden bei jedem iCloud-Abgleich mit dem eigenen Stand **addiert**, die Zählungen
+  verdoppelten sich bis zum Überlauf. Jetzt gewinnt beim Zusammenführen der größere Stand,
+  und verdoppelte Zählungen werden beim Laden zurückgerechnet (gleicher Ampelschnitt).
+- `tools/testflight.sh` behält das Archiv samt dSYMs unter `~/Library/Developer/Xcode/Archives`.
 - **Am Ziel losgefahren, zweiter Anlauf:** 1.10.1 drehte im Test nicht um. Der Knopf „Fahrt“
   nahm nur die gespeicherte Systemortung (meist keine) und die Fahrt nur eine Ortung unter
   50 m (drinnen selten). Jetzt holt der Knopf notfalls eine frische Ortung (höchstens 3 s),

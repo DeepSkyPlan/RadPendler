@@ -65,16 +65,40 @@ final class LearnedSignalTests: XCTestCase {
         XCTAssertEqual(old.expectedWait(default: 20), (80 + 60) / 7.0, accuracy: 0.01)
     }
 
-    func testMergingTwoDevicesAddsTheirPasses() {
+    func testMergingKeepsTheLargerCountInsteadOfAddingThem() {
         let mine = LearnedSignal(lat: base.latitude, lon: base.longitude, stops: 2,
                                  totalWait: 40, lastSeen: noon, passes: 8)
         let theirs = LearnedSignal(lat: east(20).latitude, lon: east(20).longitude, stops: 3,
                                    totalWait: 60, lastSeen: noon, passes: 12)
         let merged = LearnedSignal.merging([mine], [theirs])
         XCTAssertEqual(merged.count, 1)
-        XCTAssertEqual(merged[0].stops, 5)
-        XCTAssertEqual(merged[0].passCount, 20)
-        XCTAssertEqual(merged[0].totalWait, 100)
+        XCTAssertEqual(merged[0].stops, 3)
+        XCTAssertEqual(merged[0].passCount, 12)
+        XCTAssertEqual(merged[0].totalWait, 60)
+    }
+
+    /// Absturz 03.10.2026: jeder Abgleich mit iCloud verdoppelte die
+    /// Zählungen, bis `Int` überlief. Zusammenführen mit dem eigenen Stand
+    /// darf nichts ändern — auch nicht hundertmal hintereinander.
+    func testMergingWithItsOwnEchoChangesNothing() {
+        var list = [LearnedSignal(lat: base.latitude, lon: base.longitude, stops: 4,
+                                  totalWait: 80, lastSeen: noon, passes: 9)]
+        let start = list
+        for _ in 0..<100 { list = LearnedSignal.merging(list, list) }
+        XCTAssertEqual(list, start)
+    }
+
+    /// Was die Verdopplung schon angerichtet hat, heilt beim Laden: kleiner,
+    /// mit demselben Schnitt.
+    func testDoubledCountsAreHealedWithTheirAverageKept() {
+        let huge = 1 << 61
+        let bad = LearnedSignal(lat: base.latitude, lon: base.longitude, stops: huge / 2,
+                                totalWait: Double(huge / 2) * 20, lastSeen: noon, passes: huge)
+        let healed = LearnedSignal.healed([bad])[0]
+        XCTAssertLessThanOrEqual(healed.passCount, LearnedSignal.saneCount)
+        XCTAssertEqual(healed.averageWait, 20, accuracy: 0.01)
+        // Und zwei solche zusammenführen läuft nicht mehr über.
+        XCTAssertEqual(LearnedSignal.merging([bad], [bad]).count, 1)
     }
 
     // MARK: Was eine Route an Ampelzeit kostet

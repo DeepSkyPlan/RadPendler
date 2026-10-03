@@ -133,8 +133,8 @@ final class GuideTests: XCTestCase {
                                              at: east(15), waited: 20)
         let merged = LearnedSignal.merging(mine, theirs)
         XCTAssertEqual(merged.count, 1)
-        XCTAssertEqual(merged[0].stops, 3, "einmal hier, zweimal dort")
-        XCTAssertEqual(merged[0].totalWait, 90)
+        XCTAssertEqual(merged[0].stops, 2, "der größere Stand, nicht die Summe")
+        XCTAssertEqual(merged[0].totalWait, 60)
         // Nichts geht verloren, was nur eine Seite kannte.
         let far = LearnedSignal.recording([], at: east(500), waited: 25)
         XCTAssertEqual(LearnedSignal.merging(mine, far).count, 2)

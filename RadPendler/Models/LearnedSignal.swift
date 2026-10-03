@@ -120,23 +120,53 @@ struct LearnedSignal: Codable, Equatable, Identifiable {
 
     /// Both devices' lists into one, the way `placeHistory` merges: nothing
     /// either side knew may fall out, and the same junction counts once.
+    ///
+    /// **Der größere Stand gewinnt, die Zählungen werden nicht addiert.** Bis
+    /// 1.10.1 wurden sie addiert — und zusammengeführt wird bei jedem Abgleich
+    /// mit iCloud, auch mit dem eigenen Stand, der gerade von dort
+    /// zurückkommt. Jeder Abgleich verdoppelte also jede Kreuzung, bis nach
+    /// rund sechzig Abgleichen `Int` überlief und die App beim Start abstürzte
+    /// — auf jedem Gerät, auch nach dem Neuinstallieren, weil iCloud den Stand
+    /// zurückbrachte (03.10.2026). Zusammenführen muss sich wiederholen lassen,
+    /// ohne etwas zu ändern. Der Preis: was zwei Geräte an derselben Kreuzung
+    /// getrennt gemessen haben, zählt nur von dem, das öfter vorbeikam.
     static func merging(_ mine: [LearnedSignal], _ theirs: [LearnedSignal]) -> [LearnedSignal] {
-        var out = mine
-        for s in theirs {
+        var out = healed(mine)
+        for s in healed(theirs) {
             if let i = nearest(in: out, to: s.coordinate) {
-                // The same junction, seen on both devices. Whoever saw it more
-                // often has the better position; the counts add up.
-                if s.stops > out[i].stops { out[i].lat = s.lat; out[i].lon = s.lon }
-                out[i].passes = out[i].passCount + s.passCount
-                out[i].stops += s.stops
-                out[i].totalWait += s.totalWait
-                out[i].lastSeen = max(out[i].lastSeen, s.lastSeen)
+                let seen = max(out[i].lastSeen, s.lastSeen)
+                if (s.passCount, s.stops, s.totalWait) > (out[i].passCount, out[i].stops, out[i].totalWait) { out[i] = s }
+                out[i].lastSeen = seen
             } else {
                 out.append(s)
             }
         }
         return capped(out)
     }
+
+    /// Was die Verdopplung bis 1.10.1 angerichtet hat, wieder auf ein Maß, das
+    /// eine Kreuzung in Jahren erreichen kann. Halbiert wird alles zugleich —
+    /// Halte, Vorbeifahrten, Wartezeit —, so bleibt der Schnitt, den die
+    /// Verdopplung ja auch nicht verändert hat. Unsinnige Wartezeiten (negativ,
+    /// unendlich) fallen auf null.
+    static func healed(_ list: [LearnedSignal]) -> [LearnedSignal] {
+        list.map { s in
+            var s = s
+            if !s.totalWait.isFinite || s.totalWait < 0 { s.totalWait = 0 }
+            s.stops = Swift.max(0, s.stops)
+            if let p = s.passes, p < 0 { s.passes = 0 }
+            while s.passCount > saneCount {
+                s.stops /= 2
+                s.passes = s.passes.map { $0 / 2 }
+                s.totalWait /= 2
+            }
+            return s
+        }
+    }
+
+    /// Zwei Pendelfahrten am Tag, zehn Jahre lang — mehr kommt an einer
+    /// Kreuzung nicht zusammen.
+    static let saneCount = 10_000
 
     /// Over the limit the least used go first, the longest unseen among them.
     /// Measured by passes, not by stops: the junction one rolls through every
