@@ -57,7 +57,7 @@ actor RiddenPaths {
 
     private func loaded() -> [Line] {
         if let lines { return lines }
-        let read = (try? Data(contentsOf: file)).flatMap { try? JSONDecoder().decode([Line].self, from: $0) } ?? []
+        let read = (try? Data(contentsOf: file)).flatMap { Stored.list(Line.self, from: $0) } ?? []
         lines = read
         return read
     }
@@ -65,7 +65,7 @@ actor RiddenPaths {
     private func save(_ list: [Line]) {
         lines = list
         try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
-        if let data = try? JSONEncoder().encode(list) { try? data.write(to: file, options: .atomic) }
+        if let data = Stored.encode(list) { try? data.write(to: file, options: .atomic) }
     }
 
     /// Eine gefahrene Radfahrt kommt dazu. Andere Verkehrsmittel und kurze

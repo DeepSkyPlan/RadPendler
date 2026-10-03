@@ -44,6 +44,28 @@ private struct Page<Content: View>: View {
 /// Mal gelesen hatte. Jetzt stehen zwei Zeilen da und der Rest auf Tippen.
 /// Kurze Hinweise bleiben, wie sie sind — ein „mehr" unter einem Halbsatz
 /// wäre albern.
+/// Die zwei Fälle, in denen iCloud nicht tut, was der Text darunter sagt.
+struct CloudNotice: View {
+    @State private var paused = StartGuard.cloudPaused()
+
+    var body: some View {
+        if paused {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(L("Der iCloud-Abgleich ist angehalten: die App ist zweimal hintereinander beim Start abgestürzt. Deine Daten auf diesem Gerät sind unberührt. Mit dem nächsten Update läuft er von selbst wieder an."))
+                Button(L("Abgleich jetzt wieder einschalten")) {
+                    StartGuard.resume()
+                    CloudStore.shared.start()
+                    paused = false
+                }
+            }
+            .padding(.bottom, 6)
+        } else if CloudStore.shared.ahead {
+            Text(L("Auf einem anderen Gerät läuft eine neuere Version von RadPendler. Dieses Gerät liest aus iCloud, schreibt aber nichts mehr dorthin, bis es aktualisiert ist."))
+                .padding(.bottom, 6)
+        }
+    }
+}
+
 struct Hint: View {
     var text: String
     @State private var open = false
@@ -99,6 +121,7 @@ struct AddressSettingsView: View {
                 } header: {
                     Text(L("Adressen"))
                 } footer: {
+                    CloudNotice()
                     Hint(CloudStore.shared.available
                          ? L("Die App wird ohne Adressen ausgeliefert. Start, Ziel, die benutzten Adressen und alle Einstellungen gleichen sich über deine iCloud mit deinen anderen Geräten ab. Zum Planen gehen die Koordinaten von Start und Ziel an die Dienste, die die Strecke rechnen (VBB, Transitous, BRouter, Apple Karten, Open-Meteo) — ohne Namen und ohne Adresstext. Sonst verlässt nichts davon deine Geräte und deine iCloud.")
                          : L("Die App wird ohne Adressen ausgeliefert. Start und Ziel bleiben nur auf diesem Gerät gespeichert. Mit einem angemeldeten iCloud-Konto gleichen sie sich mit deinen anderen Geräten ab."))

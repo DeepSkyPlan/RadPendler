@@ -42,7 +42,7 @@ final class AppSettings {
     /// dem Weg zum Bäcker nichts verloren (Nutzer, 01.10.2026). Bis 1.9 galten
     /// sie für jede Strecke.
     var routeWaypoints: [RouteWaypoints] = [] {
-        didSet { defaults.set(try? JSONEncoder().encode(routeWaypoints), forKey: "routeWaypoints") }
+        didSet { defaults.set(Stored.encode(routeWaypoints), forKey: "routeWaypoints") }
     }
 
     /// Places the current route has to touch, e.g. "S Musterhausen" — routes
@@ -81,13 +81,13 @@ final class AppSettings {
     /// Addresses that have been used before, with how often — the list the
     /// search offers before anything is typed. Device only, like the addresses.
     var placeHistory: [PlaceUse] = [] {
-        didSet { defaults.set(try? JSONEncoder().encode(placeHistory), forKey: "placeHistory") }
+        didSet { defaults.set(Stored.encode(placeHistory), forKey: "placeHistory") }
     }
 
     /// Was gelöscht wurde — siehe `Tombstones`. Ohne diese Liste kommt jede
     /// gelöschte Adresse, Fahrt und Ampel vom zweiten Gerät zurück.
     var tombstones = Tombstones() {
-        didSet { defaults.set(try? JSONEncoder().encode(tombstones), forKey: "tombstones") }
+        didSet { defaults.set(Stored.encode(tombstones), forKey: "tombstones") }
     }
 
     /// Which mode wins when two trips arrive at nearly the same time, and the
@@ -111,7 +111,7 @@ final class AppSettings {
     /// taking the bike on them. Open entries are the reason a trip can carry
     /// the warning "Mitnahme ungeklärt".
     var bikeLines: [BikeLine] = [] {
-        didSet { defaults.set(try? JSONEncoder().encode(bikeLines), forKey: "bikeLines") }
+        didSet { defaults.set(Stored.encode(bikeLines), forKey: "bikeLines") }
     }
 
     /// Average wait per traffic light on the bike (half of them are green).
@@ -126,7 +126,7 @@ final class AppSettings {
     /// for the bike times, where such a junction costs what it was measured to
     /// cost instead of `signalWaitSeconds`.
     var learnedSignals: [LearnedSignal] = [] {
-        didSet { defaults.set(try? JSONEncoder().encode(learnedSignals), forKey: "learnedSignals") }
+        didSet { defaults.set(Stored.encode(learnedSignals), forKey: "learnedSignals") }
     }
 
     /// Ab wie vielen Metern neben der geplanten Linie der Weg zum Ziel neu
@@ -334,10 +334,10 @@ final class AppSettings {
         assign(\.destination, Self.place("destination", defaults) ?? destination)
         assign(\.workPlace, Self.place("workPlace", defaults) ?? workPlace)
         assign(\.homePlace, Self.place("homePlace", defaults) ?? homePlace)
-        assign(\.prepMinutes, defaults.object(forKey: "prepMinutes") as? Int ?? prepMinutes)
+        assign(\.prepMinutes, Self.int("prepMinutes", defaults) ?? prepMinutes)
         // Der „Puffer vor der Abfahrt" tat auf das Losgehen dasselbe wie die
         // Rüstzeit. Wer einen hatte, findet ihn einmal in der Rüstzeit wieder.
-        if let buffer = defaults.object(forKey: "departureBufferMinutes") as? Int, buffer > 0 {
+        if let buffer = Self.int("departureBufferMinutes", defaults), buffer > 0 {
             prepMinutes += buffer
             // Gleich auch in iCloud: `CloudStore.start` zieht sonst gleich danach
             // die alte Rüstzeit von dort herein, und der Puffer ist weg. Nur wenn
@@ -352,35 +352,36 @@ final class AppSettings {
             defaults.removeObject(forKey: key)
         }
         // 0.1.x stored an all-in average under "bikeSpeedKmh" — deliberately not read.
-        assign(\.calibratedBikeSpeedKmh, defaults.object(forKey: "bikeMovingSpeedKmh") as? Double ?? calibratedBikeSpeedKmh)
+        assign(\.calibratedBikeSpeedKmh, Self.double("bikeMovingSpeedKmh", defaults) ?? calibratedBikeSpeedKmh)
         assign(\.bikeStationBufferMinutes,
-               defaults.object(forKey: "bikeStationBufferMinutes") as? Int ?? bikeStationBufferMinutes)
-        assign(\.maxBikeToStationKm, defaults.object(forKey: "maxBikeToStationKm") as? Double ?? maxBikeToStationKm)
-        assign(\.parkingMinutes, defaults.object(forKey: "parkingMinutes") as? Int ?? parkingMinutes)
+               Self.int("bikeStationBufferMinutes", defaults) ?? bikeStationBufferMinutes)
+        assign(\.maxBikeToStationKm, Self.double("maxBikeToStationKm", defaults) ?? maxBikeToStationKm)
+        assign(\.parkingMinutes, Self.int("parkingMinutes", defaults) ?? parkingMinutes)
         assign(\.transferPenaltyMinutes,
-               defaults.object(forKey: "transferPenaltyMinutes") as? Int ?? transferPenaltyMinutes)
+               Self.int("transferPenaltyMinutes", defaults) ?? transferPenaltyMinutes)
         assign(\.calibratedSignalWaitSeconds,
-               defaults.object(forKey: "signalWaitSeconds") as? Int ?? calibratedSignalWaitSeconds)
+               Self.int("signalWaitSeconds", defaults) ?? calibratedSignalWaitSeconds)
         assign(\.departurePresets, (defaults.array(forKey: "departurePresets2") as? [String])?
             .compactMap(DeparturePreset.init(stored:)) ?? departurePresets)
         assign(\.routeWaypoints, defaults.data(forKey: "routeWaypoints")
-            .flatMap { try? JSONDecoder().decode([RouteWaypoints].self, from: $0) } ?? routeWaypoints)
+            .flatMap { Stored.list(RouteWaypoints.self, from: $0) } ?? routeWaypoints)
         // Die alten, für alle Strecken geltenden Fixpunkte gehören ab 1.9.1
         // der Strecke, die gerade eingestellt ist — die, für die sie
         // eingetragen wurden.
-        if let old = defaults.data(forKey: "waypoints").flatMap({ try? JSONDecoder().decode([Place].self, from: $0) }),
+        if let old = defaults.data(forKey: "waypoints").flatMap({ Stored.list(Place.self, from: $0) }),
            origin != nil, destination != nil {
             if !old.isEmpty, waypoints.isEmpty { waypoints = old }
             defaults.removeObject(forKey: "waypoints")
         }
-        assign(\.arrivalBufferMinutes, defaults.object(forKey: "arrivalBufferMinutes") as? Int ?? arrivalBufferMinutes)
-        assign(\.workArrivalMinutes, defaults.object(forKey: "workArrivalMinutes") as? Int ?? workArrivalMinutes)
-        assign(\.alertMinutes, defaults.array(forKey: "alertMinutes") as? [Int] ?? alertMinutes)
+        assign(\.arrivalBufferMinutes, Self.int("arrivalBufferMinutes", defaults) ?? arrivalBufferMinutes)
+        assign(\.workArrivalMinutes, Self.int("workArrivalMinutes", defaults) ?? workArrivalMinutes)
+        assign(\.alertMinutes, (defaults.array(forKey: "alertMinutes") as? [Int])?
+            .map { Swift.min(Swift.max($0, 0), Self.numberLimit) } ?? alertMinutes)
         assign(\.alertsOn, defaults.object(forKey: "alertsOn") as? Bool ?? alertsOn)
         assign(\.placeHistory, defaults.data(forKey: "placeHistory")
-            .flatMap { try? JSONDecoder().decode([PlaceUse].self, from: $0) } ?? placeHistory)
+            .flatMap { Stored.list(PlaceUse.self, from: $0) }?.sanitized ?? placeHistory)
         assign(\.bikeLines, defaults.data(forKey: "bikeLines")
-            .flatMap { try? JSONDecoder().decode([BikeLine].self, from: $0) } ?? bikeLines)
+            .flatMap { Stored.list(BikeLine.self, from: $0) } ?? bikeLines)
         assign(\.modeOrder, storedOrder(defaults.array(forKey: "modeOrder") as? [String],
                                         fallback: TravelMode.defaultOrder))
         assign(\.bikeVariantOrder, storedOrder(defaults.array(forKey: "bikeVariantOrder") as? [String],
@@ -388,22 +389,22 @@ final class AppSettings {
         assign(\.rainSwitchLevel, (defaults.object(forKey: "rainSwitchLevel") as? Int)
             .flatMap(RainLevel.init(rawValue:)) ?? rainSwitchLevel)
         assign(\.learnedSignals, defaults.data(forKey: "learnedSignals")
-            .flatMap { try? JSONDecoder().decode([LearnedSignal].self, from: $0) }
+            .flatMap { Stored.list(LearnedSignal.self, from: $0) }
             .map(LearnedSignal.healed) ?? learnedSignals)
         assign(\.orientation, (defaults.string(forKey: "orientationLock"))
             .flatMap(OrientationLock.init(rawValue:)) ?? orientation)
         assign(\.replanOffRouteMeters,
-               defaults.object(forKey: "replanOffRouteMeters") as? Double ?? replanOffRouteMeters)
-        assign(\.optionsPerMode, defaults.object(forKey: "optionsPerMode") as? Int ?? optionsPerMode)
+               Self.double("replanOffRouteMeters", defaults) ?? replanOffRouteMeters)
+        assign(\.optionsPerMode, Self.int("optionsPerMode", defaults) ?? optionsPerMode)
         assign(\.rideOrientation, (defaults.string(forKey: "rideOrientationLock"))
             .flatMap(OrientationLock.init(rawValue:)) ?? rideOrientation)
-        assign(\.autoStopMinutes, defaults.object(forKey: "autoStopMinutes") as? Double ?? autoStopMinutes)
+        assign(\.autoStopMinutes, Self.double("autoStopMinutes", defaults) ?? autoStopMinutes)
         assign(\.rideSounds, defaults.object(forKey: "rideSounds") as? Bool ?? rideSounds)
         assign(\.avoidCobbles, defaults.object(forKey: "avoidCobbles") as? Bool ?? avoidCobbles)
-        assign(\.autoPauseMinutes, defaults.object(forKey: "autoPauseMinutes") as? Double ?? autoPauseMinutes)
+        assign(\.autoPauseMinutes, Self.double("autoPauseMinutes", defaults) ?? autoPauseMinutes)
         assign(\.tombstones, defaults.data(forKey: "tombstones")
             .flatMap { try? JSONDecoder().decode(Tombstones.self, from: $0) } ?? tombstones)
-        assign(\.rideDimSeconds, defaults.object(forKey: "rideDimSeconds") as? Double ?? rideDimSeconds)
+        assign(\.rideDimSeconds, Self.double("rideDimSeconds", defaults) ?? rideDimSeconds)
         assign(\.language, defaults.string(forKey: "language").flatMap(AppLanguage.init(rawValue:)) ?? language)
         // `assign` setzt nur, was sich unterscheidet — beim Start auf
         // „Deutsch" feuert das didSet also nicht, und `AppLanguage.current`
@@ -412,19 +413,19 @@ final class AppSettings {
         assign(\.motorcycle, defaults.object(forKey: "motorcycle") as? Bool ?? motorcycle)
         // Aus demselben Grund wie die Sprache.
         Vehicle.motorcycle = motorcycle
-        assign(\.measuredOverallKmh, defaults.object(forKey: "measuredOverallKmh") as? Double)
-        assign(\.measuredMovingKmh, defaults.object(forKey: "measuredMovingKmh") as? Double)
-        assign(\.measuredRides, defaults.object(forKey: "measuredRides") as? Int ?? measuredRides)
-        assign(\.calibratedCarOverallKmh, defaults.object(forKey: "carOverallKmh") as? Double ?? calibratedCarOverallKmh)
-        assign(\.measuredCarKmh, defaults.object(forKey: "measuredCarKmh") as? Double)
-        assign(\.measuredCarRides, defaults.object(forKey: "measuredCarRides") as? Int ?? measuredCarRides)
-        assign(\.calibratedBikeOverallKmh, defaults.object(forKey: "bikeOverallKmh") as? Double ?? calibratedBikeOverallKmh)
+        assign(\.measuredOverallKmh, Self.double("measuredOverallKmh", defaults))
+        assign(\.measuredMovingKmh, Self.double("measuredMovingKmh", defaults))
+        assign(\.measuredRides, Self.int("measuredRides", defaults) ?? measuredRides)
+        assign(\.calibratedCarOverallKmh, Self.double("carOverallKmh", defaults) ?? calibratedCarOverallKmh)
+        assign(\.measuredCarKmh, Self.double("measuredCarKmh", defaults))
+        assign(\.measuredCarRides, Self.int("measuredCarRides", defaults) ?? measuredCarRides)
+        assign(\.calibratedBikeOverallKmh, Self.double("bikeOverallKmh", defaults) ?? calibratedBikeOverallKmh)
         // Fehlt der Schlüssel, ist nichts von Hand gestellt — auch nach dem
         // Umstieg von 1.9.1: was dort stand, gilt als gemessen.
-        assign(\.bikeSpeedOverride, defaults.object(forKey: "bikeSpeedOverride") as? Double)
-        assign(\.signalWaitOverride, defaults.object(forKey: "signalWaitOverride") as? Int)
-        assign(\.bikeOverallOverride, defaults.object(forKey: "bikeOverallOverride") as? Double)
-        assign(\.carOverallOverride, defaults.object(forKey: "carOverallOverride") as? Double)
+        assign(\.bikeSpeedOverride, Self.double("bikeSpeedOverride", defaults))
+        assign(\.signalWaitOverride, Self.int("signalWaitOverride", defaults))
+        assign(\.bikeOverallOverride, Self.double("bikeOverallOverride", defaults))
+        assign(\.carOverallOverride, Self.double("carOverallOverride", defaults))
         loadedOnce = true
     }
 
@@ -537,7 +538,20 @@ final class AppSettings {
 
     private func save(_ place: Place?, _ key: String) {
         guard let place else { return defaults.removeObject(forKey: key) }
-        defaults.set(try? JSONEncoder().encode(place), forKey: key)
+        defaults.set(Stored.encode(place), forKey: key)
+    }
+
+    /// Eine gespeicherte Zahl, begrenzt — siehe `Stored`. Keine Einstellung
+    /// dieser App reicht an die Grenze heran; was darüber liegt, hat ein Fehler
+    /// geschrieben, und mit Minuten × 60 wäre ein solcher Wert ein Absturz.
+    static let numberLimit = 1_000_000
+    private static func int(_ key: String, _ defaults: UserDefaults) -> Int? {
+        (defaults.object(forKey: key) as? Int).map { Swift.min(Swift.max($0, -numberLimit), numberLimit) }
+    }
+    private static func double(_ key: String, _ defaults: UserDefaults) -> Double? {
+        (defaults.object(forKey: key) as? Double).flatMap {
+            $0.isFinite ? Swift.min(Swift.max($0, -Double(numberLimit)), Double(numberLimit)) : nil
+        }
     }
 
     private static func place(_ key: String, _ defaults: UserDefaults) -> Place? {

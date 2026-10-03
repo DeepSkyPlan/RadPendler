@@ -113,7 +113,8 @@ struct Ride: Codable, Identifiable, Equatable {
     var plannedSignals: Int?
     /// Gewollte Pausen: was zwischen „Pause" und „Weiter" lag. Zählt weder
     /// zur Fahrzeit noch in den Schnitt — sonst wäre jede Einkehr eine
-    /// langsame Fahrt. Ältere Dateien kennen das Feld nicht; dort ist es 0.
+    /// langsame Fahrt. Ältere Dateien kennen das Feld nicht; dort ist es 0 —
+    /// dafür sorgt `init(from:)` unten, der Vorgabewert allein täte es nicht.
     var pausedSeconds: TimeInterval = 0
     /// Ob das Stehen **vor** einer Pause schon in `pausedSeconds` steckt. Bis
     /// 1.5 begann die Pause erst beim Tippen, die Minuten Stillstand davor
@@ -157,6 +158,107 @@ struct Ride: Codable, Identifiable, Equatable {
     var plannedAverageKmh: Double? {
         guard let s = plannedSeconds, s > 0, let m = plannedMeters, m > 0 else { return nil }
         return m / s * 3.6
+    }
+}
+
+// MARK: Lesen, was irgendeine Fassung geschrieben hat
+
+extension Ride {
+    /// Pflicht ist, was seit der ersten Fahrtenliste (23.09.2026) in jeder
+    /// Fahrt steht. Alles, was später dazukam, darf fehlen oder unlesbar sein
+    /// — siehe `Stored`. **Ein neues Feld gehört hier in die untere Hälfte.**
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        func later<T: Decodable>(_ key: CodingKeys) -> T? { (try? c.decodeIfPresent(T.self, forKey: key)) ?? nil }
+        id = try c.decode(UUID.self, forKey: .id)
+        started = try c.decode(Date.self, forKey: .started)
+        ended = try c.decode(Date.self, forKey: .ended)
+        origin = try c.decode(String.self, forKey: .origin)
+        destination = try c.decode(String.self, forKey: .destination)
+        mode = try c.decode(String.self, forKey: .mode)
+        meters = try c.decode(Double.self, forKey: .meters)
+        movingSeconds = try c.decode(Double.self, forKey: .movingSeconds)
+        maxKmh = try c.decode(Double.self, forKey: .maxKmh)
+        signalStops = try c.decode(Int.self, forKey: .signalStops)
+        otherStops = try c.decode(Int.self, forKey: .otherStops)
+        signalWaitTotal = try c.decode(Double.self, forKey: .signalWaitTotal)
+
+        plannedSeconds = later(.plannedSeconds)
+        plannedMeters = later(.plannedMeters)
+        plannedSignals = later(.plannedSignals)
+        pausedSeconds = later(.pausedSeconds) ?? 0
+        standingInPause = later(.standingInPause)
+        appVersion = later(.appVersion)
+        pointCount = later(.pointCount) ?? 0
+        motorcycle = later(.motorcycle)
+        mix = later(.mix)
+    }
+
+    static let maxMeters = 10_000_000.0
+    static let maxSeconds = 10_000_000.0
+    static let maxStops = 10_000
+
+    /// Begrenzt, was aus den UserDefaults oder aus iCloud kommt — siehe
+    /// `Stored`. nil, wenn die Fahrt zu keiner Zeit stattfand, die es gibt.
+    var sanitized: Ride? {
+        guard Stored.plausible(started), Stored.plausible(ended) else { return nil }
+        var r = self
+        r.meters = Stored.amount(meters, max: Self.maxMeters)
+        r.movingSeconds = Stored.amount(movingSeconds, max: Self.maxSeconds)
+        r.maxKmh = Stored.amount(maxKmh, max: 1_000)
+        r.signalStops = Stored.count(signalStops, max: Self.maxStops)
+        r.otherStops = Stored.count(otherStops, max: Self.maxStops)
+        r.signalWaitTotal = Stored.amount(signalWaitTotal, max: Self.maxSeconds)
+        r.pausedSeconds = Stored.amount(pausedSeconds, max: Self.maxSeconds)
+        r.pointCount = Stored.count(pointCount, max: 10_000_000)
+        r.plannedSeconds = plannedSeconds.map { Stored.amount($0, max: Self.maxSeconds) }
+        r.plannedMeters = plannedMeters.map { Stored.amount($0, max: Self.maxMeters) }
+        r.plannedSignals = plannedSignals.map { Stored.count($0, max: Self.maxStops) }
+        return r
+    }
+
+    /// Dieselbe Fahrt in zwei Fassungen — welche bleibt. Die Regel hängt nicht
+    /// daran, wer fragt: bis 1.11 gewann auf jedem Gerät die eigene, und zwei
+    /// Geräte mit verschiedenen Fassungen schoben sie sich endlos hin und her.
+    /// Zuerst die, deren Pausen schon nachgerechnet sind
+    /// (`repairStandingBeforePauses`), dann die mit mehr Feldern — also die
+    /// der neueren App —, zuletzt irgendeine, aber überall dieselbe.
+    static func fuller(_ a: Ride, _ b: Ride) -> Ride {
+        guard a != b else { return a }
+        let (ra, rb) = (a.standingInPause == true, b.standingInPause == true)
+        if ra != rb { return ra ? a : b }
+        guard let da = Stored.encode(a), let db = Stored.encode(b) else { return a }
+        if da.count != db.count { return da.count > db.count ? a : b }
+        return da.lexicographicallyPrecedes(db) ? b : a
+    }
+}
+
+extension RideStop {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = ((try? c.decodeIfPresent(UUID.self, forKey: .id)) ?? nil) ?? UUID()
+        lat = try c.decode(Double.self, forKey: .lat)
+        lon = try c.decode(Double.self, forKey: .lon)
+        start = try c.decode(Date.self, forKey: .start)
+        seconds = try c.decode(Double.self, forKey: .seconds)
+        atSignal = try c.decode(Bool.self, forKey: .atSignal)
+    }
+}
+
+extension RideTrack {
+    /// Nur die Kennung ist Pflicht; ein Punkt oder Halt, den diese Fassung
+    /// nicht lesen kann, fällt allein heraus.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        func list<T: Decodable>(_ key: CodingKeys) -> [T]? {
+            ((try? c.decodeIfPresent(Stored.List<T>.self, forKey: key)) ?? nil)?.items
+        }
+        id = try c.decode(UUID.self, forKey: .id)
+        points = list(.points) ?? []
+        stops = list(.stops) ?? []
+        planned = list(.planned) ?? []
+        events = list(.events)
+        routes = ((try? c.decodeIfPresent([Stored.List<TrackPoint>].self, forKey: .routes)) ?? nil)?.map(\.items)
     }
 }
 

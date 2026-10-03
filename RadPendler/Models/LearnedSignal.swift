@@ -80,6 +80,7 @@ struct LearnedSignal: Codable, Equatable, Identifiable {
             out[i].passes = out[i].passCount + 1
             out[i].totalWait += waited
             out[i].lastSeen = now
+            out[i] = aged(out[i])
         } else {
             out.append(LearnedSignal(lat: c.latitude, lon: c.longitude, stops: 1,
                                      totalWait: waited, lastSeen: now, passes: 1))
@@ -96,6 +97,7 @@ struct LearnedSignal: Codable, Equatable, Identifiable {
         if let i = nearest(in: out, to: c) {
             out[i].passes = out[i].passCount + 1
             out[i].lastSeen = now
+            out[i] = aged(out[i])
         } else {
             out.append(LearnedSignal(lat: c.latitude, lon: c.longitude, stops: 0,
                                      totalWait: 0, lastSeen: now, passes: 1))
@@ -121,22 +123,26 @@ struct LearnedSignal: Codable, Equatable, Identifiable {
     /// Both devices' lists into one, the way `placeHistory` merges: nothing
     /// either side knew may fall out, and the same junction counts once.
     ///
-    /// **Der größere Stand gewinnt, die Zählungen werden nicht addiert.** Bis
+    /// **Der jüngere Stand gewinnt, die Zählungen werden nicht addiert.** Bis
     /// 1.10.1 wurden sie addiert — und zusammengeführt wird bei jedem Abgleich
     /// mit iCloud, auch mit dem eigenen Stand, der gerade von dort
     /// zurückkommt. Jeder Abgleich verdoppelte also jede Kreuzung, bis nach
     /// rund sechzig Abgleichen `Int` überlief und die App beim Start abstürzte
     /// — auf jedem Gerät, auch nach dem Neuinstallieren, weil iCloud den Stand
     /// zurückbrachte (03.10.2026). Zusammenführen muss sich wiederholen lassen,
-    /// ohne etwas zu ändern. Der Preis: was zwei Geräte an derselben Kreuzung
-    /// getrennt gemessen haben, zählt nur von dem, das öfter vorbeikam.
+    /// ohne etwas zu ändern, und auf beiden Geräten dasselbe ergeben.
+    ///
+    /// Der jüngere und nicht der größere (so bis 1.11): seit die Zählungen
+    /// altern (`aged`), ist der frisch halbierte Stand der kleinere — der
+    /// größere vom anderen Gerät hätte jede Halbierung und die Fahrt, die sie
+    /// ausgelöst hat, wieder überschrieben. Der Preis bleibt derselbe: was zwei
+    /// Geräte an derselben Kreuzung getrennt gemessen haben, zählt nur von
+    /// einem — jetzt von dem, das zuletzt vorbeikam.
     static func merging(_ mine: [LearnedSignal], _ theirs: [LearnedSignal]) -> [LearnedSignal] {
         var out = healed(mine)
         for s in healed(theirs) {
             if let i = nearest(in: out, to: s.coordinate) {
-                let seen = max(out[i].lastSeen, s.lastSeen)
-                if (s.passCount, s.stops, s.totalWait) > (out[i].passCount, out[i].stops, out[i].totalWait) { out[i] = s }
-                out[i].lastSeen = seen
+                if s.rank > out[i].rank { out[i] = s }
             } else {
                 out.append(s)
             }
@@ -144,29 +150,48 @@ struct LearnedSignal: Codable, Equatable, Identifiable {
         return capped(out)
     }
 
-    /// Was die Verdopplung bis 1.10.1 angerichtet hat, wieder auf ein Maß, das
-    /// eine Kreuzung in Jahren erreichen kann. Halbiert wird alles zugleich —
-    /// Halte, Vorbeifahrten, Wartezeit —, so bleibt der Schnitt, den die
-    /// Verdopplung ja auch nicht verändert hat. Unsinnige Wartezeiten (negativ,
-    /// unendlich) fallen auf null.
+    /// Wer beim Zusammenführen gewinnt. Vollständig bis auf die Lage, damit
+    /// beide Geräte denselben Sieger finden.
+    private var rank: (Date, Int, Int, Double, Double, Double) { (lastSeen, passCount, stops, totalWait, lat, lon) }
+
+    /// Was aus den UserDefaults oder aus iCloud kommt, auf ein Maß, mit dem
+    /// sich rechnen lässt — siehe `Stored`. Einträge ohne brauchbare Lage
+    /// fallen heraus (`id` rechnet mit ihr), Zählungen und Wartezeiten werden
+    /// begrenzt, und was die Verdopplung bis 1.10.1 angerichtet hat, altert
+    /// in einem Zug auf `memory` herunter.
     static func healed(_ list: [LearnedSignal]) -> [LearnedSignal] {
-        list.map { s in
+        list.compactMap { s in
+            guard Stored.plausible(lat: s.lat, lon: s.lon) else { return nil }
             var s = s
-            if !s.totalWait.isFinite || s.totalWait < 0 { s.totalWait = 0 }
             s.stops = Swift.max(0, s.stops)
             if let p = s.passes, p < 0 { s.passes = 0 }
-            while s.passCount > saneCount {
-                s.stops /= 2
-                s.passes = s.passes.map { $0 / 2 }
-                s.totalWait /= 2
-            }
+            if !s.totalWait.isFinite || s.totalWait < 0 { s.totalWait = 0 }
+            s = aged(s)
+            s.totalWait = Swift.min(s.totalWait, Double(s.stops) * longestWait)
             return s
         }
     }
 
-    /// Zwei Pendelfahrten am Tag, zehn Jahre lang — mehr kommt an einer
-    /// Kreuzung nicht zusammen.
-    static let saneCount = 10_000
+    /// Die Alterung. Über `memory` Vorbeifahrten wird alles zugleich halbiert
+    /// — Halte, Vorbeifahrten, Wartezeit —, der Schnitt bleibt also, wie er
+    /// ist, und jede Fahrt danach wiegt doppelt so viel wie eine davor. So
+    /// folgt der Wert einer umgebauten Kreuzung in Monaten statt nie, und kein
+    /// Zähler kann je weiter wachsen als bis hierher.
+    static func aged(_ signal: LearnedSignal) -> LearnedSignal {
+        var s = signal
+        while s.passCount > memory {
+            s.stops /= 2
+            s.passes = s.passes.map { $0 / 2 }
+            s.totalWait /= 2
+        }
+        return s
+    }
+
+    /// Zwei Pendelfahrten am Tag sind das in fünf Monaten.
+    static let memory = 200
+    /// Länger steht niemand im Schnitt an einer Kreuzung — auch nicht an der
+    /// Schranke.
+    static let longestWait = 900.0
 
     /// Over the limit the least used go first, the longest unseen among them.
     /// Measured by passes, not by stops: the junction one rolls through every

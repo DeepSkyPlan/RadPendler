@@ -63,7 +63,7 @@ final class RideStore {
     }
 
     private func write() {
-        rides.sort { $0.started > $1.started }
+        rides.sort(by: Self.newestFirst)
         if rides.count > Self.maxRides { rides = Array(rides.prefix(Self.maxRides)) }
         guard let data = Self.encode(rides) else { return }
         defaults.set(data, forKey: CloudStore.ridesKey)
@@ -136,16 +136,24 @@ final class RideStore {
     /// that the settings share. Uncompressed JSON is the fallback, so a value
     /// written by a version that could not compress still reads.
     nonisolated static func encode(_ rides: [Ride]) -> Data? {
-        guard let json = try? JSONEncoder().encode(rides) else { return nil }
+        guard let json = Stored.encode(rides) else { return nil }
         return (try? (json as NSData).compressed(using: .zlib)) as Data? ?? json
     }
 
+    ///
+    /// Der eine Eingang für beide Quellen, UserDefaults wie iCloud: eine
+    /// Fahrt, die diese Fassung nicht lesen kann, fällt allein heraus, und was
+    /// bleibt, ist begrenzt (`Ride.sanitized`).
     nonisolated static func decode(_ data: Data) -> [Ride]? {
-        if let raw = try? (data as NSData).decompressed(using: .zlib) as Data,
-           let list = try? JSONDecoder().decode([Ride].self, from: raw) {
-            return list.sorted { $0.started > $1.started }
-        }
-        return (try? JSONDecoder().decode([Ride].self, from: data))?.sorted { $0.started > $1.started }
+        let raw = (try? (data as NSData).decompressed(using: .zlib) as Data) ?? data
+        guard let list: [Ride] = Stored.list(from: raw) ?? Stored.list(from: data) else { return nil }
+        return list.compactMap(\.sanitized).sorted(by: newestFirst)
+    }
+
+    /// Bei gleicher Startzeit entscheidet die Kennung — die Reihenfolge muss
+    /// auf jedem Gerät dieselbe sein.
+    nonisolated static func newestFirst(_ a: Ride, _ b: Ride) -> Bool {
+        (a.started, a.id.uuidString) > (b.started, b.id.uuidString)
     }
 
     /// Two devices' lists into one. A ride is the same ride wherever it is
@@ -153,14 +161,15 @@ final class RideStore {
     /// that has not pulled yet must not be able to shorten the list it has
     /// not seen. Deleting therefore needs both devices to be reached — the
     /// price of a merge, and cheaper than a ride that vanishes.
+    ///
+    /// Wo beide dieselbe Fahrt verschieden kennen, entscheidet `Ride.fuller`
+    /// — auf beiden Geräten gleich, in welcher Reihenfolge auch immer.
     nonisolated static func merge(_ mine: [Ride], _ theirs: [Ride]) -> [Ride] {
-        var out = mine
-        var known = Set(mine.map(\.id))
-        for ride in theirs where !known.contains(ride.id) {
-            known.insert(ride.id)
-            out.append(ride)
+        var byID: [UUID: Ride] = [:]
+        for ride in mine + theirs {
+            byID[ride.id] = byID[ride.id].map { Ride.fuller($0, ride) } ?? ride
         }
-        out.sort { $0.started > $1.started }
+        let out = byID.values.sorted(by: newestFirst)
         return out.count > maxRides ? Array(out.prefix(maxRides)) : out
     }
 
@@ -263,9 +272,9 @@ final class RideStore {
     /// Pause, so wie es neue Fahrten von selbst tun. Gerechnet wird aus der
     /// Linie; wo sie fehlt (auf einem anderen Gerät gezeichnet und noch nicht
     /// in CloudKit), bleibt die Fahrt, wie sie ist, und kommt beim nächsten
-    /// Start wieder dran. Jedes Gerät repariert seine eigene Liste — beim
-    /// Zusammenführen gewinnt die eigene Fassung, und der Merker an der Fahrt
-    /// hält fest, dass nichts zweimal abgezogen wird.
+    /// Start wieder dran. Beim Zusammenführen gewinnt die reparierte Fassung
+    /// (`Ride.fuller`), und der Merker an der Fahrt hält fest, dass nichts
+    /// zweimal abgezogen wird.
     ///
     /// Bleibt, obwohl es aus 1.6 stammt: eine Fahrt, deren Linie erst noch
     /// aus CloudKit kommt, wartet hier auf ihre Reparatur — und wann das

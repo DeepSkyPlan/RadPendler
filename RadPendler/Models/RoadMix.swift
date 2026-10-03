@@ -93,6 +93,33 @@ struct RoadMix: Codable, Equatable {
 
     init(meters: [RoadClass: Double] = [:]) { self.meters = meters }
 
+    // Auf der Leitung steht `{"meters":["main",1200,"side",300]}` — so
+    // schreibt Swift ein Verzeichnis, dessen Schlüssel kein String ist, und so
+    // liegt es seit 1.0 in iCloud. Von Hand, aus zwei Gründen: eine Klasse,
+    // die erst eine spätere Fassung kennt, darf nicht die ganze Fahrt
+    // unlesbar machen, und die Reihenfolge muss feststehen (siehe `Stored`).
+    private enum CodingKeys: String, CodingKey { case meters }
+
+    init(from decoder: Decoder) throws {
+        var list = try decoder.container(keyedBy: CodingKeys.self).nestedUnkeyedContainer(forKey: .meters)
+        while !list.isAtEnd {
+            let name = try list.decode(String.self)
+            let metres = try list.decode(Double.self)
+            guard let c = RoadClass(rawValue: name), metres.isFinite, metres >= 0 else { continue }
+            meters[c] = Swift.min(metres, Ride.maxMeters)
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        var list = c.nestedUnkeyedContainer(forKey: .meters)
+        for cls in RoadClass.allCases {
+            guard let metres = meters[cls] else { continue }
+            try list.encode(cls.rawValue)
+            try list.encode(metres)
+        }
+    }
+
     var total: Double { meters.values.reduce(0, +) }
     var isEmpty: Bool { total <= 0 }
 

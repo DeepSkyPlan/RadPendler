@@ -48,7 +48,9 @@ struct Tombstones: Codable, Equatable {
         for (key, when) in other.stones {
             out[key] = Swift.max(out[key] ?? .distantPast, when)
         }
-        out = out.filter { now.timeIntervalSince($0.value) < Self.lifetime }
+        // Ein Grabstein aus der Zukunft (verstellte Uhr, Fehler) verfiele nie
+        // und nähme jede Fahrt mit, die bis dahin aufgezeichnet wird.
+        out = out.filter { (-86_400..<Self.lifetime).contains(now.timeIntervalSince($0.value)) }
         return Tombstones(stones: out)
     }
 
@@ -68,7 +70,7 @@ struct Tombstones: Codable, Equatable {
     static func bury(_ keys: [String], in defaults: UserDefaults, at now: Date = .now) -> Tombstones {
         var stones = load(defaults)
         stones.add(keys, at: now)
-        defaults.set(try? JSONEncoder().encode(stones), forKey: key)
+        defaults.set(Stored.encode(stones), forKey: key)
         return stones
     }
 

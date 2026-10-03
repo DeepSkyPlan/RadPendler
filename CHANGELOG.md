@@ -1,5 +1,32 @@
 # Changelog
 
+## Unveröffentlicht — Gespeichertes hält jede Fassung aus
+
+Nach dem Überlauf vom 03.10.: was in den UserDefaults und in iCloud liegt, kann keine Fassung
+mehr umwerfen. Regeln in `Stored`, Proben je Format in `StoredFormatTests`.
+
+- **Lesen verzeiht:** ein unlesbarer Eintrag fällt allein heraus statt die ganze Liste zu leeren
+  (Fahrten, Ampeln, Adressen, Linien, Fixpunkte, gewohnte Wege, Punkte und Halte einer Linie).
+  `Ride.pausedSeconds`, `pointCount` und `RideStop.id` waren trotz Vorgabewert Pflicht — eine
+  Fahrt von vor dem 25.09. hätte die Fahrtenliste geleert. Unbekannte Straßenklassen und Felder
+  in fremdem Typ gelten als fehlend.
+- **Kein Pingpong mehr zwischen zwei Geräten:** nach einem iCloud-Abgleich wird der Inhalt
+  verglichen, nicht die Bytes (die fielen je Gerät anders aus, jedes Zusammenführen ging deshalb
+  zurück in die Wolke — der Motor hinter dem Überlauf). Geschrieben wird mit festen
+  Schlüsselreihenfolgen; bei derselben Fahrt in zwei Fassungen gewinnt überall dieselbe
+  (`Ride.fuller`), nicht mehr die eigene.
+- **Grenzen beim Laden:** Zähler, Zeiten, Strecken und Koordinaten aller reisenden Listen und
+  alle Zahlen der Einstellungen werden begrenzt, bevor gerechnet wird; Fahrten und Ampeln ohne
+  brauchbare Zeit oder Lage fallen heraus. Grabsteine aus der Zukunft verfallen.
+- **Gelernte Ampeln altern:** über 200 Vorbeifahrten werden Halte, Vorbeifahrten und Wartezeit
+  halbiert — der Schnitt bleibt, Neues wiegt doppelt, eine umgebaute Kreuzung ist in Monaten
+  vergessen. Beim Zusammenführen gewinnt deshalb der jüngere Stand statt des größeren.
+- **Startwächter:** nach zwei Starts hintereinander, die keine zehn Sekunden überlebt haben, läuft
+  die App ohne iCloud-Abgleich, bis ein Update kommt oder man ihn in den Einstellungen
+  (Adressen) wieder einschaltet.
+- **Formatstand in iCloud** (`schema` = 1): sieht eine Fassung dort einen höheren, liest sie nur
+  noch und schreibt nichts zurück. Schützt erst vor Fassungen nach dieser.
+
 ## 1.11 (Build 51) — Pendel-Knopf, neues Ziel unterwegs
 
 - **Pendel-Knopf statt Doppeltipp:** ein runder Knopf mit Haus und Fahne über dem Tauschen
