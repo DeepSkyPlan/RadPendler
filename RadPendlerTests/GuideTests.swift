@@ -582,6 +582,23 @@ final class ReplannerTests: XCTestCase {
         XCTAssertFalse(RideTracker.startsAtEnd(north(10), route: loop))
     }
 
+    /// Neues Ziel unterwegs: sofort geplant, auch kurz nach einer anderen
+    /// Neuplanung, ohne die alten Fixpunkte — und das Ziel gilt weiter.
+    func testANewDestinationIsRoutedAtOnceAndSticks() async {
+        let onward = (0...5).map { north(2_000 + Double($0) * 100) }
+        let (r, kinds, adopted) = replanner(onward)
+        r.reset(route: original, config: Replanner.Config(mode: .car, via: [north(300)], knownSignals: []))
+        r.replan(from: north(500), course: 0)
+        await r.settle()
+        r.redirect(to: north(2_500), from: north(500), course: 180)
+        await r.settle()
+        XCTAssertEqual(r.replans, 2, "die Minute Abstand gilt nicht für ein neues Ziel")
+        XCTAssertEqual(r.target?.latitude, north(2_500).latitude)
+        XCTAssertTrue(r.config.via.isEmpty)
+        XCTAssertEqual(adopted().count, 2)
+        XCTAssertFalse(kinds().contains("verworfen"), "eine Wende zum neuen Ziel ist erlaubt")
+    }
+
     func testTurningAroundReversesLineAndWaypoints() {
         let (r, _, _) = replanner(nil)
         r.reset(route: original, config: Replanner.Config(mode: .bike, via: [north(300), north(700)], knownSignals: []))

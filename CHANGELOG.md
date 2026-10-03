@@ -1,5 +1,17 @@
 # Changelog
 
+## Unveröffentlicht — Pendel-Knopf, neues Ziel unterwegs
+
+- **Pendel-Knopf statt Doppeltipp:** ein runder Knopf mit Haus und Fahne über dem Tauschen
+  setzt die Pendelstrecke (Standort → Zuhause oder Arbeit). Der Doppeltipp war unsichtbar
+  und öffnete meist die Adresssuche; er ist weg, ein Tipp auf Start oder Ziel öffnet die Suche
+  wieder sofort. Hinweisblase und Anleitung zeigen auf den Knopf.
+- **Neues Ziel während der Fahrt:** ein Tipp auf „Start → Ziel“ oben im Fahrtfeld öffnet die
+  Adresssuche. Der Weg zum neuen Ziel wird sofort von hier aus berechnet (auch mit Wende,
+  ohne die Fixpunkte des alten Wegs); Plan-Zeit, -Länge und -Ampeln des alten Ziels fallen
+  aus der Fahrt. Ohne Netz bleibt die alte Linie, das neue Ziel gilt für jede weitere
+  Neuplanung. Protokoll: `neues ziel`.
+
 ## 1.10.2 (Build 50) — Absturz beim Start, Umkehr, die greift; Doppeltipp
 
 - **Absturz beim Start behoben** (ab 03.10., jede Version, auch nach Neuinstallation): gelernte

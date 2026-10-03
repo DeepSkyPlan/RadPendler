@@ -704,6 +704,25 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         replanner.replan(from: here, course: course)
     }
 
+    // MARK: Neues Ziel
+
+    /// Unterwegs woandershin: Ziel im Anlass, Weg dorthin von hier. Was der
+    /// Plan versprochen hat — Zeit, Länge, Ampeln —, galt dem alten Ziel; es
+    /// fällt weg, damit hinterher nichts gegen einen Plan verglichen wird, der
+    /// nie gefahren werden sollte.
+    func changeDestination(to place: Place) {
+        guard var s = subject else { return }
+        s.destination = place.shortName
+        s.plannedSeconds = nil
+        s.plannedMeters = nil
+        s.plannedSignals = nil
+        subject = s
+        log("neues ziel", place.shortName, at: here)
+        guard let from = here ?? plannedRoute.first else { return }
+        replanner.redirect(to: place.coordinate, from: from, course: course)
+        pushToWatch(force: true)
+    }
+
     private func saveInterrupted(at now: Date) {
         guard let subject else { return }
         lastSave = now

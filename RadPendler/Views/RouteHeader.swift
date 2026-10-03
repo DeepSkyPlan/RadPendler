@@ -14,7 +14,7 @@ struct RouteHeader: View {
     /// Whether this address is the user's home or work, for the little mark.
     var role: (Place?) -> PlaceRole?
     var onEdit: (ContentView.PlaceField) -> Void
-    /// Double tap anywhere on the box: the commute, without typing (`tap`).
+    /// Der Knopf „Pendeln“: die Pendelstrecke, ohne zu tippen.
     var onQuickCommute: () -> Void
     var onSwap: () -> Void
     var onWhenChange: () -> Void
@@ -23,9 +23,6 @@ struct RouteHeader: View {
     var onWaypoints: () -> Void = {}
 
     @State private var swapTurns = 0.0
-    /// Der erste Tipp, der noch auf seinen zweiten wartet — für die **ganze**
-    /// Box, nicht je Zeile.
-    @State private var pendingTap: Task<Void, Never>?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -39,29 +36,29 @@ struct RouteHeader: View {
                     field(destination, placeholder: L("Ziel wählen"), field: .destination)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                Button {
-                    withAnimation(.snappy(duration: 0.35)) { swapTurns += 0.5 }
-                    onSwap()
-                } label: {
-                    Image(systemName: "arrow.trianglehead.swap")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(Theme.accent)
-                        .rotationEffect(.degrees(swapTurns * 360))
-                        .frame(width: 32, height: 32)
-                        .background(Theme.accent.opacity(0.12), in: Circle())
+                // Pendeln über Tauschen: zwei runde Knöpfe übereinander, so
+                // hoch wie die beiden Adresszeilen daneben.
+                VStack(spacing: 6) {
+                    commuteButton
+                    Button {
+                        withAnimation(.snappy(duration: 0.35)) { swapTurns += 0.5 }
+                        onSwap()
+                    } label: {
+                        Image(systemName: "arrow.trianglehead.swap")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(Theme.accent)
+                            .rotationEffect(.degrees(swapTurns * 360))
+                            .frame(width: 32, height: 32)
+                            .background(Theme.accent.opacity(0.12), in: Circle())
+                    }
+                    .accessibilityLabel(L("Richtung tauschen"))
                 }
-                .accessibilityLabel(L("Richtung tauschen"))
                 ArrivalToggle(when: $when, onChange: onWhenChange)
             }
             WhenPicker(when: $when, presets: presets, prepMinutes: prepMinutes, onChange: onWhenChange)
         }
         .padding(14)
         .card()
-        // The empty parts of the box answer to the double tap as well, so it
-        // does not matter where exactly it lands.
-        .contentShape(Rectangle())
-        .onTapGesture { tap(nil) }
-        .popoverTip(QuickCommuteTip(), arrowEdge: .top)
         .padding(.horizontal, Theme.gutter)
     }
 
@@ -95,38 +92,29 @@ struct RouteHeader: View {
         .padding(.vertical, 4)
     }
 
-    /// Ein Tipp öffnet die Adresssuche, zwei kurz hintereinander setzen die
-    /// Pendelstrecke — **egal wo in der Box** die beiden landen.
+    /// Die Pendelstrecke auf **einen** Tipp: dein Standort als Start,
+    /// Zuhause oder Arbeit als Ziel.
     ///
-    /// Bis 1.10.1 hatte jede Zeile ihren eigenen Doppeltipp
-    /// (`TapGesture(count: 2).exclusively(before: TapGesture())`) und die Box
-    /// einen dritten. Landete der zweite Tipp ein paar Punkte daneben — auf
-    /// der anderen Zeile oder dazwischen —, zählte der erste allein, und es
-    /// ging die Suche auf statt der Pendelstrecke. Jetzt zählt die Box selbst
-    /// mit, mit einem Fenster, das hier steht und nicht im System.
-    private func tap(_ field: ContentView.PlaceField?) {
-        if let pending = pendingTap {
-            pending.cancel()
-            pendingTap = nil
-            onQuickCommute()
-            return
+    /// Bis 1.10.2 war das ein Doppeltipp auf die Box — unsichtbar, und auf
+    /// dem Telefon ging meist die Adresssuche auf, weil der erste Tipp allein
+    /// zählte (Nutzer, 03.10.2026: „geht nicht/selten … klar Position finden
+    /// und markieren“). Jetzt ist es ein Knopf mit Haus und Koffer, gleich
+    /// über dem Tauschen.
+    private var commuteButton: some View {
+        Button(action: onQuickCommute) {
+            Image(systemName: "house.and.flag.fill")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 32, height: 32)
+                .background(Theme.gradient(Theme.accent), in: Circle())
         }
-        pendingTap = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(Self.doubleTapWindow))
-            guard !Task.isCancelled else { return }
-            pendingTap = nil
-            if let field { onEdit(field) }
-        }
+        .accessibilityLabel(L("Pendelstrecke einsetzen"))
+        .popoverTip(QuickCommuteTip(), arrowEdge: .top)
     }
 
-    /// So lange wartet ein Tipp auf seinen zweiten. Etwas länger als das
-    /// System (rund 0,3 s): wer mit dem Daumen tippt, ist langsamer.
-    static let doubleTapWindow = 0.35
 
     /// Street big, postal code and town small beside it — in Berlin a street
     /// name alone is not an address.
-    /// Not a `Button`: a button would swallow the first of the two taps, and
-    /// the shortcut has to work on the address rows as well as beside them.
     private func field(_ place: Place?, placeholder: String, field: ContentView.PlaceField) -> some View {
         Group {
             HStack(alignment: .firstTextBaseline, spacing: 5) {
@@ -146,12 +134,11 @@ struct RouteHeader: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
         }
-        .onTapGesture { tap(field) }
+        .onTapGesture { onEdit(field) }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel((field == .origin ? L("Start: ") : L("Ziel: ")) + (place?.name ?? L("nicht gesetzt")))
         .accessibilityAction { onEdit(field) }
-        .accessibilityAction(named: L("Pendelstrecke einsetzen"), onQuickCommute)
     }
 }
 
