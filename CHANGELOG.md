@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — Pendel-Knopf, neues Ziel unterwegs
+## 1.11 (Build 51) — Pendel-Knopf, neues Ziel unterwegs
 
 - **Pendel-Knopf statt Doppeltipp:** ein runder Knopf mit Haus und Fahne über dem Tauschen
   setzt die Pendelstrecke (Standort → Zuhause oder Arbeit). Der Doppeltipp war unsichtbar
