@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — Absturz beim Start, Umkehr, die greift; Doppeltipp
+## 1.10.2 (Build 50) — Absturz beim Start, Umkehr, die greift; Doppeltipp
 
 - **Absturz beim Start behoben** (ab 03.10., jede Version, auch nach Neuinstallation): gelernte
   Ampeln wurden bei jedem iCloud-Abgleich mit dem eigenen Stand **addiert**, die Zählungen
