@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — Zehn Regler weniger
+## 1.13 (Build 53) — Zehn Regler weniger
 
 Die Einstellungen sind um alles kürzer, was die App selbst misst oder was nur Feinabgleich war.
 Die alten Schlüssel werden beim Laden gelöscht (`retiredKeys`) und reisen nicht mehr über iCloud;
