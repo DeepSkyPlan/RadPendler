@@ -61,12 +61,25 @@ struct PlaceUse: Codable, Equatable, Identifiable {
     var lastUsed: Date
 
     var id: String { place.key }
+
+    static let maxCount = 100_000
 }
 
 extension Array where Element == PlaceUse {
     /// Most used first; where two are level, the more recent one wins.
     var ranked: [PlaceUse] {
-        sorted { ($0.count, $0.lastUsed) > ($1.count, $1.lastUsed) }
+        sorted { ($0.count, $0.lastUsed, $0.id) > ($1.count, $1.lastUsed, $1.id) }
+    }
+
+    /// Was aus den UserDefaults oder aus iCloud kommt, begrenzt — siehe
+    /// `Stored`. Mehr als `PlaceUse.maxCount` Mal wählt niemand eine Adresse.
+    var sanitized: [PlaceUse] {
+        compactMap { use in
+            guard Stored.plausible(lat: use.place.latitude, lon: use.place.longitude) else { return nil }
+            var use = use
+            use.count = Stored.count(use.count, max: PlaceUse.maxCount)
+            return use
+        }
     }
 
     /// Everything whose text contains the query, case and umlaut insensitive.
@@ -83,9 +96,13 @@ extension Array where Element == PlaceUse {
     /// must not be able to shrink the list it did not see yet.
     func merging(_ other: [PlaceUse], limit: Int = 40) -> [PlaceUse] {
         var byKey: [String: PlaceUse] = [:]
-        for use in self + other {
+        for use in (self + other).sanitized {
             guard let there = byKey[use.id] else { byKey[use.id] = use; continue }
-            byKey[use.id] = PlaceUse(place: use.lastUsed >= there.lastUsed ? use.place : there.place,
+            // Bei gleichem Zeitpunkt entscheidet der Name — irgendetwas, das
+            // auf beiden Geräten gleich ausfällt, sonst schieben sie sich ihre
+            // Fassung endlos hin und her.
+            let newer = (use.lastUsed, use.place.name) >= (there.lastUsed, there.place.name)
+            byKey[use.id] = PlaceUse(place: newer ? use.place : there.place,
                                      count: Swift.max(use.count, there.count),
                                      lastUsed: Swift.max(use.lastUsed, there.lastUsed))
         }
@@ -96,7 +113,7 @@ extension Array where Element == PlaceUse {
     func recording(_ place: Place, now: Date = .now, limit: Int = 40) -> [PlaceUse] {
         var out = self
         if let i = out.firstIndex(where: { $0.place.key == place.key }) {
-            out[i] = PlaceUse(place: place, count: out[i].count + 1, lastUsed: now)
+            out[i] = PlaceUse(place: place, count: Swift.min(out[i].count, PlaceUse.maxCount - 1) + 1, lastUsed: now)
         } else {
             out.append(PlaceUse(place: place, count: 1, lastUsed: now))
         }

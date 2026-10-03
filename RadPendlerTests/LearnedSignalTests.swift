@@ -95,7 +95,7 @@ final class LearnedSignalTests: XCTestCase {
         let bad = LearnedSignal(lat: base.latitude, lon: base.longitude, stops: huge / 2,
                                 totalWait: Double(huge / 2) * 20, lastSeen: noon, passes: huge)
         let healed = LearnedSignal.healed([bad])[0]
-        XCTAssertLessThanOrEqual(healed.passCount, LearnedSignal.saneCount)
+        XCTAssertLessThanOrEqual(healed.passCount, LearnedSignal.memory)
         XCTAssertEqual(healed.averageWait, 20, accuracy: 0.01)
         // Und zwei solche zusammenführen läuft nicht mehr über.
         XCTAssertEqual(LearnedSignal.merging([bad], [bad]).count, 1)

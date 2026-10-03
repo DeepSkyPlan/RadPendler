@@ -92,6 +92,9 @@ enum BackgroundReplan {
         schedule()
         let work = Task {
             await run()
+            // Im Hintergrund geweckt und bis hierher gekommen: dieser Start
+            // hat gehalten, auch wenn er keine zehn Sekunden dauert.
+            StartGuard.survived()
             task.setTaskCompleted(success: !Task.isCancelled)
         }
         // iOS gibt der Aufgabe wenige Sekunden. Läuft die Zeit ab, wird

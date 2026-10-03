@@ -452,6 +452,17 @@
         }
       }
     },
+    "Abgleich jetzt wieder einschalten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn sync back on now"
+          }
+        }
+      }
+    },
     "Abspielen": {
       "extractionState": "manual",
       "localizations": {
@@ -745,6 +756,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "On this device. Other devices keep it until you delete it there too."
+          }
+        }
+      }
+    },
+    "Auf einem anderen Gerät läuft eine neuere Version von RadPendler. Dieses Gerät liest aus iCloud, schreibt aber nichts mehr dorthin, bis es aktualisiert ist.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another device runs a newer version of RadPendler. This device reads from iCloud but no longer writes to it until it is updated."
           }
         }
       }
@@ -1141,6 +1163,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "The green button beside the chosen trip records what you actually ride: distance, speed, stops at lights."
+          }
+        }
+      }
+    },
+    "Der iCloud-Abgleich ist angehalten: die App ist zweimal hintereinander beim Start abgestürzt. Deine Daten auf diesem Gerät sind unberührt. Mit dem nächsten Update läuft er von selbst wieder an.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud sync is paused: the app crashed twice in a row at launch. Your data on this device is untouched. Sync resumes by itself with the next update."
           }
         }
       }

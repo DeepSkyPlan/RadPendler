@@ -3,6 +3,15 @@ import TipKit
 
 @main
 struct RadPendlerApp: App {
+    // Steht zuoberst, weil die Eigenschaften in dieser Reihenfolge entstehen:
+    // der Start muss gezählt sein, bevor `AppSettings()` das erste Byte liest.
+    // Nicht unter den Tests — die starten die App und brechen sie ab, wie es
+    // ihnen passt.
+    private let counted: Void = {
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+        StartGuard.begin()
+        DispatchQueue.main.asyncAfter(deadline: .now() + StartGuard.alive) { StartGuard.survived() }
+    }()
     // Only there so UIKit has someone to ask which way up the app may be.
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var settings = AppSettings()
@@ -62,6 +71,7 @@ struct RadPendlerApp: App {
                 // zu sehen — `scenePhase` ist der Weg, der wirklich feuert.
                 .onChange(of: phase) { _, now in
                     if now == .background { BackgroundReplan.schedule() }
+                    if now != .active { StartGuard.leftForeground() }
                     // Was eine Fahrt gedunkelt hat und nicht mehr aufhellen
                     // konnte — beendet im Hintergrund, App abgestürzt —, wird
                     // hier wieder hell, sobald keine Fahrt mehr läuft.

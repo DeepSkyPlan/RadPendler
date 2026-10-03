@@ -42,6 +42,27 @@ final class CloudStore {
     /// zwei Geräten unmöglich: siehe `Tombstones`.
     static let tombstonesKey = "tombstones"
 
+    /// Der Stand des Formats, in dem die vereinigten Listen in iCloud liegen.
+    ///
+    /// Steht dort ein höherer, läuft auf einem anderen Gerät eine neuere App,
+    /// die etwas anders schreibt, als diese Fassung es versteht. Dann liest
+    /// diese hier nur noch (`ahead`) und schreibt nichts zurück — sonst
+    /// überschriebe sie den neuen Stand mit ihrem alten, bei jedem Abgleich.
+    ///
+    /// **Hochzählen, wenn eine ältere Fassung mit dem neuen Stand etwas
+    /// kaputt machen würde:** ein Feld bekommt eine andere Bedeutung oder
+    /// Einheit, ein Schlüssel einen anderen Typ, eine Liste eine andere Regel
+    /// beim Zusammenführen. **Nicht** für ein neues Feld, das fehlen darf —
+    /// dafür ist das verzeihende Lesen da (`Stored`). Fassungen bis 1.11
+    /// kennen den Stand nicht und schreiben weiter; schützen kann er erst
+    /// vor dem, was nach ihm kommt.
+    static let schema = 1
+    static let schemaKey = "schema"
+
+    /// Ein anderes Gerät ist weiter als dieses — für die Zeile in den
+    /// Einstellungen.
+    private(set) var ahead = false
+
     /// Called after values came in from another device.
     var onPull: (() -> Void)?
 
@@ -67,7 +88,9 @@ final class CloudStore {
     private(set) var available = false
 
     func start() {
-        guard !started else { return }
+        // Nach zwei Starts, die die App nicht überlebt hat, bleibt iCloud
+        // draußen — siehe `StartGuard`.
+        guard !started, !StartGuard.cloudPaused() else { return }
         started = true
         available = FileManager.default.ubiquityIdentityToken != nil
         NotificationCenter.default.addObserver(self, selector: #selector(cloudChanged(_:)),
@@ -121,14 +144,23 @@ final class CloudStore {
     /// Aufrufers: nach einem Zusammenführen steht in `pushed` schon das
     /// Ergebnis, und `push` würde nichts mehr zu tun finden.
     private func send(_ keys: [String]) {
-        guard !keys.isEmpty, !overQuota else { return }
+        guard !keys.isEmpty, !overQuota, !ahead else { return }
         let values: [String: Any?] = keys.reduce(into: [:]) { $0[$1] = defaults.object(forKey: $1) }
         queue.async { [cloud] in
+            // Noch einmal an der Quelle: zwischen dem letzten Lesen und jetzt
+            // kann das andere Gerät aktualisiert worden sein.
+            let theirs = Self.schema(in: cloud)
+            guard theirs <= Self.schema else { return }
+            if theirs < Self.schema { cloud.set(Self.schema, forKey: Self.schemaKey) }
             for (key, value) in values {
                 if let value { cloud.set(value, forKey: key) } else { cloud.removeObject(forKey: key) }
             }
             cloud.synchronize()
         }
+    }
+
+    static func schema(in cloud: NSUbiquitousKeyValueStore) -> Int {
+        (cloud.object(forKey: schemaKey) as? NSNumber)?.intValue ?? 0
     }
 
     /// Property-list values compare by content, not by identity.
@@ -148,7 +180,10 @@ final class CloudStore {
             overQuota = true
         }
         let changed = note.userInfo?[NSUbiquitousKeyValueStoreChangedKeysKey] as? [String]
-        pull((changed ?? Self.keys).filter { Self.keys.contains($0) })
+        // Mit einem neuen Formatstand alles noch einmal ansehen: `pull` liest
+        // ihn mit und stellt `ahead`.
+        let all = changed == nil || changed?.contains(Self.schemaKey) == true
+        pull(all ? Self.keys : (changed ?? []).filter { Self.keys.contains($0) })
     }
 
     /// Was aus einem Schlüssel werden soll, wenn die Wolke sich gemeldet hat.
@@ -172,6 +207,7 @@ final class CloudStore {
         queue.async { [weak self, cloud] in
             var resolved: [String: Resolution] = [:]
             var had: [String: Any] = [:]
+            let ahead = Self.schema(in: cloud) > Self.schema
             // Zuerst die Grabsteine beider Seiten: sie entscheiden, was beim
             // Vereinigen der drei Listen hinausfliegt.
             let graves = Self.tombstones(local: mine[Self.tombstonesKey],
@@ -192,7 +228,10 @@ final class CloudStore {
                     resolved[key] = .set(value)
                 }
             }
-            DispatchQueue.main.async { self?.apply(resolved, cloudHad: had) }
+            DispatchQueue.main.async {
+                self?.ahead = ahead
+                self?.apply(resolved, cloudHad: had)
+            }
         }
     }
 
@@ -219,9 +258,47 @@ final class CloudStore {
         // erfährt das andere Gerät nie von den Einträgen, die nur hier standen.
         // Das stand schon immer hier — nur wirkungslos, weil `pushed` damals
         // vor `onPull` gesetzt wurde und der Vergleich nie etwas fand.
+        //
+        // Verglichen wird der **Inhalt**, nicht die Bytes. Dieselbe Liste
+        // sieht kodiert je Gerät anders aus (Reihenfolge, zlib), und nach
+        // Bytes galt deshalb jedes Zusammenführen als Zugewinn: es ging
+        // hinaus, weckte das andere Gerät, das zusammenführte und es
+        // zurückschickte — ohne Ende, solange beide liefen. Das war der Motor
+        // hinter dem Überlauf vom 03.10.2026.
         send(resolved.keys.filter {
-            Self.mergedKeys.contains($0) && !Self.same(defaults.object(forKey: $0), cloudHad[$0])
+            Self.mergedKeys.contains($0) && !Self.sameContent($0, defaults.object(forKey: $0), cloudHad[$0])
         })
+    }
+
+    /// Ob zwei Stände eines vereinigten Schlüssels dasselbe sagen — gleich in
+    /// welcher Reihenfolge und wie verpackt. Was sich nicht lesen lässt, gilt
+    /// als verschieden: dann geht der hiesige Stand hinaus und heilt den
+    /// dortigen.
+    static func sameContent(_ key: String, _ a: Any?, _ b: Any?) -> Bool {
+        if same(a, b) { return true }
+        guard mergedKeys.contains(key), let a = a as? Data, let b = b as? Data else { return false }
+        let decoder = JSONDecoder()
+        switch key {
+        case tombstonesKey:
+            guard let x = try? decoder.decode(Tombstones.self, from: a),
+                  let y = try? decoder.decode(Tombstones.self, from: b) else { return false }
+            return x == y
+        case ridesKey:
+            // Hier nicht über `RideStore.decode`: das begrenzt beim Lesen, und
+            // ein unbegrenzter Stand drüben soll gerade auffallen.
+            func raw(_ d: Data) -> [Ride]? {
+                Stored.list(from: (try? (d as NSData).decompressed(using: .zlib) as Data) ?? d)
+            }
+            guard let x = raw(a), let y = raw(b) else { return false }
+            return x.sorted(by: RideStore.newestFirst) == y.sorted(by: RideStore.newestFirst)
+        case "learnedSignals":
+            guard let x: [LearnedSignal] = Stored.list(from: a), let y: [LearnedSignal] = Stored.list(from: b) else { return false }
+            let order: (LearnedSignal, LearnedSignal) -> Bool = { ($0.lat, $0.lon) < ($1.lat, $1.lon) }
+            return x.sorted(by: order) == y.sorted(by: order)
+        default:
+            guard let x: [PlaceUse] = Stored.list(from: a), let y: [PlaceUse] = Stored.list(from: b) else { return false }
+            return x.sorted { $0.id < $1.id } == y.sorted { $0.id < $1.id }
+        }
     }
 
     /// Both lists into one; nil when either side cannot be read, so the caller
@@ -238,9 +315,8 @@ final class CloudStore {
 
     static func merged(_ key: String, local: Data?, cloud: Data, graves: Tombstones = Tombstones()) -> Data? {
         guard let local else { return nil }
-        let decoder = JSONDecoder()
         if key == Self.tombstonesKey {
-            return try? JSONEncoder().encode(Self.tombstones(local: local, cloud: cloud))
+            return Stored.encode(Self.tombstones(local: local, cloud: cloud))
         }
         if key == Self.ridesKey {
             guard let mine = RideStore.decode(local), let theirs = RideStore.decode(cloud) else { return nil }
@@ -249,16 +325,16 @@ final class CloudStore {
             return RideStore.encode(all)
         }
         if key == "learnedSignals" {
-            guard let mine = try? decoder.decode([LearnedSignal].self, from: local),
-                  let theirs = try? decoder.decode([LearnedSignal].self, from: cloud) else { return nil }
+            guard let mine: [LearnedSignal] = Stored.list(from: local),
+                  let theirs: [LearnedSignal] = Stored.list(from: cloud) else { return nil }
             let all = LearnedSignal.merging(mine, theirs)
                 .filter { !graves.buried(Tombstones.key(signal: $0.id), newerThan: $0.lastSeen) }
-            return try? JSONEncoder().encode(all)
+            return Stored.encode(all)
         }
-        guard let mine = try? decoder.decode([PlaceUse].self, from: local),
-              let theirs = try? decoder.decode([PlaceUse].self, from: cloud) else { return nil }
+        guard let mine: [PlaceUse] = Stored.list(from: local),
+              let theirs: [PlaceUse] = Stored.list(from: cloud) else { return nil }
         let all = mine.merging(theirs)
             .filter { !graves.buried(Tombstones.key(place: $0.id), newerThan: $0.lastUsed) }
-        return try? JSONEncoder().encode(all)
+        return Stored.encode(all)
     }
 }
