@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — Gespeichertes hält jede Fassung aus
+## 1.12 (Build 52) — Gespeichertes hält jede Fassung aus
 
 Nach dem Überlauf vom 03.10.: was in den UserDefaults und in iCloud liegt, kann keine Fassung
 mehr umwerfen. Regeln in `Stored`, Proben je Format in `StoredFormatTests`.
