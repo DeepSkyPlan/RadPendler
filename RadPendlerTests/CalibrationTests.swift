@@ -337,38 +337,24 @@ final class CalibrationTests: XCTestCase {
         XCTAssertNil(ElevationProfile.from(points))
     }
 
-    /// Was von Hand gestellt ist, überlebt die nächste Fahrt: `calibrate`
-    /// schreibt die Messung daneben, geplant wird mit dem Wert von Hand.
-    func testAManualValueSurvivesCalibration() {
-        let s = settings()
-        s.bikeSpeedOverride = 22
-        s.signalWaitOverride = 35
-        s.bikeOverallOverride = 17
-        s.carOverallOverride = 33
-        s.learnedSignals = (0..<20).map { i in
-            LearnedSignal(lat: 52.5 + Double(i) / 1000, lon: 13.4, stops: 2,
-                          totalWait: 60, lastSeen: noon, passes: 5)
-        }
-        let rides = [ride(0, km: 20, movingKmh: 23, standing: 600),
-                     ride(1, km: 20, movingKmh: 25, standing: 600),
-                     ride(2, km: 20, movingKmh: 24, standing: 600)]
-        s.calibrate(from: rides)
-        XCTAssertEqual(s.calibratedBikeSpeedKmh, 24, "die Messung steht trotzdem da")
-        XCTAssertEqual(s.calibratedSignalWaitSeconds, 10)
-        XCTAssertEqual(s.calibratedBikeOverallKmh, 20, accuracy: 0.5)
-        XCTAssertEqual(s.bikeSpeedKmh, 22)
-        XCTAssertEqual(s.signalWaitSeconds, 35)
-        XCTAssertEqual(s.bikeOverallKmh, 17)
-        let plan = s.snapshot
-        XCTAssertEqual(plan.bikeSpeedKmh, 22)
-        XCTAssertEqual(plan.signalWaitSeconds, 35)
-        XCTAssertEqual(plan.measuredOverallKmh, 17)
-        XCTAssertEqual(plan.carOverallKmh, 33)
-        // Und wieder aus: dann gilt die Messung.
-        s.bikeSpeedOverride = nil
-        s.signalWaitOverride = nil
-        XCTAssertEqual(s.snapshot.bikeSpeedKmh, 24)
-        XCTAssertEqual(s.snapshot.signalWaitSeconds, 10)
+    /// Bis 1.12 ließ sich jeder gemessene Wert „von Hand" überstimmen. Die
+    /// Regler sind weg: was jemand gestellt hatte, gilt nicht mehr und wird
+    /// beim Laden gelöscht, damit es nicht über iCloud zurückkommt.
+    func testAnOldManualValueNoLongerCounts() {
+        let d = UserDefaults(suiteName: UUID().uuidString)!
+        d.set(26.0, forKey: "bikeMovingSpeedKmh")
+        d.set(25, forKey: "signalWaitSeconds")
+        d.set(22.0, forKey: "bikeSpeedOverride")
+        d.set(35, forKey: "signalWaitOverride")
+        d.set(17.0, forKey: "bikeOverallOverride")
+        d.set(33.0, forKey: "carOverallOverride")
+        d.set(1, forKey: "optionsPerMode")
+        let s = AppSettings(defaults: d)
+        XCTAssertEqual(s.snapshot.bikeSpeedKmh, 26)
+        XCTAssertEqual(s.snapshot.signalWaitSeconds, 25)
+        XCTAssertNil(s.snapshot.measuredOverallKmh)
+        XCTAssertEqual(s.snapshot.optionsPerMode, PlanSettings().optionsPerMode)
+        for key in AppSettings.retiredKeys { XCTAssertNil(d.object(forKey: key), key) }
     }
 
     /// Wer von 1.9.1 kommt, hat seine Werte unter den alten Schlüsseln — sie
@@ -384,10 +370,6 @@ final class CalibrationTests: XCTestCase {
         XCTAssertEqual(s.calibratedSignalWaitSeconds, 25)
         XCTAssertEqual(s.calibratedBikeOverallKmh, 19.5)
         XCTAssertEqual(s.calibratedCarOverallKmh, 38)
-        XCTAssertNil(s.bikeSpeedOverride)
-        XCTAssertNil(s.signalWaitOverride)
-        XCTAssertNil(s.bikeOverallOverride)
-        XCTAssertNil(s.carOverallOverride)
         XCTAssertEqual(s.bikeSpeedKmh, 26)
     }
 

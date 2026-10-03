@@ -46,7 +46,6 @@ struct RidePlan {
                         plannedSignals: planned,
                         route: route(of: options, selected: option.id),
                         roadPoints: option.bikeRoute?.roadPoints ?? [],
-                        replanOffRouteMeters: settings.replanOffRouteMeters,
                         autoStopMinutes: settings.autoStopMinutes,
                         autoPauseMinutes: settings.autoPauseMinutes,
                         bikeProfile: option.bikeRoute?.source.profile ?? .trekking,

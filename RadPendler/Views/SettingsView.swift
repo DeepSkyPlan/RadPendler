@@ -212,14 +212,6 @@ struct NavigationSettingsView: View {
                 Section {
                     Toggle(L("Warnung vor dem Losgehen"), isOn: $settings.alertsOn)
                     if settings.alertsOn {
-                        ForEach([15, 10, 5, 3, 1], id: \.self) { m in
-                            Toggle(L("%d min vorher", m), isOn: Binding(
-                                get: { settings.alertMinutes.contains(m) },
-                                set: { on in
-                                    if on { settings.alertMinutes = (settings.alertMinutes + [m]).sorted(by: >) }
-                                    else { settings.alertMinutes.removeAll { $0 == m } }
-                                }))
-                        }
                         if notifications == .denied {
                             Button {
                                 if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -235,7 +227,7 @@ struct NavigationSettingsView: View {
                 } header: {
                     Text(L("Countdown"))
                 } footer: {
-                    Hint(L("Der Countdown oben rechts zählt bis zum Losgehen für Bahn und Bus — und bei „Ankunft um …“ für jede Fahrt. Warnungen kommen als Mitteilung, auch wenn die App zu ist; bei offener App zusätzlich als Ton."))
+                    Hint(L("Der Countdown oben rechts zählt bis zum Losgehen für Bahn und Bus — und bei „Ankunft um …“ für jede Fahrt. Warnungen kommen 10, 5 und 1 Minute vorher als Mitteilung, auch wenn die App zu ist; bei offener App zusätzlich als Ton."))
                 }
         }
     }
@@ -250,9 +242,6 @@ struct ModeSettingsView: View {
         @Bindable var settings = settings
         Page(title: L("Verkehrsmittel")) {
                 Section {
-                    Picker(L("Möglichkeiten je Verkehrsmittel"), selection: $settings.optionsPerMode) {
-                        ForEach(1...3, id: \.self) { n in Text("\(n)").tag(n) }
-                    }
                     NavigationLink {
                         PriorityList(title: L("Verkehrsmittel"), items: $settings.modeOrder,
                                      footer: L("Von oben nach unten: was gewinnt, wenn zwei Fahrten fast gleichzeitig ankommen. Dieselbe Reihenfolge ordnet die vier Kästen auf der Hauptseite, entscheidet, welcher nach einer Suche geöffnet ist, und in welcher Folge sie sich füllen — das Oberste steht zuerst da, der Rest kommt nach."),
@@ -284,8 +273,7 @@ struct ModeSettingsView: View {
                         measured: settings.measuredRides >= AppSettings.calibrationRides
                             ? settings.measuredMovingKmh.map { L("gemessen: %@ (aus %d Fahrten)", Fmt.kmh($0), settings.measuredRides) }
                             : nil,
-                        override: $settings.bikeSpeedOverride, start: settings.calibratedBikeSpeedKmh,
-                        range: 10...45, step: 1, format: { L("%d km/h", Int($0)) })
+                        format: { L("%d km/h", Int($0)) })
                     MeasuredValueRow(
                         title: L("Wartezeit je Ampel"), value: Double(settings.signalWaitSeconds),
                         measured: settings.signalMeasurement.flatMap { m in
@@ -293,30 +281,21 @@ struct ModeSettingsView: View {
                                 ? L("gemessen: %d s (aus %d Vorbeifahrten)", settings.calibratedSignalWaitSeconds, m.passes)
                                 : nil
                         },
-                        override: Binding(get: { settings.signalWaitOverride.map(Double.init) },
-                                          set: { settings.signalWaitOverride = $0.map { Int($0) } }),
-                        start: Double(settings.calibratedSignalWaitSeconds),
-                        range: 0...90, step: 5, format: { L("%d s", Int($0)) })
+                        format: { L("%d s", Int($0)) })
                     MeasuredSignalRow()
                     MeasuredValueRow(
                         title: L("Gesamtschnitt"), value: settings.bikeOverallKmh,
                         measured: settings.measuredRides >= AppSettings.calibrationRides
                             ? settings.measuredOverallKmh.map { L("gemessen: %@ (aus %d Fahrten)", Fmt.kmh($0), settings.measuredRides) }
                             : nil,
-                        override: $settings.bikeOverallOverride,
-                        start: settings.calibratedBikeOverallKmh > 0 ? settings.calibratedBikeOverallKmh : 20,
-                        range: 0...40, step: 0.5,
                         format: { $0 > 0 ? Fmt.kmh($0) : L("aus — nur die Rechnung") })
                     Stepper(L("Puffer am Bahnhof: %d min", settings.bikeStationBufferMinutes),
                             value: $settings.bikeStationBufferMinutes, in: 0...10)
                     Toggle(L("Kopfsteinpflaster meiden"), isOn: $settings.avoidCobbles)
-                    Stepper(value: $settings.maxBikeToStationKm, in: 1...10, step: 0.5) {
-                        Text(L("Radweg zum Bahnhof: bis %@ km", settings.maxBikeToStationKm.formatted(.number.precision(.fractionLength(0...1)))))
-                    }
                 } header: {
                     Text(L("Fahrrad"))
                 } footer: {
-                    Hint(L("Zwei verschiedene Geschwindigkeiten, und sie tun Verschiedenes. Das Rolltempo ist das Tempo beim Fahren, ohne Halte: daraus plus der Wartezeit je Ampelkreuzung und den Höhenmetern rechnet die App jede Linie durch — es entscheidet also, welche Linie die schnellste ist. Der Gesamtschnitt ist die Messung deiner eigenen Fahrten, Tür zu Tür, mit allen Ampeln und Halten darin — er entscheidet, wie lange es dauert. Wäre die Rechnung schneller als dein gemessener Gesamtschnitt, gilt der Gesamtschnitt; auch bei den Zubringern zum Bahnhof, dort aber nur, wenn er die vorsichtigere Zahl ist. Rolltempo, Ampelwartezeit und Gesamtschnitt misst die App nach jeder aufgezeichneten Fahrt selbst, aus dem Median der letzten Fahrten, sobald es genug davon gibt. „Von Hand“ setzt einen eigenen Wert dagegen: er gilt, bis du ihn ausschaltest, und die Messung läuft daneben weiter. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung addiert — außer an den Kreuzungen, die deine eigenen Fahrten schon kennen: die kosten, was dort gemessen wurde. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet."))
+                    Hint(L("Zwei verschiedene Geschwindigkeiten, und sie tun Verschiedenes. Das Rolltempo ist das Tempo beim Fahren, ohne Halte: daraus plus der Wartezeit je Ampelkreuzung und den Höhenmetern rechnet die App jede Linie durch — es entscheidet also, welche Linie die schnellste ist. Der Gesamtschnitt ist die Messung deiner eigenen Fahrten, Tür zu Tür, mit allen Ampeln und Halten darin — er entscheidet, wie lange es dauert. Wäre die Rechnung schneller als dein gemessener Gesamtschnitt, gilt der Gesamtschnitt; auch bei den Zubringern zum Bahnhof, dort aber nur, wenn er die vorsichtigere Zahl ist. Rolltempo, Ampelwartezeit und Gesamtschnitt misst die App nach jeder aufgezeichneten Fahrt selbst, aus dem Median der letzten Fahrten, sobald es genug davon gibt. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung addiert — außer an den Kreuzungen, die deine eigenen Fahrten schon kennen: die kosten, was dort gemessen wurde. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet."))
                 }
                 Section {
                     Toggle(isOn: $settings.motorcycle) {
@@ -329,9 +308,6 @@ struct ModeSettingsView: View {
                         measured: settings.measuredCarRides >= AppSettings.calibrationRides
                             ? settings.measuredCarKmh.map { L("gemessen: %@ (aus %d Autofahrten)", Fmt.kmh($0), settings.measuredCarRides) }
                             : nil,
-                        override: $settings.carOverallOverride,
-                        start: settings.calibratedCarOverallKmh > 0 ? settings.calibratedCarOverallKmh : 40,
-                        range: 0...120, step: 1,
                         format: { $0 > 0 ? Fmt.kmh($0) : L("aus — Apple Karten") })
                     }
                 } header: {
@@ -342,7 +318,6 @@ struct ModeSettingsView: View {
                          : L("Die Fahrzeit kommt von Apple Karten mit Verkehrslage, dazu die Parkplatzsuche. Der Gesamtschnitt ist deine eigene Messung, Tür zu Tür: wäre Apple schneller als er, gilt er. Die App misst ihn nach jeder aufgezeichneten Autofahrt, sobald es drei gibt; getrennt vom Rad. Parkplatzsuche und Gesamtschnitt überschneiden sich: endet die Aufzeichnung erst nach dem Parken, steckt die Suche schon im Schnitt — es gilt dann das Größere von Apple plus Parkplatzsuche und deinem Schnitt, nie beides zusammen."))
                 }
                 Section {
-                    Stepper(L("Umstieg zählt wie %d min", settings.transferPenaltyMinutes), value: $settings.transferPenaltyMinutes, in: 0...30)
                     Link(destination: URL(string: "https://transitous.org/sources/")!) {
                         Label("transitous.org/sources", systemImage: "arrow.up.right.square")
                     }
@@ -352,7 +327,7 @@ struct ModeSettingsView: View {
                 } header: {
                     Text(L("Bus & Bahn"))
                 } footer: {
-                    Hint(L("Jeder Umstieg wird beim Sortieren und Empfehlen wie so viele Minuten längere Fahrt gewertet: eine direkte Verbindung gewinnt, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.") + "\n\n" + L("Den Fahrplan liefert der VBB, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link."))
+                    Hint(L("Jeder Umstieg wird beim Sortieren und Empfehlen wie 10 Minuten längere Fahrt gewertet: eine direkte Verbindung gewinnt, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.") + "\n\n" + L("Den Fahrplan liefert der VBB, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link."))
                 }
                 Section {
                     NavigationLink {
@@ -387,18 +362,6 @@ struct SettingsView: View {
                         }
                     }
                     .onChange(of: settings.orientation) { settings.orientation.apply() }
-                    Picker(L("Neu berechnen ab"), selection: $settings.replanOffRouteMeters) {
-                        Text(L("aus")).tag(0.0)
-                        ForEach([100.0, 200.0, 500.0, 1000.0], id: \.self) { m in
-                            Text(L("%d m neben der Route", Int(m))).tag(m)
-                        }
-                    }
-                    Picker(L("Bildschirm abdunkeln nach"), selection: $settings.rideDimSeconds) {
-                        Text(L("aus")).tag(0.0)
-                        ForEach([15.0, 30.0, 60.0, 120.0], id: \.self) { s in
-                            Text(L("%d s ohne Berührung", Int(s))).tag(s)
-                        }
-                    }
                     Toggle(L("Töne bei Start, Ende und Abbiegungen"), isOn: $settings.rideSounds)
                     Picker(L("Von selbst anhalten nach"), selection: $settings.autoPauseMinutes) {
                         Text(L("aus")).tag(0.0)
@@ -427,7 +390,7 @@ struct SettingsView: View {
                 } header: {
                     Text(L("Fahrt aufzeichnen"))
                 } footer: {
-                    Hint(L("„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — Eine Fahrt beginnt quer, oder so, wie du es während der letzten Fahrt zuletzt eingestellt hast; der Knopf dafür steht oben links auf dem Fahrtbildschirm. Nach der Fahrt gilt wieder die Ausrichtung von hier. — Steht die Aufzeichnung an derselben Stelle und ist dort keine bekannte Ampel, hält sie nach der ersten eingestellten Zeit von selbst an — und läuft weiter, sobald es weitergeht; die Ortung bleibt dabei an, aber sparsam. Nach der zweiten Zeit beendet sie sich und zählt bis zum Anfang des Stillstands: das ist der Fall „angekommen und vergessen, auf beenden zu tippen“. Der Knopf oben links auf dem Fahrtbildschirm schaltet beides für eine Fahrt ab, für den Stau, der gleich weitergeht. Eine gewollte Unterbrechung ist dagegen der Knopf „Pause“: er hält die Uhr an und schaltet die Ortung ganz ab, und die Pause zählt weder zur Fahrzeit noch als Halt — anders als das Stehen vor einer automatischen Pause, das ein Halt war wie jeder andere. — Während einer Aufzeichnung bleibt der Bildschirm an, bis du die Fahrt beendest; das kostet Strom und ist so gewollt. Er wird aber dunkel, solange du ihn nicht anfasst — und beim ersten Antippen wieder hell, ebenso wenn eine Abbiegung ansteht oder du neben der Route bist. Das ist während einer Fahrt der größte Posten auf der Stromrechnung, größer als die Ortung. Am Strom bleibt er hell, ohne dass du etwas umstellen musst. — Verlässt du die Route, zeigt ein Pfeil zurück. Neu berechnet wird ab der eingestellten Entfernung, und erst nach ein paar Sekunden am Stück daneben, damit ein Bogen um eine Baustelle keine Neuplanung auslöst; „aus“ lässt es beim Pfeil. — Wer länger als 30 Sekunden steht, stand an einer Ampel, auch wenn keine Karte dort eine kennt — nur das Stehen vor dem Losfahren und nach dem Ankommen zählt nie, das ist die eigene Haustür. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein. Mitgezählt wird auch, wo eine Aufzeichnung ohne Halt durchkam: eine gelernte Kreuzung kostet beim Planen ihre gemessene Zeit über alle Vorbeifahrten, nicht den eingestellten Mittelwert. Sie bleiben auf deinen Geräten und in deiner iCloud."))
+                    Hint(L("„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — Eine Fahrt beginnt quer, oder so, wie du es während der letzten Fahrt zuletzt eingestellt hast; der Knopf dafür steht oben links auf dem Fahrtbildschirm. Nach der Fahrt gilt wieder die Ausrichtung von hier. — Steht die Aufzeichnung an derselben Stelle und ist dort keine bekannte Ampel, hält sie nach der ersten eingestellten Zeit von selbst an — und läuft weiter, sobald es weitergeht; die Ortung bleibt dabei an, aber sparsam. Nach der zweiten Zeit beendet sie sich und zählt bis zum Anfang des Stillstands: das ist der Fall „angekommen und vergessen, auf beenden zu tippen“. Der Knopf oben links auf dem Fahrtbildschirm schaltet beides für eine Fahrt ab, für den Stau, der gleich weitergeht. Eine gewollte Unterbrechung ist dagegen der Knopf „Pause“: er hält die Uhr an und schaltet die Ortung ganz ab, und die Pause zählt weder zur Fahrzeit noch als Halt — anders als das Stehen vor einer automatischen Pause, das ein Halt war wie jeder andere. — Während einer Aufzeichnung bleibt der Bildschirm an, bis du die Fahrt beendest; das kostet Strom und ist so gewollt. Er wird aber nach 30 Sekunden dunkel, solange du ihn nicht anfasst — und beim ersten Antippen wieder hell, ebenso wenn eine Abbiegung ansteht oder du neben der Route bist. Das ist während einer Fahrt der größte Posten auf der Stromrechnung, größer als die Ortung. Am Strom bleibt er hell, ohne dass du etwas umstellen musst. — Verlässt du die Route, zeigt ein Pfeil zurück. Neu berechnet wird ab 200 m daneben, und erst nach ein paar Sekunden am Stück, damit ein Bogen um eine Baustelle keine Neuplanung auslöst. — Wer länger als 30 Sekunden steht, stand an einer Ampel, auch wenn keine Karte dort eine kennt — nur das Stehen vor dem Losfahren und nach dem Ankommen zählt nie, das ist die eigene Haustür. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein. Mitgezählt wird auch, wo eine Aufzeichnung ohne Halt durchkam: eine gelernte Kreuzung kostet beim Planen ihre gemessene Zeit über alle Vorbeifahrten, nicht den eingestellten Mittelwert. Sie bleiben auf deinen Geräten und in deiner iCloud."))
                 }
                 Section {
                     // Kontakt als Seite, nicht als Adresse: eine Adresse im
@@ -598,21 +561,13 @@ private struct PriorityList<T: Hashable>: View {
 }
 
 /// Ein Wert, den die App aus den eigenen Fahrten misst: womit geplant wird,
-/// was gemessen ist, und darunter ein Wert von Hand für den, der es anders
-/// will. Bis 1.9.1 war das ein Stepper, den `calibrate` nach jeder Fahrt
-/// überschrieb — man stellte etwas ein, und am nächsten Morgen stand wieder
-/// die Messung da.
+/// und woraus er gemessen ist. Bis 1.12 stand darunter ein Wert „von Hand".
 struct MeasuredValueRow: View {
     var title: String
-    /// Womit gerechnet wird — von Hand oder gemessen.
+    /// Womit gerechnet wird.
     var value: Double
     /// „gemessen: 24 km/h (aus 5 Fahrten)"; nil, solange es zu wenig Fahrten sind.
     var measured: String?
-    @Binding var override: Double?
-    /// Wo der Stepper beim Einschalten anfängt: beim gemessenen Wert.
-    var start: Double
-    var range: ClosedRange<Double>
-    var step: Double
     var format: (Double) -> String
 
     var body: some View {
@@ -627,15 +582,6 @@ struct MeasuredValueRow: View {
                 .foregroundStyle(.secondary)
         }
         .accessibilityElement(children: .combine)
-        Toggle(L("Von Hand"), isOn: Binding(get: { override != nil },
-                                            set: { override = $0 ? Swift.min(Swift.max(start, range.lowerBound), range.upperBound) : nil }))
-            .padding(.leading, 16)
-        if let manual = override {
-            Stepper(value: Binding(get: { manual }, set: { override = $0 }), in: range, step: step) {
-                Text(format(manual)).monospacedDigit()
-            }
-            .padding(.leading, 16)
-        }
     }
 }
 
