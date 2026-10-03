@@ -47,6 +47,9 @@ final class Replanner {
     /// `@Observable` den Fahrtbildschirm einmal die Sekunde neu auf.
     private(set) var offSince: Date?
     private var lastReplan = Date.distantPast
+    /// Ein unterwegs neu gewähltes Ziel (`redirect`). Gilt ab da für jede
+    /// Neuplanung; nil heißt: das Ende der geplanten Linie.
+    private(set) var target: CLLocationCoordinate2D?
     private var task: Task<Void, Never>?
 
     /// Ins Protokoll der Fahrt (`RideEvent`).
@@ -84,8 +87,25 @@ final class Replanner {
         replans = 0
         offSince = nil
         lastReplan = .distantPast
+        target = nil
         task?.cancel()
         task = nil
+    }
+
+    /// Unterwegs ein anderes Ziel: der Weg dorthin wird **sofort** von hier
+    /// aus berechnet — ohne die Minute Abstand zwischen zwei Neuplanungen, und
+    /// auch fürs Auto mit Wende, denn das neue Ziel kann hinter einem liegen.
+    /// Die Fixpunkte gehörten zum alten Weg und fallen weg. Kommt keine
+    /// Antwort, bleibt die alte Linie stehen; das neue Ziel gilt trotzdem für
+    /// jede weitere Neuplanung.
+    func redirect(to destination: CLLocationCoordinate2D, from here: CLLocationCoordinate2D,
+                  course: CLLocationDirection) {
+        task?.cancel()
+        task = nil
+        target = destination
+        config.via = []
+        lastReplan = .distantPast
+        replan(from: here, course: course, mayTurn: true)
     }
 
     /// Die Fahrt geht andersherum als geplant: am Ziel losgefahren, zum Start
@@ -142,9 +162,9 @@ final class Replanner {
     /// ist nur der Weg nach vorn. Die Ampeln des neuen Wegs kommen aus dem
     /// OpenStreetMap-Ausschnitt und dem Gelernten; die schon passierten
     /// zählen weiter mit (`RideTracker.signalsBehind`).
-    func replan(from here: CLLocationCoordinate2D, course: CLLocationDirection) {
+    func replan(from here: CLLocationCoordinate2D, course: CLLocationDirection, mayTurn: Bool = false) {
         guard task == nil, Date.now.timeIntervalSince(lastReplan) >= OffRoute.replanEvery,
-              let destination = plannedRoute.last else { return }
+              let destination = target ?? plannedRoute.last else { return }
         lastReplan = .now
         let mode = config.mode
         let router = router
@@ -158,7 +178,7 @@ final class Replanner {
         let from = course >= 0 ? Geo.ahead(here, course: course, meters: Self.lookahead) : here
         // Das Rad darf wenden — ein Weg, der zurückführt, ist dort eine
         // Auskunft. Nur fürs Auto gilt die Wende als Witz.
-        let heading = mode == .car ? course : -1
+        let heading = mode == .car && !mayTurn ? course : -1
         let known = config.knownSignals
         let (profile, cobbles) = (config.profile, config.avoidCobbles)
         let ahead = WaypointRouting.ahead(config.via, from: here, to: destination)

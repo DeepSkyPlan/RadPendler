@@ -28,7 +28,7 @@ struct ContentView: View {
     @State private var showMenu = false
     @State private var showRides = false
     @State private var editing: PlaceField?
-    /// Only for the double tap on the address box; a single fix, then forgotten.
+    /// For the commute button and the ride button; a single fix, then forgotten.
     @State private var locator = LocationService()
     /// Warum der Knopf „Fahrt“ gerade nicht aufgezeichnet hat.
     @State private var startNote: String?
@@ -346,7 +346,7 @@ struct ContentView: View {
         }
     }
 
-    /// Double tap on the address box: the commute, without typing. Where one
+    /// The commute button in the address box: the commute, without typing. Where one
     /// is standing decides which way round it is — at home it is the way in, at
     /// work the way back, and anywhere else the clock decides.
     ///

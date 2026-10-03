@@ -19,6 +19,8 @@ struct RideTrackingView: View {
 
     @State private var following = true
     @State private var confirmStop = false
+    /// Die Adresssuche für ein neues Ziel unterwegs.
+    @State private var choosingDestination = false
     /// Der Bildschirm, der nach einer Weile dunkel wird — und beim ersten
     /// Antippen wieder hell.
     private let screen = ScreenDim.shared
@@ -122,6 +124,13 @@ struct RideTrackingView: View {
             guard !Task.isCancelled else { return }
             withAnimation(.easeInOut) { following = true }
             pannedAt = nil
+        }
+        .sheet(isPresented: $choosingDestination) {
+            NavigationStack {
+                AddressSearchView(title: L("Neues Ziel")) { place in
+                    tracker.changeDestination(to: place)
+                }
+            }
         }
         .confirmationDialog(L("Fahrt beenden?"), isPresented: $confirmStop, titleVisibility: .visible) {
             Button(L("Fahrt beenden"), role: .destructive, action: onStop)
@@ -341,11 +350,21 @@ struct RideTrackingView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(mode.color)
             }
-            Text("\(tracker.subject?.origin ?? "") → \(tracker.subject?.destination ?? "")")
+            // Das Ziel ist ein Knopf: unterwegs woandershin, ohne die Fahrt
+            // zu beenden.
+            Button { choosingDestination = true } label: {
+                HStack(spacing: 4) {
+                    Text("\(tracker.subject?.origin ?? "") → \(tracker.subject?.destination ?? "")")
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Image(systemName: "pencil.circle.fill")
+                        .foregroundStyle(Theme.accent)
+                }
                 .font(.system(.caption, design: .rounded, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(L("Ziel ändern, jetzt %@", tracker.subject?.destination ?? ""))
             Spacer(minLength: 0)
             // Wie oft unterwegs neu geplant wurde. Steht nur da, wenn es
             // passiert ist — und dann als Zahl, nicht als Gefühl: „die Route

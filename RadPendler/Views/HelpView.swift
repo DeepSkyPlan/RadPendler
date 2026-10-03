@@ -12,7 +12,7 @@ struct HelpView: View {
                     header
                     section(L("Start und Ziel"), "mappin.and.ellipse", [
                         L("Oben auf die beiden Zeilen tippen und die Adresse suchen. Beide bleiben nur auf diesem Gerät."),
-                        L("Ein Doppeltipp auf die Box setzt die Pendelstrecke ein: dein Standort als Start, Zuhause oder Arbeit als Ziel. Welches von beidem, entscheidet der Ort — und wenn keiner passt, die Uhrzeit."),
+                        L("Der Knopf mit Haus und Fahne rechts in der Box setzt die Pendelstrecke ein: dein Standort als Start, Zuhause oder Arbeit als Ziel. Welches von beidem, entscheidet der Ort — und wenn keiner passt, die Uhrzeit."),
                         L("Der Pfeil daneben dreht die Richtung um."),
                         L("Ist das Ziel die Arbeitsadresse (Einstellungen → Arbeitsweg), startet die Suche mit „Ankunft“, sonst mit „Abfahrt jetzt“."),
                     ])
