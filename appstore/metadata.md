@@ -245,6 +245,59 @@ ODbL), Deutscher Wetterdienst und Open-Meteo.
 Alle Zeiten ohne Gewähr.
 ```
 
+## Was ist neu (1.10.2)
+
+Für das Feld „Neue Funktionen“ der Version 1.10.2 (DE 1281, EN 1167 Zeichen, max
+4000). Deckt alles seit 1.9 ab (1.10 und 1.10.1 waren nur TestFlight).
+
+```
+• Behoben: Absturz beim Start, auch nach dem Neuinstallieren. Die gelernten
+  Ampeln wuchsen bei jedem iCloud-Abgleich an, bis die App sie nicht mehr
+  zählen konnte. Deine Messwerte bleiben erhalten.
+• Am Ziel losgefahren? Steht noch der Hinweg vom Morgen auf dem Bildschirm und
+  du startest am anderen Ende, dreht RadPendler die Richtung und plant neu —
+  schon beim Tipp auf „Fahrt“, spätestens beim ersten Ortungspunkt. Restweg und
+  Restzeit zählen wieder herunter, und die Route liegt auf deiner Straßenseite.
+• Doppeltipp auf Start und Ziel setzt die Pendelstrecke jetzt zuverlässig,
+  egal wo in der Box die beiden Tipps landen.
+• Gemessene Werte von Hand überschreiben: Rolltempo, Wartezeit je Ampel und
+  die Gesamtschnitte zeigen, was gemessen ist; ein eigener Wert bleibt auch
+  nach der nächsten Fahrt stehen.
+• Fahrt teilen: eine aufgezeichnete Fahrt als Datei weitergeben, mit allen
+  Punkten und einem Protokoll, was unterwegs passiert ist.
+• Deine Auswahl bleibt: die gewählte Route übersteht eine Neuplanung, und die
+  Karte springt nicht mehr ohne Grund.
+• Auf der Karte trägt die gewählte Route ein Schild mit Zeit, Name und Länge;
+  Start, Ziel und Fixpunkte bleiben frei.
+• Rad + Bahn außerhalb von Berlin und Brandenburg rechnet mit deinem eigenen
+  Tempo.
+```
+
+English:
+
+```
+• Fixed: crash at launch, even after reinstalling. Learned traffic lights grew
+  with every iCloud sync until the app could no longer count them. Your
+  measurements are kept.
+• Starting at the destination? If the morning's route is still on screen and
+  you set off from the other end, RadPendler reverses the direction and plans
+  again — when you tap “Ride”, at the latest with the first location fix.
+  Distance and time left count down again, and the route is on your side of
+  the street.
+• Double-tapping start and destination now reliably sets your commute, wherever
+  in the box the two taps land.
+• Override measured values: rolling speed, wait per light and the overall
+  averages show what was measured; a value of your own stays after the next
+  ride.
+• Share a ride: send a recorded ride as a file, with every point and a log of
+  what happened on the way.
+• Your choice stays: the selected route survives a replan, and the map no
+  longer jumps for no reason.
+• On the map the selected route carries one label with time, name and length;
+  start, destination and waypoints stay clear.
+• Bike + train outside Berlin and Brandenburg uses your own speed.
+```
+
 ## Was ist neu (1.9)
 
 Für das Feld „Neue Funktionen“ der Version 1.9, falls 1.8.1 schon im Store ist; sonst
