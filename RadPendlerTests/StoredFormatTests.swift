@@ -266,14 +266,12 @@ final class StoredFormatTests: XCTestCase {
         let d = UserDefaults(suiteName: "stored-\(UUID())")!
         d.set(Int.max, forKey: "prepMinutes")
         d.set(Int.min, forKey: "parkingMinutes")
-        d.set(1e300, forKey: "replanOffRouteMeters")
-        d.set([Int.max, 5], forKey: "alertMinutes")
+        d.set(1e300, forKey: "autoStopMinutes")
         d.set(Data(json.utf8), forKey: "placeHistory")
         let settings = AppSettings(defaults: d)
         XCTAssertEqual(settings.prepMinutes, AppSettings.numberLimit)
         XCTAssertEqual(settings.parkingMinutes, -AppSettings.numberLimit)
-        XCTAssertEqual(settings.replanOffRouteMeters, Double(AppSettings.numberLimit))
-        XCTAssertEqual(settings.alertMinutes, [AppSettings.numberLimit, 5])
+        XCTAssertEqual(settings.autoStopMinutes, Double(AppSettings.numberLimit))
         XCTAssertEqual(settings.placeHistory.map(\.count), [PlaceUse.maxCount])
         _ = settings.prepMinutes * 60
     }

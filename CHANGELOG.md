@@ -1,5 +1,17 @@
 # Changelog
 
+## Unveröffentlicht — Zehn Regler weniger
+
+Die Einstellungen sind um alles kürzer, was die App selbst misst oder was nur Feinabgleich war.
+Die alten Schlüssel werden beim Laden gelöscht (`retiredKeys`) und reisen nicht mehr über iCloud;
+wer einen der Werte verstellt hatte, bekommt wieder den festen.
+
+- **„Von Hand“ entfällt** bei Rolltempo, Wartezeit je Ampel und den Gesamtschnitten Rad und Auto:
+  es gilt die Messung aus den eigenen Fahrten, die Zeile zeigt sie weiter an.
+- **Feste Werte statt Regler:** Umstieg zählt wie 10 min, 3 Möglichkeiten je Verkehrsmittel,
+  Radweg zum Bahnhof bis 5 km, Neuplanung ab 200 m neben der Route, Bildschirm dunkel nach 30 s.
+- **Countdown:** nur noch der eine Schalter; gewarnt wird 10, 5 und 1 Minute vorher.
+
 ## 1.12 (Build 52) — Gespeichertes hält jede Fassung aus
 
 Nach dem Überlauf vom 03.10.: was in den UserDefaults und in iCloud liegt, kann keine Fassung

@@ -400,9 +400,6 @@ final class RoadMixTests: XCTestCase {
         XCTAssertGreaterThan(OffRoute.replanMeters, OffRoute.offMeters,
                              "erst abgewichen, dann neu berechnet")
         XCTAssertGreaterThanOrEqual(OffRoute.offFor, 10)
-        XCTAssertEqual(AppSettings(defaults: UserDefaults(suiteName: UUID().uuidString)!)
-                        .replanOffRouteMeters, OffRoute.replanMeters,
-                       "die Voreinstellung ist dieselbe Zahl, nicht eine zweite daneben")
     }
 }
 

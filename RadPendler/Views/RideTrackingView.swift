@@ -102,8 +102,8 @@ struct RideTrackingView: View {
             if onPower { screen.wake() } else { lastTouch = .now }
         }
         .task(id: dimKey) {
-            guard settings.rideDimSeconds > 0, !onPower else { return }
-            try? await Task.sleep(for: .seconds(settings.rideDimSeconds))
+            guard !onPower else { return }
+            try? await Task.sleep(for: .seconds(AppSettings.rideDimSeconds))
             guard !Task.isCancelled else { return }
             // Läuft gerade Ton nebenher, später noch einmal fragen.
             if !screen.dim() { lastTouch = .now }

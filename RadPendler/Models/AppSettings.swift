@@ -12,15 +12,13 @@ final class AppSettings {
     var prepMinutes: Int = 5 { didSet { defaults.set(prepMinutes, forKey: "prepMinutes") } }
     /// Speed while rolling, without stops; lights are added per junction.
     /// MapKit's own cycling ETA is ignored. Gemessen (`calibrate`) oder die
-    /// Voreinstellung; von Hand nur über `bikeSpeedOverride`.
+    /// Voreinstellung.
     /// (0.1.x stored an all-in average under "bikeSpeedKmh" — deliberately not read.)
     var calibratedBikeSpeedKmh: Double = AppSettings.defaultBikeSpeedKmh {
         didSet { defaults.set(calibratedBikeSpeedKmh, forKey: "bikeMovingSpeedKmh") }
     }
     /// Time to get the bike from the street onto the platform, and back.
     var bikeStationBufferMinutes: Int = 3 { didSet { defaults.set(bikeStationBufferMinutes, forKey: "bikeStationBufferMinutes") } }
-    /// Farthest station the bike+rail search rides to, at either end.
-    var maxBikeToStationKm: Double = 5 { didSet { defaults.set(maxBikeToStationKm, forKey: "maxBikeToStationKm") } }
     /// Der Kasten „Auto" fährt Motorrad: Stau kostet weniger, weil man wie mit
     /// dem Rad bis an die Ampel vorrollt, und einen Parkplatz sucht niemand.
     var motorcycle: Bool = false {
@@ -31,8 +29,7 @@ final class AppSettings {
     }
     /// Added to every car trip for finding a parking space.
     var parkingMinutes: Int = 0 { didSet { defaults.set(parkingMinutes, forKey: "parkingMinutes") } }
-    /// How many minutes of travel time one change of train is worth avoiding.
-    var transferPenaltyMinutes: Int = 10 { didSet { defaults.set(transferPenaltyMinutes, forKey: "transferPenaltyMinutes") } }
+
     /// Quick departure choices: "in 15 min" or "um 8:00".
     var departurePresets: [DeparturePreset] = [.relative(15), .relative(60), .clock(8, 0), .clock(18, 0)] {
         didSet { defaults.set(departurePresets.map(\.stored), forKey: "departurePresets2") }
@@ -70,8 +67,9 @@ final class AppSettings {
     var homePlace: Place? = nil { didSet { save(homePlace, "homePlace") } }
     /// Default arrival time for trips towards the work address.
     var workArrivalMinutes: Int = 9 * 60 { didSet { defaults.set(workArrivalMinutes, forKey: "workArrivalMinutes") } }
-    /// Minutes before departure at which the countdown beeps.
-    var alertMinutes: [Int] = [10, 5, 1] { didSet { defaults.set(alertMinutes, forKey: "alertMinutes") } }
+    /// Minutes before departure at which the countdown beeps. Bis 1.12 je
+    /// Minute an- und abwählbar; geblieben ist der eine Schalter `alertsOn`.
+    let alertMinutes = [10, 5, 1]
     var alertsOn: Bool = true { didSet { defaults.set(alertsOn, forKey: "alertsOn") } }
     /// Töne während der Fahrt: Start, Ende, Abbiegungen.
     var rideSounds: Bool = true { didSet { defaults.set(rideSounds, forKey: "rideSounds") } }
@@ -115,8 +113,7 @@ final class AppSettings {
     }
 
     /// Average wait per traffic light on the bike (half of them are green).
-    /// Gemessen (`calibrate`) oder die Voreinstellung; von Hand nur über
-    /// `signalWaitOverride`.
+    /// Gemessen (`calibrate`) oder die Voreinstellung.
     var calibratedSignalWaitSeconds: Int = 20 {
         didSet { defaults.set(calibratedSignalWaitSeconds, forKey: "signalWaitSeconds") }
     }
@@ -127,21 +124,6 @@ final class AppSettings {
     /// cost instead of `signalWaitSeconds`.
     var learnedSignals: [LearnedSignal] = [] {
         didSet { defaults.set(Stored.encode(learnedSignals), forKey: "learnedSignals") }
-    }
-
-    /// Ab wie vielen Metern neben der geplanten Linie der Weg zum Ziel neu
-    /// berechnet wird. 0 schaltet es ab — dann bleibt es beim Pfeil zurück
-    /// zur alten Route.
-    var replanOffRouteMeters: Double = 200 {
-        didSet { defaults.set(replanOffRouteMeters, forKey: "replanOffRouteMeters") }
-    }
-
-    /// Wie viele Möglichkeiten je Verkehrsmittel gerechnet und angeboten
-    /// werden — die obersten so vieler aus der jeweiligen Reihenfolge.
-    /// Weniger heißt auch weniger Anfragen: für eine Rolle, die niemand sieht,
-    /// wird keine Route mehr geholt.
-    var optionsPerMode: Int = 3 {
-        didSet { defaults.set(optionsPerMode, forKey: "optionsPerMode") }
     }
 
     /// Whether the screen may turn. On a handlebar an automatic rotation is a
@@ -173,11 +155,9 @@ final class AppSettings {
     }
 
     /// Nach so vielen Sekunden ohne Berührung wird der Bildschirm während
-    /// einer Fahrt dunkel; 0 schaltet es ab. Er bleibt **an** — nur dunkel,
-    /// und beim ersten Antippen wieder hell.
-    var rideDimSeconds: Double = 30 {
-        didSet { defaults.set(rideDimSeconds, forKey: "rideDimSeconds") }
-    }
+    /// einer Fahrt dunkel. Er bleibt **an** — nur dunkel, und beim ersten
+    /// Antippen wieder hell. Bis 1.12 einstellbar.
+    static let rideDimSeconds = 30.0
 
     /// Ab wann ein Halt, an dem keine Ampel steht, die Aufzeichnung **anhält**
     /// — in Minuten; 0 schaltet es ab. Sie läuft von selbst weiter, sobald es
@@ -222,27 +202,13 @@ final class AppSettings {
         didSet { defaults.set(calibratedCarOverallKmh, forKey: "carOverallKmh") }
     }
 
-    // MARK: Von Hand statt gemessen
-
-    // Bis 1.9.1 standen die vier gemessenen Werte als Stepper in den
-    // Einstellungen, und `calibrate` schrieb nach jeder Fahrt darüber: was von
-    // Hand gestellt war, galt bis zur nächsten Fahrt. Jetzt steht die Messung
-    // für sich, und wer etwas anderes will, stellt es daneben — das überlebt
-    // jede Fahrt. nil heißt: es gilt die Messung.
-    var bikeSpeedOverride: Double? = nil { didSet { defaults.set(bikeSpeedOverride, forKey: "bikeSpeedOverride") } }
-    var signalWaitOverride: Int? = nil { didSet { defaults.set(signalWaitOverride, forKey: "signalWaitOverride") } }
-    var bikeOverallOverride: Double? = nil {
-        didSet { defaults.set(bikeOverallOverride, forKey: "bikeOverallOverride") }
-    }
-    var carOverallOverride: Double? = nil {
-        didSet { defaults.set(carOverallOverride, forKey: "carOverallOverride") }
-    }
-
-    /// Womit geplant wird: von Hand, wo gestellt, sonst gemessen.
-    var bikeSpeedKmh: Double { bikeSpeedOverride ?? calibratedBikeSpeedKmh }
-    var signalWaitSeconds: Int { signalWaitOverride ?? calibratedSignalWaitSeconds }
-    var bikeOverallKmh: Double { bikeOverallOverride ?? calibratedBikeOverallKmh }
-    var carOverallKmh: Double { carOverallOverride ?? calibratedCarOverallKmh }
+    /// Womit geplant wird: die Messung, oder die Voreinstellung, solange es
+    /// zu wenige Fahrten gibt. Bis 1.12 ließ sich jeder der vier Werte „von
+    /// Hand" dagegenstellen; die Regler sind weg, die Messung gilt.
+    var bikeSpeedKmh: Double { calibratedBikeSpeedKmh }
+    var signalWaitSeconds: Int { calibratedSignalWaitSeconds }
+    var bikeOverallKmh: Double { calibratedBikeOverallKmh }
+    var carOverallKmh: Double { calibratedCarOverallKmh }
     /// Was die Autofahrten gemessen haben, zum Anzeigen neben der Einstellung.
     var measuredCarKmh: Double? = nil { didSet { defaults.set(measuredCarKmh, forKey: "measuredCarKmh") } }
     var measuredCarRides: Int = 0 { didSet { defaults.set(measuredCarRides, forKey: "measuredCarRides") } }
@@ -271,19 +237,18 @@ final class AppSettings {
         "origin", "destination", "workPlace", "homePlace", "routeWaypoints", "placeHistory",
         "workArrivalMinutes",
         // Planung
-        "prepMinutes", "bikeMovingSpeedKmh", "bikeStationBufferMinutes", "maxBikeToStationKm",
-        "parkingMinutes", "motorcycle", "transferPenaltyMinutes", "signalWaitSeconds", "departurePresets2",
-        "arrivalBufferMinutes", "optionsPerMode",
+        "prepMinutes", "bikeMovingSpeedKmh", "bikeStationBufferMinutes",
+        "parkingMinutes", "motorcycle", "signalWaitSeconds", "departurePresets2",
+        "arrivalBufferMinutes",
         "modeOrder", "bikeVariantOrder", "rainSwitchLevel",
         "bikeLines",
         // Countdown
-        "alertMinutes", "alertsOn",
+        "alertsOn",
         // Aufzeichnen
-        "learnedSignals", "replanOffRouteMeters",
-        "autoStopMinutes", "autoPauseMinutes", "rideDimSeconds", "rideSounds", "avoidCobbles",
+        "learnedSignals",
+        "autoStopMinutes", "autoPauseMinutes", "rideSounds", "avoidCobbles",
         "measuredOverallKmh", "measuredMovingKmh", "measuredRides",
         "bikeOverallKmh", "carOverallKmh", "measuredCarKmh", "measuredCarRides",
-        "bikeSpeedOverride", "signalWaitOverride", "bikeOverallOverride", "carOverallOverride",
         // Anzeige
         "orientationLock", "rideOrientationLock", "language",
         // Was gelöscht wurde
@@ -296,7 +261,13 @@ final class AppSettings {
     static let retiredKeys = ["departureBufferMinutes", "timetableSource",
                               "signalStopSeconds", "replanOffRouteMinutes",
                               // 1.10: ein Fixpunkt reicht; Autorouten in fester Reihenfolge.
-                              "requireAllWaypoints", "carVariantOrder"]
+                              "requireAllWaypoints", "carVariantOrder",
+                              // 1.13: zehn Regler weniger — feste Werte, und die
+                              // Messung gilt ohne „von Hand".
+                              "bikeSpeedOverride", "signalWaitOverride", "bikeOverallOverride",
+                              "carOverallOverride", "transferPenaltyMinutes", "optionsPerMode",
+                              "maxBikeToStationKm", "replanOffRouteMeters", "rideDimSeconds",
+                              "alertMinutes"]
 
     private let defaults: UserDefaults
 
@@ -355,10 +326,7 @@ final class AppSettings {
         assign(\.calibratedBikeSpeedKmh, Self.double("bikeMovingSpeedKmh", defaults) ?? calibratedBikeSpeedKmh)
         assign(\.bikeStationBufferMinutes,
                Self.int("bikeStationBufferMinutes", defaults) ?? bikeStationBufferMinutes)
-        assign(\.maxBikeToStationKm, Self.double("maxBikeToStationKm", defaults) ?? maxBikeToStationKm)
         assign(\.parkingMinutes, Self.int("parkingMinutes", defaults) ?? parkingMinutes)
-        assign(\.transferPenaltyMinutes,
-               Self.int("transferPenaltyMinutes", defaults) ?? transferPenaltyMinutes)
         assign(\.calibratedSignalWaitSeconds,
                Self.int("signalWaitSeconds", defaults) ?? calibratedSignalWaitSeconds)
         assign(\.departurePresets, (defaults.array(forKey: "departurePresets2") as? [String])?
@@ -375,8 +343,6 @@ final class AppSettings {
         }
         assign(\.arrivalBufferMinutes, Self.int("arrivalBufferMinutes", defaults) ?? arrivalBufferMinutes)
         assign(\.workArrivalMinutes, Self.int("workArrivalMinutes", defaults) ?? workArrivalMinutes)
-        assign(\.alertMinutes, (defaults.array(forKey: "alertMinutes") as? [Int])?
-            .map { Swift.min(Swift.max($0, 0), Self.numberLimit) } ?? alertMinutes)
         assign(\.alertsOn, defaults.object(forKey: "alertsOn") as? Bool ?? alertsOn)
         assign(\.placeHistory, defaults.data(forKey: "placeHistory")
             .flatMap { Stored.list(PlaceUse.self, from: $0) }?.sanitized ?? placeHistory)
@@ -393,9 +359,6 @@ final class AppSettings {
             .map(LearnedSignal.healed) ?? learnedSignals)
         assign(\.orientation, (defaults.string(forKey: "orientationLock"))
             .flatMap(OrientationLock.init(rawValue:)) ?? orientation)
-        assign(\.replanOffRouteMeters,
-               Self.double("replanOffRouteMeters", defaults) ?? replanOffRouteMeters)
-        assign(\.optionsPerMode, Self.int("optionsPerMode", defaults) ?? optionsPerMode)
         assign(\.rideOrientation, (defaults.string(forKey: "rideOrientationLock"))
             .flatMap(OrientationLock.init(rawValue:)) ?? rideOrientation)
         assign(\.autoStopMinutes, Self.double("autoStopMinutes", defaults) ?? autoStopMinutes)
@@ -404,7 +367,6 @@ final class AppSettings {
         assign(\.autoPauseMinutes, Self.double("autoPauseMinutes", defaults) ?? autoPauseMinutes)
         assign(\.tombstones, defaults.data(forKey: "tombstones")
             .flatMap { try? JSONDecoder().decode(Tombstones.self, from: $0) } ?? tombstones)
-        assign(\.rideDimSeconds, Self.double("rideDimSeconds", defaults) ?? rideDimSeconds)
         assign(\.language, defaults.string(forKey: "language").flatMap(AppLanguage.init(rawValue:)) ?? language)
         // `assign` setzt nur, was sich unterscheidet — beim Start auf
         // „Deutsch" feuert das didSet also nicht, und `AppLanguage.current`
@@ -422,10 +384,6 @@ final class AppSettings {
         assign(\.calibratedBikeOverallKmh, Self.double("bikeOverallKmh", defaults) ?? calibratedBikeOverallKmh)
         // Fehlt der Schlüssel, ist nichts von Hand gestellt — auch nach dem
         // Umstieg von 1.9.1: was dort stand, gilt als gemessen.
-        assign(\.bikeSpeedOverride, Self.double("bikeSpeedOverride", defaults))
-        assign(\.signalWaitOverride, Self.int("signalWaitOverride", defaults))
-        assign(\.bikeOverallOverride, Self.double("bikeOverallOverride", defaults))
-        assign(\.carOverallOverride, Self.double("carOverallOverride", defaults))
         loadedOnce = true
     }
 
@@ -522,12 +480,10 @@ final class AppSettings {
     var snapshot: PlanSettings {
         PlanSettings(prepMinutes: prepMinutes, bikeSpeedKmh: bikeSpeedKmh,
                      bikeStationBufferMinutes: bikeStationBufferMinutes,
-                     maxBikeToStationKm: maxBikeToStationKm, parkingMinutes: parkingMinutes,
-                     transferPenaltyMinutes: transferPenaltyMinutes, signalWaitSeconds: signalWaitSeconds,
+                     parkingMinutes: parkingMinutes, signalWaitSeconds: signalWaitSeconds,
                      waypoints: waypoints,
                      arrivalBufferMinutes: arrivalBufferMinutes,
                      modeOrder: modeOrder, bikeVariantOrder: bikeVariantOrder,
-                     optionsPerMode: optionsPerMode,
                      rainSwitchLevel: rainSwitchLevel,
                      bikeLineStatus: bikeLines.status,
                      learnedSignals: learnedSignals,
