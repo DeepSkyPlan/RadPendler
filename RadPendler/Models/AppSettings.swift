@@ -388,7 +388,8 @@ final class AppSettings {
         assign(\.rainSwitchLevel, (defaults.object(forKey: "rainSwitchLevel") as? Int)
             .flatMap(RainLevel.init(rawValue:)) ?? rainSwitchLevel)
         assign(\.learnedSignals, defaults.data(forKey: "learnedSignals")
-            .flatMap { try? JSONDecoder().decode([LearnedSignal].self, from: $0) } ?? learnedSignals)
+            .flatMap { try? JSONDecoder().decode([LearnedSignal].self, from: $0) }
+            .map(LearnedSignal.healed) ?? learnedSignals)
         assign(\.orientation, (defaults.string(forKey: "orientationLock"))
             .flatMap(OrientationLock.init(rawValue:)) ?? orientation)
         assign(\.replanOffRouteMeters,

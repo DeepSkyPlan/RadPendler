@@ -61,6 +61,12 @@ xcodebuild -exportArchive -archivePath "$WORK/RadPendler.xcarchive" \
   -authenticationKeyPath "$KEY" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" 2>&1 \
   | grep -E "error|Upload succeeded|EXPORT (SUCC|FAIL)" | tail -3
 [ "${PIPESTATUS[0]}" -eq 0 ] || { echo "Upload gescheitert." >&2; false; }
+# Das Archiv bleibt: ohne seine dSYMs ist ein Absturzbericht aus TestFlight
+# nur eine Liste von Adressen (03.10.2026 — Build 49 musste nachgebaut werden).
+# Dort, wo Xcodes Organizer es findet.
+KEEP="$HOME/Library/Developer/Xcode/Archives/$(date +%Y-%m-%d)"
+mkdir -p "$KEEP"
+mv "$WORK/RadPendler.xcarchive" "$KEEP/RadPendler $version ($build).xcarchive"
 rm -rf "$WORK"
 trap - ERR
 
