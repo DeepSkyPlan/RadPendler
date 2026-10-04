@@ -211,6 +211,24 @@ final class RideTests: XCTestCase {
         XCTAssertEqual(m.stops.count, 0)
     }
 
+    // MARK: Empfänger
+
+    /// Endet eine Fahrt in der selbst gemachten Pause, steht der Empfänger auf
+    /// „sparsam": hundert Meter genau, eine Ortung je fünfzig Meter. Der
+    /// Tracker lebt weiter, und bis 1.13 fuhr die nächste Fahrt damit los —
+    /// im Stehen kam keine Ortung mehr, also auch kein Halt und keine Ampel.
+    @MainActor
+    func testEveryRideStartsWithTheFullReceiver() {
+        let tracker = RideTracker()
+        XCTAssertEqual(tracker.receiver, .full)
+        tracker.tune(.waiting)
+        XCTAssertEqual(RideTracker.Receiver.waiting.distanceFilter, RideTracker.wakeMeters)
+        tracker.start(RidePlan(subject: .init(origin: "A", destination: "B", mode: TravelMode.car.rawValue),
+                               signals: [], route: [east(0), east(500)]))
+        XCTAssertEqual(tracker.receiver, .full)
+        XCTAssertEqual(RideTracker.Receiver.full.distanceFilter, kCLDistanceFilterNone)
+    }
+
     // MARK: Neuplanung mitten in der Fahrt
 
     /// Nördlich von `base`, zusätzlich zur Verschiebung nach Osten.

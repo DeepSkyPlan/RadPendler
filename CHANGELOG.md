@@ -1,5 +1,15 @@
 # Changelog
 
+## Unveröffentlicht
+
+- **Ton beim Anhalten und Weiterfahren:** zwei kurze Töne abwärts, wenn die Aufzeichnung anhält
+  (Knopf oder von selbst), zwei aufwärts, wenn sie weiterläuft. Folgt dem Schalter „Töne bei Start, Ende und Abbiegungen“.
+- **Keine Halte, keine Ampeln nach einer selbst beendeten Fahrt:** endete eine Fahrt in der selbst
+  gemachten Pause, blieb der Empfänger sparsam (100 m, eine Ortung je 50 m) — bis zum nächsten
+  App-Start. Die folgenden Fahrten hatten einen Punkt je 64 m statt je 7 m, im Stehen keine Ortung,
+  also 0 Halte und 0 Ampeln bei 4 min Standzeit (Fahrten 04.10.). Jeder Start und jedes Ende stellt
+  den Empfänger jetzt wieder voll (`RideTracker.tune`).
+
 ## 1.13 (Build 53) — Zehn Regler weniger
 
 Die Einstellungen sind um alles kürzer, was die App selbst misst oder was nur Feinabgleich war.

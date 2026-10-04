@@ -1,8 +1,8 @@
 import AVFoundation
 import UIKit
 
-/// Die Töne während einer Fahrt: Start, Ende, und vor jeder Abbiegung zwei —
-/// einer beim Ankündigen, ein doppelter kurz davor.
+/// Die Töne während einer Fahrt: Start, Ende, Anhalten und Weiterfahren, und
+/// vor jeder Abbiegung zwei — einer beim Ankündigen, ein doppelter kurz davor.
 ///
 /// Bis 1.5 gab es während der Fahrt gar keinen Ton. `AudioServicesPlaySystemSound`,
 /// das der Countdown benutzt, schweigt bei stummgeschaltetem Telefon und
@@ -20,6 +20,8 @@ final class RideSounds {
 
     enum Cue: Equatable {
         case start, stop
+        /// Anhalten und Weiterfahren — per Knopf oder von selbst.
+        case pause, resume
         /// `side`: -1 links, 0 geradeaus/Ziel, +1 rechts.
         case turnAhead(side: Int)
         case turnNow(side: Int)
@@ -59,13 +61,17 @@ final class RideSounds {
     struct Note { var hz: Double; var seconds: Double }
 
     /// Links tiefer, rechts höher; die Ankündigung ein Ton, „jetzt" zwei kurze.
-    /// Start steigt, Ende fällt.
+    /// Start steigt, Ende fällt. Anhalten und Weiterfahren sind dasselbe im
+    /// Kleinen: ein Ganzton hinunter, ein Ganzton hinauf — kürzer und enger
+    /// als Start und Ende, damit niemand eine Pause für das Ende hält.
     nonisolated static func notes(_ cue: Cue) -> ([Note], Double) {
         func pitch(_ side: Int) -> Double { side < 0 ? 740 : side > 0 ? 988 : 880 }
         switch cue {
         case .start: return ([Note(hz: 660, seconds: 0.14), Note(hz: 0, seconds: 0.04), Note(hz: 990, seconds: 0.2)], 0)
         case .stop: return ([Note(hz: 990, seconds: 0.14), Note(hz: 0, seconds: 0.04), Note(hz: 660, seconds: 0.14),
                              Note(hz: 0, seconds: 0.04), Note(hz: 495, seconds: 0.24)], 0)
+        case .pause: return ([Note(hz: 880, seconds: 0.1), Note(hz: 0, seconds: 0.04), Note(hz: 784, seconds: 0.16)], 0)
+        case .resume: return ([Note(hz: 784, seconds: 0.1), Note(hz: 0, seconds: 0.04), Note(hz: 880, seconds: 0.16)], 0)
         case .turnAhead(let side): return ([Note(hz: pitch(side), seconds: 0.22)], Double(side) * 0.7)
         case .turnNow(let side): return ([Note(hz: pitch(side), seconds: 0.1), Note(hz: 0, seconds: 0.06),
                                           Note(hz: pitch(side), seconds: 0.1)], Double(side) * 0.7)

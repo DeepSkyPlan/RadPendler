@@ -19,4 +19,15 @@ final class RideSoundsTests: XCTestCase {
         XCTAssertEqual(TurnGuide.Turn.arrive.side, 0)
         XCTAssertEqual(RideSounds.notes(.turnNow(side: 1)).0.filter { $0.hz > 0 }.count, 2, "jetzt: doppelt")
     }
+
+    /// Anhalten fällt, Weiterfahren steigt — und keins von beiden klingt wie
+    /// Start oder Ende.
+    func testPauseAndResumeAreTheirOwnSounds() {
+        let tones = { (cue: RideSounds.Cue) in RideSounds.notes(cue).0.filter { $0.hz > 0 }.map(\.hz) }
+        let (pause, resume) = (tones(.pause), tones(.resume))
+        XCTAssertGreaterThan(pause.first!, pause.last!)
+        XCTAssertLessThan(resume.first!, resume.last!)
+        XCTAssertNotEqual(pause, tones(.stop))
+        XCTAssertNotEqual(resume, tones(.start))
+    }
 }

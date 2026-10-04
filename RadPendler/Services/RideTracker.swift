@@ -106,11 +106,37 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         // its sensor fusion at full tilt for turn-by-turn guidance the app
         // does not give, and it is the most expensive mode there is. On a bike
         // the difference in the drawn line is not visible; in the battery it is.
-        manager.desiredAccuracy = kCLLocationAccuracyBest
+        tune(.full)
         manager.activityType = .otherNavigation
-        manager.distanceFilter = kCLDistanceFilterNone
         // A pause looks like an arrival to iOS and never resumes on its own.
         manager.pausesLocationUpdatesAutomatically = false
+    }
+
+    /// Wie genau und wie oft der Empfänger meldet: voll während der Fahrt,
+    /// sparsam in der selbst gemachten Pause.
+    enum Receiver: Equatable {
+        case full, waiting
+
+        var accuracy: CLLocationAccuracy {
+            self == .full ? kCLLocationAccuracyBest : kCLLocationAccuracyHundredMeters
+        }
+        var distanceFilter: CLLocationDistance {
+            self == .full ? kCLDistanceFilterNone : RideTracker.wakeMeters
+        }
+    }
+
+    /// Der Empfänger gehört dem Tracker, nicht der Fahrt, und überlebt sie.
+    /// Endete eine Fahrt in der selbst gemachten Pause, blieb er bis 1.13
+    /// sparsam — und die nächste Fahrt bekam eine Ortung je fünfzig Meter und
+    /// im Stehen gar keine: kein Halt, keine Ampel, 64 m je Punkt
+    /// (Fahrten 04.10.2026). Deshalb stellt jeder Start und jedes Ende ihn
+    /// wieder voll.
+    private(set) var receiver = Receiver.full
+
+    func tune(_ to: Receiver) {
+        receiver = to
+        manager.desiredAccuracy = to.accuracy
+        manager.distanceFilter = to.distanceFilter
     }
 
     // MARK: Start and stop
@@ -173,6 +199,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
 
     func start(_ plan: RidePlan) {
         guard !isRecording else { return }
+        tune(.full)
         let route = plan.route
         self.autoStopSeconds = plan.autoStopMinutes * 60
         self.autoPauseSeconds = plan.autoPauseMinutes * 60
@@ -363,6 +390,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         guard isRecording, !meter.isPaused else { return }
         meter.pause()
         log("pause", "von Hand")
+        RideSounds.shared.play(.pause)
         autoPaused = false
         stopPauseWatch()
         // Von Hand angehalten heißt: die Ortung darf ganz aus. Weiter geht es
@@ -383,11 +411,11 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         guard isRecording, !meter.isPaused else { return }
         meter.pause(at: now)
         log("pause", "von selbst")
+        RideSounds.shared.play(.pause)
         autoPaused = true
         startPauseWatch()
         pausedAt = here
-        manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
-        manager.distanceFilter = Self.wakeMeters
+        tune(.waiting)
         applyIdleTimer()
         saveInterrupted(at: now)
         pushToWatch(force: true)
@@ -437,11 +465,11 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         guard isRecording, meter.isPaused else { return }
         meter.resume()
         log("weiter")
+        RideSounds.shared.play(.resume)
         autoPaused = false
         pausedAt = nil
         stopPauseWatch()
-        manager.desiredAccuracy = kCLLocationAccuracyBest
-        manager.distanceFilter = kCLDistanceFilterNone
+        tune(.full)
         manager.allowsBackgroundLocationUpdates = true
         manager.showsBackgroundLocationIndicator = true
         manager.startUpdatingLocation()
@@ -457,8 +485,10 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         log("ende", "\(replans)× neu geplant")
         stopPauseWatch()
         autoPaused = false
+        pausedAt = nil
         manager.stopUpdatingLocation()
         manager.allowsBackgroundLocationUpdates = false
+        tune(.full)
         meter.finish(at: end)
         RideSounds.shared.play(.stop)
         let (ride, track) = result(subject, end: end)
