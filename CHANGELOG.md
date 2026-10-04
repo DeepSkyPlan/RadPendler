@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — Halte zählen wieder, Ton beim Anhalten
+## 1.14 (Build 54) — Halte zählen wieder, Ton beim Anhalten
 
 - **Ton beim Anhalten und Weiterfahren:** zwei kurze Töne abwärts, wenn die Aufzeichnung anhält
   (Knopf oder von selbst), zwei aufwärts, wenn sie weiterläuft. Folgt dem Schalter „Töne bei Start, Ende und Abbiegungen“.
