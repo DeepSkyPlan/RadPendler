@@ -21,6 +21,8 @@ final class StoredFormatTests: XCTestCase {
     private let rideFirst = #"{"id":"8D7A1E8E-6C3B-4C61-9E0B-5A4B2F1D3C11","started":780000000,"ended":780001500,"origin":"A","destination":"B","mode":"bike","meters":8000,"movingSeconds":1300,"maxKmh":31.5,"signalStops":4,"otherStops":1,"signalWaitTotal":95,"plannedSeconds":1500}"#
     /// 1.11 (51): alles, was es gibt.
     private let ride111 = #"{"appVersion":"1.11 (51)","destination":"B","ended":780101500,"id":"8D7A1E8E-6C3B-4C61-9E0B-5A4B2F1D3C12","maxKmh":31.5,"meters":8000,"mix":{"meters":["main",1200,"side",300.5]},"mode":"bike","motorcycle":false,"movingSeconds":1300,"origin":"A","otherStops":1,"pausedSeconds":120,"plannedMeters":7900,"plannedSeconds":1500,"plannedSignals":9,"pointCount":812,"signalStops":4,"signalWaitTotal":95,"standingInPause":true,"started":780100000}"#
+    /// 1.15: eine Autofahrt mit Apples Ansage (`appleSeconds`).
+    private let ride115 = #"{"appVersion":"1.15 (55)","appleSeconds":1500,"destination":"B","ended":780301800,"id":"8D7A1E8E-6C3B-4C61-9E0B-5A4B2F1D3C14","maxKmh":95,"meters":20000,"mode":"car","movingSeconds":1600,"origin":"A","otherStops":1,"pausedSeconds":0,"plannedMeters":20000,"plannedSeconds":1700,"plannedSignals":9,"pointCount":812,"signalStops":4,"signalWaitTotal":95,"standingInPause":true,"started":780300000}"#
     /// Eine Fassung, die es noch nicht gibt: ein Feld, das niemand kennt, eine
     /// Straßenklasse, die niemand kennt, und ein bekanntes Feld in neuem Typ.
     private let rideLater = #"{"id":"8D7A1E8E-6C3B-4C61-9E0B-5A4B2F1D3C13","started":780200000,"ended":780201500,"origin":"A","destination":"B","mode":"hoverboard","meters":8000,"movingSeconds":1300,"maxKmh":31.5,"signalStops":4,"otherStops":1,"signalWaitTotal":95,"pausedSeconds":0,"pointCount":3,"motorcycle":"ja","neuesFeld":{"x":[1,2]},"mix":{"meters":["main",1200,"tunnel",50]}}"#
@@ -46,6 +48,20 @@ final class StoredFormatTests: XCTestCase {
         XCTAssertNil(later.motorcycle, "ein Feld in unbekanntem Typ ist wie ein fehlendes")
         XCTAssertEqual(later.mix?.total, 1200, "die unbekannte Straßenklasse fällt allein heraus")
         XCTAssertNil(later.travelMode)
+    }
+
+    /// Apples Ansage kam mit 1.15 dazu: ältere Fahrten haben keine und tragen
+    /// zum Faktor nichts bei; die neue übersteht Schreiben und Lesen.
+    func testApplesTimeIsOptional() throws {
+        let list = try XCTUnwrap(rides(rideFirst, ride111, ride115))
+        XCTAssertEqual(list.count, 3)
+        let car = try XCTUnwrap(list.first { $0.mode == "car" })
+        XCTAssertEqual(car.appleSeconds, 1500)
+        XCTAssertEqual(car.appleFactor ?? 0, 1.2, accuracy: 0.001)
+        XCTAssertTrue(list.filter { $0.mode != "car" }.allSatisfy { $0.appleSeconds == nil && $0.appleFactor == nil })
+        let packed = try XCTUnwrap(RideStore.encode(list))
+        XCTAssertEqual(RideStore.decode(packed), list)
+        XCTAssertEqual(car.sanitized?.appleSeconds, 1500)
     }
 
     func testOneUnreadableRideDoesNotTakeTheListWithIt() throws {

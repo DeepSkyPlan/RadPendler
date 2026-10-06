@@ -133,6 +133,11 @@ struct Ride: Codable, Identifiable, Equatable {
     /// Metres per kind of road, attributed to the route that was planned.
     /// nil where nobody classified the route — Apple's lines carry no tags.
     var mix: RoadMix?
+    /// Was Apple Karten für den Weg angesagt hat, der gefahren wurde: reine
+    /// Fahrzeit mit Verkehrslage, ohne Parkplatzsuche. Nach einer Neuplanung
+    /// das bis dahin Gefahrene plus Apples Zeit für den Rest. Nur beim Auto,
+    /// seit 1.15 — daraus lernt die App `AppSettings.carAppleFactor`.
+    var appleSeconds: TimeInterval?
 
     var seconds: TimeInterval { max(0, ended.timeIntervalSince(started) - pausedSeconds) }
     /// Door to door, standing time included.
@@ -154,6 +159,18 @@ struct Ride: Codable, Identifiable, Equatable {
     }
     /// Minutes off the plan; negative means faster than announced.
     var deviationSeconds: TimeInterval? { plannedSeconds.map { seconds - $0 } }
+    /// Gefahren durch Apples Ansage, Tür zu Tür. nil, wo es keine Ansage gab,
+    /// die Fahrt zu kurz war, um etwas zu sagen, oder das Verhältnis zeigt,
+    /// dass nicht gefahren wurde, was angesagt war (abgebrochen, Umweg über
+    /// den Supermarkt).
+    var appleFactor: Double? {
+        guard let apple = appleSeconds, apple >= Self.minAppleSeconds, seconds > 0 else { return nil }
+        let f = seconds / apple
+        return Self.plausibleAppleFactor.contains(f) ? f : nil
+    }
+    static let minAppleSeconds = 300.0
+    static let plausibleAppleFactor = 0.5...3.0
+
     /// Der Schnitt, den der Plan versprochen hat — Tür zu Tür, wie `averageKmh`.
     var plannedAverageKmh: Double? {
         guard let s = plannedSeconds, s > 0, let m = plannedMeters, m > 0 else { return nil }
@@ -192,6 +209,7 @@ extension Ride {
         pointCount = later(.pointCount) ?? 0
         motorcycle = later(.motorcycle)
         mix = later(.mix)
+        appleSeconds = later(.appleSeconds)
     }
 
     static let maxMeters = 10_000_000.0
@@ -214,6 +232,7 @@ extension Ride {
         r.plannedSeconds = plannedSeconds.map { Stored.amount($0, max: Self.maxSeconds) }
         r.plannedMeters = plannedMeters.map { Stored.amount($0, max: Self.maxMeters) }
         r.plannedSignals = plannedSignals.map { Stored.count($0, max: Self.maxStops) }
+        r.appleSeconds = appleSeconds.map { Stored.amount($0, max: Self.maxSeconds) }
         return r
     }
 

@@ -373,6 +373,46 @@ final class CalibrationTests: XCTestCase {
         XCTAssertEqual(s.bikeSpeedKmh, 26)
     }
 
+    /// Gefahren durch Apples Ansage: der Median der Fahrten, die eine Ansage
+    /// haben — erst ab drei, ohne Motorrad, ohne Fahrten, die offenbar nicht
+    /// gefahren wurden wie angesagt.
+    func testTheCarLearnsItsFactorAgainstApple() {
+        let s = settings()
+        func car(day: Double, apple: Double?, minutes: Double, moto: Bool = false) -> Ride {
+            var r = Ride(started: Date(timeIntervalSince1970: 1_780_000_000 + day * 86_400),
+                         ended: Date(timeIntervalSince1970: 1_780_000_000 + day * 86_400 + minutes * 60),
+                         origin: "A", destination: "B", mode: "car", meters: 20_000,
+                         movingSeconds: minutes * 50, maxKmh: 60, signalStops: 0, otherStops: 0,
+                         signalWaitTotal: 0, plannedSeconds: nil)
+            r.appleSeconds = apple.map { $0 * 60 }
+            if moto { r.motorcycle = true }
+            return r
+        }
+        // Drei alte Fahrten ohne Ansage: ein Schnitt, aber kein Faktor.
+        let old = (0..<3).map { car(day: Double($0), apple: nil, minutes: 30) }
+        s.calibrateCar(from: old)
+        XCTAssertEqual(s.carAppleFactor, 0)
+        XCTAssertNil(s.snapshot.carAppleFactor)
+        XCTAssertGreaterThan(s.carOverallKmh, 0)
+        // Zwei mit Ansage reichen noch nicht.
+        let two = [car(day: 10, apple: 30, minutes: 33), car(day: 11, apple: 30, minutes: 36)]
+        s.calibrateCar(from: old + two)
+        XCTAssertEqual(s.carAppleFactor, 0)
+        // Die dritte: Median von 1,1 · 1,2 · 1,3. Das Motorrad und die
+        // abgebrochene Fahrt (10 von 30 min) zählen nicht.
+        let more = [car(day: 12, apple: 30, minutes: 39),
+                    car(day: 13, apple: 30, minutes: 20, moto: true),
+                    car(day: 14, apple: 30, minutes: 10)]
+        s.calibrateCar(from: old + two + more)
+        XCTAssertEqual(s.carAppleFactor, 1.2, accuracy: 0.001)
+        XCTAssertEqual(s.carAppleFactorRides, 3)
+        XCTAssertEqual(s.snapshot.carAppleFactor ?? 0, 1.2, accuracy: 0.001)
+        // Und er bleibt in Grenzen, was immer gemessen wurde.
+        let slow = (20..<23).map { car(day: Double($0), apple: 20, minutes: 55) }
+        s.calibrateCar(from: slow)
+        XCTAssertEqual(s.carAppleFactor, AppSettings.carAppleFactorRange.upperBound)
+    }
+
     /// Rad und Auto haben je ihren eigenen Schnitt: Autofahrten schieben den
     /// Rad-Schnitt nicht, und der Auto-Schnitt wird erst mit drei Fahrten.
     func testCarAndBikeAveragesAreSeparate() {

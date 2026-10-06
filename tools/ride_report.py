@@ -80,6 +80,10 @@ def main():
         ("Protokoll", ", ".join(f"{k} {v}" for k, v in counts.items()) or "keins (vor 1.9.2)"),
         ("Halte", f"{ride['signalStops']} an Ampeln, {ride['otherStops']} sonstige"),
     ]
+    took = (t(ride["ended"]) - t(ride["started"])).total_seconds() - ride.get("pausedSeconds", 0)
+    if ride.get("appleSeconds"):
+        facts.append(("Apple Karten", f"{ride['appleSeconds'] / 60:.0f} min angesagt, {took / 60:.0f} min gefahren, "
+                                      f"Faktor {took / ride['appleSeconds']:.2f}"))
 
     segs = []
     for a, b in zip(pts, pts[1:]):

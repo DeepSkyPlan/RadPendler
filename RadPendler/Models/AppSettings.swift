@@ -212,6 +212,13 @@ final class AppSettings {
     /// Was die Autofahrten gemessen haben, zum Anzeigen neben der Einstellung.
     var measuredCarKmh: Double? = nil { didSet { defaults.set(measuredCarKmh, forKey: "measuredCarKmh") } }
     var measuredCarRides: Int = 0 { didSet { defaults.set(measuredCarRides, forKey: "measuredCarRides") } }
+    /// Gefahren durch Apples Ansage, Tür zu Tür — der Median der letzten
+    /// Autofahrten, die Apples Zeit mitgebracht haben. 0 heißt: noch nicht
+    /// gelernt, es gelten Parkplatzsuche und Auto-Schnitt. Anders als der
+    /// Schnitt passt der Faktor auf jede Strecke: die Autobahn zum Flughafen
+    /// ist bei Apple schon schneller als der Weg durch die Stadt.
+    var carAppleFactor: Double = 0 { didSet { defaults.set(carAppleFactor, forKey: "carAppleFactor") } }
+    var carAppleFactorRides: Int = 0 { didSet { defaults.set(carAppleFactorRides, forKey: "carAppleFactorRides") } }
 
     /// 29 km/h rolling + 20 s per signalised junction reproduces the user's
     /// measured ~21 km/h door-to-door on the Berlin commute it was built for.
@@ -249,6 +256,7 @@ final class AppSettings {
         "autoStopMinutes", "autoPauseMinutes", "rideSounds", "avoidCobbles",
         "measuredOverallKmh", "measuredMovingKmh", "measuredRides",
         "bikeOverallKmh", "carOverallKmh", "measuredCarKmh", "measuredCarRides",
+        "carAppleFactor", "carAppleFactorRides",
         // Anzeige
         "orientationLock", "rideOrientationLock", "language",
         // Was gelöscht wurde
@@ -381,6 +389,8 @@ final class AppSettings {
         assign(\.calibratedCarOverallKmh, Self.double("carOverallKmh", defaults) ?? calibratedCarOverallKmh)
         assign(\.measuredCarKmh, Self.double("measuredCarKmh", defaults))
         assign(\.measuredCarRides, Self.int("measuredCarRides", defaults) ?? measuredCarRides)
+        assign(\.carAppleFactor, Self.double("carAppleFactor", defaults) ?? carAppleFactor)
+        assign(\.carAppleFactorRides, Self.int("carAppleFactorRides", defaults) ?? carAppleFactorRides)
         assign(\.calibratedBikeOverallKmh, Self.double("bikeOverallKmh", defaults) ?? calibratedBikeOverallKmh)
         // Fehlt der Schlüssel, ist nichts von Hand gestellt — auch nach dem
         // Umstieg von 1.9.1: was dort stand, gilt als gemessen.
@@ -489,6 +499,7 @@ final class AppSettings {
                      learnedSignals: learnedSignals,
                      measuredOverallKmh: bikeOverallKmh > 0 ? bikeOverallKmh : nil,
                      carOverallKmh: carOverallKmh > 0 ? carOverallKmh : nil,
+                     carAppleFactor: carAppleFactor > 0 ? carAppleFactor : nil,
                      avoidCobbles: avoidCobbles, motorcycle: motorcycle)
     }
 
@@ -544,6 +555,8 @@ struct PlanSettings: Equatable {
     var measuredOverallKmh: Double? = nil
     /// Der Tür-zu-Tür-Schnitt fürs Auto; nil heißt, Apples Fahrzeit gilt.
     var carOverallKmh: Double? = nil
+    /// Gefahren durch Apples Ansage; nil, solange es zu wenige Fahrten sind.
+    var carAppleFactor: Double? = nil
     /// Radrouten meiden Kopfsteinpflaster.
     var avoidCobbles = true
     /// Der Kasten „Auto" fährt Motorrad — siehe `CarCandidate.driveTime`.

@@ -53,6 +53,11 @@ extension Fmt {
         return kmh.formatted(.number.precision(.fractionLength(1)).locale(locale)) + " km/h"
     }
 
+    /// Ein Faktor auf zwei Stellen — „× 1,15".
+    static func factor(_ f: Double) -> String {
+        "× " + f.formatted(.number.precision(.fractionLength(2)).locale(locale))
+    }
+
     /// A stopwatch, not a duration: "3:07", "1:12:40". Seconds matter while a
     /// ride is running, which is exactly where `duration` rounds them away.
     static func clock(_ seconds: TimeInterval) -> String {

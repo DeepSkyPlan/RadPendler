@@ -2,7 +2,14 @@
 
 ## Unveröffentlicht
 
-- **Auto: Apples Fahrzeit gilt, wo sie deutlich schneller ist.** Der eigene Auto-Schnitt ist auf dem
+- **Auto lernt sein Verhältnis zu Apple Karten.** Jede aufgezeichnete Autofahrt merkt sich Apples
+  Ansage für den gefahrenen Weg (`Ride.appleSeconds`; nach einer Neuplanung das Gefahrene plus Apples
+  Zeit für den Rest). Aus dem Median „gefahren ÷ angesagt" der letzten acht Fahrten wird ab drei
+  Fahrten ein Faktor (0,8–2,0), mit dem Apples Zeit malgenommen wird — auf jeder Strecke. Er löst
+  Parkplatzsuche und Auto-Schnitt ab; bis er gelernt ist, gelten sie weiter. Zeile „Gegenüber Apple
+  Karten" in den Einstellungen; `ride_report.py` nennt Ansage und Faktor. Fahrten vor dieser Fassung
+  haben keine Ansage und zählen nicht mit.
+- **Bis dahin: Apples Fahrzeit gilt, wo sie deutlich schneller ist.** Der eigene Auto-Schnitt ist auf dem
   Arbeitsweg gemessen und war trotzdem für jede Linie die Untergrenze — zum Flughafen über die
   Autobahn standen 1:05 h da, gefahren waren es 37 min (Fahrt 06.10.). Fährt Apple eine Linie mehr
   als anderthalbmal so schnell wie der Schnitt, zählt jetzt Apples Zeit (`CarCandidate.ownPaceReach`).

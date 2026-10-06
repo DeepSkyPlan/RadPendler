@@ -57,6 +57,25 @@ struct CarCandidate {
         return own.rounded()
     }
 
+    /// Woher die angezeigte Fahrzeit kommt.
+    enum Basis: Equatable { case learned, ownPace, parking, apple }
+
+    /// Tür zu Tür. Am liebsten Apples Zeit mal dem, was dieser Fahrer
+    /// gegenüber Apple wirklich braucht — das passt auf Stadt und Autobahn
+    /// gleichermaßen, und Parkplatzsuche wie eigener Fahrstil stecken schon
+    /// darin. Solange der Faktor nicht gelernt ist: Apple plus Parkplatzsuche,
+    /// und der eigene Schnitt als Untergrenze, wo er gilt. Das Motorrad
+    /// bekommt nichts davon — es steht vor der Tür, und alles Gemessene ist
+    /// mit dem Auto gemessen.
+    func doorToDoor(_ s: PlanSettings) -> (seconds: TimeInterval, basis: Basis) {
+        let drive = driveTime(s)
+        guard !s.motorcycle else { return (drive, .apple) }
+        if let f = s.carAppleFactor, f > 0 { return ((drive * f).rounded(), .learned) }
+        let apple = drive + TimeInterval(s.parkingMinutes * 60)
+        if let own = ownPaceTime(kmh: s.carOverallKmh, s), own > apple { return (own, .ownPace) }
+        return (apple, s.parkingMinutes > 0 ? .parking : .apple)
+    }
+
     /// Mittelweg: time plus half the waiting, so a line that is two minutes
     /// slower but crosses twenty fewer junctions can win it.
     func balancedScore(_ s: PlanSettings) -> Double {

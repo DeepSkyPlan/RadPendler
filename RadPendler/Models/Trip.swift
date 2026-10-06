@@ -202,6 +202,10 @@ struct CarRouteInfo {
     /// Signalised junctions along the way; nil when OpenStreetMap was unreachable.
     var signals: Int?
     var signalPoints: [CLLocationCoordinate2D] = []
+    /// Apples reine Fahrzeit für diese Linie, mit Verkehrslage — vor
+    /// Parkplatzsuche, eigenem Schnitt und gelerntem Faktor. Wandert in die
+    /// aufgezeichnete Fahrt (`Ride.appleSeconds`).
+    var appleSeconds: TimeInterval? = nil
 
     /// Already in the user's order; the first one names the route.
     var title: String { variants.map(\.title).joined(separator: " · ") }

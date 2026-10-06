@@ -83,17 +83,34 @@ extension AppSettings {
     /// Apple kennt den Verkehr, aber nicht den Parkplatz vor der Tür und
     /// nicht, wie dieser Fahrer fährt. Motorradfahrten zählen nicht mit: sie
     /// rollen am Stau vorbei und würden das Auto schneller machen, als es ist.
+    ///
+    /// Und der Faktor gegenüber Apple (`carAppleFactor`): aus den Fahrten, die
+    /// Apples Ansage mitgebracht haben. Sobald es ihn gibt, löst er Schnitt
+    /// und Parkplatzsuche beim Planen ab — siehe `CarCandidate.doorToDoor`.
     func calibrateCar(from rides: [Ride]) {
-        let relevant = rides
+        let cars = rides
             .filter { $0.travelMode == .car && $0.motorcycle != true && $0.meters >= 2_000 && $0.movingSeconds > 60 }
             .sorted { $0.started > $1.started }
-            .prefix(Self.calibrationWindow)
+        let factors = cars.compactMap(\.appleFactor).prefix(Self.calibrationWindow)
+        if factors.count >= Self.calibrationRides {
+            let f = Swift.min(Self.carAppleFactorRange.upperBound,
+                              Swift.max(Self.carAppleFactorRange.lowerBound, Self.median(Array(factors))))
+            carAppleFactorRides = factors.count
+            // Auf Hundertstel — mehr zeigt die Zeile nicht, und über iCloud
+            // soll nicht jede Nachkommastelle reisen.
+            carAppleFactor = (f * 100).rounded() / 100
+        }
+        let relevant = cars.prefix(Self.calibrationWindow)
         guard relevant.count >= Self.calibrationRides else { return }
         let overall = Self.median(relevant.map(\.averageKmh))
         measuredCarRides = relevant.count
         measuredCarKmh = overall
         calibratedCarOverallKmh = overall.rounded()
     }
+
+    /// Weiter weg von Apple als das ist kein Fahrstil mehr, sondern ein
+    /// Messfehler — eine Woche Baustelle soll die Planung nicht verdoppeln.
+    static let carAppleFactorRange = 0.8...2.0
 
     /// Auf halbe km/h — so weit, wie der Stepper geht.
     static func halfStep(_ kmh: Double) -> Double { (kmh * 2).rounded() / 2 }

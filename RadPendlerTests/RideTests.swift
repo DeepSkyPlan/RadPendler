@@ -575,6 +575,12 @@ final class RideTests: XCTestCase {
         XCTAssertEqual(RideColors.Scale.fitted(to: Array(repeating: 15, count: 40)), .bike)
     }
 
+    /// Nach einer Neuplanung ist Apples Ansage das Gefahrene plus der Rest.
+    func testApplesTimeAfterAReplan() {
+        XCTAssertEqual(RideTracker.appleSeconds(elapsed: 60, rest: 1800), 1860)
+        XCTAssertNil(RideTracker.appleSeconds(elapsed: 60, rest: 0), "keine Zeit für den Rest ist keine Ansage")
+    }
+
     /// Autobahn: 126 km/h sind gefahren, kein Sprung des Empfängers. Bis 1.14
     /// fehlte alles über 108 km/h in Strecke und Linie.
     func testTheMotorwayIsRidden() {

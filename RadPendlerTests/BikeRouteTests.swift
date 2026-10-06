@@ -242,6 +242,35 @@ extension BikeRouteTests {
         XCTAssertNil(town.ownPaceTime(kmh: 0, s))
     }
 
+    /// Ist der Faktor gegenüber Apple gelernt, gilt er allein — auf der
+    /// Autobahn wie in der Stadt, ohne Parkplatzsuche und ohne Schnitt obendrauf.
+    func testTheLearnedFactorReplacesParkingAndOwnPace() {
+        var s = PlanSettings()
+        s.parkingMinutes = 5
+        s.carOverallKmh = 27
+        let town = carLine(13_500, minutes: 27, signals: 30)
+        let motorway = carLine(29_250, minutes: 35, signals: 6)
+        // Ohne Faktor: Apple plus Parken — in der Stadt, weil der Schnitt
+        // (30 min) darunter liegt, auf der Autobahn, weil er dort nicht gilt.
+        XCTAssertEqual(town.doorToDoor(s).seconds, 32 * 60)
+        XCTAssertEqual(town.doorToDoor(s).basis, .parking)
+        XCTAssertEqual(motorway.doorToDoor(s).seconds, 40 * 60)
+        s.carOverallKmh = 22
+        XCTAssertEqual(town.doorToDoor(s).basis, .ownPace)
+        s.parkingMinutes = 0
+        XCTAssertEqual(motorway.doorToDoor(s).basis, .apple)
+        // Mit Faktor: Apple mal 1,2, sonst nichts.
+        s.parkingMinutes = 5
+        s.carAppleFactor = 1.2
+        XCTAssertEqual(town.doorToDoor(s).seconds, 27 * 60 * 1.2, accuracy: 1)
+        XCTAssertEqual(motorway.doorToDoor(s).seconds, 42 * 60, accuracy: 1)
+        XCTAssertEqual(motorway.doorToDoor(s).basis, .learned)
+        // Das Motorrad: Apples Zeit, nichts Gemessenes.
+        s.motorcycle = true
+        XCTAssertEqual(motorway.doorToDoor(s).seconds, 35 * 60)
+        XCTAssertEqual(motorway.doorToDoor(s).basis, .apple)
+    }
+
     func testTheCarOffersEveryLineAppleFound() {
         var s = PlanSettings()
         s.signalWaitSeconds = 20

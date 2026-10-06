@@ -41,6 +41,7 @@ struct RidePlan {
                                                      plannedSeconds: option.duration,
                                                      plannedMeters: option.totalDistance,
                                                      plannedSignals: planned.count,
+                                                     appleSeconds: option.carRoute?.appleSeconds,
                                                      motorcycle: option.mode == .car && settings.motorcycle),
                         signals: signals,
                         plannedSignals: planned,

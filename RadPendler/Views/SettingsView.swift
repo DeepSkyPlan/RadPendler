@@ -309,13 +309,18 @@ struct ModeSettingsView: View {
                             ? settings.measuredCarKmh.map { L("gemessen: %@ (aus %d Autofahrten)", Fmt.kmh($0), settings.measuredCarRides) }
                             : nil,
                         format: { $0 > 0 ? Fmt.kmh($0) : L("aus — Apple Karten") })
+                    MeasuredValueRow(
+                        title: L("Gegenüber Apple Karten"), value: settings.carAppleFactor,
+                        measured: settings.carAppleFactor > 0
+                            ? L("gemessen aus %d Autofahrten", settings.carAppleFactorRides) : nil,
+                        format: { $0 > 0 ? Fmt.factor($0) : "–" })
                     }
                 } header: {
                     Text(Vehicle.title)
                 } footer: {
                     Hint(settings.motorcycle
                          ? L("Der Kasten „Auto“ fährt Motorrad: dieselben Straßen und Apples Fahrzeit mit Verkehrslage — aber am Stau rollt es vorbei bis an die Ampel, wie mit dem Rad. Wie viel Stau auf der Strecke steht, zeigt Apples Fahrzeit für dieselbe Strecke nachts um drei; davon zieht die App 70 % ab. Der Rest bleibt: die rote Ampel selbst, Engstellen, die stehende Autobahn. Parkplatzsuche und Auto-Schnitt gelten nicht; aufgezeichnete Motorradfahrten gehen nicht in den Auto-Schnitt ein.")
-                         : L("Die Fahrzeit kommt von Apple Karten mit Verkehrslage, dazu die Parkplatzsuche. Der Gesamtschnitt ist deine eigene Messung, Tür zu Tür: wäre Apple schneller als er, gilt er. Die App misst ihn nach jeder aufgezeichneten Autofahrt, sobald es drei gibt; getrennt vom Rad. Parkplatzsuche und Gesamtschnitt überschneiden sich: endet die Aufzeichnung erst nach dem Parken, steckt die Suche schon im Schnitt — es gilt dann das Größere von Apple plus Parkplatzsuche und deinem Schnitt, nie beides zusammen."))
+                         : L("Die Fahrzeit kommt von Apple Karten mit Verkehrslage. Wie viel länger oder kürzer du wirklich brauchst, lernt die App aus deinen aufgezeichneten Autofahrten: gefahrene Zeit Tür zu Tür geteilt durch Apples Ansage, der Median der letzten Fahrten, sobald es drei gibt. Mit diesem Faktor wird Apples Zeit malgenommen — auf jeder Strecke, Stadt wie Autobahn; Parkplatzsuche und Gesamtschnitt gelten dann nicht mehr, sie stecken darin. Bis dahin gilt Apple plus Parkplatzsuche, und dein Gesamtschnitt als Untergrenze, außer wo Apple die Linie mehr als anderthalbmal so schnell fährt wie er."))
                 }
                 Section {
                     Link(destination: URL(string: "https://transitous.org/sources/")!) {

@@ -29,6 +29,8 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         /// was angekündigt und was gefahren wurde.
         var plannedMeters: Double?
         var plannedSignals: Int?
+        /// Apples Fahrzeit für den Weg, der gilt — siehe `Ride.appleSeconds`.
+        var appleSeconds: TimeInterval?
         /// Der Kasten „Auto" fuhr Motorrad — landet so in der Fahrt, damit sie
         /// nicht in den Auto-Schnitt eingeht.
         var motorcycle = false
@@ -42,6 +44,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
                                          plannedMeters: subject.plannedMeters,
                                          plannedSignals: subject.plannedSignals)
         if subject.motorcycle { ride.motorcycle = true }
+        ride.appleSeconds = subject.appleSeconds
         track.events = events.isEmpty ? nil : events
         if replans > 0 {
             track.routes = (pastRoutes + [plannedRoute]).map { Geo.thinned($0).map(TrackPoint.init) }
@@ -746,6 +749,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         s.plannedSeconds = nil
         s.plannedMeters = nil
         s.plannedSignals = nil
+        s.appleSeconds = nil
         subject = s
         log("neues ziel", place.shortName, at: here)
         guard let from = here ?? plannedRoute.first else { return }
@@ -764,6 +768,11 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// Eine Neuplanung ist übernommen: Abbiegungen, Ampeln und Beläge gelten
     /// ab hier gegen den neuen Weg.
     private func follow(_ route: StreetRoute, lights: [CLLocationCoordinate2D]) {
+        // Apples Ansage gilt ab hier dem neuen Weg: was schon gefahren ist,
+        // plus was Apple für den Rest braucht.
+        if subject?.mode == TravelMode.car.rawValue {
+            subject?.appleSeconds = Self.appleSeconds(elapsed: meter.seconds(at: .now), rest: route.expectedTravelTime)
+        }
         signalsBehind = progress?.signalsPassed ?? signalsBehind
         routeLengths = TurnGuide.cumulative(route.coordinates)
         routeIndex = 0
@@ -777,6 +786,12 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         // Die Beläge des neuen Wegs kommen hinten dran. Zugeordnet wird nach
         // Nähe mit einem mitlaufenden Index — was schon zugeordnet ist, bleibt.
         meter.addRoadPoints(route.roadPoints)
+    }
+
+    /// Apples Fahrzeit nach einer Neuplanung. nil, wenn Apple für den Rest
+    /// keine Zeit genannt hat — dann lieber keine Ansage als die alte.
+    nonisolated static func appleSeconds(elapsed: TimeInterval, rest: TimeInterval) -> TimeInterval? {
+        rest > 0 ? Swift.max(0, elapsed) + rest : nil
     }
 
     /// Wo auf der Route jede Ampel liegt, in Metern vom Anfang — nur die, die

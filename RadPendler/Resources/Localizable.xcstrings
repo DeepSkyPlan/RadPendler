@@ -683,6 +683,17 @@
         }
       }
     },
+    "Apple Karten %@ — aus deinen Autofahrten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Maps %@ — from your car trips"
+          }
+        }
+      }
+    },
     "Arbeit": {
       "extractionState": "manual",
       "localizations": {
@@ -1200,13 +1211,13 @@
         }
       }
     },
-    "Die Fahrzeit kommt von Apple Karten mit Verkehrslage, dazu die Parkplatzsuche. Der Gesamtschnitt ist deine eigene Messung, Tür zu Tür: wäre Apple schneller als er, gilt er. Die App misst ihn nach jeder aufgezeichneten Autofahrt, sobald es drei gibt; getrennt vom Rad. Parkplatzsuche und Gesamtschnitt überschneiden sich: endet die Aufzeichnung erst nach dem Parken, steckt die Suche schon im Schnitt — es gilt dann das Größere von Apple plus Parkplatzsuche und deinem Schnitt, nie beides zusammen.": {
+    "Die Fahrzeit kommt von Apple Karten mit Verkehrslage. Wie viel länger oder kürzer du wirklich brauchst, lernt die App aus deinen aufgezeichneten Autofahrten: gefahrene Zeit Tür zu Tür geteilt durch Apples Ansage, der Median der letzten Fahrten, sobald es drei gibt. Mit diesem Faktor wird Apples Zeit malgenommen — auf jeder Strecke, Stadt wie Autobahn; Parkplatzsuche und Gesamtschnitt gelten dann nicht mehr, sie stecken darin. Bis dahin gilt Apple plus Parkplatzsuche, und dein Gesamtschnitt als Untergrenze, außer wo Apple die Linie mehr als anderthalbmal so schnell fährt wie er.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The driving time comes from Apple Maps with live traffic, plus looking for parking. The overall average is your own measurement, door to door: if Apple would be faster than that, the average counts. The app measures it after every recorded car trip once there are three; separately from the bike. Looking for parking and the overall average overlap: if the recording only ends after parking, the search is already in the average — then the larger of Apple plus parking and your average counts, never both together."
+            "value": "The driving time comes from Apple Maps with live traffic. How much longer or shorter you really take, the app learns from your recorded car trips: time driven door to door divided by Apple's estimate, the median of the latest trips once there are three. Apple's time is multiplied by that factor — on any route, town or motorway; looking for parking and the overall average then no longer apply, they are part of it. Until then Apple plus parking counts, with your overall average as a lower bound, except where Apple drives the line more than one and a half times as fast as that."
           }
         }
       }
@@ -2021,6 +2032,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rides you took"
+          }
+        }
+      }
+    },
+    "Gegenüber Apple Karten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compared to Apple Maps"
           }
         }
       }
@@ -4287,6 +4309,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "does not pass your fixed points"
+          }
+        }
+      }
+    },
+    "gemessen aus %d Autofahrten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "measured from %d car trips"
           }
         }
       }
