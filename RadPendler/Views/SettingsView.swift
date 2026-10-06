@@ -256,6 +256,11 @@ struct ModeSettingsView: View {
                     } label: {
                         LabeledContent(L("Radrouten"), value: settings.bikeVariantOrder.first?.title ?? "")
                     }
+                    Picker(L("Für Ruhe höchstens"), selection: $settings.quietExtraPercent) {
+                        ForEach(AppSettings.quietExtraChoices, id: \.self) { percent in
+                            Text(L("%d %% mehr Zeit", percent)).tag(percent)
+                        }
+                    }
                     Picker(L("Rad in die Bahn ab"), selection: $settings.rainSwitchLevel) {
                         ForEach([RainLevel.possible, .light, .rain, .heavy], id: \.self) { level in
                             Text(level.label).tag(level)
@@ -265,7 +270,7 @@ struct ModeSettingsView: View {
                 } header: {
                     Text(L("Vorlieben"))
                 } footer: {
-                    Hint(L("Womit die App plant, wenn sie die Wahl hat. Ab dem gewählten Regen wird nicht mehr die ganze Strecke geradelt, sondern das Rad in die Bahn gestellt — „starker Regen“ heißt also praktisch immer fahren."))
+                    Hint(L("Womit die App plant, wenn sie die Wahl hat. „Für Ruhe höchstens“ gilt für die Radroute „optimal“: so viel länger als die schnellste Linie darf sie dauern, wenn sie dafür von der Hauptstraße wegführt — und nie mehr als 15 % weiter sein als die kürzeste. Ab dem gewählten Regen wird nicht mehr die ganze Strecke geradelt, sondern das Rad in die Bahn gestellt — „starker Regen“ heißt also praktisch immer fahren."))
                 }
                 Section {
                     MeasuredValueRow(

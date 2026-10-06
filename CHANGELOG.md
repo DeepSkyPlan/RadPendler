@@ -2,6 +2,12 @@
 
 ## Unveröffentlicht
 
+- **Rad: „Für Ruhe höchstens 5 · 10 · 15 % mehr Zeit“** (Einstellungen → Verkehrsmittel → Vorlieben).
+  Um so viel darf „optimal“ gerechnet länger dauern als die schnellste Linie, wenn sie dafür von der
+  Hauptstraße wegführt. 10 % ist die Vorgabe und das, was bisher fest galt; 5 % hält „optimal“ nah
+  an der schnellsten, 15 % lässt mehr Umweg zu. Die Grenze in Metern bleibt: nie mehr als 15 % weiter
+  als die kürzeste (`PlanSettings.quietExtraTime`, `AppSettings.quietExtraPercent`). Reist über
+  iCloud mit; „Zurück auf Werkseinstellung“ stellt 10 %.
 - **Rad: die ruhige Nebenstraße schlägt den Radweg an der Hauptstraße.** Ein Meter neben einer
   Hauptstraße zählt für „optimal“ jetzt wie zwei auf der Nebenstraße (bisher anderthalb), und was ein
   Umweg an Hauptstraße spart, darf er über die 10 % hinaus länger sein — bis höchstens 15 %

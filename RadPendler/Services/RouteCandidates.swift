@@ -232,8 +232,9 @@ struct BikeCandidate {
         s.signalWait(signals: signals, learned: learned)
     }
 
-    /// So viel länger — in Metern wie in gerechneter Zeit — darf „optimal"
-    /// sein als die kürzeste bzw. schnellste Linie.
+    /// So viel länger in Metern darf „optimal" sein als die kürzeste Linie,
+    /// wenn der Umweg nichts bringt. Wie viel länger in gerechneter Zeit als
+    /// die schnellste, stellt der Nutzer ein: `PlanSettings.quietExtraTime`.
     static let detourLimit = 0.10
     /// Und so viel länger in **echten** Metern, was immer der Umweg an Ruhe
     /// bringt. 17 % für 10 km weniger Hauptstraße waren zu viel (30.09.2026),
@@ -260,7 +261,7 @@ struct BikeCandidate {
         let least = shortest.route.distance
         return route.distance <= least * (1 + Self.detourLimit) + Self.besideMainRoad * spared
             && route.distance <= least * (1 + Self.hardDetourLimit)
-            && computedTime(s) <= fastest * (1 + Self.detourLimit)
+            && computedTime(s) <= fastest * (1 + s.quietExtraTime)
     }
 
     /// Mittelweg: time plus half the disturbance, converted to riding time.
@@ -353,8 +354,8 @@ struct BikeCandidate {
         if all.contains(where: { $0.stats != nil }) {
             quiet = all.indices.min { (all[$0].stats?.disturbance ?? .infinity) < (all[$1].stats?.disturbance ?? .infinity) }!
             // „optimal" ist ein Kompromiss, kein Umweg: nur unter den Linien,
-            // die höchstens `detourLimit` länger und langsamer sind als die
-            // kürzeste und die schnellste (Nutzer, 30.09.2026: „optimal mit
+            // die höchstens `detourLimit` länger und `quietExtraTime`
+            // langsamer sind als die kürzeste und die schnellste (Nutzer, 30.09.2026: „optimal mit
             // 5 km länger nicht gut"). Wer den Umweg für Ruhe will, hat
             // „wenig Autos".
             let reasonable = all.indices.filter { all[$0].isReasonable(among: all, s) }

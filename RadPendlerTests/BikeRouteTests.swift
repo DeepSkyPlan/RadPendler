@@ -669,6 +669,33 @@ extension BikeRouteTests {
         XCTAssertFalse(blind.isReasonable(among: [direct, blind], s))
     }
 
+    /// „Für Ruhe höchstens 5 · 10 · 15 % mehr Zeit" (Nutzer, 06.10.2026):
+    /// dieselbe Probe, und die Einstellung entscheidet. Die ruhige Linie
+    /// dauert gerechnet 8 % länger als die schnellste.
+    func testQuietExtraTimeDecidesHowMuchLongerOptimalMayTake() {
+        var s = PlanSettings()
+        s.optionsPerMode = 3
+        let direct = candidate(.brouter(.shortest), km: 21.2, signals: 43, crossings: 10, mainKm: 6.4)
+        let calm = candidate(.brouter(.quiet), km: 23.9, signals: 38, crossings: 10, mainKm: 3.2)
+        // 14 % weiter und 11 % länger: spart dieselbe Hauptstraße, kostet mehr.
+        let calmer = candidate(.brouter(.quiet), km: 24.2, signals: 43, crossings: 10, mainKm: 3.2)
+        func optimal(_ all: [BikeCandidate]) -> BikeLineSource? {
+            BikeCandidate.pick(all, settings: s).first { $0.1.contains(.balanced) }?.0.source
+        }
+        s.quietExtraTime = 0.05
+        XCTAssertFalse(calm.isReasonable(among: [direct, calm], s))
+        XCTAssertEqual(optimal([direct, calm]), .brouter(.shortest))
+        s.quietExtraTime = 0.10
+        XCTAssertEqual(optimal([direct, calm]), .brouter(.quiet))
+        XCTAssertFalse(calmer.isReasonable(among: [direct, calmer], s))
+        s.quietExtraTime = 0.15
+        XCTAssertTrue(calmer.isReasonable(among: [direct, calmer], s))
+        XCTAssertEqual(optimal([direct, calmer]), .brouter(.quiet))
+        // Die 15 % in Metern bleiben, was immer eingestellt ist.
+        let far = candidate(.brouter(.quiet), km: 24.6, signals: 20, crossings: 5, mainKm: 0)
+        XCTAssertFalse(far.isReasonable(among: [direct, far], s))
+    }
+
     func testReplanUsesTheProfileOfTheRiddenLine() {
         XCTAssertEqual(BikeLineSource.brouter(.fastbike).profile, .fastbike)
         XCTAssertEqual(BikeLineSource.brouter(.quiet).profile, .quiet)

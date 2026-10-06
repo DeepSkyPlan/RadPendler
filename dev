@@ -12,7 +12,7 @@ cd "$(dirname "$0")"
 
 PROJ=RadPendler.xcodeproj
 SCHEME=RadPendler
-DEST='platform=iOS Simulator,name=iPhone 17 Pro'
+DEST='platform=iOS Simulator,name=iPhone 18 Pro'
 
 generate() { xcodegen generate; }
 

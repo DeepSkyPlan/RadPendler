@@ -105,6 +105,14 @@ final class AppSettings {
         didSet { defaults.set(rainSwitchLevel.rawValue, forKey: "rainSwitchLevel") }
     }
 
+    /// Für Ruhe höchstens so viel Prozent mehr Zeit: um so viel darf „optimal"
+    /// langsamer sein als die schnellste Linie (Nutzer, 06.10.2026). 10 ist,
+    /// was bis 1.14 fest galt.
+    static let quietExtraChoices = [5, 10, 15]
+    var quietExtraPercent: Int = 10 {
+        didSet { defaults.set(quietExtraPercent, forKey: "quietExtraPercent") }
+    }
+
     /// Lines the app has seen in a route, and what the user decided about
     /// taking the bike on them. Open entries are the reason a trip can carry
     /// the warning "Mitnahme ungeklärt".
@@ -247,7 +255,7 @@ final class AppSettings {
         "prepMinutes", "bikeMovingSpeedKmh", "bikeStationBufferMinutes",
         "parkingMinutes", "motorcycle", "signalWaitSeconds", "departurePresets2",
         "arrivalBufferMinutes",
-        "modeOrder", "bikeVariantOrder", "rainSwitchLevel",
+        "modeOrder", "bikeVariantOrder", "rainSwitchLevel", "quietExtraPercent",
         "bikeLines",
         // Countdown
         "alertsOn",
@@ -362,6 +370,8 @@ final class AppSettings {
                                                fallback: BikeVariant.defaultOrder))
         assign(\.rainSwitchLevel, (defaults.object(forKey: "rainSwitchLevel") as? Int)
             .flatMap(RainLevel.init(rawValue:)) ?? rainSwitchLevel)
+        assign(\.quietExtraPercent, Self.int("quietExtraPercent", defaults)
+            .flatMap { Self.quietExtraChoices.contains($0) ? $0 : nil } ?? quietExtraPercent)
         assign(\.learnedSignals, defaults.data(forKey: "learnedSignals")
             .flatMap { Stored.list(LearnedSignal.self, from: $0) }
             .map(LearnedSignal.healed) ?? learnedSignals)
@@ -402,6 +412,7 @@ final class AppSettings {
         modeOrder = TravelMode.defaultOrder
         bikeVariantOrder = BikeVariant.defaultOrder
         rainSwitchLevel = .light
+        quietExtraPercent = 10
     }
 
     /// Called whenever an address is picked, wherever it was picked.
@@ -495,6 +506,7 @@ final class AppSettings {
                      arrivalBufferMinutes: arrivalBufferMinutes,
                      modeOrder: modeOrder, bikeVariantOrder: bikeVariantOrder,
                      rainSwitchLevel: rainSwitchLevel,
+                     quietExtraTime: Double(quietExtraPercent) / 100,
                      bikeLineStatus: bikeLines.status,
                      learnedSignals: learnedSignals,
                      measuredOverallKmh: bikeOverallKmh > 0 ? bikeOverallKmh : nil,
@@ -543,6 +555,8 @@ struct PlanSettings: Equatable {
     /// Wie viele Möglichkeiten je Verkehrsmittel gerechnet werden.
     var optionsPerMode = 3
     var rainSwitchLevel: RainLevel = .light
+    /// Um diesen Anteil darf „optimal" langsamer sein als die schnellste Linie.
+    var quietExtraTime = 0.10
     /// Line name → whether the bike may come. Missing means undecided, which
     /// is shown with a warning rather than hidden.
     var bikeLineStatus: [String: Bool] = [:]

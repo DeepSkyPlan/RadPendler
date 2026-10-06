@@ -467,6 +467,25 @@ final class PlannerTests: XCTestCase {
         XCTAssertEqual(again.rainSwitchLevel, .light)
     }
 
+    /// „Für Ruhe höchstens": 10 % ist die Vorgabe, die Wahl übersteht den
+    /// Neustart und kommt im Plan als Anteil an — und eine Zahl, die es in
+    /// der Auswahl nicht gibt, gilt nicht.
+    func testQuietExtraTimeSurvivesALaunchAndIgnoresNonsense() {
+        let suite = UUID().uuidString
+        let s = AppSettings(defaults: UserDefaults(suiteName: suite)!)
+        XCTAssertEqual(s.quietExtraPercent, 10)
+        XCTAssertEqual(s.snapshot.quietExtraTime, 0.10, accuracy: 1e-9)
+        s.quietExtraPercent = 15
+        let again = AppSettings(defaults: UserDefaults(suiteName: suite)!)
+        XCTAssertEqual(again.quietExtraPercent, 15)
+        XCTAssertEqual(again.snapshot.quietExtraTime, 0.15, accuracy: 1e-9)
+        again.resetPriorities()
+        XCTAssertEqual(again.quietExtraPercent, 10)
+        UserDefaults(suiteName: suite)!.set(400, forKey: "quietExtraPercent")
+        XCTAssertEqual(AppSettings(defaults: UserDefaults(suiteName: suite)!).quietExtraPercent, 10)
+        XCTAssertTrue(AppSettings.storedKeys.contains("quietExtraPercent"), "reist über iCloud mit")
+    }
+
     func testCloudOnlyWritesWhatActuallyChanged() {
         XCTAssertTrue(CloudStore.same(nil, nil))
         XCTAssertFalse(CloudStore.same(5, nil))
