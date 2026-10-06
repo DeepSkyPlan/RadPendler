@@ -25,16 +25,21 @@ extension TripPlanner {
         let n = Swift.max(1, req.settings.optionsPerMode)
         let order = req.settings.bikeVariantOrder.filter { $0 != .alternative }
         func requests(for roles: some Sequence<BikeVariant>) -> [BikeLineSource] {
-            roles.compactMap { v in
+            let wanted: [BikeLineSource] = roles.flatMap { v -> [BikeLineSource] in
                 switch v {
-                case .balanced: .brouter(.trekking)
-                case .fastest: .brouter(.fastbike)
-                case .shortest: .brouter(.shortest)
-                case .quiet: .brouter(.quiet)
-                case .lowTraffic: .brouter(.lowTraffic)
-                case .alternative: nil
+                // „optimal" wägt Zeit gegen Ruhe ab — dazu muss die ruhige
+                // Linie auch dastehen. „trekking" allein hält den Radweg an
+                // der Hauptstraße für ideal; bis 1.14 kam „wenig Autos" nur
+                // mit, wenn zufällig ein Platz frei blieb.
+                case .balanced: [.brouter(.trekking), .brouter(.quiet)]
+                case .fastest: [.brouter(.fastbike)]
+                case .shortest: [.brouter(.shortest)]
+                case .quiet: [.brouter(.quiet)]
+                case .lowTraffic: [.brouter(.lowTraffic)]
+                case .alternative: []
                 }
             }
+            return wanted.reduce(into: []) { out, source in if !out.contains(source) { out.append(source) } }
         }
         // Höchstens so viele Anfragen gleichzeitig an BRouter. Der öffentliche
         // Server ist ein Geschenk und keine Infrastruktur: wirft man ihm acht

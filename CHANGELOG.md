@@ -2,6 +2,13 @@
 
 ## Unveröffentlicht
 
+- **Rad: die ruhige Nebenstraße schlägt den Radweg an der Hauptstraße.** Ein Meter neben einer
+  Hauptstraße zählt für „optimal“ jetzt wie zwei auf der Nebenstraße (bisher anderthalb), und was ein
+  Umweg an Hauptstraße spart, darf er über die 10 % hinaus länger sein — bis höchstens 15 %
+  (`BikeCandidate.besideMainRoad`, `hardDetourLimit`). Für „optimal“ wird die Linie „wenig Autos“
+  jetzt immer mit angefragt (eine BRouter-Anfrage mehr je Planung). Probe Pinneberg → Hamburg:
+  „optimal“ war die kürzeste Linie mit 6,4 km neben Hauptstraßen (21,2 km), jetzt die ruhige mit
+  3,2 km (23,9 km, +4 min). Der Fall vom 30.09. (17 % Umweg) bleibt draußen.
 - **Auto lernt sein Verhältnis zu Apple Karten.** Jede aufgezeichnete Autofahrt merkt sich Apples
   Ansage für den gefahrenen Weg (`Ride.appleSeconds`; nach einer Neuplanung das Gefahrene plus Apples
   Zeit für den Rest). Aus dem Median „gefahren ÷ angesagt" der letzten acht Fahrten wird ab drei

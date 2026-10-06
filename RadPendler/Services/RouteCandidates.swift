@@ -235,13 +235,31 @@ struct BikeCandidate {
     /// So viel länger — in Metern wie in gerechneter Zeit — darf „optimal"
     /// sein als die kürzeste bzw. schnellste Linie.
     static let detourLimit = 0.10
+    /// Und so viel länger in **echten** Metern, was immer der Umweg an Ruhe
+    /// bringt. 17 % für 10 km weniger Hauptstraße waren zu viel (30.09.2026),
+    /// 13 % für 3 km weniger sollen gehen (06.10.2026).
+    static let hardDetourLimit = 0.15
+    /// Ein Meter neben einer Hauptstraße — auf ihr oder auf dem Radweg an
+    /// ihr — zählt wie zwei auf der ruhigen Nebenstraße (Nutzer, 06.10.2026:
+    /// „ruhige Nebenstraße höher bewerten als Radwege neben Hauptstraßen").
+    /// Bis 1.14 zählte er wie anderthalb, und nur in der Wertung, nicht beim
+    /// Umweg: die kürzeste Linie mit 6,4 km Hauptstraße blieb „optimal",
+    /// weil die ruhige mit 3,2 km schon an der Länge scheiterte.
+    static let besideMainRoad = 1.0
 
     func isReasonable(among all: [BikeCandidate], _ s: PlanSettings) -> Bool {
         // Was man ohnehin fährt, ist kein Umweg, sondern eine Entscheidung.
         if familiar >= Self.habitual { return true }
-        guard let shortest = all.map(\.route.distance).min(),
+        guard let shortest = all.min(by: { $0.route.distance < $1.route.distance }),
               let fastest = all.map({ $0.computedTime(s) }).min() else { return true }
-        return route.distance <= shortest * (1 + Self.detourLimit)
+        // Ein Umweg, der nichts bringt, bleibt bei 10 %. Einer, der von der
+        // Hauptstraße wegführt, darf dazu so viele Meter kosten, wie er
+        // gegenüber der kürzesten Linie an ihr spart — aber nicht beliebig
+        // viele.
+        let spared = Swift.max(0, (shortest.stats?.mainRoadMeters ?? 0) - (stats?.mainRoadMeters ?? .infinity))
+        let least = shortest.route.distance
+        return route.distance <= least * (1 + Self.detourLimit) + Self.besideMainRoad * spared
+            && route.distance <= least * (1 + Self.hardDetourLimit)
             && computedTime(s) <= fastest * (1 + Self.detourLimit)
     }
 
@@ -252,7 +270,11 @@ struct BikeCandidate {
     /// hat sie für gut befunden, was immer die Karte über sie sagt. Eine
     /// ganz gefahrene Linie wird so allein nach der Zeit bewertet.
     func balancedScore(_ s: PlanSettings) -> Double {
-        computedTime(s) + 0.5 * (1 - familiar) * (stats?.disturbance ?? 0) / s.bikeSpeedMps
+        // Ampeln und Querungen zur Hälfte wie bisher; die Meter neben der
+        // Hauptstraße voll (`besideMainRoad`).
+        let main = stats?.mainRoadMeters ?? 0
+        let rest = (stats?.disturbance ?? 0) - main
+        return computedTime(s) + (1 - familiar) * (Self.besideMainRoad * main + 0.5 * rest) / s.bikeSpeedMps
     }
 
     /// Ab diesem Anteil fährt man die Linie ohnehin.

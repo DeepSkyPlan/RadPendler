@@ -642,6 +642,33 @@ extension BikeRouteTests {
                        "die ruhige Linie bleibt da — unter ihrem richtigen Namen")
     }
 
+    /// Pinneberg → Hamburg, Live-Probe 06.10.2026: „optimal" war die kürzeste
+    /// Linie mit 6,4 km neben Hauptstraßen; die ruhige mit 3,2 km scheiterte
+    /// an 13 % Umweg. Ein Meter neben der Hauptstraße zählt jetzt wie zwei,
+    /// und was ein Umweg dort spart, darf er länger sein — bis 15 %.
+    func testAQuietSideStreetBeatsTheCyclePathBesideTheMainRoad() {
+        var s = PlanSettings()
+        s.optionsPerMode = 3
+        let direct = candidate(.brouter(.shortest), km: 21.2, signals: 43, crossings: 10, mainKm: 6.4)
+        let trekking = candidate(.brouter(.trekking), km: 22.9, signals: 53, crossings: 11, mainKm: 8.7)
+        let calm = candidate(.brouter(.quiet), km: 23.9, signals: 38, crossings: 10, mainKm: 3.2)
+        let all = [direct, trekking, calm]
+        XCTAssertTrue(calm.isReasonable(among: all, s))
+        XCTAssertTrue(direct.isReasonable(among: all, s), "die kürzeste ist nie ein Umweg")
+        let picked = BikeCandidate.pick(all, settings: s)
+        XCTAssertEqual(picked.first { $0.1.contains(.balanced) }?.0.source, .brouter(.quiet))
+        // Derselbe Umweg, der nichts spart, bleibt draußen …
+        let pointless = candidate(.brouter(.quiet), km: 23.9, signals: 38, crossings: 10, mainKm: 6.4)
+        XCTAssertFalse(pointless.isReasonable(among: [direct, trekking, pointless], s))
+        // … und über 15 % hilft auch die ruhigste Straße nicht.
+        let far = candidate(.brouter(.quiet), km: 24.6, signals: 20, crossings: 5, mainKm: 0)
+        XCTAssertFalse(far.isReasonable(among: [direct, trekking, far], s))
+        // Ohne Kartendaten gilt die alte Grenze.
+        let blind = BikeCandidate(source: .brouter(.quiet),
+                                  route: StreetRoute(distance: 23_900, expectedTravelTime: 0, coordinates: []), stats: nil)
+        XCTAssertFalse(blind.isReasonable(among: [direct, blind], s))
+    }
+
     func testReplanUsesTheProfileOfTheRiddenLine() {
         XCTAssertEqual(BikeLineSource.brouter(.fastbike).profile, .fastbike)
         XCTAssertEqual(BikeLineSource.brouter(.quiet).profile, .quiet)
