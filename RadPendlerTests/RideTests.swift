@@ -575,6 +575,16 @@ final class RideTests: XCTestCase {
         XCTAssertEqual(RideColors.Scale.fitted(to: Array(repeating: 15, count: 40)), .bike)
     }
 
+    /// Autobahn: 126 km/h sind gefahren, kein Sprung des Empfängers. Bis 1.14
+    /// fehlte alles über 108 km/h in Strecke und Linie.
+    func testTheMotorwayIsRidden() {
+        var m = RideMeter()
+        for i in 0...60 { m.add(fix(Double(i) * 35, Double(i), speed: 35)) }
+        XCTAssertEqual(m.meters, 2100, accuracy: 10)
+        XCTAssertEqual(m.maxSpeed * 3.6, 126, accuracy: 0.5)
+        XCTAssertGreaterThan(m.points.count, 25)
+    }
+
     /// Ohne Netz losgefahren: Funkzellen-Ortungen, die springen. Auf dem Rad
     /// ist über 60 km/h der Empfänger — keine „Spitze" von 79 km/h mehr.
     func testOnABikeSixtyIsTheReceiver() {

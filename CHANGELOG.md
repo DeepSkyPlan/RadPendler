@@ -1,5 +1,15 @@
 # Changelog
 
+## Unveröffentlicht
+
+- **Auto: Apples Fahrzeit gilt, wo sie deutlich schneller ist.** Der eigene Auto-Schnitt ist auf dem
+  Arbeitsweg gemessen und war trotzdem für jede Linie die Untergrenze — zum Flughafen über die
+  Autobahn standen 1:05 h da, gefahren waren es 37 min (Fahrt 06.10.). Fährt Apple eine Linie mehr
+  als anderthalbmal so schnell wie der Schnitt, zählt jetzt Apples Zeit (`CarCandidate.ownPaceReach`).
+- **Autobahn fehlte in der Aufzeichnung:** über 108 km/h galt jeder Fix als Sprung des Empfängers —
+  25 von 44 km fehlten in Strecke und Linie, die Fahrt zählte mit 32 statt 72 km/h. Grenze fürs Auto
+  jetzt 250 km/h, fürs Rad weiter 60.
+
 ## 1.14 (Build 54) — Halte zählen wieder, Ton beim Anhalten
 
 - **Ton beim Anhalten und Weiterfahren:** zwei kurze Töne abwärts, wenn die Aufzeichnung anhält

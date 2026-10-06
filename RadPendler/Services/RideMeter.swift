@@ -49,8 +49,11 @@ struct RideMeter {
     /// pocket, a suspended app — and the straight line between them is not a
     /// stretch that was ridden.
     static let maxGap: TimeInterval = 30
-    /// Nobody commutes faster than 108 km/h. A jump past it is the receiver.
-    static let maxSpeed = 30.0
+    /// Schneller als 250 km/h ist der Empfänger. Bis 1.14 lag die Grenze bei
+    /// 108 km/h — und auf der Autobahn war dann jeder Fix ein „Sprung": bei
+    /// 125 km/h fehlten 25 von 44 km in Strecke und Linie, und die Fahrt ging
+    /// mit 32 statt 72 km/h in den Auto-Schnitt ein (Fahrt 06.10.2026).
+    static let maxSpeed = 250 / 3.6
     /// Und auf dem Rad niemand schneller als 60 km/h. Ohne Netz liefert der
     /// Empfänger anfangs Ortungen aus Funkzellen, die ein paar Dutzend Meter
     /// hin und her springen — bei 108 km/h Grenze wurde daraus eine „Spitze"

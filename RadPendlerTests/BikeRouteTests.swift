@@ -224,6 +224,24 @@ final class BikeRouteTests: XCTestCase {
 }
 
 extension BikeRouteTests {
+    /// Der eigene Schnitt ist auf dem Arbeitsweg gemessen. Fährt Apple eine
+    /// Linie deutlich schneller, ist es eine andere Art Straße, und es gilt
+    /// Apples Zeit (Fahrt zum Flughafen, 06.10.2026: 1:05 h geplant, 37 min gefahren).
+    func testTheOwnCarPaceOnlyCountsOnLinesLikeTheMeasuredOnes() {
+        let s = PlanSettings()
+        // Arbeitsweg: Apple 30 km/h, eigener Schnitt 27 — der Schnitt gilt.
+        let town = carLine(13_500, minutes: 27, signals: 30)
+        XCTAssertEqual(town.ownPaceTime(kmh: 27, s) ?? 0, 1800, accuracy: 1)
+        // Autobahn: Apple 50 km/h — der Schnitt sagt hier nichts.
+        let motorway = carLine(29_250, minutes: 35, signals: 6)
+        XCTAssertNil(motorway.ownPaceTime(kmh: 27, s))
+        // Genau an der Grenze gilt er noch.
+        let edge = carLine(27_000, minutes: 40, signals: 6)
+        XCTAssertEqual(edge.ownPaceTime(kmh: 27, s) ?? 0, 3600, accuracy: 1)
+        XCTAssertNil(town.ownPaceTime(kmh: nil, s), "kein Schnitt gemessen")
+        XCTAssertNil(town.ownPaceTime(kmh: 0, s))
+    }
+
     func testTheCarOffersEveryLineAppleFound() {
         var s = PlanSettings()
         s.signalWaitSeconds = 20

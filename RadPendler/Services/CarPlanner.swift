@@ -43,10 +43,11 @@ extension TripPlanner {
         return CarCandidate.pick(candidates, settings: req.settings, order: CarVariant.defaultOrder).enumerated().map { index, entry in
             let (c, variants) = entry
             // Nie schneller, als dieser Fahrer laut seinen Autofahrten
-            // Tür zu Tür ist — Parkplatzsuche eingeschlossen.
+            // Tür zu Tür ist — Parkplatzsuche eingeschlossen. Aber nur auf
+            // Linien, wie er sie gemessen hat: siehe `ownPaceReach`.
             let apple = c.driveTime(req.settings) + parking
-            let own = carKmh.map { c.route.distance / ($0 / 3.6) } ?? 0
-            let drive = Swift.max(apple, own.rounded())
+            let own = c.ownPaceTime(kmh: carKmh, req.settings) ?? 0
+            let drive = Swift.max(apple, own)
             let leave = req.arriveBy.map { $0.addingTimeInterval(-drive) } ?? req.earliestLeave
             let leg = Leg(kind: .car, fromName: req.origin.shortName, toName: req.destination.shortName,
                           departure: leave, arrival: leave.addingTimeInterval(drive),

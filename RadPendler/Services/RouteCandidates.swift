@@ -41,6 +41,22 @@ struct CarCandidate {
         return Swift.max(0, route.expectedTravelTime - freeFlow) * Self.queueShare
     }
 
+    /// So viel schneller als der eigene Schnitt darf Apple eine Linie fahren,
+    /// bevor der Schnitt für sie nichts mehr sagt. Er ist auf dem Arbeitsweg
+    /// gemessen, durch die Stadt; eine Linie, die Apple mehr als anderthalbmal
+    /// so schnell fährt, ist eine andere Art Straße. Zum Flughafen über die
+    /// Autobahn wurden so aus 37 min 1:05 h (Fahrt 06.10.2026).
+    static let ownPaceReach = 1.5
+
+    /// Fahrzeit nach dem eigenen Tür-zu-Tür-Schnitt — nil, wo er nicht gilt:
+    /// kein Schnitt gemessen, oder Apple fährt die Linie deutlich schneller.
+    func ownPaceTime(kmh: Double?, _ s: PlanSettings) -> TimeInterval? {
+        guard let kmh, kmh > 0 else { return nil }
+        let own = route.distance / (kmh / 3.6)
+        guard own <= driveTime(s) * Self.ownPaceReach else { return nil }
+        return own.rounded()
+    }
+
     /// Mittelweg: time plus half the waiting, so a line that is two minutes
     /// slower but crosses twenty fewer junctions can win it.
     func balancedScore(_ s: PlanSettings) -> Double {
