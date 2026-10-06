@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — Ruhe vor Hauptstraße, Auto lernt von Apple Karten
+## 1.15 (Build 55) — Ruhe vor Hauptstraße, Auto lernt von Apple Karten
 
 - **Rad: „Für Ruhe höchstens 5 · 10 · 15 % mehr Zeit“** (Einstellungen → Verkehrsmittel → Vorlieben).
   Um so viel darf „optimal“ gerechnet länger dauern als die schnellste Linie, wenn sie dafür von der
