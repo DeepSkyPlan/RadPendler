@@ -81,7 +81,7 @@ final class RiddenPathsTests: XCTestCase {
     /// Umweg und viel Hauptstraße, die die Karte schlecht findet.
     func testAHabitualLineCanBeOptimal() {
         var s = PlanSettings()
-        s.optionsPerMode = 3
+        s.bikeOptions = 3
         func cand(_ name: BikeLineSource, km: Double, mainKm: Double, familiar: Double) -> BikeCandidate {
             BikeCandidate(source: name, route: StreetRoute(distance: km * 1000, expectedTravelTime: 0, coordinates: []),
                           stats: BikeRouteStats(signals: 30, crossings: [], mainRoadMeters: mainKm * 1000),

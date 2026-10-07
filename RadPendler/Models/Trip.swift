@@ -113,23 +113,24 @@ enum TransitProduct: Int, CaseIterable {
 enum BikeVariant: String, CaseIterable, Comparable {
     // New cases go at the end: `Comparable` reads the position in `allCases`,
     // and inserting one in the middle would silently reorder the old ones.
-    case fastest, shortest, balanced, quiet, lowTraffic
+    case fastest, shortest, balanced, quiet
     /// Ein Weg, der keine Rolle gewinnt, weil eine andere Linie alle
     /// gewonnen hat. Steht nie in der eigenen Reihenfolge — siehe
     /// `BikeCandidate.pick`.
     case alternative
 
-    /// „ruhigst" und „verkehrsarm" waren am Wort nicht auseinanderzuhalten,
-    /// obwohl sie zwei verschiedene Fragen beantworten: die eine, **wie lange
-    /// man neben Autos fährt**, die andere, **wie oft man ihretwegen anhält**.
-    /// Die Namen sagen das jetzt.
+    /// Vier Linien, jede mit einer Frage (Nutzer, 07.10.2026: „Schnell ist
+    /// schnell. Kurz ist kurz. Ruhig ist Fahrradstraße. Optimal der Mix aus
+    /// allen."). Bis 1.16 waren es fünf: „wenig Autos" und „wenig Halts"
+    /// standen nebeneinander und waren unterwegs kaum zu unterscheiden.
+    /// „wenig Halts" gibt es nicht mehr; in einer gespeicherten Reihenfolge
+    /// fällt der Name beim Lesen heraus (`storedOrder`).
     var title: String {
         switch self {
         case .fastest: L("schnellst")
         case .shortest: L("kürzest")
         case .balanced: L("optimal")
-        case .quiet: L("wenig Autos")
-        case .lowTraffic: L("wenig Halts")
+        case .quiet: L("ruhig")
         case .alternative: L("Alternative")
         }
     }
@@ -140,9 +141,8 @@ enum BikeVariant: String, CaseIterable, Comparable {
         switch self {
         case .fastest: L("kürzeste Fahrzeit, Ampeln und Höhenmeter eingerechnet")
         case .shortest: L("die kürzeste Strecke, ganz gleich worüber")
-        case .balanced: L("die Mischung: zügig, wenig neben Autos, wenig Halts")
-        case .quiet: L("die wenigsten Meter neben fahrenden Autos")
-        case .lowTraffic: L("am seltensten wegen des Verkehrs anhalten")
+        case .balanced: L("die Mischung aus allen dreien: zügig, kurz, ruhig")
+        case .quiet: L("über Fahrradstraßen und Nebenstraßen, weg von den Autos")
         case .alternative: L("ein anderer Weg — in keiner Hinsicht der beste, aber anders")
         }
     }
@@ -153,7 +153,6 @@ enum BikeVariant: String, CaseIterable, Comparable {
         case .shortest: "ruler"
         case .balanced: "checkmark.seal"
         case .quiet: "leaf"
-        case .lowTraffic: "road.lanes"
         case .alternative: "arrow.triangle.branch"
         }
     }
@@ -163,8 +162,8 @@ enum BikeVariant: String, CaseIterable, Comparable {
     }
 
     /// Ships with "optimal" first: that is the one the app suggests. The user
-    /// can put "wenig Autos" or "kürzest" in front of it.
-    static let defaultOrder: [BikeVariant] = [.balanced, .fastest, .shortest, .quiet, .lowTraffic]
+    /// can put "ruhig" or "kürzest" in front of it.
+    static let defaultOrder: [BikeVariant] = [.balanced, .fastest, .shortest, .quiet]
 }
 
 /// Which of the car alternatives an option is; one route can be several.

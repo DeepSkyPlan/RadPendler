@@ -102,7 +102,8 @@ struct TripPlanner {
                 // Auch Bahn und Rad + Bahn: die eingestellte Zahl gilt für
                 // jedes Verkehrsmittel. Bei den Fahrplänen sind es die
                 // nächsten Abfahrten, bei Rad und Auto die obersten Rollen.
-                result.options += options.prefix(Swift.max(1, req.settings.optionsPerMode))
+                let limit = mode == .bike ? req.settings.bikeOptions : req.settings.optionsPerMode
+                result.options += options.prefix(Swift.max(1, limit))
             case .failure(let error): result.failures[mode] = error.localizedDescription
             }
             Self.settle(&result, req)

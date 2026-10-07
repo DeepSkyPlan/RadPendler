@@ -34,15 +34,32 @@ Aus einer bewusst misstrauischen Durchsicht der ganzen Codebasis (07.10.2026).
   Hintergrundmodi der Info.plist (`BackgroundModeTests`), `LogTests`, dazu Töne und User-Agent.
   Die Tonsitzung selbst bleibt ungeprüft: ein Test, der im Simulator abspielt, hält `xcodebuild`
   nach dem letzten Test minutenlang offen.
-- **Rad: Fahrradstraßen zählen jetzt wirklich** (Fahrt 07.10.2026 abends: „optimal“ lief am Radweg
-  der Hauptstraße entlang, die Fahrradstraße kam in keiner Linie vor). Der Vorteil aus 1.16 —
-  alles andere kostet das Doppelte — lag genau auf der Kippe: gemessen war er in einer Richtung
-  und ohne „Pflaster meiden“. Mit der Einstellung an blieb es in beiden Richtungen bei 0,6 km
-  Fahrradstraße, derselben Linie wie ohne Bevorzugung. Jetzt das Dreifache
-  (`cycleStreetAdvantage`): 2,5 km Fahrradstraße in beiden Richtungen für 0,1 bis 0,4 km mehr.
-  Vertauscht war nichts — „schnell“ ist BRouters „fastbike“ und fährt mit Absicht Hauptstraßen.
-  Der stille Rückfall auf das Profil des Servers, wenn das eigene nicht hochgeladen werden kann,
-  steht jetzt im Protokoll.
+- **Rad: vier Linien, jede mit einer Frage** (Nutzer, 07.10.2026: „Schnell ist schnell. Kurz ist
+  kurz. Ruhig ist Fahrradstraße. Optimal der Mix aus allen. Nie Kopfstein, egal welche Route.“).
+  Anlass war die Fahrt vom selben Abend: „optimal“ lief am Radweg der Hauptstraße entlang, und die
+  Fahrradstraße kam in keiner Linie vor.
+  - **schnellst**, **kürzest**, **ruhig**, **optimal** — und vier Plätze unter dem Rad-Kasten statt
+    drei (`PlanSettings.bikeOptions`). „wenig Halts“ gibt es nicht mehr, „wenig Autos“ heißt
+    „ruhig“. Eine gespeicherte Reihenfolge verliert beim Lesen nur den einen Namen.
+  - **ruhig** ist die Linie über Fahrradstraßen: das eigene ruhige Profil rechnet alles andere
+    dreimal so teuer, und die Rolle gewinnt, wer am wenigsten stört — Meter auf Fahrradstraßen
+    zählen dagegen (`BikeCandidate.unrest`). Teststrecke: 3,6 und 2,9 km Fahrradstraße, 0,4 und
+    1,1 km Hauptstraße, 23,3 km.
+  - **optimal** bleibt die Abwägung über alle vier Linien. Die Linie dahinter („trekking“) nimmt
+    Fahrradstraßen jetzt wirklich mit: der Vorteil aus 1.16 (Faktor 2) lag auf der Kippe und
+    verschwand mit „Pflaster meiden“ ganz. Jetzt Faktor 6 — der kleinste, der in beiden Richtungen
+    wirkt: 1,9 und 2,2 km Fahrradstraße, 20,2 statt 19,4 km.
+  - **Kopfsteinpflaster meidet jede Linie, immer.** Der Schalter ist weg (`avoidCobbles` steht bei
+    den Einstellungen, die es nicht mehr gibt), und der Aufschlag je Meter ist 100 statt 5. Mit 5
+    blieben je nach Linie 115 bis 310 m, mit 100 bleiben 0 bis 43 m — gepflasterte Einmündungen von
+    einem bis sechzehn Metern. Kein Ausschluss: wer an einer Pflasterstraße wohnt, muss hinkommen.
+    Das kostet woanders Strecke: Pinneberg → Hamburg 23,1 statt 20,8 km, um 870 m zu meiden.
+  - Bleibt: lässt sich das eigene Profil nicht hochladen, fährt die Linie mit dem des Servers —
+    ohne Pflasterregel. Das steht jetzt im Protokoll („Stumme Fehler“ in der Auswertung).
+  - Alle Zahlen am 07.10.2026 gegen brouter.de gemessen, beide Richtungen; die App selbst ist damit
+    noch nicht gefahren.
+- **Übersetzungen**: 21 englische Texte standen nur im Katalog und nicht in `tools/i18n/de_en.py`;
+  `sync.py` hätte sie gelöscht. Nachgetragen.
 - **Lint und CI.** `./dev lint` (SwiftLint, wenige Regeln, die Fehler finden: `try!`, `as!`, `!`,
   stummes `try?`, `print`, dazu Größenschwellen als Sperrklinke) und `./dev check` (Lint, dann
   Tests). Die 81 Stellen, die es schon gab, stehen in `.swiftlint-baseline.json` und werden nicht

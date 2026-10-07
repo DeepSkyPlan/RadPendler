@@ -156,7 +156,7 @@ final class CalibrationTests: XCTestCase {
         var s = PlanSettings(bikeSpeedKmh: 25)
         s.signalWaitSeconds = 30
         s.measuredOverallKmh = 18
-        s.optionsPerMode = 5
+        s.bikeOptions = 4
         // Kurz mit vielen Ampeln gegen etwas länger mit fast keinen.
         let short = BikeCandidate(source: .brouter(.fastbike),
                                   route: StreetRoute(distance: 10_000, expectedTravelTime: 0, coordinates: []),

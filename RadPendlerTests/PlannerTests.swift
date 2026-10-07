@@ -535,11 +535,13 @@ final class PlannerTests: XCTestCase {
     /// sich zwei Geräte den Wert endlos hin und her — und jede Runde kostet
     /// auf beiden Seiten ein vollständiges `load()`.
     func testTheOrderNormalisationDoesNotConvergeBetweenVersions() {
-        let stored = ["fastest", "shortest", "balanced", "quiet"]
-        let newer = storedOrder(stored, fallback: BikeVariant.defaultOrder)
-        XCTAssertEqual(newer, [.fastest, .shortest, .balanced, .quiet, .lowTraffic], "die neuere Fassung hängt an, was fehlt")
-        let backAgain = storedOrder(newer.map(\.rawValue).filter { $0 != "lowTraffic" },
-                                    fallback: BikeVariant.defaultOrder)
+        // Seit 1.17 ist diese die neuere, die etwas **wegwirft**: „wenig
+        // Halts" gibt es nicht mehr, 1.16 auf dem anderen Gerät hängt es wieder an.
+        let stored = ["fastest", "shortest", "balanced", "quiet", "lowTraffic"]
+        let newer: [BikeVariant] = storedOrder(stored, fallback: BikeVariant.defaultOrder)
+        XCTAssertEqual(newer, [.fastest, .shortest, .balanced, .quiet], "die neuere Fassung kennt den Namen nicht mehr")
+        let backAgain: [BikeVariant] = storedOrder(newer.map(\.rawValue) + ["lowTraffic"],
+                                                   fallback: BikeVariant.defaultOrder)
         XCTAssertEqual(backAgain, newer, "und tut es beim nächsten Mal wieder")
         XCTAssertNotEqual(newer.map(\.rawValue), stored,
                           "die normalisierte Fassung ist nicht die gespeicherte — genau darum darf sie nicht hinaus")

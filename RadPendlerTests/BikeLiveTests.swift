@@ -12,7 +12,7 @@ final class BikeLiveTests: XCTestCase {
         let from = Place(name: "Start", latitude: 52.4213, longitude: 13.1794)
         let to = Place(name: "Ziel", latitude: 52.5210, longitude: 13.4130)
         var s = PlanSettings()
-        s.optionsPerMode = 3
+        s.bikeOptions = 3
         let req = PlanRequest(origin: from, destination: to, target: .departAfter(.now), settings: s)
         let options = try await TripPlanner().bikeOptions(req)
         for o in options {

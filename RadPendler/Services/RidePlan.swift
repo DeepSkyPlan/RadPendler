@@ -50,7 +50,7 @@ struct RidePlan {
                         autoStopMinutes: settings.autoStopMinutes,
                         autoPauseMinutes: settings.autoPauseMinutes,
                         bikeProfile: option.bikeRoute?.source.profile ?? .trekking,
-                        avoidCobbles: settings.avoidCobbles,
+                        avoidCobbles: true,
                         via: option.bikeRoute?.via ?? [])
     }
 

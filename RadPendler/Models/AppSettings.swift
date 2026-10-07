@@ -73,8 +73,6 @@ final class AppSettings {
     var alertsOn: Bool = true { didSet { defaults.set(alertsOn, forKey: "alertsOn") } }
     /// Töne während der Fahrt: Start, Ende, Abbiegungen.
     var rideSounds: Bool = true { didSet { defaults.set(rideSounds, forKey: "rideSounds") } }
-    /// Radrouten meiden Kopfsteinpflaster (Nutzer, 28.09.2026: „fürchterlich").
-    var avoidCobbles: Bool = true { didSet { defaults.set(avoidCobbles, forKey: "avoidCobbles") } }
 
     /// Addresses that have been used before, with how often — the list the
     /// search offers before anything is typed. Device only, like the addresses.
@@ -261,7 +259,7 @@ final class AppSettings {
         "alertsOn",
         // Aufzeichnen
         "learnedSignals",
-        "autoStopMinutes", "autoPauseMinutes", "rideSounds", "avoidCobbles",
+        "autoStopMinutes", "autoPauseMinutes", "rideSounds",
         "measuredOverallKmh", "measuredMovingKmh", "measuredRides",
         "bikeOverallKmh", "carOverallKmh", "measuredCarKmh", "measuredCarRides",
         "carAppleFactor", "carAppleFactorRides",
@@ -283,7 +281,10 @@ final class AppSettings {
                               "bikeSpeedOverride", "signalWaitOverride", "bikeOverallOverride",
                               "carOverallOverride", "transferPenaltyMinutes", "optionsPerMode",
                               "maxBikeToStationKm", "replanOffRouteMeters", "rideDimSeconds",
-                              "alertMinutes"]
+                              "alertMinutes",
+                              // 1.17: Kopfsteinpflaster wird immer gemieden
+                              // (Nutzer, 07.10.2026: „nie, egal welche Route").
+                              "avoidCobbles"]
 
     private let defaults: UserDefaults
 
@@ -381,7 +382,6 @@ final class AppSettings {
             .flatMap(OrientationLock.init(rawValue:)) ?? rideOrientation)
         assign(\.autoStopMinutes, Self.double("autoStopMinutes", defaults) ?? autoStopMinutes)
         assign(\.rideSounds, defaults.object(forKey: "rideSounds") as? Bool ?? rideSounds)
-        assign(\.avoidCobbles, defaults.object(forKey: "avoidCobbles") as? Bool ?? avoidCobbles)
         assign(\.autoPauseMinutes, Self.double("autoPauseMinutes", defaults) ?? autoPauseMinutes)
         assign(\.tombstones, defaults.data(forKey: "tombstones")
             .flatMap(Tombstones.decode) ?? tombstones)
@@ -512,7 +512,7 @@ final class AppSettings {
                      measuredOverallKmh: bikeOverallKmh > 0 ? bikeOverallKmh : nil,
                      carOverallKmh: carOverallKmh > 0 ? carOverallKmh : nil,
                      carAppleFactor: carAppleFactor > 0 ? carAppleFactor : nil,
-                     avoidCobbles: avoidCobbles, motorcycle: motorcycle)
+                     motorcycle: motorcycle)
     }
 
     private func save(_ place: Place?, _ key: String) {
@@ -556,6 +556,9 @@ struct PlanSettings: Equatable {
     var bikeVariantOrder: [BikeVariant] = BikeVariant.defaultOrder
     /// Wie viele Möglichkeiten je Verkehrsmittel gerechnet werden.
     var optionsPerMode = 3
+    /// Beim Rad vier: schnellst, kürzest, ruhig und optimal — jede Rolle
+    /// eine Linie, wo es vier verschiedene Wege gibt.
+    var bikeOptions = 4
     var rainSwitchLevel: RainLevel = .light
     /// Um diesen Anteil darf „optimal" langsamer sein als die schnellste Linie.
     var quietExtraTime = 0.10
@@ -573,7 +576,9 @@ struct PlanSettings: Equatable {
     var carOverallKmh: Double? = nil
     /// Gefahren durch Apples Ansage; nil, solange es zu wenige Fahrten sind.
     var carAppleFactor: Double? = nil
-    /// Radrouten meiden Kopfsteinpflaster.
+    /// Radrouten meiden Kopfsteinpflaster — immer, seit 1.17 ohne Schalter.
+    /// Bleibt als Größe der Planung stehen, weil ein Test damit Apples Linie
+    /// erreicht, die keinen Belag kennt.
     var avoidCobbles = true
     /// Der Kasten „Auto" fährt Motorrad — siehe `CarCandidate.driveTime`.
     var motorcycle = false

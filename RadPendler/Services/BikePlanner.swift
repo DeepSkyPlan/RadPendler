@@ -6,9 +6,8 @@ import Foundation
 // `BikeCandidate.pick` (RouteCandidates.swift).
 
 extension TripPlanner {
-    /// Whole way by bike, as up to `optionsPerMode` distinct routes, one per
-    /// role in the user's own order (optimal, schnellst, kürzest, wenig Autos,
-    /// wenig Halts). Candidates come from BRouter profiles — Apple Maps only
+    /// Whole way by bike, as up to `bikeOptions` distinct routes, one per
+    /// role in the user's own order (optimal, schnellst, kürzest, ruhig). Candidates come from BRouter profiles — Apple Maps only
     /// when cobbles are allowed or BRouter does not answer;
     /// OpenStreetMap data then counts traffic lights, large roads crossed and
     /// metres beside large roads for each. Riding time includes an expected
@@ -22,7 +21,7 @@ extension TripPlanner {
         let habitVia = RiddenPaths.typical(ridden).map {
             WaypointRouting.ordered(RiddenPaths.via($0) + via, from: o, to: d)
         }
-        let n = Swift.max(1, req.settings.optionsPerMode)
+        let n = Swift.max(1, req.settings.bikeOptions)
         let order = req.settings.bikeVariantOrder.filter { $0 != .alternative }
         func requests(for roles: some Sequence<BikeVariant>) -> [BikeLineSource] {
             let wanted: [BikeLineSource] = roles.flatMap { v -> [BikeLineSource] in
@@ -35,7 +34,6 @@ extension TripPlanner {
                 case .fastest: [.brouter(.fastbike)]
                 case .shortest: [.brouter(.shortest)]
                 case .quiet: [.brouter(.quiet)]
-                case .lowTraffic: [.brouter(.lowTraffic)]
                 case .alternative: []
                 }
             }

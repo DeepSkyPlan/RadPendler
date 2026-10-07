@@ -207,17 +207,14 @@ final class GuideTests: XCTestCase {
 
     // MARK: Verkehrsarm
 
-    func testTheLowTrafficVariantIsOfferedAndSurvivesAnOldStoredOrder() {
-        XCTAssertTrue(BikeVariant.defaultOrder.contains(.lowTraffic))
-        XCTAssertEqual(BikeVariant.lowTraffic.title, "wenig Halts")
-        // Ein Gerät, das die Liste vor dieser Version geschrieben hat, darf die
-        // neue Variante nicht verschlucken.
-        let old = ["balanced", "fastest", "quiet", "shortest"]
+    /// „wenig Halts" gab es von 1.4 bis 1.16. Eine Reihenfolge, die ein
+    /// Gerät damals geschrieben hat — oder ein älteres heute noch schreibt —,
+    /// verliert beim Lesen nur diesen einen Namen.
+    func testAStoredOrderWithTheRetiredVariantStillReads() {
+        let old = ["quiet", "lowTraffic", "balanced", "fastest", "shortest"]
         let order: [BikeVariant] = storedOrder(old, fallback: BikeVariant.defaultOrder)
-        XCTAssertEqual(order.count, BikeVariant.defaultOrder.count)
-        XCTAssertTrue(order.contains(.lowTraffic))
-        XCTAssertEqual(order.first, .balanced, "die bekannte Reihenfolge bleibt vorn")
-        XCTAssertEqual(BRouterClient.Profile.lowTraffic.rawValue, "fastbike-lowtraffic")
+        XCTAssertEqual(order, [.quiet, .balanced, .fastest, .shortest], "die eigene Reihenfolge bleibt")
+        XCTAssertNil(BikeVariant(rawValue: "lowTraffic"))
     }
 }
 

@@ -277,8 +277,8 @@ T.update({
 
 T.update({
 # --- Anleitung (HelpView)
-"Fahrrad, Rad + Bahn, Auto, Bus & Bahn — jede Box zeigt die Fahrzeit und worum es sich handelt: bei Radrouten optimal, schnellst, kürzest, wenig Autos oder wenig Halts, bei Verbindungen die Abfahrt.":
-    "Bike, bike + rail, car, transit — each box shows the travel time and what it is: for bike routes balanced, fastest, shortest, few cars or few stops; for connections the departure.",
+"Fahrrad, Rad + Bahn, Auto, Bus & Bahn — jede Box zeigt die Fahrzeit und worum es sich handelt: bei Radrouten optimal, schnellst, kürzest oder ruhig, bei Verbindungen die Abfahrt.":
+    "Bike, bike + rail, car, transit — each box shows the travel time and what it is: for bike routes balanced, fastest, shortest or quiet; for connections the departure.",
 "Ein Tipp wählt die Box aus, der nächste Tipp schaltet zur nächsten Möglichkeit. Die Punkte unter der Zeit zeigen, wie viele es sind.":
     "One tap selects the box, the next tap steps to the next option. The dots below the time show how many there are.",
 "Lang drücken springt zurück auf die erste und damit beste Möglichkeit dieser Box.":
@@ -715,3 +715,60 @@ T.update({
 })
 
 T.update({"Fahrt zur Auswertung teilen": "Share ride for analysis"})
+
+T.update({
+# --- 1.17: vier Radlinien, Kopfsteinpflaster immer gemieden
+"ruhig": "quiet",
+"die Mischung aus allen dreien: zügig, kurz, ruhig": "the mix of all three: quick, short, quiet",
+"über Fahrradstraßen und Nebenstraßen, weg von den Autos": "along cycle streets and side streets, away from the cars",
+"Vier Linien, jede mit einer Frage: schnellst, kürzest, ruhig — über Fahrradstraßen und Nebenstraßen — und optimal, die Mischung aus allen dreien. Die oberste wird vorgeschlagen, die anderen erreicht ein Tipp auf den Kasten. Kopfsteinpflaster meidet jede von ihnen.":
+    "Four lines, each answering one question: fastest, shortest, quiet — along cycle streets and side streets — and balanced, the mix of all three. The top one is suggested, a tap on the box reaches the others. Every one of them avoids cobblestones.",
+"Beim Rad sind es vier Linien: schnellst, kürzest, ruhig — über Fahrradstraßen und Nebenstraßen — und optimal, die Mischung aus allen dreien. Kopfsteinpflaster meidet jede von ihnen.":
+    "For bikes there are four lines: fastest, shortest, quiet — along cycle streets and side streets — and balanced, the mix of all three. Every one of them avoids cobblestones.",
+})
+
+T.update({
+# --- Standen nur im Katalog, nicht hier: beim Abgleich am 07.10.2026 wären sie verloren gegangen.
+"%d %% mehr Zeit":
+    "%d %% more time",
+"Abgleich jetzt wieder einschalten":
+    "Turn sync back on now",
+"Apple Karten %@ — aus deinen Autofahrten":
+    "Apple Maps %@ — from your car trips",
+"Auf einem anderen Gerät läuft eine neuere Version von RadPendler. Dieses Gerät liest aus iCloud, schreibt aber nichts mehr dorthin, bis es aktualisiert ist.":
+    "Another device runs a newer version of RadPendler. This device reads from iCloud but no longer writes to it until it is updated.",
+"Der Countdown oben rechts zählt bis zum Losgehen für Bahn und Bus — und bei „Ankunft um …“ für jede Fahrt. Warnungen kommen 10, 5 und 1 Minute vorher als Mitteilung, auch wenn die App zu ist; bei offener App zusätzlich als Ton.":
+    "The countdown at the top right counts down to setting off for trains and buses — and with “arrive by …” for every trip. Warnings arrive 10, 5 and 1 minute ahead as notifications even when the app is closed; with the app open there is a sound as well.",
+"Der Knopf mit Haus und Fahne rechts in der Box setzt die Pendelstrecke ein: dein Standort als Start, Zuhause oder Arbeit als Ziel. Welches von beidem, entscheidet der Ort — und wenn keiner passt, die Uhrzeit.":
+    "The button with the house and flag on the right of the box sets your commute: your location as the start, home or work as the destination. Which of the two depends on where you are — and if neither fits, on the time of day.",
+"Der iCloud-Abgleich ist angehalten: die App ist zweimal hintereinander beim Start abgestürzt. Deine Daten auf diesem Gerät sind unberührt. Mit dem nächsten Update läuft er von selbst wieder an.":
+    "iCloud sync is paused: the app crashed twice in a row at launch. Your data on this device is untouched. Sync resumes by itself with the next update.",
+"Die Fahrzeit kommt von Apple Karten mit Verkehrslage. Wie viel länger oder kürzer du wirklich brauchst, lernt die App aus deinen aufgezeichneten Autofahrten: gefahrene Zeit Tür zu Tür geteilt durch Apples Ansage, der Median der letzten Fahrten, sobald es drei gibt. Mit diesem Faktor wird Apples Zeit malgenommen — auf jeder Strecke, Stadt wie Autobahn; Parkplatzsuche und Gesamtschnitt gelten dann nicht mehr, sie stecken darin. Bis dahin gilt Apple plus Parkplatzsuche, und dein Gesamtschnitt als Untergrenze, außer wo Apple die Linie mehr als anderthalbmal so schnell fährt wie er.":
+    "The driving time comes from Apple Maps with live traffic. How much longer or shorter you really take, the app learns from your recorded car trips: time driven door to door divided by Apple's estimate, the median of the latest trips once there are three. Apple's time is multiplied by that factor — on any route, town or motorway; looking for parking and the overall average then no longer apply, they are part of it. Until then Apple plus parking counts, with your overall average as a lower bound, except where Apple drives the line more than one and a half times as fast as that.",
+"Dieser Knopf setzt deinen Standort als Start und Zuhause oder Arbeit als Ziel.":
+    "This button sets your location as the start and home or work as the destination.",
+"Du stehst am Ziel — Richtung gedreht. Gleich noch einmal auf „Fahrt“ tippen.":
+    "You're at the destination — direction reversed. Tap “Ride” again in a moment.",
+"Für Ruhe höchstens":
+    "For quiet, at most",
+"Gegenüber Apple Karten":
+    "Compared to Apple Maps",
+"Jeder Umstieg wird beim Sortieren und Empfehlen wie 10 Minuten längere Fahrt gewertet: eine direkte Verbindung gewinnt, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.":
+    "When sorting and recommending, every change counts as 10 minutes of extra travel: a direct connection wins as long as the one with a change arrives no more than this much earlier.",
+"Keine Ortung bekommen.":
+    "Couldn't get a location fix.",
+"Neues Ziel":
+    "New destination",
+"Pendelstrecke":
+    "Commute",
+"Womit die App plant, wenn sie die Wahl hat. „Für Ruhe höchstens“ gilt für die Radroute „optimal“: so viel länger als die schnellste Linie darf sie dauern, wenn sie dafür von der Hauptstraße wegführt. Steht „optimal“ trotzdem auf der Hauptstraße, ist die ruhige Linie langsamer als das. Ab dem gewählten Regen wird nicht mehr die ganze Strecke geradelt, sondern das Rad in die Bahn gestellt — „starker Regen“ heißt also praktisch immer fahren.":
+    "What the app plans with when it has a choice. “For quiet, at most” applies to the bike route “optimal”: that much longer than the fastest line it may take if it leads away from the main road. If “optimal” still stays on the main road, the quiet line is slower than that. From the selected rain level on, the bike goes on the train instead of riding the whole way — “heavy rain” therefore means riding almost always.",
+"Ziel ändern, jetzt %@":
+    "Change destination, now %@",
+"Zwei verschiedene Geschwindigkeiten, und sie tun Verschiedenes. Das Rolltempo ist das Tempo beim Fahren, ohne Halte: daraus plus der Wartezeit je Ampelkreuzung und den Höhenmetern rechnet die App jede Linie durch — es entscheidet also, welche Linie die schnellste ist. Der Gesamtschnitt ist die Messung deiner eigenen Fahrten, Tür zu Tür, mit allen Ampeln und Halten darin — er entscheidet, wie lange es dauert. Wäre die Rechnung schneller als dein gemessener Gesamtschnitt, gilt der Gesamtschnitt; auch bei den Zubringern zum Bahnhof, dort aber nur, wenn er die vorsichtigere Zahl ist. Rolltempo, Ampelwartezeit und Gesamtschnitt misst die App nach jeder aufgezeichneten Fahrt selbst, aus dem Median der letzten Fahrten, sobald es genug davon gibt. Die Ampelwartezeit ist ein Mittelwert (etwa jede zweite ist grün) und wird je Ampelkreuzung addiert — außer an den Kreuzungen, die deine eigenen Fahrten schon kennen: die kosten, was dort gemessen wurde. Der Puffer gilt je Bahnhof für Rad schieben, Aufzug und Bahnsteig. Rad + Bahn nimmt nur Züge, für die die VBB-Auskunft Fahrradmitnahme meldet.":
+    "Two different speeds, and they do different things. The rolling speed is your speed while riding, without stops: from it, plus the waiting time per signalised junction and the metres of climb, the app works out every route — so it decides which route is the fastest. The overall average is the measurement of your own rides, door to door, with every light and stop in it — it decides how long it takes. If the calculation were faster than your measured overall average, the average wins; for the legs to the station too, but there only when it is the more cautious number. The app measures rolling speed, waiting time per light and overall average itself after every recorded ride, from the median of the recent ones, as soon as there are enough. The waiting time per light is an average (roughly every second one is green) and is added per signalised junction — except at the junctions your own rides already know: those cost what was measured there. The buffer applies per station for pushing the bike, the lift and the platform. Bike + rail only takes trains the VBB service says carry bikes.",
+"gemessen aus %d Autofahrten":
+    "measured from %d car trips",
+"„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — Eine Fahrt beginnt quer, oder so, wie du es während der letzten Fahrt zuletzt eingestellt hast; der Knopf dafür steht oben links auf dem Fahrtbildschirm. Nach der Fahrt gilt wieder die Ausrichtung von hier. — Steht die Aufzeichnung an derselben Stelle und ist dort keine bekannte Ampel, hält sie nach der ersten eingestellten Zeit von selbst an — und läuft weiter, sobald es weitergeht; die Ortung bleibt dabei an, aber sparsam. Nach der zweiten Zeit beendet sie sich und zählt bis zum Anfang des Stillstands: das ist der Fall „angekommen und vergessen, auf beenden zu tippen“. Der Knopf oben links auf dem Fahrtbildschirm schaltet beides für eine Fahrt ab, für den Stau, der gleich weitergeht. Eine gewollte Unterbrechung ist dagegen der Knopf „Pause“: er hält die Uhr an und schaltet die Ortung ganz ab, und die Pause zählt weder zur Fahrzeit noch als Halt — anders als das Stehen vor einer automatischen Pause, das ein Halt war wie jeder andere. — Während einer Aufzeichnung bleibt der Bildschirm an, bis du die Fahrt beendest; das kostet Strom und ist so gewollt. Er wird aber nach 30 Sekunden dunkel, solange du ihn nicht anfasst — und beim ersten Antippen wieder hell, ebenso wenn eine Abbiegung ansteht oder du neben der Route bist. Das ist während einer Fahrt der größte Posten auf der Stromrechnung, größer als die Ortung. Am Strom bleibt er hell, ohne dass du etwas umstellen musst. — Verlässt du die Route, zeigt ein Pfeil zurück. Neu berechnet wird ab 200 m daneben, und erst nach ein paar Sekunden am Stück, damit ein Bogen um eine Baustelle keine Neuplanung auslöst. — Wer länger als 30 Sekunden steht, stand an einer Ampel, auch wenn keine Karte dort eine kennt — nur das Stehen vor dem Losfahren und nach dem Ankommen zählt nie, das ist die eigene Haustür. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein. Mitgezählt wird auch, wo eine Aufzeichnung ohne Halt durchkam: eine gelernte Kreuzung kostet beim Planen ihre gemessene Zeit über alle Vorbeifahrten, nicht den eingestellten Mittelwert. Sie bleiben auf deinen Geräten und in deiner iCloud.":
+    "“Automatic” lets the screen turn with the phone; on a handlebar that is often in the way. — A ride starts in landscape, or however you last set it during a ride; the button for it is at the top left of the ride screen. After the ride the orientation from here applies again. — If the recording stands in the same spot and there is no known traffic light there, it pauses by itself after the first time set — and carries on as soon as you move again; location stays on meanwhile, but frugally. After the second time it ends and counts up to the start of the standstill: that is the “arrived and forgot to tap end” case. The button at the top left of the ride screen switches both off for one ride, for the traffic jam that is about to move. A deliberate break is the “Pause” button instead: it stops the clock and switches location off entirely, and the break counts neither as ride time nor as a stop — unlike the standing before an automatic pause, which was a stop like any other. — While recording, the screen stays on until you end the ride; that costs battery and is meant to. It does go dark after 30 seconds while you are not touching it — and bright again at the first tap, and likewise when a turn is coming up or you are off the route. During a ride that is the largest item on the battery bill, larger than location tracking. While the phone is charging it stays bright, with nothing to switch. — If you leave the route, an arrow points back. It recalculates from 200 m off the route, and only after a few seconds in a row, so that a detour around road works does not trigger a replan. — Anyone standing longer than 30 seconds was standing at a traffic light, even where no map knows one — only standing before setting off and after arriving never counts, that is your own front door. The app remembers such places and counts them in next time. It also counts where a recording got through without stopping: a learned junction costs the plan its measured time across every pass, not the configured average. They stay on your devices and in your iCloud.",
+})

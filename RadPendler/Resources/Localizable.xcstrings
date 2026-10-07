@@ -892,13 +892,13 @@
         }
       }
     },
-    "Beim Rad beantworten „wenig Autos“ und „wenig Halts“ zwei verschiedene Fragen: die erste, wie lange man neben fahrenden Autos fährt, die zweite, wie oft man ihretwegen anhalten muss.": {
+    "Beim Rad sind es vier Linien: schnellst, kürzest, ruhig — über Fahrradstraßen und Nebenstraßen — und optimal, die Mischung aus allen dreien. Kopfsteinpflaster meidet jede von ihnen.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "For bikes, “few cars” and “few stops” answer two different questions: the first, how long you ride next to moving cars; the second, how often you have to stop because of them."
+            "value": "For bikes there are four lines: fastest, shortest, quiet — along cycle streets and side streets — and balanced, the mix of all three. Every one of them avoids cobblestones."
           }
         }
       }
@@ -1629,13 +1629,13 @@
         }
       }
     },
-    "Fahrrad, Rad + Bahn, Auto, Bus & Bahn — jede Box zeigt die Fahrzeit und worum es sich handelt: bei Radrouten optimal, schnellst, kürzest, wenig Autos oder wenig Halts, bei Verbindungen die Abfahrt.": {
+    "Fahrrad, Rad + Bahn, Auto, Bus & Bahn — jede Box zeigt die Fahrzeit und worum es sich handelt: bei Radrouten optimal, schnellst, kürzest oder ruhig, bei Verbindungen die Abfahrt.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bike, bike + rail, car, transit — each box shows the travel time and what it is: for bike routes balanced, fastest, shortest, few cars or few stops; for connections the departure."
+            "value": "Bike, bike + rail, car, transit — each box shows the travel time and what it is: for bike routes balanced, fastest, shortest or quiet; for connections the departure."
           }
         }
       }
@@ -2439,17 +2439,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "No fixed departure"
-          }
-        }
-      }
-    },
-    "Kopfsteinpflaster meiden": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Avoid cobblestones"
           }
         }
       }
@@ -3719,6 +3708,17 @@
         }
       }
     },
+    "Vier Linien, jede mit einer Frage: schnellst, kürzest, ruhig — über Fahrradstraßen und Nebenstraßen — und optimal, die Mischung aus allen dreien. Die oberste wird vorgeschlagen, die anderen erreicht ein Tipp auf den Kasten. Kopfsteinpflaster meidet jede von ihnen.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Four lines, each answering one question: fastest, shortest, quiet — along cycle streets and side streets — and balanced, the mix of all three. The top one is suggested, a tap on the box reaches the others. Every one of them avoids cobblestones."
+          }
+        }
+      }
+    },
     "Von oben nach unten: was gewinnt, wenn zwei Fahrten fast gleichzeitig ankommen. Dieselbe Reihenfolge ordnet die vier Kästen auf der Hauptseite, entscheidet, welcher nach einer Suche geöffnet ist, und in welcher Folge sie sich füllen — das Oberste steht zuerst da, der Rest kommt nach.": {
       "extractionState": "manual",
       "localizations": {
@@ -4159,17 +4159,6 @@
         }
       }
     },
-    "am seltensten wegen des Verkehrs anhalten": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "stopping for traffic least often"
-          }
-        }
-      }
-    },
     "andere Halte": {
       "extractionState": "manual",
       "localizations": {
@@ -4236,13 +4225,13 @@
         }
       }
     },
-    "die Mischung: zügig, wenig neben Autos, wenig Halts": {
+    "die Mischung aus allen dreien: zügig, kurz, ruhig": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "the mix: quick, little traffic beside you, few stops"
+            "value": "the mix of all three: quick, short, quiet"
           }
         }
       }
@@ -4254,17 +4243,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "the shortest way, whatever it runs on"
-          }
-        }
-      }
-    },
-    "die wenigsten Meter neben fahrenden Autos": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "the fewest metres beside moving cars"
           }
         }
       }
@@ -4830,6 +4808,17 @@
         }
       }
     },
+    "ruhig": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "quiet"
+          }
+        }
+      }
+    },
     "scharf links": {
       "extractionState": "manual",
       "localizations": {
@@ -5039,28 +5028,6 @@
         }
       }
     },
-    "wenig Autos": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "few cars"
-          }
-        }
-      }
-    },
-    "wenig Halts": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "few stops"
-          }
-        }
-      }
-    },
     "weniger": {
       "extractionState": "manual",
       "localizations": {
@@ -5222,6 +5189,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "via %@"
+          }
+        }
+      }
+    },
+    "über Fahrradstraßen und Nebenstraßen, weg von den Autos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "along cycle streets and side streets, away from the cars"
           }
         }
       }

@@ -26,12 +26,12 @@ struct HelpView: View {
                         L("Die Rüstzeit ist die Zeit vom Blick auf die App bis zum Losgehen; sie steckt in „los …“."),
                     ])
                     section(L("Die vier Boxen"), "square.grid.2x2", [
-                        L("Fahrrad, Rad + Bahn, Auto, Bus & Bahn — jede Box zeigt die Fahrzeit und worum es sich handelt: bei Radrouten optimal, schnellst, kürzest, wenig Autos oder wenig Halts, bei Verbindungen die Abfahrt."),
+                        L("Fahrrad, Rad + Bahn, Auto, Bus & Bahn — jede Box zeigt die Fahrzeit und worum es sich handelt: bei Radrouten optimal, schnellst, kürzest oder ruhig, bei Verbindungen die Abfahrt."),
                         L("Ein Tipp wählt die Box aus, der nächste Tipp schaltet zur nächsten Möglichkeit. Die Punkte unter der Zeit zeigen, wie viele es sind."),
                         L("Lang drücken springt zurück auf die erste und damit beste Möglichkeit dieser Box."),
                         L("Der gelbe Stern steht an dem, was die App empfiehlt."),
                         L("Im Detail einer Radroute zeigt ein Balken, wie viele Kilometer auf Hauptstraße, Nebenstraße, Radweg, Weg und Fußweg liegen. Derselbe Balken steht bei jeder aufgezeichneten Fahrt — dort für die Strecke, die du wirklich gefahren bist."),
-                        L("Beim Rad beantworten „wenig Autos“ und „wenig Halts“ zwei verschiedene Fragen: die erste, wie lange man neben fahrenden Autos fährt, die zweite, wie oft man ihretwegen anhalten muss."),
+                        L("Beim Rad sind es vier Linien: schnellst, kürzest, ruhig — über Fahrradstraßen und Nebenstraßen — und optimal, die Mischung aus allen dreien. Kopfsteinpflaster meidet jede von ihnen."),
                     ])
                     section(L("Die Zeile darunter"), "chevron.right.circle", [
                         L("Sie zeigt die gewählte Fahrt: Abfahrt → Ankunft, die Abschnitte, Kilometer, Ampeln und wann es losgeht."),

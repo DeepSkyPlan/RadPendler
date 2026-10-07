@@ -276,6 +276,15 @@ struct BikeCandidate {
         return computedTime(s) + (1 - familiar) * (Self.besideMainRoad * main + 0.5 * rest) / s.bikeSpeedMps
     }
 
+    /// Woran „ruhig" gemessen wird: was stört — Meter neben der Hauptstraße,
+    /// Ampeln, Querungen —, abzüglich der Meter auf Fahrradstraßen. Ein Meter
+    /// Fahrradstraße wiegt einen Meter Störung auf: „Ruhig ist Fahrradstraße"
+    /// (Nutzer, 07.10.2026), aber nicht um jeden Preis — eine Linie, die für
+    /// zwei Kilometer Fahrradstraße zehn an der Hauptstraße fährt, ist es nicht.
+    var unrest: Double {
+        (stats?.disturbance ?? .infinity) - route.cycleStreetMeters
+    }
+
     /// Ab diesem Anteil fährt man die Linie ohnehin.
     static let habitual = 0.8
 
@@ -348,9 +357,9 @@ struct BikeCandidate {
         // „schnellst" immer dieselbe Linie wie „kürzest".
         guard let fastest = all.indices.min(by: { all[$0].computedTime(s) < all[$1].computedTime(s) })
         else { return [] }
-        let quiet: Int, balanced: Int, lowTraffic: Int
+        let quiet: Int, balanced: Int
         if all.contains(where: { $0.stats != nil }) {
-            quiet = all.indices.min { (all[$0].stats?.disturbance ?? .infinity) < (all[$1].stats?.disturbance ?? .infinity) }!
+            quiet = all.indices.min { all[$0].unrest < all[$1].unrest } ?? fastest
             // „optimal" ist ein Kompromiss, kein Umweg: nur unter den Linien,
             // die höchstens `detourLimit` länger und `quietExtraTime`
             // langsamer sind als die kürzeste und die schnellste (Nutzer, 30.09.2026: „optimal mit
@@ -359,27 +368,22 @@ struct BikeCandidate {
             let reasonable = all.indices.filter { all[$0].isReasonable(among: all, s) }
             balanced = (reasonable.isEmpty ? Array(all.indices) : reasonable)
                 .min { all[$0].balancedScore(s) < all[$1].balancedScore(s) }!
-            // Fewest places where traffic makes one stop; metres beside main
-            // roads only break the tie.
-            lowTraffic = all.indices.min { a, b in
-                let sa = all[a].stats, sb = all[b].stats
-                let na = sa?.stops ?? .max, nb = sb?.stops ?? .max
-                if na != nb { return na < nb }
-                return (sa?.mainRoadMeters ?? .infinity) < (sb?.mainRoadMeters ?? .infinity)
-            }!
         } else {
-            quiet = all.firstIndex { $0.source == .brouter(.quiet) } ?? fastest
+            // Ohne Straßendaten bleibt, was der Router selbst sagt: die
+            // meisten Meter Fahrradstraße, und wo auch das fehlt, das Profil.
+            quiet = all.indices.max { all[$0].route.cycleStreetMeters < all[$1].route.cycleStreetMeters }
+                .flatMap { all[$0].route.cycleStreetMeters > 0 ? $0 : nil }
+                ?? all.firstIndex { $0.source == .brouter(.quiet) } ?? fastest
             balanced = all.firstIndex { $0.source == .brouter(.trekking) } ?? fastest
-            lowTraffic = all.firstIndex { $0.source == .brouter(.lowTraffic) } ?? quiet
         }
         let shortest = all.indices.min { all[$0].route.distance < all[$1].route.distance }!
         let winner: [BikeVariant: Int] = [.fastest: fastest, .shortest: shortest,
-                                          .balanced: balanced, .quiet: quiet, .lowTraffic: lowTraffic]
+                                          .balanced: balanced, .quiet: quiet]
         // Und bringt auch die ganze Liste keinen weiteren Weg, füllt, was an
         // anderen Linien da ist, die freien Plätze — die ausgewogenste zuerst.
         let spare = fill ? all.indices.sorted { all[$0].balancedScore(s) < all[$1].balancedScore(s) } : []
         return RoleAssignment.assign(order: s.bikeVariantOrder.filter { $0 != .alternative },
-                                     winner: { winner[$0] }, count: Swift.max(1, s.optionsPerMode),
+                                     winner: { winner[$0] }, count: Swift.max(1, s.bikeOptions),
                                      spare: spare, filler: .alternative)
             .map { (all[$0.index], $0.roles) }
     }

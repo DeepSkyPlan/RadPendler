@@ -251,7 +251,7 @@ struct ModeSettingsView: View {
                     }
                     NavigationLink {
                         PriorityList(title: L("Radrouten"), items: $settings.bikeVariantOrder,
-                                     footer: "Die obersten so vieler, wie oben eingestellt — die erste wird vorgeschlagen, die anderen erreicht ein Tipp auf den Kasten. Was weiter unten steht, wird gar nicht erst berechnet und spart die Anfrage.\n\n„wenig Autos“ und „wenig Halts“ beantworten zwei verschiedene Fragen: die erste, wie lange man neben fahrenden Autos fährt, die zweite, wie oft man ihretwegen anhalten muss. Die kürzeste Strecke ist selten beides.",
+                                     footer: L("Vier Linien, jede mit einer Frage: schnellst, kürzest, ruhig — über Fahrradstraßen und Nebenstraßen — und optimal, die Mischung aus allen dreien. Die oberste wird vorgeschlagen, die anderen erreicht ein Tipp auf den Kasten. Kopfsteinpflaster meidet jede von ihnen."),
                                      label: \.title, symbol: \.symbol)
                     } label: {
                         LabeledContent(L("Radrouten"), value: settings.bikeVariantOrder.first?.title ?? "")
@@ -296,7 +296,6 @@ struct ModeSettingsView: View {
                         format: { $0 > 0 ? Fmt.kmh($0) : L("aus — nur die Rechnung") })
                     Stepper(L("Puffer am Bahnhof: %d min", settings.bikeStationBufferMinutes),
                             value: $settings.bikeStationBufferMinutes, in: 0...10)
-                    Toggle(L("Kopfsteinpflaster meiden"), isOn: $settings.avoidCobbles)
                 } header: {
                     Text(L("Fahrrad"))
                 } footer: {

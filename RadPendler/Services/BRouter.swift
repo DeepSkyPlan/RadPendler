@@ -17,9 +17,28 @@ struct BRouterClient {
         case quiet = "radpendler-quiet"
 
         var isCustom: Bool { self == .quiet }
-        /// „trekking" — die Linie für „optimal" — fährt mit einer Fassung, in
-        /// der die Fahrradstraße zählt: siehe `CustomProfile.adjusted`.
-        var prefersCycleStreets: Bool { self == .trekking }
+        /// Um wie viel alles andere teurer ist als eine Fahrradstraße — nil,
+        /// wo sie nicht zählt. „ruhig" **ist** die Linie über Fahrradstraßen
+        /// (Nutzer, 07.10.2026: „Schnell ist schnell. Kurz ist kurz. Ruhig
+        /// ist Fahrradstraße. Optimal der Mix aus allen."); „trekking", die
+        /// Linie hinter „optimal", nimmt sie mit, wo es wenig kostet.
+        /// „schnellst" und „kürzest" kennen sie nicht — mit Absicht.
+        ///
+        /// Gemessen am 07.10.2026 mit dem Pflaster-Aufschlag von heute, beide
+        /// Richtungen der Teststrecke: „trekking" bleibt bis Faktor 4 bei
+        /// 0 km Fahrradstraße, mit 5 nur morgens, mit 6 in beiden (1,9 und
+        /// 2,2 km, 20,2 statt 19,4 km). Das eigene ruhige Profil braucht nur
+        /// 3: es meidet die Hauptstraße ohnehin (3,6 und 2,9 km, 23,3 km).
+        /// Gegenproben mit 6: München Pasing → Ostbahnhof 14,5 km (3,0 km
+        /// Fahrradstraße; ohne alles 12,8), Pinneberg → Hamburg 23,1 km (4,9).
+        var cycleStreetAdvantage: Int? {
+            switch self {
+            case .trekking: 6
+            case .quiet: 3
+            default: nil
+            }
+        }
+        var prefersCycleStreets: Bool { cycleStreetAdvantage != nil }
     }
 
     var session: URLSession = .shared
@@ -27,8 +46,10 @@ struct BRouterClient {
     /// Tests schalten es ab, damit sie messen, was sie messen wollen.
     var cached = true
     /// Kopfsteinpflaster meiden: jedes Profil geht dann in einer abgewandelten
-    /// Fassung als eigenes Profil zum Server (`withoutCobbles`).
-    var avoidCobbles = false
+    /// Fassung als eigenes Profil zum Server (`withoutCobbles`). Seit 1.17
+    /// immer — es gibt keinen Schalter mehr dafür; aus ist es nur noch im
+    /// Rückfall, wenn sich kein eigenes Profil hochladen lässt.
+    var avoidCobbles = true
 
     func route(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
                via: [CLLocationCoordinate2D] = [],
@@ -40,7 +61,9 @@ struct BRouterClient {
         // der ohnehin drosselt.
         let key = String(format: "%.5f,%.5f|%.5f,%.5f|%@|%d%@",
                          from.latitude, from.longitude, to.latitude, to.longitude,
-                         profile.rawValue, alternative, avoidCobbles ? "|ohne-pflaster" : "")
+                         profile.rawValue, alternative,
+                         avoidCobbles ? "|ohne-pflaster-\(CustomProfile.cobblePenalty)" : "")
+            + (profile.cycleStreetAdvantage.map { "|fs\($0)" } ?? "")
             + via.map { String(format: "|über %.5f,%.5f", $0.latitude, $0.longitude) }.joined()
         if cached, let hit = await RouteCache.shared.route(for: key) { return hit }
         let route: StreetRoute
@@ -117,10 +140,26 @@ struct BRouterClient {
         let length = Double(props["track-length"] as? String ?? "") ?? 0
         let time = Double(props["total-time"] as? String ?? "") ?? 0
         guard points.count > 1 else { throw BRouterError.malformed }
-        let roads = Self.roads(props["messages"] as? [[String]], along: coords)
+        let messages = props["messages"] as? [[String]]
+        let roads = Self.roads(messages, along: coords)
         return StreetRoute(distance: length, expectedTravelTime: time, coordinates: points,
                            mix: roads.mix, roadPoints: roads.points,
+                           cycleStreetMeters: Self.cycleStreetMeters(messages),
                            ascent: Self.ascent(props: props, coordinates: coords))
+    }
+
+    /// Wie viele Meter der Linie Fahrradstraße sind — aus derselben Tabelle,
+    /// aus der die Straßenklassen kommen. Daran wird „ruhig" gemessen.
+    static func cycleStreetMeters(_ messages: [[String]]?) -> Double {
+        guard let messages, let header = messages.first,
+              let distanceColumn = header.firstIndex(of: "Distance"),
+              let tagColumn = header.firstIndex(of: "WayTags") else { return 0 }
+        return messages.dropFirst().reduce(0) { sum, row in
+            guard row.count > max(distanceColumn, tagColumn), let metres = Double(row[distanceColumn]),
+                  row[tagColumn].contains("bicycle_road=yes") || row[tagColumn].contains("cyclestreet=yes")
+            else { return sum }
+            return sum + metres
+        }
     }
 
     /// Der summierte Anstieg. BRouter rechnet ihn selbst aus und nennt ihn
@@ -351,7 +390,7 @@ actor CustomProfile {
         guard let url = Bundle.main.url(forResource: kind.resource, withExtension: "brf"),
               var text = try? String(contentsOf: url, encoding: .utf8) else { throw BRouterClient.BRouterError.malformed }
         text = Self.adjusted(text, withoutCobbles: kind.withoutCobbles,
-                             cycleStreets: kind.profile.prefersCycleStreets)
+                             cycleStreets: kind.profile.cycleStreetAdvantage)
         var request = URLRequest(url: URL(string: "https://brouter.de/brouter/profile")!, timeoutInterval: 20)
         request.httpMethod = "POST"
         request.setValue("text/plain", forHTTPHeaderField: "Content-Type")
@@ -370,57 +409,48 @@ actor CustomProfile {
         return id
     }
 
-    /// Kopfsteinpflaster kostet das Sechsfache: die Zeile `assign costfactor`
+    /// Kopfsteinpflaster kostet das Hundertfache: die Zeile `assign costfactor`
     /// des Profils wird zu `costfactor_base`, und vor dem Knotenteil kommt
-    /// eine neue, die fünf auf Pflaster aufschlägt. Kein Ausschluss — liegt
-    /// die Haustür an einer Pflasterstraße, muss man trotzdem hinkommen.
+    /// eine neue, die `cobblePenalty` auf Pflaster aufschlägt. Kein Ausschluss
+    /// — liegt die Haustür an einer Pflasterstraße, muss man trotzdem hinkommen.
+    ///
+    /// **Hundert, nicht fünf** (seit 1.17; Nutzer, 07.10.2026: „nie Kopfstein
+    /// bei egal welcher Route"). Mit fünf blieben auf der Teststrecke je nach
+    /// Linie 115 bis 310 m, mit zwanzig auf der ruhigen immer noch 290 m —
+    /// ein 115-m-Pfad und ein Stück Wohnstraße, beide zu umfahren. Mit
+    /// hundert bleiben 0 bis 43 m: Stücke von einem bis sechzehn Metern,
+    /// gepflasterte Einmündungen und Überwege. Der Preis steht woanders:
+    /// Pinneberg → Hamburg fährt 23,1 statt 20,8 km, um 870 m Pflaster zu
+    /// meiden.
     /// Probe 27.09.2026, Teststrecke: 0,8–1,25 km Pflaster je
     /// Profil wurden höchstens 62 m, für höchstens 0,6 km Umweg.
     /// `unhewn_cobblestone` kennt BRouters Wertetabelle nicht (Profilfehler).
     nonisolated static func withoutCobbles(_ text: String) -> String {
-        adjusted(text, withoutCobbles: true, cycleStreets: false)
+        adjusted(text, withoutCobbles: true, cycleStreets: nil)
     }
 
-    /// Ein Meter Fahrradstraße zählt wie ein halber: alles andere kostet das
-    /// Doppelte. Kein Profil des Servers kennt den Unterschied — für
-    /// „trekking" ist sie eine Wohnstraße wie jede andere (Kosten 1,1), und
-    /// der Radweg an der Hauptstraße daneben ist kürzer. Malgenommen, nicht
-    /// aufgeschlagen: so bleibt das Verhältnis von Haupt- zu Nebenstraße, wie
-    /// es war. Probe 07.10.2026, Teststrecke: 0 → 4,3 km
-    /// Fahrradstraße, die ganze Prinzregentenstraße, für 0,7 km mehr
-    /// (20,8 statt 20,2 km; „wenig Autos" braucht 23,0 km und fährt sie
-    /// nicht). Pinneberg → Hamburg +0,1 km, München Pasing → Ostbahnhof
-    /// +0,75 km.
-    ///
-    /// **Drei, nicht zwei** (seit 1.17). Zwei lag genau auf der Kippe: die
-    /// Probe oben lief in einer Richtung und ohne „Pflaster meiden". Mit der
-    /// Einstellung an — fünf Aufschlag je Meter Pflaster, der nicht
-    /// mitverdoppelt wird — und auf dem Rückweg blieb es bei 0,6 km
-    /// Fahrradstraße, derselben Linie wie ohne jede Bevorzugung (Fahrt
-    /// 07.10.2026 abends: „optimal" am Radweg der Hauptstraße entlang).
-    /// Gemessen am selben Abend, mit „Pflaster meiden", beide Richtungen:
-    /// Faktor 2 → 0,6 km, Faktor 3 und 4 → 2,5 km, für 0,1 bis 0,4 km mehr.
-    /// Gegenproben mit 3: Pinneberg → Hamburg unverändert, München Pasing →
-    /// Ostbahnhof 14,2 statt 13,6 km (2,7 statt 1,9 km Fahrradstraße), Köln
-    /// Ehrenfeld → Deutz unverändert.
-    static let cycleStreetAdvantage = 3
+    /// Was ein Meter Kopfsteinpflaster zusätzlich kostet — siehe `withoutCobbles`.
+    static let cobblePenalty = 100
 
     /// Die Abwandlungen eines Profils: die Zeile `assign costfactor` wird zu
     /// `costfactor_base`, und vor dem Knotenteil kommt eine neue, die darauf
     /// aufbaut.
-    nonisolated static func adjusted(_ text: String, withoutCobbles: Bool, cycleStreets: Bool) -> String {
-        guard withoutCobbles || cycleStreets else { return text }
+    /// `cycleStreets`: um wie viel alles andere teurer ist als eine
+    /// Fahrradstraße (`Profile.cycleStreetAdvantage`); nil lässt sie, wie das
+    /// Profil sie kennt.
+    nonisolated static func adjusted(_ text: String, withoutCobbles: Bool, cycleStreets: Int?) -> String {
+        guard withoutCobbles || cycleStreets != nil else { return text }
         var rule: [String] = []
         if withoutCobbles { rule.append("# RadPendler: Kopfsteinpflaster meiden") }
-        if cycleStreets { rule.append("# RadPendler: Fahrradstraßen bevorzugen") }
+        if cycleStreets != nil { rule.append("# RadPendler: Fahrradstraßen bevorzugen") }
         rule.append("assign costfactor")
-        if cycleStreets {
-            if withoutCobbles { rule.append("  add switch surface=sett|cobblestone 5 0") }
+        if let cycleStreets {
+            if withoutCobbles { rule.append("  add switch surface=sett|cobblestone \(cobblePenalty) 0") }
             rule += ["  multiply costfactor_base",
-                     "      switch or bicycle_road=yes cyclestreet=yes 1 \(cycleStreetAdvantage)"]
+                     "      switch or bicycle_road=yes cyclestreet=yes 1 \(cycleStreets)"]
         } else {
             rule += ["  add costfactor_base",
-                     "      switch surface=sett|cobblestone 5 0"]
+                     "      switch surface=sett|cobblestone \(cobblePenalty) 0"]
         }
         rule.append("")
         var out: [String] = []

@@ -109,42 +109,42 @@ final class BikeRouteTests: XCTestCase {
         let middle = candidate(.brouter(.trekking), km: 19.7, signals: 45, crossings: 14, mainKm: 9)
         let quiet = candidate(.brouter(.quiet), km: 24.0, signals: 43, crossings: 12, mainKm: 7.6)
         var all = s
-        all.optionsPerMode = 5      // hier geht es um alle fünf Rollen
+        all.bikeOptions = 4      // hier geht es um alle vier Rollen
         let picked = BikeCandidate.pick([quiet, short, middle], settings: all)
         XCTAssertLessThan(middle.time(s), short.time(s))
         // fastbike is the shortest by distance, trekking the fastest overall.
         // The list comes back in the user's variant order, which ships as
-        // optimal › schnellst › kürzest › wenig Autos › wenig Halts — so
-        // trekking (optimal und schnellst) führt, dann fastbike (kürzest),
-        // dann safety (wenig Autos und wenig Halts).
+        // optimal › schnellst › kürzest › ruhig — so trekking (optimal und
+        // schnellst) führt, dann fastbike (kürzest), dann die ruhige.
         XCTAssertEqual(picked.map(\.0.source), [.brouter(.trekking), .brouter(.fastbike), .brouter(.quiet)])
-        // safety has both the least disturbance and the fewest metres beside a
-        // main road, so it carries both labels — one route, listed once.
-        XCTAssertEqual(picked.map(\.1), [[.balanced, .fastest], [.shortest], [.quiet, .lowTraffic]])
+        XCTAssertEqual(picked.map(\.1), [[.balanced, .fastest], [.shortest], [.quiet]])
         // Signal waits are part of the riding time: 45 × 20 s = 15 min.
         XCTAssertEqual(middle.time(s), s.bikeTime(19_700) + 900, accuracy: 1)
     }
 
-    /// „ruhigst" und „verkehrsarm" fragen verschiedene Dinge: die eine, wo man
-    /// am wenigsten *neben* Autos fährt, die andere, wo man ihretwegen am
-    /// seltensten *anhalten* muss. Eine Strecke am Kanal entlang mit wenigen
-    /// Kreuzungen gewinnt die zweite und verliert die erste.
-    func testQuietAndLowTrafficAskDifferentQuestions() {
+    /// „Ruhig ist Fahrradstraße" (Nutzer, 07.10.2026): von zwei Linien, die
+    /// ähnlich wenig stören, ist die ruhige die über die Fahrradstraße — aber
+    /// nicht um jeden Preis.
+    func testQuietIsTheLineAlongCycleStreets() {
         var s = PlanSettings()
-        s.optionsPerMode = 5      // beide Rollen stehen erst dann zur Wahl
-        // Wenig Halte, aber lange neben der Hauptstraße.
-        let fewStops = candidate(.brouter(.lowTraffic), km: 21, signals: 5, crossings: 2, mainKm: 12.0)
-        // Abseits der Autos, dafür durch lauter kleine Kreuzungen.
-        let calm = candidate(.brouter(.quiet), km: 21, signals: 40, crossings: 15, mainKm: 2.0)
+        s.bikeOptions = 4
+        // Etwas weniger neben Autos, aber keine Fahrradstraße.
+        let sideStreets = candidate(.brouter(.trekking), km: 21, signals: 20, crossings: 8, mainKm: 2.0)
+        // Etwas mehr Hauptstraße, dafür vier Kilometer Fahrradstraße.
+        var cycleStreets = candidate(.brouter(.quiet), km: 21, signals: 20, crossings: 8, mainKm: 3.0)
+        cycleStreets.route.cycleStreetMeters = 4_000
         let quick = candidate(.brouter(.fastbike), km: 19, signals: 25, crossings: 10, mainKm: 8.0)
-        let picked = BikeCandidate.pick([fewStops, calm, quick], settings: s)
-        let roles = Dictionary(uniqueKeysWithValues: picked.map { ($0.0.source, $0.1) })
-        XCTAssertTrue(roles[.brouter(.lowTraffic)]?.contains(.lowTraffic) ?? false,
-                      "die wenigsten Stellen, an denen der Verkehr zum Halten zwingt")
-        XCTAssertTrue(roles[.brouter(.quiet)]?.contains(.quiet) ?? false, "die geringste Störung insgesamt")
-        XCTAssertFalse(roles[.brouter(.quiet)]?.contains(.lowTraffic) ?? true, "und eben nicht dasselbe")
-        XCTAssertEqual(fewStops.stats?.stops, 7)
-        XCTAssertEqual(calm.stats?.stops, 55)
+        var roles = Dictionary(uniqueKeysWithValues:
+            BikeCandidate.pick([sideStreets, cycleStreets, quick], settings: s).map { ($0.0.source, $0.1) })
+        XCTAssertTrue(roles[.brouter(.quiet)]?.contains(.quiet) ?? false, "vier Kilometer Fahrradstraße wiegen einen an der Hauptstraße auf")
+        XCTAssertLessThan(cycleStreets.unrest, sideStreets.unrest)
+
+        // Zwei Kilometer Fahrradstraße, erkauft mit zehn an der Hauptstraße: das ist nicht ruhig.
+        var alibi = candidate(.brouter(.quiet), km: 21, signals: 20, crossings: 8, mainKm: 12.0)
+        alibi.route.cycleStreetMeters = 2_000
+        roles = Dictionary(uniqueKeysWithValues:
+            BikeCandidate.pick([sideStreets, alibi, quick], settings: s).map { ($0.0.source, $0.1) })
+        XCTAssertTrue(roles[.brouter(.trekking)]?.contains(.quiet) ?? false)
     }
 
     /// Ohne OpenStreetMap-Daten lässt sich nur die Zeit beurteilen — dann
@@ -155,12 +155,19 @@ final class BikeRouteTests: XCTestCase {
                                                            coordinates: [], signals: 0), stats: nil)
         }
         var s = PlanSettings()
-        s.optionsPerMode = 5      // alle fünf Rollen, nicht nur die obersten drei
+        s.bikeOptions = 4
         let picked = BikeCandidate.pick([plain(.brouter(.trekking), 20), plain(.brouter(.quiet), 21),
-                                         plain(.brouter(.lowTraffic), 22)], settings: s)
-        let roles = Dictionary(uniqueKeysWithValues: picked.map { ($0.0.source, $0.1) })
+                                         plain(.brouter(.fastbike), 22)], settings: s)
+        var roles = Dictionary(uniqueKeysWithValues: picked.map { ($0.0.source, $0.1) })
         XCTAssertTrue(roles[.brouter(.quiet)]?.contains(.quiet) ?? false)
-        XCTAssertTrue(roles[.brouter(.lowTraffic)]?.contains(.lowTraffic) ?? false)
+        XCTAssertTrue(roles[.brouter(.trekking)]?.contains(.balanced) ?? false)
+        // Sagt der Router, wo die Fahrradstraßen liegen, gilt das vor dem Profilnamen.
+        var along = plain(.brouter(.trekking), 20)
+        along.route.cycleStreetMeters = 3_000
+        roles = Dictionary(uniqueKeysWithValues:
+            BikeCandidate.pick([along, plain(.brouter(.quiet), 21), plain(.brouter(.fastbike), 22)], settings: s)
+                .map { ($0.0.source, $0.1) })
+        XCTAssertTrue(roles[.brouter(.trekking)]?.contains(.quiet) ?? false)
     }
 
     /// Eine Linie, die alles gewinnt, steht **einmal** da und trägt alle
@@ -464,9 +471,9 @@ extension BikeRouteTests {
         let a = line(.brouter(.fastbike), km: 9.0, seconds: 0, offset: 0.000, disturbance: 100)
         let b = line(.brouter(.shortest), km: 9.5, seconds: 0, offset: 0.02, disturbance: 900)
         let c = line(.brouter(.safety), km: 12.0, seconds: 0, offset: 0.04, disturbance: 500)
-        s.optionsPerMode = 1
+        s.bikeOptions = 1
         XCTAssertEqual(Set(BikeCandidate.pick([a, b, c], settings: s).flatMap { $0.1 }).count, 1)
-        s.optionsPerMode = 3
+        s.bikeOptions = 3
         let three = BikeCandidate.pick([a, b, c], settings: s)
         XCTAssertTrue(Set(three.flatMap { $0.1 }).isSuperset(of: BikeVariant.defaultOrder.prefix(3)),
                       "die obersten drei Rollen sind immer vergeben")
@@ -474,13 +481,13 @@ extension BikeRouteTests {
         XCTAssertTrue(three.allSatisfy { !$0.1.isEmpty }, "keine namenlose Linie")
     }
 
-    /// „wenig Autos" und „wenig Halts" beantworten zwei verschiedene Fragen —
-    /// am Wort waren „ruhigst" und „verkehrsarm" nicht auseinanderzuhalten.
-    func testTheTwoQuietVariantsAreTellableApart() {
-        XCTAssertNotEqual(BikeVariant.quiet.title, BikeVariant.lowTraffic.title)
-        XCTAssertTrue(BikeVariant.quiet.explanation.contains("neben"), BikeVariant.quiet.explanation)
-        XCTAssertTrue(BikeVariant.lowTraffic.explanation.contains("anhalten"),
-                      BikeVariant.lowTraffic.explanation)
+    /// Vier Linien, jede mit einer Frage (Nutzer, 07.10.2026) — und „ruhig"
+    /// sagt, woran es gemessen wird.
+    func testThereAreFourBikeLinesEachWithItsOwnName() {
+        XCTAssertEqual(BikeVariant.defaultOrder, [.balanced, .fastest, .shortest, .quiet])
+        XCTAssertEqual(PlanSettings().bikeOptions, 4, "für jede Rolle ein Platz")
+        XCTAssertEqual(BikeVariant.quiet.title, "ruhig")
+        XCTAssertTrue(BikeVariant.quiet.explanation.contains("Fahrradstraßen"), BikeVariant.quiet.explanation)
         XCTAssertEqual(Set(BikeVariant.allCases.map(\.title)).count, BikeVariant.allCases.count,
                        "kein Name zweimal")
     }
@@ -493,7 +500,7 @@ extension BikeRouteTests {
         XCTAssertEqual(one.reason, BikeVariant.balanced.explanation)
         let three = BikeRouteInfo(variants: [.balanced, .fastest, .quiet], stats: nil, source: .brouter(.quiet))
         XCTAssertTrue(three.reason.contains("zugleich"), three.reason)
-        XCTAssertTrue(three.reason.contains("schnellst und wenig Autos"), three.reason)
+        XCTAssertTrue(three.reason.contains("schnellst und ruhig"), three.reason)
         XCTAssertEqual(BikeRouteInfo(variants: [], stats: nil, source: .brouter(.trekking)).reason, "",
                        "ohne Rolle gibt es nichts zu erklären — solche Linien zeigt die App nicht mehr")
     }
@@ -512,8 +519,8 @@ extension BikeRouteTests {
     /// Liste mit einem anderen Weg nach — mit ihrem echten Namen.
     func testASweepingWinnerMakesRoomForTheNextRoleDownTheList() {
         var s = PlanSettings()
-        s.optionsPerMode = 2
-        s.bikeVariantOrder = [.quiet, .balanced, .shortest, .fastest, .lowTraffic]
+        s.bikeOptions = 2
+        s.bikeVariantOrder = [.quiet, .balanced, .shortest, .fastest]
         let calm = candidate(.brouter(.quiet), km: 18, signals: 10, crossings: 2, mainKm: 1)   // höchstens 10 % Umweg, sonst ist sie nicht „optimal“
         let short = candidate(.brouter(.shortest), km: 17, signals: 40, crossings: 15, mainKm: 9)
         let picked = BikeCandidate.pick([calm, short], settings: s)
@@ -533,33 +540,35 @@ extension BikeRouteTests {
             let text = CustomProfile.withoutCobbles(try String(contentsOf: url, encoding: .utf8))
             XCTAssertEqual(text.components(separatedBy: "assign costfactor_base").count, 2, name)
             let node = try XCTUnwrap(text.range(of: "---context:node"), name)
-            let added = try XCTUnwrap(text.range(of: "switch surface=sett|cobblestone 5 0"), name)
+            let added = try XCTUnwrap(text.range(of: "switch surface=sett|cobblestone \(CustomProfile.cobblePenalty) 0"), name)
             XCTAssertLessThan(added.lowerBound, node.lowerBound, name)
         }
     }
 
-    /// „trekking" — die Linie für „optimal" — rechnet die Fahrradstraße zum
-    /// halben Preis, mit und ohne Pflasterregel; die anderen Profile bleiben,
-    /// wie sie sind (Nutzer, 07.10.2026: Prinzregentenstraße).
-    func testTrekkingPrefersCycleStreets() throws {
+    /// „ruhig" und „trekking" — die Linie hinter „optimal" — bevorzugen die
+    /// Fahrradstraße, mit und ohne Pflasterregel; „schnellst" und „kürzest"
+    /// kennen sie nicht (Nutzer, 07.10.2026: Prinzregentenstraße).
+    func testTheQuietAndTheMixedLinePreferCycleStreets() throws {
         XCTAssertTrue(BRouterClient.Profile.trekking.prefersCycleStreets)
-        for p in [BRouterClient.Profile.fastbike, .shortest, .quiet, .lowTraffic, .safety] {
+        XCTAssertTrue(BRouterClient.Profile.quiet.prefersCycleStreets)
+        for p in [BRouterClient.Profile.fastbike, .shortest, .lowTraffic, .safety] {
             XCTAssertFalse(p.prefersCycleStreets, p.rawValue)
         }
+        let factor = try XCTUnwrap(BRouterClient.Profile.trekking.cycleStreetAdvantage)
         let url = try XCTUnwrap(Bundle.main.url(forResource: "brouter-trekking", withExtension: "brf"))
         let plain = try String(contentsOf: url, encoding: .utf8)
-        XCTAssertEqual(CustomProfile.adjusted(plain, withoutCobbles: false, cycleStreets: false), plain)
+        XCTAssertEqual(CustomProfile.adjusted(plain, withoutCobbles: false, cycleStreets: nil), plain)
         for cobbles in [false, true] {
-            let text = CustomProfile.adjusted(plain, withoutCobbles: cobbles, cycleStreets: true)
+            let text = CustomProfile.adjusted(plain, withoutCobbles: cobbles, cycleStreets: factor)
             XCTAssertEqual(text.components(separatedBy: "assign costfactor_base").count, 2)
             XCTAssertEqual(text.components(separatedBy: "\nassign costfactor\n").count, 2, "genau eine neue Kostenzeile")
             let node = try XCTUnwrap(text.range(of: "---context:node"))
-            let rule = try XCTUnwrap(text.range(of: "switch or bicycle_road=yes cyclestreet=yes 1 \(CustomProfile.cycleStreetAdvantage)"))
+            let rule = try XCTUnwrap(text.range(of: "switch or bicycle_road=yes cyclestreet=yes 1 \(factor)"))
             XCTAssertLessThan(rule.lowerBound, node.lowerBound)
-            XCTAssertEqual(text.contains("switch surface=sett|cobblestone 5 0"), cobbles)
+            XCTAssertEqual(text.contains("switch surface=sett|cobblestone \(CustomProfile.cobblePenalty) 0"), cobbles)
         }
         XCTAssertEqual(CustomProfile.withoutCobbles(plain),
-                       CustomProfile.adjusted(plain, withoutCobbles: true, cycleStreets: false))
+                       CustomProfile.adjusted(plain, withoutCobbles: true, cycleStreets: nil))
     }
 }
 
@@ -655,7 +664,7 @@ extension BikeRouteTests {
     /// feste Grenze in Metern bei jeder Einstellung aus.
     func testOptimalIsNoDetour() {
         var s = PlanSettings()
-        s.optionsPerMode = 3
+        s.bikeOptions = 3
         s.quietExtraTime = 0.05
         let direct = candidate(.brouter(.shortest), km: 19.0, signals: 38, crossings: 15, mainKm: 12.8)
         let fast = candidate(.brouter(.fastbike), km: 19.7, signals: 45, crossings: 16, mainKm: 14.5)
@@ -675,7 +684,7 @@ extension BikeRouteTests {
     /// und was ein Umweg dort spart, darf er länger sein, solange die Zeit reicht.
     func testAQuietSideStreetBeatsTheCyclePathBesideTheMainRoad() {
         var s = PlanSettings()
-        s.optionsPerMode = 3
+        s.bikeOptions = 3
         let direct = candidate(.brouter(.shortest), km: 21.2, signals: 43, crossings: 10, mainKm: 6.4)
         let trekking = candidate(.brouter(.trekking), km: 22.9, signals: 53, crossings: 11, mainKm: 8.7)
         let calm = candidate(.brouter(.quiet), km: 23.9, signals: 38, crossings: 10, mainKm: 3.2)
@@ -701,7 +710,7 @@ extension BikeRouteTests {
     /// dauert gerechnet 8 % länger als die schnellste.
     func testQuietExtraTimeDecidesHowMuchLongerOptimalMayTake() {
         var s = PlanSettings()
-        s.optionsPerMode = 3
+        s.bikeOptions = 3
         let direct = candidate(.brouter(.shortest), km: 21.2, signals: 43, crossings: 10, mainKm: 6.4)
         let calm = candidate(.brouter(.quiet), km: 23.9, signals: 38, crossings: 10, mainKm: 3.2)
         // 14 % weiter und 11 % länger: spart dieselbe Hauptstraße, kostet mehr.
@@ -726,7 +735,7 @@ extension BikeRouteTests {
     /// Metern sie bei jeder Einstellung draußen; jetzt entscheidet die Zeit.
     func testTheTimeSettingAloneDecidesAboutAQuietDetour() {
         var s = PlanSettings()
-        s.optionsPerMode = 3
+        s.bikeOptions = 3
         let direct = candidate(.brouter(.shortest), km: 18.97, signals: 38, crossings: 15, mainKm: 12.8)
         let fast = candidate(.brouter(.fastbike), km: 19.67, signals: 45, crossings: 16, mainKm: 14.5)
         let calm = candidate(.brouter(.quiet), km: 23.0, signals: 29, crossings: 14, mainKm: 2.18)
@@ -747,7 +756,7 @@ extension BikeRouteTests {
     /// ruhige.
     func testTheCycleStreetLineIsTheMiddleWay() {
         var s = PlanSettings()
-        s.optionsPerMode = 3
+        s.bikeOptions = 3
         let all = [candidate(.brouter(.trekking), km: 20.83, signals: 41, crossings: 14, mainKm: 7.32),
                    candidate(.brouter(.shortest), km: 18.97, signals: 38, crossings: 15, mainKm: 12.8),
                    candidate(.brouter(.quiet), km: 23.0, signals: 29, crossings: 14, mainKm: 2.18)]

@@ -19,6 +19,9 @@ struct StreetRoute {
     /// The same knowledge with positions, so a recorded ride can be attributed
     /// to it afterwards.
     var roadPoints: [RoadPoint] = []
+    /// Meter auf Fahrradstraßen, wo der Router es sagt (BRouter). 0 heißt
+    /// keine — oder niemand hat es gesagt.
+    var cycleStreetMeters = 0.0
     /// Summierter Anstieg in Metern — alles Bergauf der Strecke zusammen, das
     /// Bergab zählt nicht dagegen. nil heißt **unbekannt**, nicht flach:
     /// BRouter kennt die Höhen, Apple Karten liefert keine.
