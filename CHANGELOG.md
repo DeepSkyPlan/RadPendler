@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht
+## Unveröffentlicht — Vier Radlinien, nie Kopfsteinpflaster; stumme Fehler bekommen eine Spur
 
 Aus einer bewusst misstrauischen Durchsicht der ganzen Codebasis (07.10.2026).
 
