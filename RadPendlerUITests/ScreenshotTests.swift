@@ -25,7 +25,15 @@ final class ScreenshotTests: XCTestCase {
 
         // The bike box: the map then draws the cycle route with its junctions.
         if tap(button: "Fahrrad:") {
-            sleep(8)
+            sleep(4)
+            // Ein Tipp auf den gewählten Kasten schaltet zur nächsten Linie —
+            // und das kann eine „Alternative" sein, ein Weg ohne Rolle. Ins
+            // Schaufenster gehört eine mit Namen: weiterschalten, bis eine dasteht.
+            for _ in 0..<4 where bikeBoxShows("Alternative") {
+                tap(button: "Fahrrad:")
+                sleep(2)
+            }
+            sleep(6)
             keep("rad")
         }
 
@@ -94,7 +102,15 @@ final class ScreenshotTests: XCTestCase {
         // Die reine Radfahrt, nicht Rad + Bahn: sonst steht neben dem
         // gefahrenen Schnitt der Schnitt einer Fahrt, in der ein Zug sitzt —
         // neununddreißig Kilometer in der Stunde, auf einem Fahrrad.
-        if tap(button: "Fahrrad:") { sleep(6) }
+        //
+        // Lang drücken springt auf die erste Linie des Kastens zurück — die
+        // mit der frühesten Ankunft. An ihr entlang läuft das Ortungsskript
+        // (`appstore/metadata.md`, „Neu aufnehmen"); jede andere läge nach
+        // sechzig Metern daneben, und quer über dem Bild stünde ein rotes
+        // „151 m neben der Route".
+        if tap(button: "Fahrrad:") { sleep(3) }
+        let box = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Fahrrad:")).firstMatch
+        if box.exists { box.press(forDuration: 1.2); sleep(5) }
         let start = app.buttons["Fahrt aufzeichnen"]
         guard start.waitForExistence(timeout: 15), start.isHittable else { return }
         start.tap()
@@ -102,7 +118,11 @@ final class ScreenshotTests: XCTestCase {
         // und lang genug, dass die App eine Abweichung vom Weg, die nur dem
         // gerade laufenden Ortungsskript geschuldet ist, selbst wieder
         // eingefangen hat.
-        sleep(80)
+        sleep(70)
+        // Steht das rote Band trotzdem da, plant die App gleich neu — darauf
+        // warten, statt es zu fotografieren.
+        let offRoute = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "neben der Route")).firstMatch
+        for _ in 0..<12 where offRoute.exists { sleep(10) }
         keep("fahrtmodus")
         guard app.buttons["Fahrt beenden"].waitForExistence(timeout: 5) else { return }
         app.buttons["Fahrt beenden"].tap()
@@ -118,7 +138,12 @@ final class ScreenshotTests: XCTestCase {
     private func waitForPlan() {
         let chip = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "los ")).firstMatch
         _ = chip.waitForExistence(timeout: 180)
-        sleep(6)
+        // Der Chip steht da, sobald das erste Verkehrsmittel geplant ist; die
+        // anderen Kästen zeigen dann noch „sucht …". Mit vier Radlinien dauert
+        // das länger als früher — die Hauptseite soll vollständig sein.
+        let searching = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "sucht")).firstMatch
+        for _ in 0..<24 where searching.exists { sleep(5) }
+        sleep(8)
     }
 
     @discardableResult
@@ -127,6 +152,11 @@ final class ScreenshotTests: XCTestCase {
         guard b.waitForExistence(timeout: 10), b.isHittable else { return false }
         b.tap()
         return true
+    }
+
+    private func bikeBoxShows(_ word: String) -> Bool {
+        let box = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Fahrrad:")).firstMatch
+        return box.exists && ((box.value as? String) ?? "").contains(word)
     }
 
     private func keep(_ name: String) {

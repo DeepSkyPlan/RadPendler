@@ -83,6 +83,9 @@ struct ModeStrip: View {
             UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
         })
         .accessibilityLabel("\(mode.title): \(option.map { Fmt.duration($0.duration) } ?? "keine Verbindung")")
+        // Was unter der Zeit steht — „optimal", „ab 23:18 · 2×" —, auch für
+        // VoiceOver: bisher las es nur das Verkehrsmittel und die Dauer vor.
+        .accessibilityValue(caption(mode, option))
         .accessibilityHint(count > 1 ? L("Nochmal tippen für die nächste von %d Möglichkeiten, lang drücken für die beste", count) : "")
     }
 

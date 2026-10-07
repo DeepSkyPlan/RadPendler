@@ -10,7 +10,26 @@ Fassung von Name, Untertitel, Keywords und Beschreibung steht am Ende und
 gehört in die Lokalisierung **Englisch (USA)**, damit die Seite in Stores
 außerhalb Deutschlands nicht leer aussieht.
 
-## Einreichungs-Checkliste (1.8.1, Build 45 — die einzureichende Fassung)
+## Einreichungs-Checkliste (1.17, Build 57 — die einzureichende Fassung)
+
+Was seit der 1.8.1-Liste dazugekommen ist; alles andere gilt wie dort.
+
+1. **Build 1.17 (57)** auswählen — liegt seit dem 07.10.2026 in TestFlight. Im Store steht 1.13.
+2. **Screenshots neu aufgenommen am 07.10.2026 mit Build 57** (iPhone und iPad): unter dem
+   Rad-Kasten stehen vier Wege, und in den Vorlieben vier Radrouten. Die Uhr-Bilder sind
+   unverändert.
+3. **Was ist neu** — Text unten, **für 1.17**, deutsch und englisch.
+4. **Beschreibung** deutsch und englisch: die Zeile „Fahrrad in vier Linien“ ersetzt die
+   Aufzählung mit „wenig Autos“ und „wenig Halts“ — in beide Sprachen neu einfügen.
+5. **Hinweis an die Prüfung**: der englische Text zu allen drei Hintergrundmoden aus der
+   1.8.1-Liste (Punkt 4, „Seit 07.10.2026 ausführlicher“).
+6. **Datenschutzseite vor dem Einreichen veröffentlichen**: `appstore/pages/radpendler-privacy/`
+   nach `deepskyplan.github.io/radpendler-privacy`. Die Fassung im Repository nennt die
+   Adressen an externe Dienste im ersten Absatz und beschreibt die Aufzeichnung.
+7. App-Datenschutz-Fragebogen unverändert. Übertragen wird nichts Neues: die Profile für
+   „ruhig“ und „optimal“ gehen als Profiltext an brouter.de, ohne Koordinaten oder Kennung.
+
+## Einreichungs-Checkliste (1.8.1, Build 45)
 
 Was seit 1.5 dazugekommen ist, steht in **fett**; alles andere gilt wie in der
 1.5-Liste darunter.
@@ -181,9 +200,10 @@ Gebaut für einen echten Arbeitsweg — und sie sagt, was sie nicht weiß, statt
 zu raten.
 
 DIE VIER WEGE
-• Fahrrad in Varianten: schnellst, kürzest, optimal, wenig Autos, wenig Halts. Aus
-  mehreren BRouter-Profilen und aus Apple Karten, bewertet nach Ampeln und
-  Hauptstraßen
+• Fahrrad in vier Linien: schnellst, kürzest, ruhig — über Fahrradstraßen und
+  Nebenstraßen — und optimal, die Mischung aus allen dreien. Aus mehreren
+  BRouter-Profilen, bewertet nach Ampeln, Hauptstraßen und Fahrradstraßen;
+  Kopfsteinpflaster meidet jede von ihnen
 • Rad + Bahn: die App sucht sich die Bahnhöfe selbst, radelt hin, fährt mit und
   radelt weiter
 • Auto: optimal, schnellst, kürzest oder wenig Ampeln — jede Linie, die
@@ -255,6 +275,60 @@ BRouter und Overpass auf OpenStreetMap-Daten (© OpenStreetMap-Mitwirkende,
 ODbL), Deutscher Wetterdienst und Open-Meteo.
 
 Alle Zeiten ohne Gewähr.
+```
+
+## Was ist neu (1.17)
+
+Für das Feld „Neue Funktionen“ der Version 1.17 (DE 1326, EN 1136 Zeichen, max
+4000). Deckt alles seit 1.13 ab — das ist die Fassung, die laut App Store Connect im
+Store steht (abgefragt am 07.10.2026); 1.14, 1.15 und 1.16 waren nur TestFlight.
+
+```
+• Vier Radlinien, jede mit einer klaren Frage: schnellst, kürzest, ruhig und
+  optimal. „ruhig“ führt über Fahrradstraßen und Nebenstraßen, weg von den
+  Autos; „optimal“ ist die Mischung aus allen dreien. Unter dem Rad-Kasten
+  stehen jetzt vier Wege statt drei. „wenig Autos“ heißt nun „ruhig“, „wenig
+  Halts“ entfällt.
+• Kopfsteinpflaster meidet jede Radroute, immer. Den Schalter dafür gibt es
+  nicht mehr.
+• Wie viel Umweg ist dir die Ruhe wert? Unter Einstellungen → Verkehrsmittel
+  legst du mit „Für Ruhe höchstens“ fest, ob „optimal“ 5, 10 oder 15 % länger
+  dauern darf als die schnellste Linie, wenn sie dafür von der Hauptstraße
+  wegführt.
+• Auto: Die App lernt aus deinen aufgezeichneten Autofahrten, wie du im
+  Vergleich zu Apple Karten fährst, und rechnet die Fahrzeit damit — auf jeder
+  Strecke, nicht nur auf dem Arbeitsweg.
+• Ton beim Anhalten und Weiterfahren: zwei kurze Töne abwärts, wenn die
+  Aufzeichnung pausiert, zwei aufwärts, wenn sie weiterläuft.
+• Behoben: Auf der Autobahn fehlten Strecke und Linie, sobald du schneller als
+  108 km/h warst.
+• Behoben: Nach einer Fahrt, die sich selbst beendet hatte, zählten die
+  folgenden Fahrten keine Halte und keine Ampeln.
+• Behoben: Die Fahrtenliste sagt jetzt auch dann Bescheid, wenn iCloud die
+  Linie einer einzelnen Fahrt nicht angenommen hat.
+```
+
+English:
+
+```
+• Four bike lines, each answering one question: fastest, shortest, quiet and
+  balanced. “quiet” runs along cycle streets and side streets, away from the
+  cars; “balanced” is the mix of all three. The bike box now offers four ways
+  instead of three. “few cars” is now called “quiet”; “few stops” is gone.
+• Every bike route avoids cobblestones, always. The switch for it is gone.
+• How much of a detour is quiet worth to you? Under Settings → Modes,
+  “For quiet, at most” lets “balanced” take 5, 10 or 15 % longer than the
+  fastest line when that keeps it off the main road.
+• Car: the app learns from your recorded car trips how you drive compared to
+  Apple Maps and uses that for the travel time — on any route, not only your
+  commute.
+• A sound when recording pauses and resumes: two short tones down when it
+  pauses, two up when it continues.
+• Fixed: on the motorway, distance and track went missing above 108 km/h.
+• Fixed: after a ride that had ended by itself, the following rides counted no
+  stops and no traffic lights.
+• Fixed: the ride list now also tells you when iCloud did not accept the track
+  of a single ride.
 ```
 
 ## Was ist neu (1.10.2)
@@ -568,8 +642,8 @@ beiden Schächte annimmt, sind kurz; alles andere wird beim Hochladen abgelehnt:
 Ein 6,9″-Telefon (iPhone 17 Pro Max) nimmt mit 1320 × 2868 auf, und das steht
 **nicht** auf der Liste — der 6,5″-Satz muss aus einem 6,5″-Simulator kommen.
 
-Reihenfolge und der Bildtext, den jedes Bild tragen soll (Stand 26.09.2026,
-aufgenommen mit Build 40):
+Reihenfolge und der Bildtext, den jedes Bild tragen soll (Stand 07.10.2026,
+aufgenommen mit 1.17, Build 57):
 
 **iPhone** — acht Bilder
 
@@ -608,7 +682,9 @@ Die Aufnahmen macht `RadPendlerUITests/ScreenshotTests` — ein eigenes Schema
 App und hängt jedes Bild ans Testergebnis.
 
 ```sh
-# Adressen setzen, ohne je eine echte zu benutzen (die App startet leer):
+# Adressen setzen, ohne je eine echte zu benutzen (die App startet leer).
+# Erst die App installieren (build-for-testing, dann `simctl install`), dann
+# die Werte setzen, dann `test-without-building` — sonst liest die App sie nicht.
 hex() { python3 -c "import sys,json;print(json.dumps(json.loads(sys.argv[1]),ensure_ascii=False).encode().hex())" "$1"; }
 UDID=…   # 6,5″-Telefon oder iPad Pro 13″
 xcrun simctl spawn $UDID defaults write de.keese.radpendler origin -data \
@@ -621,11 +697,20 @@ xcrun simctl spawn $UDID defaults write de.keese.radpendler rideOrientationLock 
 xcrun simctl privacy $UDID grant location-always de.keese.radpendler
 
 # Die Aufnahme des Fahrtmodus braucht **Bewegung**, sonst stehen dort Nullen.
-# Die Punkte sind die ersten Meter der Radroute ab Alexanderplatz (BRouter);
-# 6 m/s sind 21,6 km/h. In zsh als Array, sonst wird daraus ein Argument.
-WP=(52.521027,13.412965 52.521011,13.412359 52.520720,13.412771 52.520675,13.412163
-    52.520097,13.411077 52.519663,13.410140 52.519404,13.409581 52.519052,13.408822
-    52.518829,13.408110 52.518590,13.407613 52.518364,13.407084 52.518039,13.406290)
+# Die Punkte sind die ersten anderthalb Kilometer der Linie, die der Test
+# aufzeichnet: die **erste** des Rad-Kastens (Langdruck), also die mit der
+# frühesten Ankunft — am 07.10.2026 die kürzeste. Die vier Linien trennen sich
+# nach 57 m; läuft das Skript an einer anderen entlang, steht ein rotes
+# „… neben der Route" quer über dem Bild. Nach einer Änderung an den Profilen
+# neu holen: `TEST_RUNNER_BIKE_LIVE=1` und `BikeLiveTests` drucken den Anfang
+# jeder Linie. 6 m/s sind 21,6 km/h. In zsh als Array, sonst wird daraus ein Argument.
+WP=(52.521027,13.412965 52.521108,13.412526 52.521076,13.412018 52.521101,13.411436
+    52.520846,13.411566 52.520166,13.410798 52.519841,13.410121 52.519567,13.409550
+    52.519224,13.408836 52.519027,13.408223 52.518693,13.407425 52.518458,13.406948
+    52.518204,13.406692 52.517692,13.405480 52.517319,13.404595 52.516988,13.403797
+    52.516733,13.403178 52.516530,13.402679 52.516298,13.402026 52.516070,13.401468
+    52.516217,13.400939 52.515984,13.400120 52.515800,13.399593 52.515618,13.398845
+    52.515474,13.398208 52.515324,13.397421 52.515241,13.396833 52.515170,13.395714)
 xcrun simctl location $UDID start --speed=6 --interval=1 $WP &
 
 xcodebuild test -project RadPendler.xcodeproj -scheme RadPendlerShots \
@@ -775,9 +860,10 @@ addresses, works the cycling time out from your rolling speed plus a wait per
 signalised junction — and says what it does not know instead of guessing.
 
 THE FOUR WAYS
-• Bike, in variants: fastest, shortest, balanced, few cars, few stops. From several BRouter
-  profiles and from Apple Maps, scored on traffic lights, main roads crossed
-  and metres spent alongside main roads
+• Bike, in four lines: fastest, shortest, quiet — along cycle streets and side
+  streets — and balanced, the mix of all three. From several BRouter profiles,
+  scored on traffic lights, main roads and cycle streets; every one of them
+  avoids cobblestones
 • Bike + train: the app finds the stations itself, rides there, takes the
   train, rides on
 • Car: best, fastest, shortest or fewest lights — every line Apple Maps

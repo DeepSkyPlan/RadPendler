@@ -187,5 +187,8 @@ schemes:
         RadPendler: all
         RadPendlerUITests: [test]
     test:
+      # Die Aufnahmen suchen deutsche Knöpfe („Fahrrad:“, „Menü“) — siehe oben.
+      language: de
+      region: DE
       targets:
         - RadPendlerUITests
