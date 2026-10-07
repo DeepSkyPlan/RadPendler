@@ -8,6 +8,9 @@ Multimodaler Pendel-Planer (iPhone, iPad, Watch). SwiftUI, XcodeGen, iOS 17+, `d
   `-derivedDataPath` — Xcode und Kommandozeile teilen sich die Standard-DerivedData.
 - Tests: `./dev test` (~350 Tests, rund 10 s). `MOTIS_LIVE=1` schaltet den echten Transitous-Aufruf zu.
 - Ausliefern nur auf Ansage: `./dev testflight [version]` bzw. Skill `/testflight`.
+- Was nur auf dem Gerät prüfbar ist (Ortung, Hintergrund, iCloud, Töne, Uhr): abhakbare Liste
+  `tools/pruefliste.html`, veröffentlicht unter <https://claude.ai/artifact/1cPcVH6bKB63rFqTYmGCLk>
+  (Stand wird dort gespeichert). Neue Funktion mit Geräteanteil → dort eine Zeile dazu und neu veröffentlichen.
 - Eine seltsame Fahrt aufklären: geteilte `RadPendler-Fahrt-*.json` mit `python3 tools/ride_report.py`
   auswerten, nicht raten.
 - Hänger oder Ruckeln: **zuerst die CPU messen, dann Code lesen** (`ps -p $PID -o %cpu=`, `sample $PID 5`
