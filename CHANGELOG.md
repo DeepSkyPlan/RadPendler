@@ -34,6 +34,15 @@ Aus einer bewusst misstrauischen Durchsicht der ganzen Codebasis (07.10.2026).
   Hintergrundmodi der Info.plist (`BackgroundModeTests`), `LogTests`, dazu Töne und User-Agent.
   Die Tonsitzung selbst bleibt ungeprüft: ein Test, der im Simulator abspielt, hält `xcodebuild`
   nach dem letzten Test minutenlang offen.
+- **Rad: Fahrradstraßen zählen jetzt wirklich** (Fahrt 07.10.2026 abends: „optimal“ lief am Radweg
+  der Hauptstraße entlang, die Fahrradstraße kam in keiner Linie vor). Der Vorteil aus 1.16 —
+  alles andere kostet das Doppelte — lag genau auf der Kippe: gemessen war er in einer Richtung
+  und ohne „Pflaster meiden“. Mit der Einstellung an blieb es in beiden Richtungen bei 0,6 km
+  Fahrradstraße, derselben Linie wie ohne Bevorzugung. Jetzt das Dreifache
+  (`cycleStreetAdvantage`): 2,5 km Fahrradstraße in beiden Richtungen für 0,1 bis 0,4 km mehr.
+  Vertauscht war nichts — „schnell“ ist BRouters „fastbike“ und fährt mit Absicht Hauptstraßen.
+  Der stille Rückfall auf das Profil des Servers, wenn das eigene nicht hochgeladen werden kann,
+  steht jetzt im Protokoll.
 - **Lint und CI.** `./dev lint` (SwiftLint, wenige Regeln, die Fehler finden: `try!`, `as!`, `!`,
   stummes `try?`, `print`, dazu Größenschwellen als Sperrklinke) und `./dev check` (Lint, dann
   Tests). Die 81 Stellen, die es schon gab, stehen in `.swiftlint-baseline.json` und werden nicht

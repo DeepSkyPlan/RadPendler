@@ -554,7 +554,7 @@ extension BikeRouteTests {
             XCTAssertEqual(text.components(separatedBy: "assign costfactor_base").count, 2)
             XCTAssertEqual(text.components(separatedBy: "\nassign costfactor\n").count, 2, "genau eine neue Kostenzeile")
             let node = try XCTUnwrap(text.range(of: "---context:node"))
-            let rule = try XCTUnwrap(text.range(of: "switch or bicycle_road=yes cyclestreet=yes 1 2"))
+            let rule = try XCTUnwrap(text.range(of: "switch or bicycle_road=yes cyclestreet=yes 1 \(CustomProfile.cycleStreetAdvantage)"))
             XCTAssertLessThan(rule.lowerBound, node.lowerBound)
             XCTAssertEqual(text.contains("switch surface=sett|cobblestone 5 0"), cobbles)
         }

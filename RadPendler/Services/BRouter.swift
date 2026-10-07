@@ -61,6 +61,10 @@ struct BRouterClient {
                     let fresh = try await CustomProfile.shared.id(custom, session: session, renew: true)
                     route = try await fetch(from: from, to: to, via: via, profile: fresh, alternative: alternative)
                 } catch {
+                    // Ab hier fährt die Linie ohne das, was sie ausmacht —
+                    // und sieht auf dem Bildschirm aus wie immer. Wenigstens
+                    // steht es im Protokoll.
+                    Log.note("BRouter: eigenes Profil (\(profile.rawValue)) nicht nutzbar, Rückfall", error)
                     var plain = self
                     if avoidCobbles {
                         plain.avoidCobbles = false
@@ -387,7 +391,19 @@ actor CustomProfile {
     /// (20,8 statt 20,2 km; „wenig Autos" braucht 23,0 km und fährt sie
     /// nicht). Pinneberg → Hamburg +0,1 km, München Pasing → Ostbahnhof
     /// +0,75 km.
-    static let cycleStreetAdvantage = 2
+    ///
+    /// **Drei, nicht zwei** (seit 1.17). Zwei lag genau auf der Kippe: die
+    /// Probe oben lief in einer Richtung und ohne „Pflaster meiden". Mit der
+    /// Einstellung an — fünf Aufschlag je Meter Pflaster, der nicht
+    /// mitverdoppelt wird — und auf dem Rückweg blieb es bei 0,6 km
+    /// Fahrradstraße, derselben Linie wie ohne jede Bevorzugung (Fahrt
+    /// 07.10.2026 abends: „optimal" am Radweg der Hauptstraße entlang).
+    /// Gemessen am selben Abend, mit „Pflaster meiden", beide Richtungen:
+    /// Faktor 2 → 0,6 km, Faktor 3 und 4 → 2,5 km, für 0,1 bis 0,4 km mehr.
+    /// Gegenproben mit 3: Pinneberg → Hamburg unverändert, München Pasing →
+    /// Ostbahnhof 14,2 statt 13,6 km (2,7 statt 1,9 km Fahrradstraße), Köln
+    /// Ehrenfeld → Deutz unverändert.
+    static let cycleStreetAdvantage = 3
 
     /// Die Abwandlungen eines Profils: die Zeile `assign costfactor` wird zu
     /// `costfactor_base`, und vor dem Knotenteil kommt eine neue, die darauf
