@@ -17,6 +17,9 @@ struct BRouterClient {
         case quiet = "radpendler-quiet"
 
         var isCustom: Bool { self == .quiet }
+        /// „trekking" — die Linie für „optimal" — fährt mit einer Fassung, in
+        /// der die Fahrradstraße zählt: siehe `CustomProfile.adjusted`.
+        var prefersCycleStreets: Bool { self == .trekking }
     }
 
     var session: URLSession = .shared
@@ -41,12 +44,13 @@ struct BRouterClient {
             + via.map { String(format: "|über %.5f,%.5f", $0.latitude, $0.longitude) }.joined()
         if cached, let hit = await RouteCache.shared.route(for: key) { return hit }
         let route: StreetRoute
-        if profile.isCustom || avoidCobbles {
+        if profile.isCustom || profile.prefersCycleStreets || avoidCobbles {
             // Hochgeladene Profile räumt der Server irgendwann weg. Scheitert
             // die Anfrage mit einer gemerkten Kennung, einmal neu hochladen;
             // scheitert auch das, gilt die Fassung ohne Abwandlung — ohne
-            // Pflasterregel, und für „wenig Autos" am Ende „safety". Lieber
-            // eine Linie mit Pflaster als gar keine.
+            // Pflasterregel, für „wenig Autos" am Ende „safety" und für
+            // „trekking" das des Servers. Lieber eine Linie mit Pflaster als
+            // gar keine.
             let custom = CustomProfile.Kind(profile: profile, withoutCobbles: avoidCobbles)
             do {
                 route = try await fetch(from: from, to: to, via: via,
@@ -58,8 +62,14 @@ struct BRouterClient {
                     route = try await fetch(from: from, to: to, via: via, profile: fresh, alternative: alternative)
                 } catch {
                     var plain = self
-                    if avoidCobbles { plain.avoidCobbles = false } else { return try await plain.route(from: from, to: to, via: via, profile: .safety, alternative: alternative) }
-                    return try await plain.route(from: from, to: to, via: via, profile: profile, alternative: alternative)
+                    if avoidCobbles {
+                        plain.avoidCobbles = false
+                        return try await plain.route(from: from, to: to, via: via, profile: profile, alternative: alternative)
+                    }
+                    guard profile.isCustom else {
+                        return try await fetch(from: from, to: to, via: via, profile: profile.rawValue, alternative: alternative)
+                    }
+                    return try await plain.route(from: from, to: to, via: via, profile: .safety, alternative: alternative)
                 }
             }
         } else {
@@ -336,7 +346,8 @@ actor CustomProfile {
         if !renew, let c = current[kind], Date.now.timeIntervalSince(c.at) < Self.lifetime { return c.id }
         guard let url = Bundle.main.url(forResource: kind.resource, withExtension: "brf"),
               var text = try? String(contentsOf: url, encoding: .utf8) else { throw BRouterClient.BRouterError.malformed }
-        if kind.withoutCobbles { text = Self.withoutCobbles(text) }
+        text = Self.adjusted(text, withoutCobbles: kind.withoutCobbles,
+                             cycleStreets: kind.profile.prefersCycleStreets)
         var request = URLRequest(url: URL(string: "https://brouter.de/brouter/profile")!, timeoutInterval: 20)
         request.httpMethod = "POST"
         request.setValue("text/plain", forHTTPHeaderField: "Content-Type")
@@ -363,18 +374,46 @@ actor CustomProfile {
     /// Profil wurden höchstens 62 m, für höchstens 0,6 km Umweg.
     /// `unhewn_cobblestone` kennt BRouters Wertetabelle nicht (Profilfehler).
     nonisolated static func withoutCobbles(_ text: String) -> String {
+        adjusted(text, withoutCobbles: true, cycleStreets: false)
+    }
+
+    /// Ein Meter Fahrradstraße zählt wie ein halber: alles andere kostet das
+    /// Doppelte. Kein Profil des Servers kennt den Unterschied — für
+    /// „trekking" ist sie eine Wohnstraße wie jede andere (Kosten 1,1), und
+    /// der Radweg an der Hauptstraße daneben ist kürzer. Malgenommen, nicht
+    /// aufgeschlagen: so bleibt das Verhältnis von Haupt- zu Nebenstraße, wie
+    /// es war. Probe 07.10.2026, Teststrecke: 0 → 4,3 km
+    /// Fahrradstraße, die ganze Prinzregentenstraße, für 0,7 km mehr
+    /// (20,8 statt 20,2 km; „wenig Autos" braucht 23,0 km und fährt sie
+    /// nicht). Pinneberg → Hamburg +0,1 km, München Pasing → Ostbahnhof
+    /// +0,75 km.
+    static let cycleStreetAdvantage = 2
+
+    /// Die Abwandlungen eines Profils: die Zeile `assign costfactor` wird zu
+    /// `costfactor_base`, und vor dem Knotenteil kommt eine neue, die darauf
+    /// aufbaut.
+    nonisolated static func adjusted(_ text: String, withoutCobbles: Bool, cycleStreets: Bool) -> String {
+        guard withoutCobbles || cycleStreets else { return text }
+        var rule: [String] = []
+        if withoutCobbles { rule.append("# RadPendler: Kopfsteinpflaster meiden") }
+        if cycleStreets { rule.append("# RadPendler: Fahrradstraßen bevorzugen") }
+        rule.append("assign costfactor")
+        if cycleStreets {
+            if withoutCobbles { rule.append("  add switch surface=sett|cobblestone 5 0") }
+            rule += ["  multiply costfactor_base",
+                     "      switch or bicycle_road=yes cyclestreet=yes 1 \(cycleStreetAdvantage)"]
+        } else {
+            rule += ["  add costfactor_base",
+                     "      switch surface=sett|cobblestone 5 0"]
+        }
+        rule.append("")
         var out: [String] = []
         for line in text.components(separatedBy: "\n") {
             if line.range(of: #"^assign\s+costfactor\s*$"#, options: .regularExpression) != nil {
                 out.append("assign costfactor_base")
                 continue
             }
-            if line.hasPrefix("---context:node") {
-                out += ["# RadPendler: Kopfsteinpflaster meiden",
-                        "assign costfactor",
-                        "  add costfactor_base",
-                        "      switch surface=sett|cobblestone 5 0", ""]
-            }
+            if line.hasPrefix("---context:node") { out += rule }
             out.append(line)
         }
         return out.joined(separator: "\n")

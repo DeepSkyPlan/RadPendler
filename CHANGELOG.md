@@ -1,7 +1,15 @@
 # Changelog
 
-## Unveröffentlicht — „Für Ruhe höchstens“ entscheidet allein
+## Unveröffentlicht — Fahrradstraßen zählen; „Für Ruhe höchstens“ entscheidet allein
 
+- **Rad: Fahrradstraßen zählen.** Für BRouters „trekking“ — die Linie hinter „optimal“ — war eine
+  Fahrradstraße eine Wohnstraße wie jede andere. Jetzt kostet dort alles andere das Doppelte
+  (`CustomProfile.adjusted`, `cycleStreetAdvantage`); das Profil geht dafür abgewandelt zum Server,
+  wie schon für „Pflaster meiden“. Live-Probe Teststrecke: 0 → 4,3 km Fahrradstraße,
+  die ganze Prinzregentenstraße, 20,8 statt 20,2 km — und das ist bei 10 % jetzt „optimal“ (58 min,
+  7,3 statt 12,8 km an Hauptstraßen). „wenig Autos“ (23,0 km) fährt die Prinzregentenstraße nicht.
+  Gegenproben: Pinneberg → Hamburg +0,1 km, München Pasing → Ostbahnhof +0,75 km. Die gewohnte Linie
+  und die Neuplanung unterwegs fahren mit demselben Profil.
 - **Rad: die Einstellung „Für Ruhe höchstens … mehr Zeit“ tat auf dem Arbeitsweg nichts.** Neben ihr
   galt in 1.15 eine feste Grenze von 15 % in Metern, und die ruhige Linie Teststrecke
   ist 21 % weiter (23,0 statt 19,0 km) — bei 5, 10 und 15 % blieb „optimal“ die kürzeste mit 12,8 km

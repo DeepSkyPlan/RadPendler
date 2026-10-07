@@ -537,6 +537,30 @@ extension BikeRouteTests {
             XCTAssertLessThan(added.lowerBound, node.lowerBound, name)
         }
     }
+
+    /// „trekking" — die Linie für „optimal" — rechnet die Fahrradstraße zum
+    /// halben Preis, mit und ohne Pflasterregel; die anderen Profile bleiben,
+    /// wie sie sind (Nutzer, 07.10.2026: Prinzregentenstraße).
+    func testTrekkingPrefersCycleStreets() throws {
+        XCTAssertTrue(BRouterClient.Profile.trekking.prefersCycleStreets)
+        for p in [BRouterClient.Profile.fastbike, .shortest, .quiet, .lowTraffic, .safety] {
+            XCTAssertFalse(p.prefersCycleStreets, p.rawValue)
+        }
+        let url = try XCTUnwrap(Bundle.main.url(forResource: "brouter-trekking", withExtension: "brf"))
+        let plain = try String(contentsOf: url, encoding: .utf8)
+        XCTAssertEqual(CustomProfile.adjusted(plain, withoutCobbles: false, cycleStreets: false), plain)
+        for cobbles in [false, true] {
+            let text = CustomProfile.adjusted(plain, withoutCobbles: cobbles, cycleStreets: true)
+            XCTAssertEqual(text.components(separatedBy: "assign costfactor_base").count, 2)
+            XCTAssertEqual(text.components(separatedBy: "\nassign costfactor\n").count, 2, "genau eine neue Kostenzeile")
+            let node = try XCTUnwrap(text.range(of: "---context:node"))
+            let rule = try XCTUnwrap(text.range(of: "switch or bicycle_road=yes cyclestreet=yes 1 2"))
+            XCTAssertLessThan(rule.lowerBound, node.lowerBound)
+            XCTAssertEqual(text.contains("switch surface=sett|cobblestone 5 0"), cobbles)
+        }
+        XCTAssertEqual(CustomProfile.withoutCobbles(plain),
+                       CustomProfile.adjusted(plain, withoutCobbles: true, cycleStreets: false))
+    }
 }
 
 // MARK: Motorrad
@@ -712,6 +736,28 @@ extension BikeRouteTests {
         }
         s.quietExtraTime = 0.10
         XCTAssertEqual(optimal(), .brouter(.shortest))
+        s.quietExtraTime = 0.15
+        XCTAssertEqual(optimal(), .brouter(.quiet))
+    }
+
+    /// Dieselbe Strecke mit der Linie über die Fahrradstraßen (trekking,
+    /// Fahrradstraße zum halben Preis: 20,8 km, 9 % länger in der Zeit, 7,3
+    /// statt 12,8 km an Hauptstraßen). Sie ist der Mittelweg, den „optimal"
+    /// bei 10 % nimmt; bei 5 % bleibt die kürzeste, bei 15 % gewinnt die
+    /// ruhige.
+    func testTheCycleStreetLineIsTheMiddleWay() {
+        var s = PlanSettings()
+        s.optionsPerMode = 3
+        let all = [candidate(.brouter(.trekking), km: 20.83, signals: 41, crossings: 14, mainKm: 7.32),
+                   candidate(.brouter(.shortest), km: 18.97, signals: 38, crossings: 15, mainKm: 12.8),
+                   candidate(.brouter(.quiet), km: 23.0, signals: 29, crossings: 14, mainKm: 2.18)]
+        func optimal() -> BikeLineSource? {
+            BikeCandidate.pick(all, settings: s).first { $0.1.contains(.balanced) }?.0.source
+        }
+        s.quietExtraTime = 0.05
+        XCTAssertEqual(optimal(), .brouter(.shortest))
+        s.quietExtraTime = 0.10
+        XCTAssertEqual(optimal(), .brouter(.trekking))
         s.quietExtraTime = 0.15
         XCTAssertEqual(optimal(), .brouter(.quiet))
     }
