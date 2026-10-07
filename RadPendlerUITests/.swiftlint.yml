@@ -1,0 +1,6 @@
+# Tests dürfen hart scheitern: ein `try!` oder `!` dort ist ein roter Test,
+# kein Absturz beim Nutzer.
+disabled_rules:
+  - force_try
+  - force_cast
+  - force_unwrapping

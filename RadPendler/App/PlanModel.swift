@@ -293,6 +293,7 @@ final class PlanModel {
             publishToWatch()
             #if DEBUG
             for o in r.options {
+                // swiftlint:disable:next print_in_app
                 print("PLAN", o.mode.rawValue, o.bikeRoute?.title ?? "", Fmt.time(o.leave), Fmt.time(o.arrival),
                       o.transitLegs.compactMap(\.lineName))
             }

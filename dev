@@ -12,7 +12,8 @@ cd "$(dirname "$0")"
 
 PROJ=RadPendler.xcodeproj
 SCHEME=RadPendler
-DEST='platform=iOS Simulator,name=iPhone 18 Pro'
+# CI setzt DEST selbst: dort gibt es nicht jedes Gerät.
+DEST="${DEST:-platform=iOS Simulator,name=iPhone 18 Pro}"
 
 generate() { xcodegen generate; }
 
@@ -26,7 +27,16 @@ case "${1:-test}" in
   test)   need_project; xcodebuild -project "$PROJ" -scheme "$SCHEME" -destination "$DEST" test ;;
   open)   need_project; open "$PROJ" ;;
   clean)  rm -rf "$PROJ"; xcodebuild -scheme "$SCHEME" clean 2>/dev/null || true ;;
+  # Wenige Regeln, die Fehler finden (.swiftlint.yml). Was es am 07.10.2026 schon
+  # gab, steht in der Baseline; gemeldet wird nur Neues. `./dev lint baseline`
+  # schreibt sie neu — nur nach einer Bereinigung, damit sie schrumpft.
+  lint)
+    command -v swiftlint >/dev/null || { echo "swiftlint fehlt: https://github.com/realm/SwiftLint/releases (portable_swiftlint.zip nach ~/.local/bin)" >&2; exit 127; }
+    if [ "${2:-}" = baseline ]; then swiftlint lint --quiet --write-baseline .swiftlint-baseline.json || true
+    else swiftlint lint --quiet --strict --baseline .swiftlint-baseline.json; fi ;;
+  # Was CI tut, in derselben Reihenfolge.
+  check)  "$0" lint && "$0" test ;;
   # Nur auf Ansage: Buildnummer +1, Tests, Archiv, Upload, Commit, Push.
   testflight) shift; exec tools/testflight.sh "$@" ;;
-  *) echo "usage: ./dev [generate|build|test|open|clean|testflight [version]]" >&2; exit 2 ;;
+  *) echo "usage: ./dev [generate|build|test|lint [baseline]|check|open|clean|testflight [version]]" >&2; exit 2 ;;
 esac

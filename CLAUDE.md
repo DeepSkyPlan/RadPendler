@@ -4,7 +4,7 @@ Multimodaler Pendel-Planer (iPhone, iPad, Watch). SwiftUI, XcodeGen, iOS 17+, `d
 
 **Wiedereinstieg: Kopf von `HANDOVER.md` lesen.** Dort stehen Stand, Build und die offene Prüfliste.
 
-- Einziger Einstieg ist `./dev` (`generate|build|test|open|clean|testflight`). Kein eigenes
+- Einziger Einstieg ist `./dev` (`generate|build|test|lint|check|open|clean|testflight`). Kein eigenes
   `-derivedDataPath` — Xcode und Kommandozeile teilen sich die Standard-DerivedData.
 - Tests: `./dev test` (~350 Tests, rund 10 s). `MOTIS_LIVE=1` schaltet den echten Transitous-Aufruf zu.
 - Ausliefern nur auf Ansage: `./dev testflight [version]` bzw. Skill `/testflight`.
@@ -20,6 +20,10 @@ Multimodaler Pendel-Planer (iPhone, iPad, Watch). SwiftUI, XcodeGen, iOS 17+, `d
   Pflicht sein (Vorgabewert reicht nicht, `init(from:)` nötig), Listen über `Stored.list`/`Stored.encode`,
   Zusammenführen muss wiederholbar und von beiden Seiten gleich sein. Dazu eine neue Probe in
   `StoredFormatTests`; `CloudStore.schema` nur hochzählen, wenn eine alte Fassung Schaden anrichten würde.
+- Vor dem Pushen `./dev check` (Lint, dann Tests) — dasselbe läuft danach in GitHub Actions
+  (`.github/workflows/ci.yml`; Stand: `gh run list -L 3`). Lint meldet nur Neues, Altes steht in
+  `.swiftlint-baseline.json`; die Baseline nur nach einer Bereinigung neu schreiben (`./dev lint baseline`).
+  SwiftLint 0.65.1 liegt in `~/.local/bin/swiftlint`; CI nimmt dieselbe Fassung.
 - Kein nacktes `try?` für etwas, das scheitern kann, ohne dass es jemand sieht (Datei, Kodieren,
   CloudKit, Uhr, Mitteilung): `Log.attempt("was") { try … }` bzw. `await Log.attemptAsync`. `try?` bleibt
   für `Task.sleep`, verzeihendes Lesen und gewollte Rückfälle.

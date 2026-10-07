@@ -34,6 +34,11 @@ Aus einer bewusst misstrauischen Durchsicht der ganzen Codebasis (07.10.2026).
   Hintergrundmodi der Info.plist (`BackgroundModeTests`), `LogTests`, dazu Töne und User-Agent.
   Die Tonsitzung selbst bleibt ungeprüft: ein Test, der im Simulator abspielt, hält `xcodebuild`
   nach dem letzten Test minutenlang offen.
+- **Lint und CI.** `./dev lint` (SwiftLint, wenige Regeln, die Fehler finden: `try!`, `as!`, `!`,
+  stummes `try?`, `print`, dazu Größenschwellen als Sperrklinke) und `./dev check` (Lint, dann
+  Tests). Die 81 Stellen, die es schon gab, stehen in `.swiftlint-baseline.json` und werden nicht
+  gemeldet; neu dazukommen darf keine. GitHub Actions fährt beides bei jedem Push
+  (`.github/workflows/ci.yml`, Xcode 27).
 - **Keine Orte mehr im Repository.** Die Testdaten lagen nahe an echten Adressen; jetzt stehen
   dort Alexanderplatz und S Wannsee, und die Probestrecke heißt in Kommentaren „Teststrecke“.
 

@@ -1,0 +1,76 @@
+# SwiftLint — `./dev lint`, und in CI bei jedem Push.
+#
+# Mit Absicht wenige Regeln: was einen Fehler verursacht oder versteckt, nicht
+# was Geschmack ist. Namen, Zeilenlängen und Kommas prüft hier niemand — die
+# Standardregeln melden in diesem Projekt 1 400 Stellen, und eine Meldung, die
+# niemand liest, verdeckt die eine, auf die es ankommt.
+#
+# Was es schon gab, steht in `.swiftlint-baseline.json` und wird nicht gemeldet.
+# Die Liste soll schrumpfen, nie wachsen: nach einer Bereinigung
+# `./dev lint baseline`, sonst nicht.
+
+included:
+  - RadPendler
+  - Shared
+  - RadPendlerWatch
+  - RadPendlerTests
+  - RadPendlerUITests
+
+only_rules:
+  # Abstürze
+  - force_try
+  - force_cast
+  - force_unwrapping
+  - unowned_variable_capture
+  # Speicher und Beobachter
+  - weak_delegate
+  - discarded_notification_center_observer
+  - notification_center_detachment
+  # Logik, die nicht tut, was sie zu tun scheint
+  - duplicate_conditions
+  - duplicate_enum_cases
+  - duplicated_key_in_dictionary_literal
+  - identical_operands
+  - unused_enumerated
+  - unused_optional_binding
+  - unused_setter_value
+  - reduce_boolean
+  - contains_over_filter_count
+  - empty_count
+  - duplicate_imports
+  # Größe: die Schwellen liegen knapp über dem, was es heute gibt (07.10.2026).
+  # Sie sind eine Sperrklinke, kein Ziel — wer sie reißt, teilt, statt sie zu heben.
+  - file_length
+  - type_body_length
+  - function_body_length
+  - cyclomatic_complexity
+  # Dieses Projekt
+  - custom_rules
+
+file_length:
+  warning: 950
+  ignore_comment_only_lines: true
+type_body_length:
+  warning: 650
+function_body_length:
+  warning: 130
+cyclomatic_complexity:
+  warning: 30
+  ignores_case_statements: true
+
+custom_rules:
+  naked_try_optional:
+    name: "Stummes try?"
+    # Wartezeiten dürfen: ein abgebrochenes Warten ist kein Fehler.
+    regex: 'try\?(?!\s+await\s+Task\.sleep)'
+    excluded: '.*Tests/.*'
+    match_kinds:
+      - keyword
+    message: "Ein Fehler, den niemand sieht. Log.attempt(\"was\") { try … } bzw. await Log.attemptAsync — oder, wenn der Rückfall gewollt ist, mit Begründung: // swiftlint:disable:this naked_try_optional"
+    severity: warning
+  print_in_app:
+    name: "print im App-Code"
+    regex: '^\s*print\('
+    excluded: '.*Tests/.*'
+    message: "print landet in keinem Protokoll. Log.note, oder in #if DEBUG."
+    severity: warning
