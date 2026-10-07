@@ -173,6 +173,11 @@ schemes:
     run:
       config: Debug
     test:
+      # Die Tests prüfen deutsche Texte. Ohne das hängt ihr Ergebnis an der
+      # Sprache des Simulators: lokal deutsch und grün, in CI englisch und
+      # 24-mal rot (erster Lauf, 07.10.2026).
+      language: de
+      region: DE
       targets:
         - RadPendlerTests
 
