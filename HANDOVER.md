@@ -3,9 +3,9 @@
 > **Zum Wiedereinstieg (07.10.2026):** 1.16 (56) ist in TestFlight. Danach, unveröffentlicht
 > (CHANGELOG „Unveröffentlicht“): die Ergebnisse einer bewusst misstrauischen Durchsicht —
 > `Log` statt nacktem `try?`, CloudKit meldet abgewiesene Datensätze, Straßendaten bei gesperrtem
-> Gerät lesbar, ein User-Agent für alle Dienste, 353 Tests. **Die Historie des Repos ist am
-> 07.10.2026 umgeschrieben** (Orte entfernt): alle Commit-Hashes von davor sind andere, ein
-> zweiter Klon muss neu geholt werden (`git fetch && git reset --hard origin/main`).
+> Gerät lesbar, ein User-Agent für alle Dienste, 353 Tests. Der Baum enthält keine Orte der
+> eigenen Strecke mehr; **die Historie noch** — das Umschreiben (`git filter-repo`, danach
+> `push --force`) steht aus und ändert alle Commit-Hashes.
 >
 > **Was nur auf dem Gerät prüfbar ist**, steht als abhakbare Liste in `tools/pruefliste.html`
 > (veröffentlicht: <https://claude.ai/artifact/1cPcVH6bKB63rFqTYmGCLk>, der Stand wird dort
