@@ -19,8 +19,8 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: "1.16"
-    CURRENT_PROJECT_VERSION: "56"
+    MARKETING_VERSION: "1.17"
+    CURRENT_PROJECT_VERSION: "57"
     SWIFT_VERSION: "5.0"
     # Sammelt die Texte für den Katalog ein.
     SWIFT_EMIT_LOC_STRINGS: "YES"
