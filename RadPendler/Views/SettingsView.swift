@@ -270,7 +270,7 @@ struct ModeSettingsView: View {
                 } header: {
                     Text(L("Vorlieben"))
                 } footer: {
-                    Hint(L("Womit die App plant, wenn sie die Wahl hat. „Für Ruhe höchstens“ gilt für die Radroute „optimal“: so viel länger als die schnellste Linie darf sie dauern, wenn sie dafür von der Hauptstraße wegführt — und nie mehr als 15 % weiter sein als die kürzeste. Ab dem gewählten Regen wird nicht mehr die ganze Strecke geradelt, sondern das Rad in die Bahn gestellt — „starker Regen“ heißt also praktisch immer fahren."))
+                    Hint(L("Womit die App plant, wenn sie die Wahl hat. „Für Ruhe höchstens“ gilt für die Radroute „optimal“: so viel länger als die schnellste Linie darf sie dauern, wenn sie dafür von der Hauptstraße wegführt. Steht „optimal“ trotzdem auf der Hauptstraße, ist die ruhige Linie langsamer als das. Ab dem gewählten Regen wird nicht mehr die ganze Strecke geradelt, sondern das Rad in die Bahn gestellt — „starker Regen“ heißt also praktisch immer fahren."))
                 }
                 Section {
                     MeasuredValueRow(

@@ -236,10 +236,6 @@ struct BikeCandidate {
     /// wenn der Umweg nichts bringt. Wie viel länger in gerechneter Zeit als
     /// die schnellste, stellt der Nutzer ein: `PlanSettings.quietExtraTime`.
     static let detourLimit = 0.10
-    /// Und so viel länger in **echten** Metern, was immer der Umweg an Ruhe
-    /// bringt. 17 % für 10 km weniger Hauptstraße waren zu viel (30.09.2026),
-    /// 13 % für 3 km weniger sollen gehen (06.10.2026).
-    static let hardDetourLimit = 0.15
     /// Ein Meter neben einer Hauptstraße — auf ihr oder auf dem Radweg an
     /// ihr — zählt wie zwei auf der ruhigen Nebenstraße (Nutzer, 06.10.2026:
     /// „ruhige Nebenstraße höher bewerten als Radwege neben Hauptstraßen").
@@ -256,11 +252,13 @@ struct BikeCandidate {
         // Ein Umweg, der nichts bringt, bleibt bei 10 %. Einer, der von der
         // Hauptstraße wegführt, darf dazu so viele Meter kosten, wie er
         // gegenüber der kürzesten Linie an ihr spart — aber nicht beliebig
-        // viele.
+        // viele: die Zeit begrenzt ihn, und die stellt der Nutzer ein. Bis
+        // 1.15 galten dazu feste 15 % in Metern — damit kam die ruhige Linie
+        // Teststrecke (21 % weiter, 11 % länger, 10,6 km
+        // weniger Hauptstraße) bei keiner Einstellung durch (07.10.2026).
         let spared = Swift.max(0, (shortest.stats?.mainRoadMeters ?? 0) - (stats?.mainRoadMeters ?? .infinity))
         let least = shortest.route.distance
         return route.distance <= least * (1 + Self.detourLimit) + Self.besideMainRoad * spared
-            && route.distance <= least * (1 + Self.hardDetourLimit)
             && computedTime(s) <= fastest * (1 + s.quietExtraTime)
     }
 

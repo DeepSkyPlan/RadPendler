@@ -3994,13 +3994,13 @@
         }
       }
     },
-    "Womit die App plant, wenn sie die Wahl hat. „Für Ruhe höchstens“ gilt für die Radroute „optimal“: so viel länger als die schnellste Linie darf sie dauern, wenn sie dafür von der Hauptstraße wegführt — und nie mehr als 15 % weiter sein als die kürzeste. Ab dem gewählten Regen wird nicht mehr die ganze Strecke geradelt, sondern das Rad in die Bahn gestellt — „starker Regen“ heißt also praktisch immer fahren.": {
+    "Womit die App plant, wenn sie die Wahl hat. „Für Ruhe höchstens“ gilt für die Radroute „optimal“: so viel länger als die schnellste Linie darf sie dauern, wenn sie dafür von der Hauptstraße wegführt. Steht „optimal“ trotzdem auf der Hauptstraße, ist die ruhige Linie langsamer als das. Ab dem gewählten Regen wird nicht mehr die ganze Strecke geradelt, sondern das Rad in die Bahn gestellt — „starker Regen“ heißt also praktisch immer fahren.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "What the app plans with when it has a choice. “For quiet, at most” applies to the bike route “optimal”: that much longer than the fastest line it may take if it leads away from the main road — and never more than 15 % farther than the shortest. From the selected rain level on, the bike goes on the train instead of riding the whole way — “heavy rain” therefore means riding almost always."
+            "value": "What the app plans with when it has a choice. “For quiet, at most” applies to the bike route “optimal”: that much longer than the fastest line it may take if it leads away from the main road. If “optimal” still stays on the main road, the quiet line is slower than that. From the selected rain level on, the bike goes on the train instead of riding the whole way — “heavy rain” therefore means riding almost always."
           }
         }
       }

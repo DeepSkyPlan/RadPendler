@@ -1,5 +1,15 @@
 # Changelog
 
+## Unveröffentlicht — „Für Ruhe höchstens“ entscheidet allein
+
+- **Rad: die Einstellung „Für Ruhe höchstens … mehr Zeit“ tat auf dem Arbeitsweg nichts.** Neben ihr
+  galt in 1.15 eine feste Grenze von 15 % in Metern, und die ruhige Linie Teststrecke
+  ist 21 % weiter (23,0 statt 19,0 km) — bei 5, 10 und 15 % blieb „optimal“ die kürzeste mit 12,8 km
+  an Hauptstraßen. Die feste Grenze ist weg (`hardDetourLimit`); es gilt die eingestellte Zeit, und
+  ein Umweg darf weiter nur so viele Meter kosten, wie er an Hauptstraße spart. Live-Probe 07.10.:
+  die ruhige Linie dauert gerechnet 11 % länger (59 statt 53 min, 2,2 km Hauptstraße) — bei 15 % ist
+  sie jetzt „optimal“, bei 5 und 10 % die kürzeste.
+
 ## 1.15 (Build 55) — Ruhe vor Hauptstraße, Auto lernt von Apple Karten
 
 - **Rad: „Für Ruhe höchstens 5 · 10 · 15 % mehr Zeit“** (Einstellungen → Verkehrsmittel → Vorlieben).

@@ -625,11 +625,14 @@ extension BikeRouteTests {
 extension BikeRouteTests {
     /// Die Live-Probe vom Abend: „wenig Autos" 22,3 km mit 2,7 km Hauptstraße
     /// gewann „optimal" gegen 19,0 km mit 12,8 km — 3 km Umweg für Ruhe.
-    /// „optimal" darf höchstens 10 % länger sein; die ruhige Linie bleibt als
-    /// „wenig Autos" wählbar.
+    /// Die ruhige Linie dauert gerechnet 9 % länger: wer für Ruhe höchstens
+    /// 5 % mehr Zeit geben will, bekommt die kürzeste als „optimal", und die
+    /// ruhige bleibt als „wenig Autos" wählbar. Bis 1.15 schloss sie eine
+    /// feste Grenze in Metern bei jeder Einstellung aus.
     func testOptimalIsNoDetour() {
         var s = PlanSettings()
         s.optionsPerMode = 3
+        s.quietExtraTime = 0.05
         let direct = candidate(.brouter(.shortest), km: 19.0, signals: 38, crossings: 15, mainKm: 12.8)
         let fast = candidate(.brouter(.fastbike), km: 19.7, signals: 45, crossings: 16, mainKm: 14.5)
         let calm = candidate(.brouter(.quiet), km: 22.3, signals: 28, crossings: 13, mainKm: 2.7)
@@ -645,7 +648,7 @@ extension BikeRouteTests {
     /// Pinneberg → Hamburg, Live-Probe 06.10.2026: „optimal" war die kürzeste
     /// Linie mit 6,4 km neben Hauptstraßen; die ruhige mit 3,2 km scheiterte
     /// an 13 % Umweg. Ein Meter neben der Hauptstraße zählt jetzt wie zwei,
-    /// und was ein Umweg dort spart, darf er länger sein — bis 15 %.
+    /// und was ein Umweg dort spart, darf er länger sein, solange die Zeit reicht.
     func testAQuietSideStreetBeatsTheCyclePathBesideTheMainRoad() {
         var s = PlanSettings()
         s.optionsPerMode = 3
@@ -660,9 +663,9 @@ extension BikeRouteTests {
         // Derselbe Umweg, der nichts spart, bleibt draußen …
         let pointless = candidate(.brouter(.quiet), km: 23.9, signals: 38, crossings: 10, mainKm: 6.4)
         XCTAssertFalse(pointless.isReasonable(among: [direct, trekking, pointless], s))
-        // … und über 15 % hilft auch die ruhigste Straße nicht.
-        let far = candidate(.brouter(.quiet), km: 24.6, signals: 20, crossings: 5, mainKm: 0)
-        XCTAssertFalse(far.isReasonable(among: [direct, trekking, far], s))
+        // … und einer, der mehr Zeit kostet als eingestellt, auch.
+        let slow = candidate(.brouter(.quiet), km: 24.6, signals: 43, crossings: 5, mainKm: 0)
+        XCTAssertFalse(slow.isReasonable(among: [direct, trekking, slow], s))
         // Ohne Kartendaten gilt die alte Grenze.
         let blind = BikeCandidate(source: .brouter(.quiet),
                                   route: StreetRoute(distance: 23_900, expectedTravelTime: 0, coordinates: []), stats: nil)
@@ -691,9 +694,26 @@ extension BikeRouteTests {
         s.quietExtraTime = 0.15
         XCTAssertTrue(calmer.isReasonable(among: [direct, calmer], s))
         XCTAssertEqual(optimal([direct, calmer]), .brouter(.quiet))
-        // Die 15 % in Metern bleiben, was immer eingestellt ist.
-        let far = candidate(.brouter(.quiet), km: 24.6, signals: 20, crossings: 5, mainKm: 0)
-        XCTAssertFalse(far.isReasonable(among: [direct, far], s))
+    }
+
+    /// Teststrecke, Live-Probe 07.10.2026: die ruhige Linie
+    /// (Prinzregentenstraße) ist 21 % weiter, dauert gerechnet 11 % länger und
+    /// spart 10,6 km Hauptstraße. In 1.15 hielt eine feste Grenze von 15 % in
+    /// Metern sie bei jeder Einstellung draußen; jetzt entscheidet die Zeit.
+    func testTheTimeSettingAloneDecidesAboutAQuietDetour() {
+        var s = PlanSettings()
+        s.optionsPerMode = 3
+        let direct = candidate(.brouter(.shortest), km: 18.97, signals: 38, crossings: 15, mainKm: 12.8)
+        let fast = candidate(.brouter(.fastbike), km: 19.67, signals: 45, crossings: 16, mainKm: 14.5)
+        let calm = candidate(.brouter(.quiet), km: 23.0, signals: 29, crossings: 14, mainKm: 2.18)
+        let all = [direct, fast, calm]
+        func optimal() -> BikeLineSource? {
+            BikeCandidate.pick(all, settings: s).first { $0.1.contains(.balanced) }?.0.source
+        }
+        s.quietExtraTime = 0.10
+        XCTAssertEqual(optimal(), .brouter(.shortest))
+        s.quietExtraTime = 0.15
+        XCTAssertEqual(optimal(), .brouter(.quiet))
     }
 
     func testReplanUsesTheProfileOfTheRiddenLine() {
