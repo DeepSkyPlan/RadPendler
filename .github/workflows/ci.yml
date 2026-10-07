@@ -1,0 +1,56 @@
+# Bei jedem Push: erst die Regeln, dann die Tests — dasselbe wie `./dev check`.
+#
+# Kein Signieren, kein Archiv, kein Upload. TestFlight bleibt Handarbeit auf
+# Ansage (`./dev testflight`); hier liegt kein Schlüssel und soll keiner liegen.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Ein neuer Push macht den Lauf des vorigen überflüssig.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: SwiftLint
+    runs-on: ubuntu-latest
+    # Dieselbe Fassung wie lokal (~/.local/bin/swiftlint). Eine neuere kennt
+    # neue Regeln und liest die Baseline anders — beides zusammen hochziehen.
+    container: ghcr.io/realm/swiftlint:0.65.1
+    steps:
+      - uses: actions/checkout@v4
+      - run: swiftlint lint --quiet --strict --baseline .swiftlint-baseline.json
+
+  test:
+    name: Tests (iOS-Simulator)
+    # Das Abbild mit Xcode 27 — dieselbe Fassung, mit der gebaut und
+    # ausgeliefert wird, und die einzige mit dem iPhone 18 Pro, das `./dev`
+    # erwartet. `macos-latest` trägt noch Xcode 26.
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Werkzeug
+        run: |
+          xcodebuild -version
+          command -v xcodegen || brew install xcodegen
+      - name: Tests
+        run: |
+          set -o pipefail
+          ./dev test 2>&1 | tee test.log | grep -E "error:|warning: unre|Test Suite '.*' (passed|failed)|Executed [0-9]+ tests|\*\* TEST|failed \(" || true
+          grep -q '\*\* TEST SUCCEEDED \*\*' test.log
+      - name: Protokoll aufheben, wenn es rot ist
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-log
+          path: test.log
+          retention-days: 7
