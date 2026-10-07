@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — Fahrradstraßen zählen; „Für Ruhe höchstens“ entscheidet allein
+## 1.16 (Build 56) — Fahrradstraßen zählen; „Für Ruhe höchstens“ entscheidet allein
 
 - **Rad: Fahrradstraßen zählen.** Für BRouters „trekking“ — die Linie hinter „optimal“ — war eine
   Fahrradstraße eine Wohnstraße wie jede andere. Jetzt kostet dort alles andere das Doppelte
