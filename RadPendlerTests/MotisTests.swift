@@ -82,6 +82,14 @@ final class MotisTests: XCTestCase {
         XCTAssertTrue(ua.hasPrefix("RadPendler/"), ua)
         XCTAssertTrue(ua.contains("github.com/DeepSkyPlan/RadPendler"), "a way of contact, as the terms ask")
     }
+
+    /// Ein Satz für alle Dienste. „private commute planner" stand dort, solange
+    /// die App auf einem Telefon lief; im Store ist das eine falsche Auskunft.
+    func testEveryServiceGetsTheSameHonestIntroduction() {
+        XCTAssertEqual(MotisClient.userAgent, AppIdentity.userAgent)
+        XCTAssertTrue(AppIdentity.userAgent.contains("Commute App"))
+        XCTAssertFalse(AppIdentity.userAgent.lowercased().contains("private"))
+    }
 }
 
 private extension LegKind {

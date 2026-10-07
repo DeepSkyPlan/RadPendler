@@ -272,9 +272,8 @@ actor RoadDataStore {
         let task = Task { [directory] () throws -> RoadData in
             let raw = try await self.fetch(corridor)
             let parsed = try RoadData.parse(raw)
-            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            Self.store(raw, in: directory, as: box)
             let file = directory.appendingPathComponent("\(box.fileName).json")
-            try? raw.write(to: file, options: .completeFileProtection)
             Self.writeSidecar(box, corridor: corridor, next: file)
             return parsed
         }
@@ -286,6 +285,7 @@ actor RoadDataStore {
             sweep(keeping: box, corridor)
             return parsed
         } catch {
+            Log.note("Straßendaten holen", error)
             // Overpass antwortet auf eine kleine Frage in zwei Sekunden und
             // auf diese hier mit `504`: die Abfrage ist teuer, nicht der
             // Server kaputt. Der Plan wartet darauf nicht — er sagt, dass die
@@ -310,11 +310,12 @@ actor RoadDataStore {
         guard warming.insert(box).inserted else { return }
         Task { [directory] in
             defer { warming.remove(box) }
-            guard let raw = try? await self.fetch(corridor, serverSeconds: 180, requestSeconds: 210),
-                  let parsed = try? RoadData.parse(raw) else { return }
-            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            guard let raw = await Log.attemptAsync("Straßendaten nachholen", {
+                      try await self.fetch(corridor, serverSeconds: 180, requestSeconds: 210)
+                  }),
+                  let parsed = Log.attempt("Straßendaten auspacken", { try RoadData.parse(raw) }) else { return }
+            Self.store(raw, in: directory, as: box)
             let file = directory.appendingPathComponent("\(box.fileName).json")
-            try? raw.write(to: file, options: .completeFileProtection)
             Self.writeSidecar(box, corridor: corridor, next: file)
             remember(box, parsed, corridor)
             sweep(keeping: box, corridor)
@@ -366,19 +367,42 @@ actor RoadDataStore {
     /// Beiwagen sich nicht lesen lässt, räumt `sweep` weg.
     private func sidecar(of file: URL) -> Sidecar? {
         let url = file.deletingPathExtension().appendingPathExtension("box")
-        guard let data = try? Data(contentsOf: url) else { return nil }
-        return try? JSONDecoder().decode(Sidecar.self, from: data)
+        guard let data = Log.attempt("Beiwagen lesen", missingIsFine: true, { try Data(contentsOf: url) })
+        else { return nil }
+        return Log.attempt("Beiwagen auspacken") { try JSONDecoder().decode(Sidecar.self, from: data) }
+    }
+
+    /// Die Schutzklasse des Zwischenspeichers: lesbar, sobald das Gerät seit
+    /// dem Einschalten einmal entsperrt wurde.
+    ///
+    /// Bis 1.16 stand hier `complete` — und damit war der Zwischenspeicher
+    /// genau dann zu, wenn er gebraucht wird: das Telefon steckt gesperrt in
+    /// der Tasche, die Fahrt läuft, es wird neu geplant oder iOS weckt die App
+    /// für die Warnungen. Lesen wie Schreiben scheiterten stumm, und die Frage
+    /// ging jedes Mal neu an Overpass. Der Korridor verrät nichts, was nicht
+    /// auch in den Einstellungen steht (Zuhause und Arbeit, dieselbe Klasse).
+    static let protection: Data.WritingOptions = .completeFileProtectionUntilFirstUserAuthentication
+
+    /// Legt eine Antwort ab. `atomic`, weil eine Datei aus einer älteren
+    /// Fassung noch die alte Schutzklasse trägt und sich bei gesperrtem Gerät
+    /// nicht überschreiben, wohl aber ersetzen lässt.
+    private static func store(_ raw: Data, in directory: URL, as box: Box) {
+        Log.attempt("Straßendaten-Ordner anlegen") {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        }
+        let file = directory.appendingPathComponent("\(box.fileName).json")
+        Log.attempt("Straßendaten schreiben") { try raw.write(to: file, options: [.atomic, protection]) }
     }
 
     private static func writeSidecar(_ box: Box, corridor: Corridor, next file: URL) {
         let url = file.deletingPathExtension().appendingPathExtension("box")
         let side = Sidecar(south: box.south, west: box.west, north: box.north, east: box.east,
                            corridor: corridor)
-        guard let data = try? JSONEncoder().encode(side) else { return }
+        guard let data = Log.attempt("Beiwagen kodieren", { try JSONEncoder().encode(side) }) else { return }
         // Derselbe Schutz wie für die Antwort daneben: hier steht der Korridor
         // in Klartextkoordinaten, also genau die Linie zwischen Zuhause und
         // Arbeit, die der gehashte Dateiname verbergen soll.
-        try? data.write(to: url, options: [.atomic, .completeFileProtection])
+        Log.attempt("Beiwagen schreiben") { try data.write(to: url, options: [.atomic, protection]) }
     }
 
     /// Deletes what is stale or answered by the corridor just written — the
@@ -386,9 +410,9 @@ actor RoadDataStore {
     /// overlapping corridors had grown to 13 MB.
     private func sweep(keeping box: Box, _ corridor: Corridor) {
         let fm = FileManager.default
-        guard let files = try? fm.contentsOfDirectory(at: directory,
-                                                      includingPropertiesForKeys: [.contentModificationDateKey])
-        else { return }
+        guard let files = Log.attempt("Straßendaten-Ordner lesen", missingIsFine: true, {
+            try fm.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.contentModificationDateKey])
+        }) else { return }
         for f in files where f.pathExtension == "json" {
             guard f.deletingPathExtension().lastPathComponent != box.fileName else { continue }
             let age = (try? f.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
@@ -397,8 +421,10 @@ actor RoadDataStore {
             // to us now, so it is rubbish either way.
             let redundant = self.sidecar(of: f).map { Self.superseded($0.box, $0.corridor, by: box, corridor) } ?? true
             guard age > maxAge || redundant else { continue }
-            try? fm.removeItem(at: f)
-            try? fm.removeItem(at: f.deletingPathExtension().appendingPathExtension("box"))
+            Log.attempt("Straßendaten aufräumen", missingIsFine: true) { try fm.removeItem(at: f) }
+            Log.attempt("Beiwagen aufräumen", missingIsFine: true) {
+                try fm.removeItem(at: f.deletingPathExtension().appendingPathExtension("box"))
+            }
         }
     }
 
@@ -408,16 +434,16 @@ actor RoadDataStore {
     private func loadFromDisk(covering box: Box,
                               coords: [CLLocationCoordinate2D]) -> (Box, RoadData, Corridor?)? {
         let fm = FileManager.default
-        guard let files = try? fm.contentsOfDirectory(at: directory,
-                                                      includingPropertiesForKeys: [.contentModificationDateKey])
-        else { return nil }
+        guard let files = Log.attempt("Straßendaten-Ordner lesen", missingIsFine: true, {
+            try fm.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.contentModificationDateKey])
+        }) else { return nil }
         for f in files where f.pathExtension == "json" {
             guard let side = self.sidecar(of: f), side.box.contains(box) else { continue }
             guard side.corridor?.covers(coords) ?? true else { continue }
             let age = (try? f.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
                 .map { Date.now.timeIntervalSince($0) } ?? .infinity
-            guard age < maxAge, let data = try? Data(contentsOf: f),
-                  let parsed = try? RoadData.parse(data) else { continue }
+            guard age < maxAge, let data = Log.attempt("Straßendaten lesen", { try Data(contentsOf: f) }),
+                  let parsed = Log.attempt("Straßendaten auspacken", { try RoadData.parse(data) }) else { continue }
             return (side.box, parsed, side.corridor)
         }
         return nil
@@ -448,7 +474,7 @@ actor RoadDataStore {
         var request = URLRequest(url: URL(string: "https://overpass-api.de/api/interpreter")!,
                                  timeoutInterval: requestSeconds)
         request.httpMethod = "POST"
-        request.setValue("RadPendler iOS (private commute planner)", forHTTPHeaderField: "User-Agent")
+        request.setValue(AppIdentity.userAgent, forHTTPHeaderField: "User-Agent")
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         var form = URLComponents()
         form.queryItems = [.init(name: "data", value: query)]

@@ -21,6 +21,14 @@ import Foundation
 actor TrackCloud {
     static let shared = TrackCloud()
 
+    /// `database` nur für Tests: ohne Konto und Container gibt es im
+    /// Simulator keine private Datenbank, gegen die sich etwas prüfen ließe.
+    init(database: TrackDatabase? = nil) {
+        injected = database
+    }
+
+    private let injected: TrackDatabase?
+
     /// Muss genauso im Entwicklerportal stehen.
     ///
     /// `de.keese`, wie die App: der Container hieß bis zum 26.09.2026
@@ -36,7 +44,10 @@ actor TrackCloud {
     static let recordType = "RideTrack"
     private static let assetKey = "track"
 
-    private lazy var database = CKContainer(identifier: Self.containerID).privateCloudDatabase
+    private lazy var database: TrackDatabase = injected
+        ?? CKContainer(identifier: Self.containerID).privateCloudDatabase
+    /// Ob nach einer grundsätzlichen Absage noch gefragt wird — für Tests.
+    var isUnavailable: Bool { unavailable }
 
     /// Einmal gescheitert heißt: es gibt keinen Container, oder keine Apple-ID,
     /// oder die App hat die Berechtigung nicht. Dann wird nicht bei jeder Fahrt
@@ -60,21 +71,24 @@ actor TrackCloud {
     /// auf der Platte, und eine Fahrt, deren Zeichnung nicht gereist ist, sieht
     /// auf dem anderen Gerät genauso aus wie bisher.
     func upload(_ track: RideTrack) async {
-        guard !unavailable, let data = try? JSONEncoder().encode(track) else { return }
+        guard !unavailable,
+              let data = Log.attempt("Linie für iCloud kodieren", { try JSONEncoder().encode(track) }) else { return }
         // `CKAsset` will eine Datei. Sie wird nach dem Hochladen nicht mehr
         // gebraucht — anders als die Linie selbst, die im Fahrtenordner bleibt.
         let scratch = URL.temporaryDirectory.appending(path: "upload-\(track.id.uuidString).json")
-        guard (try? data.write(to: scratch, options: [.atomic, .completeFileProtectionUnlessOpen])) != nil else { return }
-        defer { try? FileManager.default.removeItem(at: scratch) }
+        guard Log.attempt("Linie für iCloud ablegen", {
+            try data.write(to: scratch, options: [.atomic, .completeFileProtectionUnlessOpen])
+        }) != nil else { return }
+        defer {
+            Log.attempt("Ablage für iCloud räumen", missingIsFine: true) { try FileManager.default.removeItem(at: scratch) }
+        }
         let record = CKRecord(recordType: Self.recordType, recordID: recordID(track.id))
         record[Self.assetKey] = CKAsset(fileURL: scratch)
         do {
-            // `allKeys` und nicht `ifServerRecordUnchanged`: dieselbe Fahrt
-            // zweimal abzulegen ist kein Konflikt, sondern derselbe Inhalt.
-            _ = try await database.modifyRecords(saving: [record], deleting: [],
-                                                 savePolicy: .allKeys, atomically: true)
+            try await database.put(record)
             lastFailure = nil
         } catch {
+            Log.note("Linie nach iCloud", error)
             note(error)
             lastFailure = Self.reason(error)
         }
@@ -88,11 +102,14 @@ actor TrackCloud {
     func download(_ id: UUID) async -> RideTrack? {
         guard !unavailable else { return nil }
         do {
-            let record = try await database.record(for: recordID(id))
+            let record = try await database.get(recordID(id))
             guard let asset = record[Self.assetKey] as? CKAsset, let url = asset.fileURL,
-                  let data = try? Data(contentsOf: url) else { return nil }
-            return try? JSONDecoder().decode(RideTrack.self, from: data)
+                  let data = Log.attempt("Linie aus iCloud lesen", { try Data(contentsOf: url) }) else { return nil }
+            return Log.attempt("Linie aus iCloud dekodieren") { try JSONDecoder().decode(RideTrack.self, from: data) }
         } catch {
+            // „Gibt es nicht" ist die normale Antwort für eine Fahrt, deren
+            // Linie nie gereist ist.
+            if (error as? CKError)?.code != .unknownItem { Log.note("Linie aus iCloud", error) }
             note(error)
             return nil
         }
@@ -105,8 +122,9 @@ actor TrackCloud {
     func delete(_ id: UUID) async {
         guard !unavailable else { return }
         do {
-            _ = try await database.modifyRecords(saving: [], deleting: [recordID(id)])
+            try await database.remove(recordID(id))
         } catch {
+            if (error as? CKError)?.code != .unknownItem { Log.note("Linie in iCloud löschen", error) }
             note(error)
         }
     }
@@ -134,5 +152,33 @@ actor TrackCloud {
         default:
             break
         }
+    }
+}
+
+/// Die drei Dinge, die `TrackCloud` von CloudKit will. Ein eigenes Protokoll,
+/// damit sich Hochladen, Herunterladen und das Verhalten nach einer Absage
+/// prüfen lassen, ohne dass ein Konto angemeldet ist.
+protocol TrackDatabase: Sendable {
+    func put(_ record: CKRecord) async throws
+    func get(_ id: CKRecord.ID) async throws -> CKRecord
+    func remove(_ id: CKRecord.ID) async throws
+}
+
+extension CKDatabase: TrackDatabase {
+    func put(_ record: CKRecord) async throws {
+        // `allKeys` und nicht `ifServerRecordUnchanged`: dieselbe Fahrt
+        // zweimal abzulegen ist kein Konflikt, sondern derselbe Inhalt.
+        let (saved, _) = try await modifyRecords(saving: [record], deleting: [],
+                                                 savePolicy: .allKeys, atomically: true)
+        // Der Aufruf als Ganzes kann gelingen und der eine Datensatz trotzdem
+        // abgewiesen sein — der Fehler steckt dann im Ergebnis je Datensatz.
+        for result in saved.values { _ = try result.get() }
+    }
+
+    func get(_ id: CKRecord.ID) async throws -> CKRecord { try await record(for: id) }
+
+    func remove(_ id: CKRecord.ID) async throws {
+        let (_, deleted) = try await modifyRecords(saving: [], deleting: [id])
+        for result in deleted.values { try result.get() }
     }
 }

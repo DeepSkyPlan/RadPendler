@@ -200,7 +200,9 @@ extension TripPlanner {
         let pairs = starts.map { (origin, $0) } + ends.map { ($0, destination) }
         let streets = streets
         let found = await Self.gathered(Array(pairs.indices), atOnce: 3) { i in
-            try? await streets.feeder(from: pairs[i].0, to: pairs[i].1, avoidCobbles: avoidCobbles)
+            await Log.attemptAsync("Zubringer") {
+                try await streets.feeder(from: pairs[i].0, to: pairs[i].1, avoidCobbles: avoidCobbles)
+            }
         }
         var out = [StreetRoute?](repeating: nil, count: pairs.count)
         for (i, route) in found { out[i] = route }

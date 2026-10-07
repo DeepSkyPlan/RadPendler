@@ -35,7 +35,9 @@ enum Alarm {
         case .granted: return true
         case .denied: return false
         case .unknown:
-            return (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false
+            return await Log.attemptAsync("Mitteilungen erlauben") {
+                try await center.requestAuthorization(options: [.alert, .sound])
+            } ?? false
         }
     }
 
@@ -57,7 +59,7 @@ enum Alarm {
         // identifiers, and a clear that finished late would take them with it.
         await clear()
         for request in requests(for: option, alerts: minutes, now: now) {
-            try? await center.add(request)
+            await Log.attemptAsync("Warnung stellen") { try await center.add(request) }
         }
     }
 
@@ -71,8 +73,9 @@ enum Alarm {
             content.title = title
             content.body = body
             content.sound = .default
-            try? await center.add(UNNotificationRequest(identifier: "radpendler.note.\(UUID().uuidString)",
-                                                        content: content, trigger: nil))
+            let request = UNNotificationRequest(identifier: "radpendler.note.\(UUID().uuidString)",
+                                                content: content, trigger: nil)
+            await Log.attemptAsync("Mitteilung schicken") { try await center.add(request) }
         }
     }
 

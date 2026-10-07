@@ -38,7 +38,8 @@ final class WatchLink: NSObject, WCSessionDelegate {
     /// when the ride ends, because that last picture is the one that stays.
     func sendLive(_ live: RideLive?) {
         latestRide = live
-        guard WCSession.isSupported(), let live, let data = try? JSONEncoder().encode(live) else { return }
+        guard WCSession.isSupported(), let live,
+              let data = Log.attempt("Fahrt für die Uhr kodieren", { try JSONEncoder().encode(live) }) else { return }
         let session = WCSession.default
         guard session.activationState == .activated, session.isPaired, session.isWatchAppInstalled else { return }
         if session.isReachable {
@@ -55,10 +56,14 @@ final class WatchLink: NSObject, WCSessionDelegate {
         let session = WCSession.default
         guard session.activationState == .activated, session.isPaired, session.isWatchAppInstalled else { return }
         var context: [String: Any] = [:]
-        if let latest, let data = try? JSONEncoder().encode(latest) { context["plan"] = data }
-        if let latestRide, let data = try? JSONEncoder().encode(latestRide) { context["ride"] = data }
+        if let latest, let data = Log.attempt("Plan für die Uhr kodieren", { try JSONEncoder().encode(latest) }) {
+            context["plan"] = data
+        }
+        if let latestRide, let data = Log.attempt("Fahrt für die Uhr kodieren", { try JSONEncoder().encode(latestRide) }) {
+            context["ride"] = data
+        }
         guard !context.isEmpty else { return }
-        try? session.updateApplicationContext(context)
+        Log.attempt("an die Uhr schicken") { try session.updateApplicationContext(context) }
     }
 
     // MARK: WCSessionDelegate
@@ -90,7 +95,7 @@ final class WatchLink: NSObject, WCSessionDelegate {
 
     private func accept(_ payload: [String: Any]) {
         guard let data = payload["choice"] as? Data,
-              let choice = try? JSONDecoder().decode(WatchChoice.self, from: data) else { return }
+              let choice = Log.attempt("Wahl von der Uhr lesen", { try JSONDecoder().decode(WatchChoice.self, from: data) }) else { return }
         DispatchQueue.main.async { [onChoice] in onChoice?(choice) }
     }
 }

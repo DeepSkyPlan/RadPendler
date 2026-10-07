@@ -1,0 +1,250 @@
+<title>RadPendler Geräte-Prüfliste</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@600;700&display=swap">
+<style>
+/* Layout: eine Spalte wie ein Fahrtenbuch, am Lenker mit dem Daumen bedienbar —
+   große Häkchen links, der Handgriff fett, die Erwartung darunter. */
+:root {
+  --bg: #f3f6f5; --surface: #ffffff; --fg: #14231f; --muted: #5a6d68;
+  --line: #d5dfdc; --accent: #00766e; --accent-soft: #dff0ed; --warn: #a15c00;
+  --display: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Barlow", -apple-system, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1614; --surface: #13211e; --fg: #e2f0ec; --muted: #8fa59f;
+    --line: #24352f; --accent: #47cfc2; --accent-soft: #17322d; --warn: #e8a94a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1614; --surface: #13211e; --fg: #e2f0ec; --muted: #8fa59f;
+  --line: #24352f; --accent: #47cfc2; --accent-soft: #17322d; --warn: #e8a94a;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font: 16px/1.45 var(--body); }
+.page { max-width: 44rem; margin: 0 auto; padding-inline: 16px; padding-block: 20px 48px;
+        display: flex; flex-direction: column; gap: 20px; }
+h1 { font: 700 1.9rem/1.1 var(--display); margin: 0; text-wrap: balance; }
+h2 { font: 700 1.25rem/1.2 var(--display); margin: 0; letter-spacing: .01em; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 60ch; }
+.bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.bar label { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; color: var(--muted);
+             text-transform: uppercase; letter-spacing: .06em; }
+input[type="text"], textarea {
+  font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 6px; padding: 8px 10px; min-width: 0; }
+input[type="text"] { width: 9rem; }
+button { font: 600 .95rem var(--body); color: var(--accent); background: transparent;
+         border: 1px solid var(--accent); border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+button.solid { background: var(--accent); color: var(--bg); }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.total { margin-left: auto; font: 700 1.25rem var(--display); font-variant-numeric: tabular-nums; }
+.status { font-size: .85rem; color: var(--muted); }
+.status.warn { color: var(--warn); }
+.confirm { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: var(--accent-soft);
+           border-radius: 8px; padding: 10px 12px; }
+section { display: flex; flex-direction: column; gap: 8px; }
+.head { display: flex; align-items: baseline; gap: 10px; border-bottom: 2px solid var(--fg); padding-bottom: 4px; }
+.head .count { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+.why { color: var(--muted); font-size: .9rem; max-width: 60ch; }
+ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+li { display: grid; grid-template-columns: 44px 1fr; column-gap: 4px; padding: 10px 0;
+     border-bottom: 1px solid var(--line); }
+li input[type="checkbox"] { width: 26px; height: 26px; margin: 2px 0 0; accent-color: var(--accent); }
+li .text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+li .do { font-weight: 600; }
+li .expect { color: var(--muted); }
+li.done .do { text-decoration: line-through; text-decoration-color: var(--muted); }
+li .meta { font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+li details { margin-top: 4px; }
+li summary { font-size: .85rem; color: var(--accent); cursor: pointer; width: fit-content; }
+li textarea { width: 100%; box-sizing: border-box; margin-top: 6px; min-height: 3.2rem; resize: vertical; }
+li.noted summary::after { content: " ●"; color: var(--warn); }
+code { font-size: .9em; background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
+</style>
+
+<div class="page">
+  <header style="display:flex;flex-direction:column;gap:8px">
+    <h1>RadPendler Geräte-Prüfliste</h1>
+    <p class="lead">Was kein Test im Simulator zeigen kann: Ortung im Freien, gesperrter Bildschirm,
+      zwei Geräte an einer iCloud, Ton am Lenker. Abhaken, was du auf dem Gerät gesehen hast.
+      Was auffällt, in die Notiz schreiben.</p>
+  </header>
+
+  <div class="bar">
+    <label for="build">Geprüfte Fassung
+      <input type="text" id="build" placeholder="1.16 (56)" autocomplete="off">
+    </label>
+    <button type="button" id="reset">Neue Runde beginnen</button>
+    <span class="total" id="total" aria-live="polite">0 / 0</span>
+  </div>
+  <div class="confirm" id="confirm" hidden>
+    <span>Alle Häkchen und Notizen löschen?</span>
+    <button type="button" class="solid" id="reset-yes">Ja, löschen</button>
+    <button type="button" id="reset-no">Abbrechen</button>
+  </div>
+  <p class="status" id="status">Lädt gespeicherten Stand …</p>
+
+  <main id="groups" style="display:flex;flex-direction:column;gap:28px"></main>
+</div>
+
+<script>
+const GROUPS = [
+  { id: "ortung", title: "Ortung", why: "Im Simulator geprüft: Erlaubnis verweigert oder erteilt, alte Ortungen verworfen. Nicht prüfbar: echter Empfang.", items: [
+    ["o1", "Ortung für RadPendler in den iOS-Einstellungen auf „Nie“, dann eine Fahrt starten", "Der Fahrtbildschirm sagt, dass die Ortung nicht erlaubt ist. Es wird nichts aufgezeichnet."],
+    ["o2", "Ortung auf „Nächstes Mal fragen“, Fahrt starten, im Fenster „Beim Verwenden“ wählen", "Die Fahrt beginnt von selbst, ohne zweiten Tipp."],
+    ["o3", "Im Adressfeld „Mein Standort“ wählen", "Es erscheint eine Adresse mit Straße und Ort, keine Zahlen."],
+    ["o4", "Fahrt drinnen starten, zwei Minuten warten, dann erst losfahren", "Keine Strecke und kein Halt vor dem Losfahren. Der Schnitt zählt erst ab dem Rollen."],
+    ["o5", "Am Ziel der geplanten Strecke stehen und die Fahrt starten", "Die Route dreht um und führt zum Start."],
+    ["o6", "Durch eine Unterführung oder einen Tunnel fahren", "Die Fahrt läuft weiter. Die Linie hat höchstens eine gerade Lücke, keinen Sprung."],
+  ]},
+  { id: "hintergrund", title: "Hintergrund und gesperrter Bildschirm", why: "Im Simulator geprüft: Hintergrund-Ortung nur zwischen Start und Ende, Kennung der Weckaufgabe. Nicht prüfbar: was iOS mit einer gesperrten App wirklich tut.", items: [
+    ["h1", "Fahrt starten, Bildschirm sperren, mindestens zehn Minuten fahren", "Die Linie ist lückenlos. Oben in der Statusleiste steht der blaue Ortungshinweis."],
+    ["h2", "Fahrt beenden und auf die Statusleiste sehen", "Der blaue Ortungshinweis verschwindet sofort."],
+    ["h3", "Während der Fahrt „Pause“ tippen, später „Weiter“", "In der Pause ist der blaue Hinweis weg, nach „Weiter“ wieder da."],
+    ["h4", "Mit laufender Fahrt drei Minuten stehen bleiben, dann weiterfahren", "Mitteilung „Fahrt angehalten“. Beim Losrollen läuft die Aufzeichnung von selbst weiter."],
+    ["h5", "Fahrt laufen lassen und zwanzig Minuten am selben Ort bleiben", "Mitteilung „Fahrt beendet“. Die Fahrt ist gespeichert und endet dort, wo das Stehen begann."],
+    ["h6", "Telefon gesperrt in der Tasche, absichtlich mehr als 200 m von der Route abweichen", "Beim Entsperren zeigt die Karte eine neue Linie und „1×“ neu geplant. Neu seit dieser Fassung: der Straßen-Zwischenspeicher ist dabei lesbar."],
+    ["h7", "Während einer Fahrt die App aus dem App-Umschalter wischen und neu öffnen", "Die abgebrochene Fahrt steht in der Fahrtenliste, bis zu ihrer letzten Sekunde."],
+    ["h8", "Countdown auf einen Zug stellen, App schließen, mindestens 30 Minuten warten", "Die Warnung kommt zur aktuellen Abfahrtszeit, auch wenn sich der Fahrplan geändert hat."],
+    ["h9", "Hintergrundaktualisierung für RadPendler in iOS ausschalten, Countdown stellen, App schließen", "Die Warnungen kommen trotzdem, zur zuletzt bekannten Zeit."],
+  ]},
+  { id: "icloud", title: "iCloud zwischen iPhone und iPad", why: "Im Simulator geprüft: Hoch- und Herunterladen gegen eine Datenbank im Speicher, Verhalten ohne Apple-ID und ohne Netz. Nicht prüfbar: Apples Server und das Schema in Production.", items: [
+    ["c1", "Auf dem iPhone eine Fahrt aufzeichnen, dann das iPad öffnen", "Die Fahrt steht innerhalb etwa einer Minute mit allen Zahlen in der Liste."],
+    ["c2", "Diese Fahrt auf dem iPad antippen", "Die Karte zeigt die gefahrene Linie, nicht „nicht auf diesem Gerät“."],
+    ["c3", "Eine Fahrt auf dem iPad löschen", "Sie verschwindet auch auf dem iPhone und kommt nicht zurück."],
+    ["c4", "Auf einem Gerät eine Adresse oder Einstellung ändern", "Auf dem anderen Gerät steht dasselbe."],
+    ["c5", "Im Flugmodus eine Fahrt aufzeichnen und beenden", "Die Fahrt ist gespeichert. Die Fahrtenliste sagt, dass die Linien reisen, sobald wieder Netz da ist."],
+    ["c6", "Mit Netz die Fahrtenliste öffnen", "Es steht keine Zeile „Die Linien reisen nicht …“ da. Neu seit dieser Fassung: ein von Apple abgewiesener Datensatz wird hier gemeldet statt verschluckt."],
+  ]},
+  { id: "ton", title: "Töne", why: "Im Simulator geprüft: jeder Ton ist kürzer als eine Sekunde, links und rechts klingen verschieden, die Kategorie mischt mit anderem Ton. Nicht prüfbar: die Tonsitzung selbst.", items: [
+    ["t1", "Stummschalter an, Fahrt starten", "Der Startton ist trotzdem zu hören."],
+    ["t2", "Musik oder Podcast laufen lassen und auf eine Abbiegung zufahren", "Die Musik wird für den Ton kurz leiser, läuft weiter und ist danach wieder so laut wie vorher."],
+    ["t3", "Bildschirm sperren und abbiegen", "Ein Ton zur Ankündigung, ein doppelter kurz vor der Abbiegung."],
+    ["t4", "Mit Kopfhörern links und rechts abbiegen", "Links klingt tiefer und kommt von links, rechts höher und von rechts."],
+    ["t5", "Töne in den Einstellungen ausschalten und mit Musik fahren", "Kein Ton, und die Musik wird nie leiser."],
+    ["t6", "Während der Fahrt einen Anruf annehmen und beenden", "Danach kommen die Abbiegetöne wieder."],
+  ]},
+  { id: "uhr", title: "Apple Watch", why: "Im Simulator geprüft: was das Telefon der Uhr schickt. Nicht prüfbar: die Verbindung.", items: [
+    ["u1", "Auf dem Telefon planen und auf die Uhr sehen", "Die Uhr zeigt denselben Plan und zählt herunter."],
+    ["u2", "Eine Fahrt aufzeichnen und beenden", "Die Uhr zeigt während der Fahrt laufende Zahlen und danach die Zusammenfassung."],
+    ["u3", "Auf der Uhr eine andere Kategorie wählen", "Das Telefon zeigt dieselbe Kategorie."],
+  ]},
+  { id: "danach", title: "Nach jeder Runde", why: "Seit dieser Fassung schreibt die App stumme Fehler in die geteilte Auswertung.", items: [
+    ["n1", "Eine Fahrt teilen (Fahrten → Fahrt → Teilen) und auf dem Mac auswerten", "Im Bericht von tools/ride_report.py steht keine Zeile „Stumme Fehler“. Steht eine da: in die Notiz kopieren."],
+  ]},
+];
+
+const ALL = GROUPS.flatMap(g => g.items.map(i => i[0]));
+let state = {};      // id -> {done, at, note}
+let db = null;
+const $ = id => document.getElementById(id);
+const local = {
+  read(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } },
+  write(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+function build() {
+  const root = $("groups");
+  for (const g of GROUPS) {
+    const sec = document.createElement("section");
+    sec.innerHTML = `<div class="head"><h2></h2><span class="count" id="count-${g.id}"></span></div><p class="why"></p><ul></ul>`;
+    sec.querySelector("h2").textContent = g.title;
+    sec.querySelector(".why").textContent = g.why;
+    const ul = sec.querySelector("ul");
+    for (const [id, todo, expect] of g.items) {
+      const li = document.createElement("li");
+      li.id = "item-" + id;
+      li.innerHTML = `<input type="checkbox" id="cb-${id}">
+        <div class="text"><label class="do" for="cb-${id}"></label><span class="expect"></span>
+        <span class="meta" id="meta-${id}"></span>
+        <details><summary>Notiz</summary><textarea id="note-${id}" placeholder="Was war anders als erwartet?"></textarea></details></div>`;
+      li.querySelector(".do").textContent = todo;
+      li.querySelector(".expect").textContent = expect;
+      li.querySelector("input").addEventListener("change", e => save(id, { done: e.target.checked }));
+      li.querySelector("textarea").addEventListener("change", e => save(id, { note: e.target.value.trim() }));
+      ul.appendChild(li);
+    }
+    root.appendChild(sec);
+  }
+}
+
+function apply() {
+  let total = 0;
+  for (const g of GROUPS) {
+    let n = 0;
+    for (const [id] of g.items) {
+      const s = state[id] || {};
+      const li = $("item-" + id), note = $("note-" + id);
+      $("cb-" + id).checked = !!s.done;
+      li.classList.toggle("done", !!s.done);
+      li.classList.toggle("noted", !!s.note);
+      if (document.activeElement !== note) note.value = s.note || "";
+      if (s.note) li.querySelector("details").open = true;
+      $("meta-" + id).textContent = s.done && s.at
+        ? "geprüft " + new Date(s.at).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" }) + (s.build ? " · " + s.build : "")
+        : "";
+      if (s.done) n++;
+    }
+    $("count-" + g.id).textContent = n + " / " + g.items.length;
+    total += n;
+  }
+  $("total").textContent = total + " / " + ALL.length;
+}
+
+function say(text, warn) { const el = $("status"); el.textContent = text; el.classList.toggle("warn", !!warn); }
+
+async function save(id, patch) {
+  const next = { ...(state[id] || {}), ...patch };
+  if ("done" in patch) {
+    next.at = patch.done ? new Date().toISOString() : null;
+    next.build = patch.done ? $("build").value.trim() : "";
+  }
+  state[id] = next;
+  apply();
+  if (!db) { local.write("pruefliste", state); return; }
+  try { await db.doc("checks/" + id).set(next); }
+  catch (e) { say("Nicht gespeichert (" + (e.code || "Fehler") + "). Das Häkchen gilt nur auf diesem Bildschirm.", true); }
+}
+
+async function resetAll() {
+  $("confirm").hidden = true;
+  const ids = Object.keys(state);
+  state = {};
+  apply();
+  if (!db) { local.write("pruefliste", state); return; }
+  for (const id of ids) { try { await db.doc("checks/" + id).delete(); } catch {} }
+}
+
+$("reset").addEventListener("click", () => { $("confirm").hidden = false; });
+$("reset-no").addEventListener("click", () => { $("confirm").hidden = true; });
+$("reset-yes").addEventListener("click", resetAll);
+$("build").addEventListener("change", async e => {
+  const v = e.target.value.trim();
+  if (!db) { local.write("pruefliste-build", v); return; }
+  try { await db.doc("meta/run").set({ build: v }); } catch {}
+});
+
+build();
+state = local.read("pruefliste") || {};
+$("build").value = local.read("pruefliste-build") || "";
+apply();
+
+(async () => {
+  db = (await window.claude?.use?.("db")) ?? null;
+  if (!db) { say("Stand liegt nur in diesem Browser. Auf einem anderen Gerät beginnt die Liste leer.", true); return; }
+  state = {};
+  apply();
+  db.collection("checks").onSnapshot(snap => {
+    state = {};
+    snap.docs.forEach(d => { state[d.id] = d.data() || {}; });
+    apply();
+    say("Stand ist gespeichert und auf jedem Gerät derselbe.");
+  }, e => say("Gespeicherter Stand nicht lesbar (" + (e.code || "Fehler") + ").", true));
+  db.doc("meta/run").onSnapshot(snap => {
+    const el = $("build");
+    if (document.activeElement !== el) el.value = (snap.exists && snap.data()?.build) || "";
+  }, () => {});
+})();
+</script>

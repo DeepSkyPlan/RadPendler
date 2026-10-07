@@ -53,9 +53,9 @@ final class BikeRouteTests: XCTestCase {
 
     func testCacheBoxSurvivesFloatNoise() {
         let box = RoadDataStore.Box(around: [c(0, 0), CLLocationCoordinate2D(latitude: 52.521, longitude: 13.413),
-                                             CLLocationCoordinate2D(latitude: 52.421, longitude: 13.23)])
-        XCTAssertEqual(box.key, "52.40_13.20_52.55_13.40")
-        let fromDisk = RoadDataStore.Box(south: 52.4, west: 13.2, north: 52.55, east: 13.4)
+                                             CLLocationCoordinate2D(latitude: 52.421, longitude: 13.179)])
+        XCTAssertEqual(box.key, "52.40_13.15_52.55_13.45")
+        let fromDisk = RoadDataStore.Box(south: 52.4, west: 13.15, north: 52.55, east: 13.45)
         XCTAssertTrue(fromDisk.contains(box))
     }
 

@@ -94,7 +94,7 @@ struct BRouterClient {
             .init(name: "format", value: "geojson"),
         ]
         var request = URLRequest(url: c.url!, timeoutInterval: 20)
-        request.setValue("RadPendler iOS (private commute planner)", forHTTPHeaderField: "User-Agent")
+        request.setValue(AppIdentity.userAgent, forHTTPHeaderField: "User-Agent")
         let (data, response) = try await BRouterGate.shared.limited { try await session.data(for: request) }
         if let http = response as? HTTPURLResponse, http.statusCode != 200 {
             throw BRouterError.server(String(data: data.prefix(200), encoding: .utf8) ?? "HTTP \(http.statusCode)")
@@ -351,7 +351,7 @@ actor CustomProfile {
         var request = URLRequest(url: URL(string: "https://brouter.de/brouter/profile")!, timeoutInterval: 20)
         request.httpMethod = "POST"
         request.setValue("text/plain", forHTTPHeaderField: "Content-Type")
-        request.setValue("RadPendler iOS (private commute planner)", forHTTPHeaderField: "User-Agent")
+        request.setValue(AppIdentity.userAgent, forHTTPHeaderField: "User-Agent")
         request.httpBody = Data(text.utf8)
         let (data, response) = try await BRouterGate.shared.limited { try await session.data(for: request) }
         // Ein Profil mit Fehler bekommt trotzdem eine Kennung — und jede

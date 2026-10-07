@@ -28,6 +28,13 @@ final class RideSounds {
     }
 
     var enabled = true
+
+    /// Hörbar trotz Stummschalter, **gemischt** mit dem, was schon läuft, und
+    /// es nur kurz absenkend. Steht hier und nicht im Aufruf, weil daran hängt,
+    /// ob die App anderen den Ton wegnimmt — `RideSoundsTests` hält es fest.
+    nonisolated static let category = AVAudioSession.Category.playback
+    nonisolated static let mode = AVAudioSession.Mode.voicePrompt
+    nonisolated static let options: AVAudioSession.CategoryOptions = [.mixWithOthers, .duckOthers]
     private var player: AVAudioPlayer?
     private var cache: [String: Data] = [:]
 
@@ -38,9 +45,11 @@ final class RideSounds {
         let data = cache[key] ?? Self.wav(notes)
         cache[key] = data
         let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playback, mode: .voicePrompt, options: [.mixWithOthers, .duckOthers])
-        try? session.setActive(true)
-        guard let p = try? AVAudioPlayer(data: data) else { return }
+        Log.attempt("Ton: Kategorie setzen") {
+            try session.setCategory(Self.category, mode: Self.mode, options: Self.options)
+        }
+        Log.attempt("Ton: einschalten") { try session.setActive(true) }
+        guard let p = Log.attempt("Ton: Spieler anlegen", { try AVAudioPlayer(data: data) }) else { return }
         p.pan = Float(pan)
         p.volume = 1
         p.play()
@@ -50,7 +59,9 @@ final class RideSounds {
             try? await Task.sleep(for: .seconds(length + 0.3))
             guard self?.player === p else { return }
             // Die Musik wieder auf volle Lautstärke.
-            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            Log.attempt("Ton: ausschalten") {
+                try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            }
         }
         switch cue {
         case .turnNow, .stop: UINotificationFeedbackGenerator().notificationOccurred(.success)

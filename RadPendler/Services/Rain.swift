@@ -174,7 +174,7 @@ struct RainService {
         // The only service without a timeout of its own held a finished plan
         // open for up to a minute; the rain is the last thing added to it.
         var request = URLRequest(url: comps.url!, timeoutInterval: 15)
-        request.setValue("RadPendler iOS (private commute planner)", forHTTPHeaderField: "User-Agent")
+        request.setValue(AppIdentity.userAgent, forHTTPHeaderField: "User-Agent")
         let (data, _) = try await session.data(for: request)
         let series = try Self.parse(data)
         guard series.count == points.count else { throw RainError.malformed }

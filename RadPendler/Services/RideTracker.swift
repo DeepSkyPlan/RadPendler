@@ -88,6 +88,13 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     var isRecording: Bool { subject != nil }
 
     private let manager = CLLocationManager()
+    /// Was iOS zur Ortung erlaubt. Austauschbar, damit sich „verweigert" und
+    /// „erlaubt" prüfen lassen, ohne im Simulator ein Fenster zu beantworten.
+    var authorization: () -> CLAuthorizationStatus = { .notDetermined }
+    /// Ob die Ortung gerade im Hintergrund weiterlaufen darf — der blaue
+    /// Balken. Zum Nachsehen in Tests: nur zwischen Start und Ende, und in
+    /// einer Pause von Hand nicht.
+    var followsInBackground: Bool { manager.allowsBackgroundLocationUpdates }
     private var lastWatchPush = Date.distantPast
     private var lastSave = Date.distantPast
     /// The store the finished ride goes to; injected so tests can leave it out.
@@ -105,6 +112,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
             Task { @MainActor in self?.applyIdleTimer() }
         }
         manager.delegate = self
+        authorization = { [manager] in manager.authorizationStatus }
         // `Best`, not `BestForNavigation`: the latter keeps the receiver and
         // its sensor fusion at full tilt for turn-by-turn guidance the app
         // does not give, and it is the most expensive mode there is. On a bike
@@ -221,7 +229,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         signalsBehind = 0
         signalStations = Self.stations(of: plannedSignals, on: route, cum: routeLengths)
         progress = Self.progress(travelled: 0, cum: routeLengths, stations: signalStations)
-        switch manager.authorizationStatus {
+        switch authorization() {
         case .notDetermined:
             pending = plan
             // `plannedRoute` and `turns` are already set; they survive the
@@ -587,7 +595,10 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         Task { @MainActor in self.accept(fixes, courses) }
     }
 
-    private func accept(_ fixes: [RideMeter.Fix], _ courses: [CLLocationDirection]) {
+    /// Nicht `private`: hier steigen Tests ein, die eine ganze Fahrt abspielen
+    /// — am Empfänger vorbei, der nur Ortungen der letzten fünf Sekunden
+    /// durchlässt.
+    func accept(_ fixes: [RideMeter.Fix], _ courses: [CLLocationDirection]) {
         guard isRecording else { return }
         applyIdleTimer()
         // Während einer selbst gemachten Pause nimmt das Messwerk nichts an —
@@ -886,7 +897,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         Task { @MainActor in
             guard let plan = self.pending else { return }
-            switch manager.authorizationStatus {
+            switch self.authorization() {
             case .notDetermined: return
             case .denied, .restricted:
                 self.pending = nil

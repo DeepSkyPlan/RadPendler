@@ -357,7 +357,7 @@ struct ContentView: View {
         model.cancel()
         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
         Task {
-            let fix = try? await locator.current()
+            let fix = await Log.attemptAsync("Ortung") { try await locator.current() }
             if let fix {
                 settings.origin = await locator.place(for: fix)
             }

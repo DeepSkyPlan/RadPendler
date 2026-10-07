@@ -1,12 +1,17 @@
-# RadPendler — Übergabe (Stand 01.10.2026 · 1.10 / Build 48 in TestFlight, `main` = ca9d022)
+# RadPendler — Übergabe (Stand 07.10.2026 · 1.16 / Build 56 in TestFlight)
 
-> **Zum Wiedereinstieg (Sitzung 28.09.–01.10.2026):** 1.10 (48) ist in TestFlight — Motorrad,
-> Fixpunkte je Strecke und als Zwischenpunkte, gewohnte Wege (`RiddenPaths`), Fahrt teilen
-> zur Auswertung, Messwerte „gemessen / Von Hand", Aufräumen (kleiner und mittlerer Aufwand,
-> `RidePlan`/`Replanner`/`RideSession`). Nach 48 nur die Kartenschilder (CHANGELOG
-> „Unveröffentlicht"). **Nichts davon ist auf dem iPhone geprüft.** Prüfliste des Nutzers:
-> Fahrt ohne Ortungsfreigabe starten · absichtlich > 200 m abweichen (Neuplanung, „1×“) ·
-> Auto-Pause 3 min / Auto-Ende 20 min · danach eine Fahrt teilen → `python3 tools/ride_report.py`.
+> **Zum Wiedereinstieg (07.10.2026):** 1.16 (56) ist in TestFlight. Danach, unveröffentlicht
+> (CHANGELOG „Unveröffentlicht“): die Ergebnisse einer bewusst misstrauischen Durchsicht —
+> `Log` statt nacktem `try?`, CloudKit meldet abgewiesene Datensätze, Straßendaten bei gesperrtem
+> Gerät lesbar, ein User-Agent für alle Dienste, 353 Tests. **Die Historie des Repos ist am
+> 07.10.2026 umgeschrieben** (Orte entfernt): alle Commit-Hashes von davor sind andere, ein
+> zweiter Klon muss neu geholt werden (`git fetch && git reset --hard origin/main`).
+>
+> **Was nur auf dem Gerät prüfbar ist**, steht als abhakbare Liste in `tools/pruefliste.html`
+> (veröffentlicht: <https://claude.ai/artifact/1cPcVH6bKB63rFqTYmGCLk>, der Stand wird dort
+> gespeichert). Neu darin und noch ungeprüft: Neuplanung bei gesperrtem Gerät (h6) und die
+> Meldezeile in der Fahrtenliste (c6). Nach jeder Runde eine Fahrt teilen →
+> `python3 tools/ride_report.py` → Zeile „Stumme Fehler“.
 > Ausliefern nur auf Ansage: `./dev testflight [version]`.
 
 Multimodaler Pendel-Planer für iPhone, iPad und Apple Watch: Büro ↔ Zuhause mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln,
@@ -16,7 +21,7 @@ Das Projekt ist quelloffen (MIT); Adressen und Schlüssel gehören nicht hinein.
 ## Bauen, testen, ausliefern
 
 ```bash
-./dev test      # generiert das .xcodeproj bei Bedarf, dann rund 270 Tests im Simulator
+./dev test      # generiert das .xcodeproj bei Bedarf, dann rund 350 Tests im Simulator
 #               MOTIS_LIVE=1 schaltet zusätzlich den echten Transitous-Aufruf frei
 #               (aus Xcode heraus; xcodebuild reicht die Variable nicht durch)
 ./dev open      # Xcode mit demselben DerivedData wie die Kommandozeile

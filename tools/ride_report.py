@@ -85,6 +85,12 @@ def main():
         facts.append(("Apple Karten", f"{ride['appleSeconds'] / 60:.0f} min angesagt, {took / 60:.0f} min gefahren, "
                                       f"Faktor {took / ride['appleSeconds']:.2f}"))
 
+    # Was in diesem Lauf der App stumm scheiterte (`Log.recent`, seit 1.17).
+    fails = d.get("log") or []
+    if fails:
+        facts.append(("Stumme Fehler", "; ".join(f"{t(f['t']):%H:%M:%S} {f['what']} ({f['error']})"
+                                                 for f in fails[-12:])))
+
     segs = []
     for a, b in zip(pts, pts[1:]):
         acc_b = b.get("a")

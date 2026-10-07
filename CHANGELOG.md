@@ -1,5 +1,42 @@
 # Changelog
 
+## Unveröffentlicht
+
+Aus einer bewusst misstrauischen Durchsicht der ganzen Codebasis (07.10.2026).
+
+- **Stumme Fehler hinterlassen eine Spur.** An gut hundert Stellen stand ein `try?`, die App hatte
+  eine einzige Protokollzeile. Eine Linie, die sich nicht schreiben ließ, eine Warnung, die iOS
+  nicht annahm, ein Zwischenspeicher, der nicht lesbar war — nichts davon war zu sehen. Jetzt
+  geht jeder solche Fehler über `Log` (`Shared/Log.swift`) ins Systemprotokoll (Konsole.app,
+  `subsystem:de.keese.radpendler`) und in eine Liste der letzten 50, die „Fahrt teilen“ in die
+  Auswertungsdatei schreibt; `tools/ride_report.py` zeigt sie als „Stumme Fehler“. In die Liste
+  kommen nur die Stelle und Art und Nummer des Fehlers, nie sein Text — der kann Pfade und
+  Adressen enthalten. Übrig sind rund 30 `try?`: die Wartezeiten (`Task.sleep`), das verzeihende
+  Lesen (`Stored`, `Ride`) und Rückfälle, die gewollt sind.
+- **CloudKit: ein abgewiesener Datensatz gilt nicht mehr als hochgeladen.** `modifyRecords` kann
+  als Ganzes gelingen und den einen Datensatz trotzdem abweisen; der Fehler steckt dann im Ergebnis
+  je Datensatz, und das wurde nie angesehen. Die Zeile „Die Linien reisen nicht …“ in der
+  Fahrtenliste blieb in dem Fall leer.
+- **Straßendaten sind bei gesperrtem Gerät lesbar.** Der Zwischenspeicher lag unter der
+  Schutzklasse `complete` — zu genau dann, wenn er gebraucht wird: Telefon gesperrt in der Tasche,
+  die Fahrt läuft, es wird neu geplant oder iOS weckt die App für die Warnungen. Lesen und
+  Schreiben scheiterten stumm, die Frage ging jedes Mal neu an Overpass. Jetzt
+  `completeUntilFirstUserAuthentication`, dieselbe Klasse wie die Adressen in den Einstellungen.
+  Aus dem Code gelesen, nicht am Gerät nachgestellt.
+- **Ein User-Agent für alle Dienste**: `RadPendler/<Fassung> (Commute App; +<Quelltext>)`
+  (`AppIdentity`). BRouter, Overpass und Open-Meteo bekamen bisher „private commute planner“ — das
+  stimmte, solange die App auf einem Telefon lief.
+- **Datenschutzseite**: dass Start und Ziel als Koordinaten an die Routing-, Fahrplan- und
+  Wetterdienste gehen, steht jetzt im ersten Absatz und nicht erst in der Tabelle. Liegt in
+  `appstore/pages/radpendler-privacy/`; online geht sie wie bisher erst mit der Veröffentlichung.
+- **Tests** (318 → 353): die Aufzeichnung von der Erlaubnis bis zur abgelegten Fahrt
+  (`RideTrackerTests`), CloudKit gegen eine Datenbank im Speicher (`TrackCloudTests`), die
+  Hintergrundmodi der Info.plist (`BackgroundModeTests`), `LogTests`, dazu Töne und User-Agent.
+  Die Tonsitzung selbst bleibt ungeprüft: ein Test, der im Simulator abspielt, hält `xcodebuild`
+  nach dem letzten Test minutenlang offen.
+- **Keine Orte mehr im Repository.** Die Testdaten lagen nahe an echten Adressen; jetzt stehen
+  dort Alexanderplatz und S Wannsee, und die Probestrecke heißt in Kommentaren „Teststrecke“.
+
 ## 1.16 (Build 56) — Fahrradstraßen zählen; „Für Ruhe höchstens“ entscheidet allein
 
 - **Rad: Fahrradstraßen zählen.** Für BRouters „trekking“ — die Linie hinter „optimal“ — war eine

@@ -29,6 +29,18 @@ Was seit 1.5 dazugekommen ist, steht in **fett**; alles andere gilt wie in der
    before turns and at start and end, also with the screen locked — like a
    navigation app. Outside a ride it plays nothing. Can be switched off in
    Settings → Record ride.”*
+   **Seit 07.10.2026 ausführlicher — alle drei Hintergrundmodi in einem Hinweis**, weil ein
+   Prüfer nach jedem einzeln fragen kann und `audio` für Hinweistöne der häufigste
+   Ablehnungsgrund ist (Richtlinie 2.5.4). In das Feld „Notes“:
+   *“Background modes, each active only during a ride the user starts with ‘Record ride’ and
+   ends with ‘End ride’: (1) location — records the ridden track; the blue indicator is shown,
+   the app asks for ‘While Using’ only and never for ‘Always’. (2) audio — short turn cues
+   (under one second each, mixed with and ducking other audio, never stopping it) so a cyclist
+   can keep the phone in a pocket; can be switched off in Settings → Record ride. (3) fetch —
+   a BGAppRefreshTask re-checks the timetable so the departure reminder the user set stays
+   correct. To see all three: choose start and destination (e.g. Alexanderplatz, Berlin →
+   Potsdam Hauptbahnhof), tap the bike option, tap ‘Record ride’. No account, no sign-in.”*
+   `BackgroundModeTests` hält fest, dass es genau diese drei Modi sind.
 5. **Beschreibung**: die Radvarianten heißen jetzt „wenig Autos“ und „wenig
    Halts“ (deutsch) bzw. “few cars” / “few stops” (englisch) — im Text unten
    angepasst
@@ -865,7 +877,7 @@ Alles, was nicht aus diesem Repository heraus geht:
 
 13. `PrivacyInfo.xcprivacy` anlegen und in `project.yml` als Ressource
     aufnehmen (Abschnitt Datenschutzmanifest oben)
-14. Die Kontaktadresse in `MotisClient.userAgent` gegen die Adresse prüfen, die
+14. Die Kontaktadresse in `AppIdentity.userAgent` gegen die Adresse prüfen, die
     auf den Seiten steht — Transitous verlangt eine erreichbare
 15. ~~Versionsnummer entscheiden~~ — erledigt: die erste Store-Fassung ist
     **1.0**. Die Buildnummer steigt davon unabhängig weiter

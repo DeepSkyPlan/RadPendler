@@ -61,7 +61,12 @@ struct Tombstones: Codable, Equatable {
     static let key = "tombstones"
 
     static func load(_ defaults: UserDefaults) -> Tombstones {
-        defaults.data(forKey: key).flatMap { try? JSONDecoder().decode(Tombstones.self, from: $0) } ?? Tombstones()
+        defaults.data(forKey: key).flatMap(decode) ?? Tombstones()
+    }
+
+    /// Der eine Eingang für Grabsteine, von hier wie aus der Wolke.
+    static func decode(_ data: Data) -> Tombstones? {
+        Log.attempt("Grabsteine lesen") { try JSONDecoder().decode(Tombstones.self, from: data) }
     }
 
     /// Immer frisch lesen, ergänzen, zurückschreiben: zwei Stellen löschen,

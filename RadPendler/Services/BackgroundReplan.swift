@@ -45,14 +45,14 @@ enum BackgroundReplan {
 
     static var remembered: Question? {
         UserDefaults.standard.data(forKey: key)
-            .flatMap { try? JSONDecoder().decode(Question.self, from: $0) }
+            .flatMap { data in Log.attempt("Countdown-Frage lesen") { try JSONDecoder().decode(Question.self, from: data) } }
     }
 
     /// nil löscht sie — dann gibt es nichts nachzustellen und die App lässt
     /// sich auch nicht mehr dafür wecken.
     static func remember(_ question: Question?) {
         guard question != remembered else { return }
-        if let question, let data = try? JSONEncoder().encode(question) {
+        if let question, let data = Log.attempt("Countdown-Frage kodieren", { try JSONEncoder().encode(question) }) {
             UserDefaults.standard.set(data, forKey: key)
         } else {
             UserDefaults.standard.removeObject(forKey: key)
@@ -83,7 +83,9 @@ enum BackgroundReplan {
         guard remembered != nil else { return BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: taskID) }
         let request = BGAppRefreshTaskRequest(identifier: taskID)
         request.earliestBeginDate = Date(timeIntervalSinceNow: seconds)
-        try? BGTaskScheduler.shared.submit(request)
+        // Scheitert im Simulator immer und auf dem Gerät, wenn die
+        // Hintergrundaktualisierung aus ist — dann steht es wenigstens da.
+        Log.attempt("Wecken anmelden") { try BGTaskScheduler.shared.submit(request) }
     }
 
     private static func handle(_ task: BGAppRefreshTask) {

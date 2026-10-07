@@ -133,7 +133,8 @@ final class PhoneLink: NSObject, WCSessionDelegate {
 
     /// Straight over when the phone is reachable, queued when it is not.
     func send(_ choice: WatchChoice) {
-        guard WCSession.isSupported(), let data = try? JSONEncoder().encode(choice) else { return }
+        guard WCSession.isSupported(),
+              let data = Log.attempt("Wahl kodieren", { try JSONEncoder().encode(choice) }) else { return }
         let session = WCSession.default
         guard session.activationState == .activated else { return }
         if session.isReachable {
@@ -146,11 +147,15 @@ final class PhoneLink: NSObject, WCSessionDelegate {
     }
 
     static func cached() -> TripSnapshot? {
-        UserDefaults.standard.data(forKey: key).flatMap { try? JSONDecoder().decode(TripSnapshot.self, from: $0) }
+        UserDefaults.standard.data(forKey: key).flatMap { data in
+            Log.attempt("Plan lesen") { try JSONDecoder().decode(TripSnapshot.self, from: data) }
+        }
     }
 
     static func cachedRide() -> RideLive? {
-        UserDefaults.standard.data(forKey: rideKey).flatMap { try? JSONDecoder().decode(RideLive.self, from: $0) }
+        UserDefaults.standard.data(forKey: rideKey).flatMap { data in
+            Log.attempt("Fahrt lesen") { try JSONDecoder().decode(RideLive.self, from: data) }
+        }
     }
 
     /// Both channels end here: the plan arrives in the application context,
@@ -158,12 +163,12 @@ final class PhoneLink: NSObject, WCSessionDelegate {
     /// now and then.
     private func accept(_ payload: [String: Any]) {
         if let data = payload["plan"] as? Data,
-           let plan = try? JSONDecoder().decode(TripSnapshot.self, from: data) {
+           let plan = Log.attempt("Plan vom Telefon lesen", { try JSONDecoder().decode(TripSnapshot.self, from: data) }) {
             UserDefaults.standard.set(data, forKey: Self.key)
             onPlan?(plan)
         }
         if let data = payload["ride"] as? Data,
-           let ride = try? JSONDecoder().decode(RideLive.self, from: data) {
+           let ride = Log.attempt("Fahrt vom Telefon lesen", { try JSONDecoder().decode(RideLive.self, from: data) }) {
             UserDefaults.standard.set(data, forKey: Self.rideKey)
             onRide?(ride)
         }

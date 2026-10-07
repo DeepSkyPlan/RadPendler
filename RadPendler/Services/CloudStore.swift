@@ -280,8 +280,7 @@ final class CloudStore {
         let decoder = JSONDecoder()
         switch key {
         case tombstonesKey:
-            guard let x = try? decoder.decode(Tombstones.self, from: a),
-                  let y = try? decoder.decode(Tombstones.self, from: b) else { return false }
+            guard let x = Tombstones.decode(a), let y = Tombstones.decode(b) else { return false }
             return x == y
         case ridesKey:
             // Hier nicht über `RideStore.decode`: das begrenzt beim Lesen, und
@@ -307,9 +306,8 @@ final class CloudStore {
     /// Sie kommen aus denselben zwei Quellen wie alles andere: was hier liegt
     /// und was in der Wolke steht.
     static func tombstones(local: Data?, cloud: Data?) -> Tombstones {
-        let decoder = JSONDecoder()
-        let mine = local.flatMap { try? decoder.decode(Tombstones.self, from: $0) } ?? Tombstones()
-        let theirs = cloud.flatMap { try? decoder.decode(Tombstones.self, from: $0) } ?? Tombstones()
+        let mine = local.flatMap(Tombstones.decode) ?? Tombstones()
+        let theirs = cloud.flatMap(Tombstones.decode) ?? Tombstones()
         return mine.merging(theirs)
     }
 

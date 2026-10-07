@@ -38,8 +38,10 @@ final class RideStore {
         self.folder = folder ?? Self.defaultFolder()
         self.defaults = defaults
         habits = folder.map { RiddenPaths(file: $0.appending(path: "ridden.json")) } ?? .shared
-        try? FileManager.default.createDirectory(at: self.folder.appending(path: "tracks"),
-                                                 withIntermediateDirectories: true)
+        let tracksFolder = self.folder.appending(path: "tracks")
+        Log.attempt("Fahrtenordner anlegen") {
+            try FileManager.default.createDirectory(at: tracksFolder, withIntermediateDirectories: true)
+        }
         reload()
     }
 
@@ -73,12 +75,15 @@ final class RideStore {
         rides.removeAll { $0.id == ride.id }
         rides.append(ride)
         tracks[ride.id] = track
-        if let data = try? JSONEncoder().encode(track) {
+        if let data = Log.attempt("Linie kodieren", { try JSONEncoder().encode(track) }) {
             // Eine gefahrene Linie ist der Weg von der Haustür zur Arbeit.
             // Ohne Schutzklasse ist sie auf einem gesperrten, aber gebooteten
             // Gerät lesbar; `unlessOpen` und nicht `complete`, weil während
             // einer Aufzeichnung geschrieben wird, auch mit gesperrtem Schirm.
-            try? data.write(to: trackFile(ride.id), options: [.atomic, .completeFileProtectionUnlessOpen])
+            let file = trackFile(ride.id)
+            Log.attempt("Linie schreiben") {
+                try data.write(to: file, options: [.atomic, .completeFileProtectionUnlessOpen])
+            }
         }
         write()
         // Und die Linie zu den anderen Geräten. Ohne Container ein stiller
@@ -91,7 +96,8 @@ final class RideStore {
     func delete(_ ride: Ride) {
         rides.removeAll { $0.id == ride.id }
         tracks[ride.id] = nil
-        try? FileManager.default.removeItem(at: trackFile(ride.id))
+        let file = trackFile(ride.id)
+        Log.attempt("Linie löschen", missingIsFine: true) { try FileManager.default.removeItem(at: file) }
         // Der Grabstein muss **vor** dem Schreiben stehen: `write()` schiebt die
         // gekürzte Liste in die Wolke, und das andere Gerät vereinigt sie sofort
         // — ohne Grabstein käme die Fahrt im selben Atemzug zurück.
@@ -111,8 +117,9 @@ final class RideStore {
         if let t = tracks[ride.id] { return t }
         let url = trackFile(ride.id)
         let decoded = await Task.detached(priority: .userInitiated) { () -> RideTrack? in
-            guard let data = try? Data(contentsOf: url) else { return nil }
-            return try? JSONDecoder().decode(RideTrack.self, from: data)
+            guard let data = Log.attempt("Linie lesen", missingIsFine: true, { try Data(contentsOf: url) })
+            else { return nil }
+            return Log.attempt("Linie dekodieren") { try JSONDecoder().decode(RideTrack.self, from: data) }
         }.value
         if let decoded {
             tracks[ride.id] = decoded
@@ -124,8 +131,10 @@ final class RideStore {
         // hier abgelegt, damit die zweite Ansicht sie nicht noch einmal holt.
         guard let fetched = await TrackCloud.shared.download(ride.id) else { return nil }
         tracks[ride.id] = fetched
-        if let data = try? JSONEncoder().encode(fetched) {
-            try? data.write(to: url, options: [.atomic, .completeFileProtectionUnlessOpen])
+        if let data = Log.attempt("Linie kodieren", { try JSONEncoder().encode(fetched) }) {
+            Log.attempt("Linie aus iCloud ablegen") {
+                try data.write(to: url, options: [.atomic, .completeFileProtectionUnlessOpen])
+            }
         }
         return fetched
     }
@@ -209,15 +218,19 @@ final class RideStore {
         let url = interruptedFile
         let ride = state.0, track = Self.thinned(state.1)
         Task.detached(priority: .utility) {
-            guard let rideData = try? JSONEncoder().encode(ride),
-                  let trackData = try? JSONEncoder().encode(track),
-                  let blob = try? JSONEncoder().encode(Interrupted(ride: rideData, track: trackData)) else { return }
-            try? blob.write(to: url, options: [.atomic, .completeFileProtectionUnlessOpen])
+            guard let blob = Log.attempt("Zwischenstand kodieren", {
+                try JSONEncoder().encode(Interrupted(ride: JSONEncoder().encode(ride),
+                                                     track: JSONEncoder().encode(track)))
+            }) else { return }
+            Log.attempt("Zwischenstand schreiben") {
+                try blob.write(to: url, options: [.atomic, .completeFileProtectionUnlessOpen])
+            }
         }
     }
 
     func clearInterrupted() {
-        try? FileManager.default.removeItem(at: interruptedFile)
+        let file = interruptedFile
+        Log.attempt("Zwischenstand löschen", missingIsFine: true) { try FileManager.default.removeItem(at: file) }
     }
 
     /// Called at launch: whatever was being recorded when the app went away is
@@ -250,8 +263,10 @@ final class RideStore {
         defaults.set(TrackCloud.containerID, forKey: key)
         let ids = rides.map(\.id)
         for id in ids {
-            guard let data = try? Data(contentsOf: trackFile(id)),
-                  let track = try? JSONDecoder().decode(RideTrack.self, from: data) else { continue }
+            let file = trackFile(id)
+            guard let data = Log.attempt("Linie lesen", missingIsFine: true, { try Data(contentsOf: file) }),
+                  let track = Log.attempt("Linie dekodieren", { try JSONDecoder().decode(RideTrack.self, from: data) })
+            else { continue }
             await TrackCloud.shared.upload(track)
         }
     }
@@ -298,12 +313,14 @@ final class RideStore {
     func recoverInterrupted() async {
         let url = interruptedFile
         let recovered = await Task.detached(priority: .userInitiated) { () -> (Ride, RideTrack)? in
-            guard let data = try? Data(contentsOf: url) else { return nil }
-            try? FileManager.default.removeItem(at: url)
-            guard let saved = try? JSONDecoder().decode(Interrupted.self, from: data),
-                  let ride = try? JSONDecoder().decode(Ride.self, from: saved.ride),
-                  let track = try? JSONDecoder().decode(RideTrack.self, from: saved.track) else { return nil }
-            return (ride, track)
+            guard let data = Log.attempt("Zwischenstand lesen", missingIsFine: true, { try Data(contentsOf: url) })
+            else { return nil }
+            Log.attempt("Zwischenstand löschen", missingIsFine: true) { try FileManager.default.removeItem(at: url) }
+            return Log.attempt("Zwischenstand dekodieren") {
+                let saved = try JSONDecoder().decode(Interrupted.self, from: data)
+                return (try JSONDecoder().decode(Ride.self, from: saved.ride),
+                        try JSONDecoder().decode(RideTrack.self, from: saved.track))
+            }
         }.value
         guard let (ride, track) = recovered else { return }
         guard ride.seconds >= 60, ride.meters >= 100, !rides.contains(where: { $0.id == ride.id }) else { return }

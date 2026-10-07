@@ -53,9 +53,13 @@ extension TripPlanner {
         func fetch(_ list: [BikeLineSource]) async -> [(BikeLineSource, StreetRoute)] {
             await Self.gathered(list, atOnce: 3) { source in
                 if case .brouter(let profile) = source {
-                    return try? await brouter.route(from: o, to: d, via: via, profile: profile)
+                    return await Log.attemptAsync("Radroute (BRouter \(profile.rawValue))") {
+                        try await brouter.route(from: o, to: d, via: via, profile: profile)
+                    }
                 }
-                return try? await apple.route(from: o, to: d, mode: .bike, departure: nil)
+                return await Log.attemptAsync("Radroute (Apple)") {
+                    try await apple.route(from: o, to: d, mode: .bike, departure: nil)
+                }
             }
         }
         func judge(_ found: [(BikeLineSource, StreetRoute)], _ data: RoadData?) async -> [BikeCandidate] {
@@ -91,7 +95,9 @@ extension TripPlanner {
         // Die eigene typische Fahrt, sauber nachgefahren: danach, nicht
         // daneben — der Server will höchstens drei Anfragen gleichzeitig.
         if let habitVia, !found.isEmpty,
-           let usual = try? await brouter.route(from: o, to: d, via: habitVia, profile: .trekking) {
+           let usual = await Log.attemptAsync("Radroute (gewohnt)", {
+               try await brouter.route(from: o, to: d, via: habitVia, profile: .trekking)
+           }) {
             found.append((.habit, usual))
         }
         guard !found.isEmpty else { throw PlannerError.noBikeRoute }

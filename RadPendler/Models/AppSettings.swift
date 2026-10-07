@@ -384,7 +384,7 @@ final class AppSettings {
         assign(\.avoidCobbles, defaults.object(forKey: "avoidCobbles") as? Bool ?? avoidCobbles)
         assign(\.autoPauseMinutes, Self.double("autoPauseMinutes", defaults) ?? autoPauseMinutes)
         assign(\.tombstones, defaults.data(forKey: "tombstones")
-            .flatMap { try? JSONDecoder().decode(Tombstones.self, from: $0) } ?? tombstones)
+            .flatMap(Tombstones.decode) ?? tombstones)
         assign(\.language, defaults.string(forKey: "language").flatMap(AppLanguage.init(rawValue:)) ?? language)
         // `assign` setzt nur, was sich unterscheidet — beim Start auf
         // „Deutsch" feuert das didSet also nicht, und `AppLanguage.current`
@@ -534,7 +534,9 @@ final class AppSettings {
     }
 
     private static func place(_ key: String, _ defaults: UserDefaults) -> Place? {
-        defaults.data(forKey: key).flatMap { try? JSONDecoder().decode(Place.self, from: $0) }
+        defaults.data(forKey: key).flatMap { data in
+            Log.attempt("Adresse lesen") { try JSONDecoder().decode(Place.self, from: data) }
+        }
     }
 }
 

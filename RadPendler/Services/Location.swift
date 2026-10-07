@@ -50,7 +50,7 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
             self?.resume(.failure(LocationError.timedOut))
         }
         defer { timer.cancel() }
-        return try? await current()
+        return await Log.attemptAsync("Ortung") { try await self.current() }
     }
 
     /// One fix. Asks for permission the first time; throws if it is refused, so
@@ -71,7 +71,9 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     /// numbers, and the history would fill up with points nobody recognises.
     func place(for location: CLLocation) async -> Place {
         let c = location.coordinate
-        guard let mark = try? await CLGeocoder().reverseGeocodeLocation(location).first else {
+        guard let mark = await Log.attemptAsync("Adresse zur Ortung", {
+            try await CLGeocoder().reverseGeocodeLocation(location).first
+        }) ?? nil else {
             return Place(name: L("Mein Standort"), latitude: c.latitude, longitude: c.longitude)
         }
         return Self.place(from: mark, at: c)

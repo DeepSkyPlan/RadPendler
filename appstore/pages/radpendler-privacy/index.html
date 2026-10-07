@@ -24,17 +24,29 @@
 <p style="margin-bottom:1.2em"><a href="https://deepskyplan.github.io/radpendler-app/">← RadPendler</a></p>
 
 <h1>Datenschutzerklärung — RadPendler</h1>
-<p class="date">Stand: 26. September 2026</p>
+<p class="date">Stand: 7. Oktober 2026</p>
 
 <p>RadPendler ist ein Pendel-Planer für iPhone, iPad und Apple Watch. Die App
 ist so gebaut, dass sie ohne die Erhebung personenbezogener Daten auskommt: es
 gibt kein Konto, keine Anmeldung und keinen Server dieses Projekts.</p>
 
+<p><strong>Das Wichtigste vorweg:</strong> Damit die App eine Route, einen
+Fahrplan oder den Regen auf deinem Weg zeigen kann, fragt dein Gerät
+<a href="#dritte">externe Dienste</a> — und nennt ihnen dabei deine
+<strong>Start- und Zieladresse als Koordinaten</strong>, bei manchen auch
+Punkte entlang der Strecke oder den Text, den du in die Adresssuche tippst.
+Das sind in der Regel dein Zuhause und dein Arbeitsplatz. Diese Anfragen gehen
+direkt von deinem Gerät an den jeweiligen Anbieter, ohne Konto und ohne
+Kennung, aber mit deiner IP-Adresse. Welche Dienste das sind und was jeder
+bekommt, steht in der <a href="#dritte">Tabelle unten</a>.</p>
+
 <h2>Was wir erheben</h2>
-<p><strong>Nichts.</strong> RadPendler erhebt, speichert und teilt keine
-personenbezogenen Daten. Es gibt keine Nutzerkonten, keine Analytik, keine
+<p><strong>Nichts.</strong> Dieses Projekt selbst erhebt und speichert keine
+personenbezogenen Daten: es gibt keine Nutzerkonten, keine Analytik, keine
 Werbung, keine Tracking-SDKs von Dritten und keinen Server, auf den etwas
-fließen könnte — weil dieses Projekt keinen betreibt.</p>
+fließen könnte — weil dieses Projekt keinen betreibt. Was dein Gerät den
+Routing-, Fahrplan- und Wetterdiensten nennt, damit sie antworten können,
+steht <a href="#dritte">weiter unten</a>.</p>
 
 <h2>Was auf deinen Geräten bleibt</h2>
 <p>Alles, was du eingibst, liegt im privaten Speicher der App auf dem Gerät:
@@ -86,7 +98,7 @@ dem Gerät, auf dem du es tust.</p>
 die unten genannten Routing- und Fahrplandienste. Die Aufzeichnung ist eine
 reine Messung auf dem Gerät.</p>
 
-<h2>Was das Gerät an Dritte sendet — und warum</h2>
+<h2 id="dritte">Was das Gerät an Dritte sendet — und warum</h2>
 <p>Eine Route lässt sich nicht berechnen, ohne zu sagen, wo sie anfängt und wo
 sie hinführt. Sobald du eine Verbindung suchst, überträgt dein Gerät deshalb
 <strong>Start- und Zielkoordinaten</strong> (bzw. den gesuchten Adresstext, den
@@ -106,9 +118,7 @@ laufen über keinen Server dieses Projekts, und wir sehen sie nicht.</p>
   <td><a href="https://transitous.org/">Transitous</a> / MOTIS
       (<code>api.transitous.org</code>)</td>
   <td>Fahrpläne außerhalb des VBB-Gebiets, intermodale Rad-Bahn-Planung</td>
-  <td>Start- und Zielkoordinaten, Datum und Uhrzeit, ein <code>User-Agent</code>
-      mit Name und Version der App und einer Kontaktadresse, wie deren
-      Nutzungsbedingungen es verlangen</td>
+  <td>Start- und Zielkoordinaten, Datum und Uhrzeit</td>
 </tr>
 <tr>
   <td>Apple <a href="https://www.apple.com/de/maps/">MapKit</a></td>
@@ -142,6 +152,13 @@ laufen über keinen Server dieses Projekts, und wir sehen sie nicht.</p>
   <td>einzelne Koordinaten entlang der Route</td>
 </tr>
 </table>
+
+<p>Jede Anfrage an Transitous, BRouter, die Overpass API und Open-Meteo trägt
+außerdem einen <code>User-Agent</code>, der die App benennt — „RadPendler“, die
+Versionsnummer, „Commute App“ und die Adresse des Quelltexts als Kontakt. Er ist
+für alle Nutzer derselbe und sagt nichts über dich oder dein Gerät; die
+Betreiber können damit zuordnen, welche App fragt, und sich melden, statt sie
+auszusperren.</p>
 
 <p>Für jeden dieser Anbieter gilt dessen eigene Datenschutzerklärung. Wie bei
 jeder Netzanfrage erreicht den Anbieter dabei auch die IP-Adresse deines

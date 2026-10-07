@@ -122,7 +122,7 @@ struct AddressSearchView: View {
             // stands in the search field as the default, ready to take or to
             // type over.
             guard offersLocation, here == nil, location.permission == .allowed else { return }
-            guard let fix = try? await location.current() else { return }
+            guard let fix = await Log.attemptAsync("Ortung", { try await location.current() }) else { return }
             let found = await location.place(for: fix)
             here = found
             if query.isEmpty { query = found.withArea }

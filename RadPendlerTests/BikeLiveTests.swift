@@ -9,7 +9,7 @@ import XCTest
 final class BikeLiveTests: XCTestCase {
     func testLiveBikeVariants() async throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["BIKE_LIVE"] == "1", "set BIKE_LIVE=1")
-        let from = Place(name: "Start", latitude: 52.4020, longitude: 13.2600)
+        let from = Place(name: "Start", latitude: 52.4213, longitude: 13.1794)
         let to = Place(name: "Ziel", latitude: 52.5210, longitude: 13.4130)
         var s = PlanSettings()
         s.optionsPerMode = 3

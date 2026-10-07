@@ -24,7 +24,7 @@ struct RadPendlerApp: App {
         // the watch instead of waiting for the second.
         WatchLink.shared.start()
         // Der eine Hinweis auf den Doppeltipp (`QuickCommuteTip`).
-        try? Tips.configure()
+        Log.attempt("Hinweise einrichten") { try Tips.configure() }
     }
 
     var body: some Scene {

@@ -48,10 +48,7 @@ struct MotisClient {
     }
 
     /// Name, version and a way of contact, as the usage policy asks for.
-    static var userAgent: String {
-        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
-        return "RadPendler/\(version) (+https://github.com/DeepSkyPlan/RadPendler)"
-    }
+    static var userAgent: String { AppIdentity.userAgent }
 
     private static func place(_ c: CLLocationCoordinate2D) -> String {
         String(format: "%.6f,%.6f", c.latitude, c.longitude)

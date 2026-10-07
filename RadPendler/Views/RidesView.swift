@@ -213,6 +213,9 @@ enum RideExport {
         var app: String?
         var ride: Ride
         var track: RideTrack
+        /// Was in diesem Lauf der App stumm scheiterte (`Log.recent`) — nur
+        /// die Stelle und Art und Nummer des Fehlers, keine Orte.
+        var log: [Log.Entry]?
     }
 
     static func write(_ ride: Ride, _ track: RideTrack) -> URL? {
@@ -223,8 +226,11 @@ enum RideExport {
         let url = URL.temporaryDirectory.appending(path: "RadPendler-Fahrt-\(stamp).json")
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        guard let data = try? encoder.encode(File(app: RideMeter.appVersion, ride: ride, track: track)),
-              (try? data.write(to: url, options: .atomic)) != nil else { return nil }
+        let failures = Log.recent
+        let file = File(app: RideMeter.appVersion, ride: ride, track: track, log: failures.isEmpty ? nil : failures)
+        guard let data = Log.attempt("Auswertung kodieren", { try encoder.encode(file) }),
+              Log.attempt("Auswertung schreiben", { try data.write(to: url, options: .atomic) }) != nil
+        else { return nil }
         return url
     }
 }

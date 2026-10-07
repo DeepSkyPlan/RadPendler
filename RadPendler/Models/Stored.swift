@@ -24,12 +24,12 @@ enum Stored {
     static func encode<T: Encodable>(_ value: T) -> Data? {
         let encoder = JSONEncoder()
         encoder.outputFormatting = .sortedKeys
-        return try? encoder.encode(value)
+        return Log.attempt("kodieren: \(T.self)") { try encoder.encode(value) }
     }
 
     /// nil nur, wenn dort gar keine Liste steht.
     static func list<T: Decodable>(_ type: T.Type = T.self, from data: Data) -> [T]? {
-        (try? JSONDecoder().decode(List<T>.self, from: data))?.items
+        Log.attempt("Liste lesen: \(T.self)") { try JSONDecoder().decode(List<T>.self, from: data) }?.items
     }
 
     /// Dasselbe für eine Liste mitten in einem anderen Typ.
