@@ -752,8 +752,11 @@ extension BikeRouteTests {
     /// Dieselbe Strecke mit der Linie über die Fahrradstraßen (trekking,
     /// Fahrradstraße zum halben Preis: 20,8 km, 9 % länger in der Zeit, 7,3
     /// statt 12,8 km an Hauptstraßen). Sie ist der Mittelweg, den „optimal"
-    /// bei 10 % nimmt; bei 5 % bleibt die kürzeste, bei 15 % gewinnt die
-    /// ruhige.
+    /// ab 10 % nimmt; bei 5 % bleibt die kürzeste. Bis 1.17 gewann bei 15 %
+    /// die ruhige — seit „ruhig" eine eigene Linie hat, bleibt „optimal" die
+    /// Mischlinie, und die ruhige steht mit ihrem eigenen Namen daneben
+    /// (Nutzer, 08.10.2026: die Linie über die Fahrradstraße stand als
+    /// namenlose „Alternative" an vierter Stelle).
     func testTheCycleStreetLineIsTheMiddleWay() {
         var s = PlanSettings()
         s.bikeOptions = 3
@@ -768,7 +771,9 @@ extension BikeRouteTests {
         s.quietExtraTime = 0.10
         XCTAssertEqual(optimal(), .brouter(.trekking))
         s.quietExtraTime = 0.15
-        XCTAssertEqual(optimal(), .brouter(.quiet))
+        XCTAssertEqual(optimal(), .brouter(.trekking))
+        let roles = Dictionary(uniqueKeysWithValues: BikeCandidate.pick(all, settings: s).map { ($0.0.source, $0.1) })
+        XCTAssertEqual(roles[.brouter(.quiet)], [.quiet], "die ruhige trägt ihren eigenen Namen, nicht beide")
     }
 
     func testReplanUsesTheProfileOfTheRiddenLine() {

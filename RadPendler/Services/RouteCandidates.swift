@@ -366,8 +366,20 @@ struct BikeCandidate {
             // 5 km länger nicht gut"). Wer den Umweg für Ruhe will, hat
             // „wenig Autos".
             let reasonable = all.indices.filter { all[$0].isReasonable(among: all, s) }
-            balanced = (reasonable.isEmpty ? Array(all.indices) : reasonable)
-                .min { all[$0].balancedScore(s) < all[$1].balancedScore(s) }!
+            let pool = reasonable.isEmpty ? Array(all.indices) : reasonable
+            // „Optimal der Mix aus allen" (Nutzer, 07./08.10.2026): das ist die
+            // Mischlinie selbst — „trekking", mit Fahrradstraßen, wo sie wenig
+            // kosten —, solange sie kein Umweg ist. Bis 1.17 gewann hier die
+            // beste Wertung aus Zeit und Hauptstraßen-Metern, und auf dem
+            // Arbeitsweg war das die ruhige Linie: sie trug „optimal" **und**
+            // „ruhig", und die Mischlinie stand als namenlose „Alternative" an
+            // vierter Stelle. Seit „ruhig" eine eigene Linie hat, muss „optimal"
+            // nicht mehr die ruhigste sein.
+            // Eine Linie, die man ohnehin fährt, geht vor — wie bisher über die
+            // Wertung, in der vertraute Meter nicht stören.
+            let habitual = pool.contains { all[$0].familiar >= Self.habitual }
+            let mix = habitual ? nil : pool.first { all[$0].source == .brouter(.trekking) }
+            balanced = mix ?? pool.min { all[$0].balancedScore(s) < all[$1].balancedScore(s) } ?? fastest
         } else {
             // Ohne Straßendaten bleibt, was der Router selbst sagt: die
             // meisten Meter Fahrradstraße, und wo auch das fehlt, das Profil.

@@ -1,5 +1,19 @@
 # Changelog
 
+## Unveröffentlicht — „optimal“ ist die Mischlinie
+
+- **Rad: „optimal“ ist die Mischlinie selbst** (Nutzer, 08.10.2026: „trotz der vier Optionen geht
+  keine mehr über die Prinzregentenstraße“). Es gab sie noch — 20,0 km, 2,2 km Fahrradstraße —,
+  aber als namenlose „Alternative“ an vierter Stelle: „optimal“ gewann die beste Wertung aus Zeit
+  und Hauptstraßen-Metern, und das war auf dem Arbeitsweg die ruhige 23-km-Linie, die damit
+  „optimal“ **und** „ruhig“ trug. Jetzt ist „optimal“ die Linie des Mischprofils, solange sie
+  kein Umweg ist (höchstens 10 % weiter als die kürzeste plus was sie an Hauptstraße spart, und
+  höchstens „Für Ruhe höchstens“ langsamer als die schnellste); sonst gilt weiter die Wertung.
+  Eine Linie, die man ohnehin fährt, geht wie bisher vor. „ruhig“ bleibt die eigene Linie.
+  Nachgestellt mit der Planung der App auf der Teststrecke: optimal 20,0 km, schnellst und
+  kürzest 19,1 km, ruhig 23,3 km, Alternative 19,8 km.
+- VoiceOver liest am Kasten eines Verkehrsmittels jetzt auch die Zeile unter der Zeit vor.
+
 ## 1.17 (Build 57) — Vier Radlinien, nie Kopfsteinpflaster; stumme Fehler bekommen eine Spur
 
 Aus einer bewusst misstrauischen Durchsicht der ganzen Codebasis (07.10.2026).

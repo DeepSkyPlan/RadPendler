@@ -265,6 +265,8 @@ struct BikeRouteInfo {
     var measuredKmh: Double? = nil
     /// Anteil auf schon gefahrenen Wegen, 0…1 — siehe `RiddenPaths`.
     var familiar: Double = 0
+    /// Meter auf Fahrradstraßen — woran „ruhig" gemessen wird.
+    var cycleStreetMeters = 0.0
     /// Die Zwischenpunkte, über die diese Linie geplant wurde: Fixpunkte und,
     /// bei „gewohnt", die Punkte auf der eigenen Fahrt. Eine Neuplanung
     /// unterwegs fährt die noch vor einem liegenden ebenfalls an.

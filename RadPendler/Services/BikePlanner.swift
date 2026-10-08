@@ -144,6 +144,7 @@ extension TripPlanner {
                                                              measuredKmh: c.measuredWins(req.settings)
                                                                  ? req.settings.measuredOverallKmh : nil,
                                                              familiar: c.familiar,
+                                                             cycleStreetMeters: c.route.cycleStreetMeters,
                                                              via: c.source == .habit ? habitVia ?? via
                                                                  : c.source == .apple ? [] : via))
             // Only the route that matches the user's first choice is the one
