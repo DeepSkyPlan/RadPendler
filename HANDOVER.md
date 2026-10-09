@@ -14,6 +14,11 @@
 > gespeichert). Neu darin und noch ungeprüft: Neuplanung bei gesperrtem Gerät (h6) und die
 > Meldezeile in der Fahrtenliste (c6). Nach jeder Runde eine Fahrt teilen →
 > `python3 tools/ride_report.py` → Zeile „Stumme Fehler“.
+> **Offen — VBB-API:** der VBB hat der Nutzung seiner API in der Store-Fassung zugestimmt
+> (08.10.2026), der Zugang ist beantragt (09.10.2026). Der Schlüssel liegt in `Secrets.xcconfig`
+> (lokal), wird aber noch mit `401 API_AUTH` abgelehnt. Sobald er geht: offiziellen Client bauen,
+> als Ersatz für die inoffizielle Schnittstelle in `Hafas.swift`. Auf `main` liegt außerdem
+> unveröffentlicht „optimal ist die Mischlinie“ (CHANGELOG).
 > Ausliefern nur auf Ansage: `./dev testflight [version]`.
 
 Multimodaler Pendel-Planer für iPhone, iPad und Apple Watch: Büro ↔ Zuhause mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln,
