@@ -77,22 +77,41 @@ final class RiddenPathsTests: XCTestCase {
         XCTAssertEqual(after, 0)
     }
 
-    /// Eine Linie, die man ohnehin fährt, gewinnt „optimal" — auch mit 15 %
-    /// Umweg und viel Hauptstraße, die die Karte schlecht findet.
-    func testAHabitualLineCanBeOptimal() {
-        var s = PlanSettings()
-        s.bikeOptions = 3
-        func cand(_ name: BikeLineSource, km: Double, mainKm: Double, familiar: Double) -> BikeCandidate {
-            BikeCandidate(source: name, route: StreetRoute(distance: km * 1000, expectedTravelTime: 0, coordinates: []),
-                          stats: BikeRouteStats(signals: 30, crossings: [], mainRoadMeters: mainKm * 1000),
-                          familiar: familiar)
+    /// Die gewohnte Linie steht für sich: sie nimmt keiner der vier ihre
+    /// Rolle, und sie ist immer da, wenn es sie gibt. Bis 1.17 gewann sie
+    /// „optimal" oder füllte einen freien Platz — je nachdem, und damit sah
+    /// der Rad-Kasten bei jeder Planung anders aus (Nutzer, 09.10.2026).
+    func testTheHabitualLineStandsForItself() {
+        let s = PlanSettings()
+        func cand(_ name: BikeLineSource, km: Double, mainKm: Double, familiar: Double,
+                  east: Double = 0) -> BikeCandidate {
+            // Eine eigene Linie je Kandidat, damit zwei nicht als dieselbe gelten.
+            let line = (0...20).map { CLLocationCoordinate2D(latitude: 52.42 + Double($0) * 0.005, longitude: 13.18 + east) }
+            return BikeCandidate(source: name, route: StreetRoute(distance: km * 1000, expectedTravelTime: 0, coordinates: line),
+                                 stats: BikeRouteStats(signals: 30, crossings: [], mainRoadMeters: mainKm * 1000),
+                                 familiar: familiar)
         }
         let direct = cand(.brouter(.shortest), km: 19, mainKm: 3, familiar: 0.2)
-        let usual = cand(.habit, km: 20.5, mainKm: 12, familiar: 0.95)
-        let picked = BikeCandidate.pick([direct, usual], settings: s)
-        XCTAssertEqual(picked.first { $0.1.contains(.balanced) }?.0.source, .habit)
+        let mix = cand(.brouter(.trekking), km: 19.8, mainKm: 5, familiar: 0.1, east: 0.01)
+        let usual = cand(.habit, km: 20.5, mainKm: 12, familiar: 0.95, east: 0.02)
+        let picked = BikeCandidate.pick([direct, usual, mix], settings: s)
+        XCTAssertEqual(picked.first { $0.1.contains(.balanced) }?.0.source, .brouter(.trekking),
+                       "„optimal“ bleibt die Mischlinie, auch wenn man sonst anders fährt")
+        XCTAssertEqual(picked.last?.0.source, .habit)
+        XCTAssertEqual(picked.last?.1, [.alternative], "ohne Rolle — auf dem Bildschirm heißt das „gewohnt“")
         let info = BikeRouteInfo(variants: [.alternative], stats: nil, source: .habit)
         XCTAssertEqual(info.shortTitle, L("gewohnt"), "keine „Alternative“, sondern die eigene")
+
+        // Fährt man ohnehin eine der vier, steht sie nicht zweimal da.
+        let same = cand(.habit, km: 19.8, mainKm: 5, familiar: 0.95, east: 0.01)
+        let once = BikeCandidate.pick([direct, same, mix], settings: s)
+        XCTAssertFalse(once.contains { $0.0.source == .habit })
+        XCTAssertEqual(once.count, 2)
+
+        // Und über die vier Plätze hinaus: sie kostet keiner Rolle den ihren.
+        var full = s
+        full.bikeOptions = 2
+        XCTAssertEqual(BikeCandidate.pick([direct, usual, mix], settings: full).count, 3)
     }
 }
 

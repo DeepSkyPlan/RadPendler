@@ -1,6 +1,41 @@
 # Changelog
 
-## Unveröffentlicht — „optimal“ ist die Mischlinie
+## Unveröffentlicht — „optimal“ ist die Mischlinie; sparsamer fragen, Ampeln zuverlässig
+
+Rückmeldung vom 09.10.2026: erstes Laden 5 s, Ampeln oft nicht dabei, „optimal“ mal mit und mal ohne
+Prinzregentenstraße, „gewohnt“ einmal da und dann wieder nicht. Gemessen mit einem Mitschnitt aller
+Anfragen einer Planung (`RequestSpy`, `BikeLiveTests.testWhatAPlanAsksTheNetwork`) auf der Teststrecke:
+
+| | vorher | jetzt |
+|---|---|---|
+| Rad, erster Start überhaupt | 12,8 s, 9 Anfragen, keine Ampeln | 7,3 s, 8 Anfragen, keine Ampeln |
+| Rad, gleich noch einmal | 7,0 s, 1 Anfrage, keine Ampeln | 4,0 s, 0 neue Anfragen |
+| Rad, nächster Start der App | wie der erste | 0,2 s, 0 Anfragen, Ampeln da |
+
+- **Der Zwischenspeicher für Ampeln und Hauptstraßen traf fast nie.** Der Schlauch um die Routen
+  wurde auf Stützpunkte im Abstand von bis zu 300 m ausgedünnt; „deckt er diese Strecke?“ verlangt
+  aber einen Stützpunkt im Umkreis von 150 m. Ein Schlauch deckte so nicht einmal die Strecke, für
+  die er geholt war — jede Planung fragte Overpass neu (knapp 1 MB, um die zehn Sekunden) und stand
+  ohne Ampeln da, sooft Overpass ablehnte. Jetzt wird mit demselben Maß ausgedünnt, mit dem geprüft
+  wird (`Corridor.around`).
+- **Der Schlauch wächst, statt neu geholt zu werden.** Kommt eine Linie dazu — die ruhige über
+  andere Straßen, die gewohnte, ein Zubringer —, wird nur nach dem Stück gefragt, das fehlt, und an
+  das Gespeicherte angehängt (`RoadDataStore.start`, `Corridor.unreached`, `RoadData.merged`).
+- **Die Planung wartet nicht mehr auf Overpass**: höchstens vier Sekunden, und gar nicht, solange
+  dort der zweite, geduldige Versuch läuft oder Overpass in den letzten drei Minuten zweimal
+  abgelehnt hat. Die Abfrage läuft daneben zu Ende; die nächste Planung hat ihre Antwort.
+- **Eine Overpass-Abfrage zur Zeit.** Rad, Auto und Zubringer fragten gleichzeitig nach drei
+  Schläuchen; der öffentliche Server beantwortet die dritte mit `504`.
+- **Radrouten bleiben einen Tag auf der Platte** (`RouteDisk`). Der erste Plan nach dem Öffnen der
+  App holte jede Linie neu. Dieselbe Schutzklasse und derselbe unkenntliche Dateiname wie bei den
+  Straßendaten. Eine Linie aus dem Rückfall auf ein anderes Profil wird nicht aufgehoben.
+- **Profile werden einmal hochgeladen**: gemerkt über den Neustart (sechs Stunden, am Text des
+  Profils erkannt), und nicht mehr dreimal dasselbe, wenn drei Zubringer zugleich danach fragen.
+- **Die gewohnte Linie steht für sich**, als fünfter Weg „gewohnt“ — immer, wenn es sie gibt und
+  sie keine der vier ist. Bisher trat sie um die Rollen an: gewann sie „optimal“, stand sie unter
+  diesem Namen da (und „optimal“ fuhr dann nicht über die Fahrradstraße); gewann sie nichts,
+  erschien sie nur auf einem zufällig freien Platz. Sie wird jetzt neben den anderen gefragt statt
+  danach.
 
 - **Rad: „optimal“ ist die Mischlinie selbst** (Nutzer, 08.10.2026: „trotz der vier Optionen geht
   keine mehr über die Prinzregentenstraße“). Es gab sie noch — 20,0 km, 2,2 km Fahrradstraße —,

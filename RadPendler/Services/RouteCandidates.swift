@@ -349,7 +349,20 @@ struct BikeCandidate {
     /// hat; die namenlosen Linien hängen hinten an, die schnellste zuerst.
     static func pick(_ candidates: [BikeCandidate], settings s: PlanSettings,
                      fill: Bool = true) -> [(BikeCandidate, [BikeVariant])] {
-        let all = levelled(distinct(candidates))
+        // **Die gewohnte Linie steht für sich.** Bis 1.17 trat sie mit um die
+        // Rollen an: gewann sie „optimal", stand sie unter diesem Namen da und
+        // die Mischlinie rutschte nach hinten; gewann sie nichts, erschien sie
+        // nur, wenn zufällig ein Platz frei blieb — und weil ihre Anfrage als
+        // letzte hinausgeht und am ehesten scheitert, wechselte das Bild von
+        // Planung zu Planung (Nutzer, 09.10.2026: „optimal teilweise mit
+        // Prinzregentenstraße, teilweise nicht; gewohnt tauchte einmal auf,
+        // dann wieder nicht"). Jetzt vergeben die vier Linien ihre Rollen
+        // unter sich, und die gewohnte kommt als eigener, fünfter Weg dazu —
+        // außer sie **ist** eine der vier, dann steht sie schon da.
+        let levelledAll = levelled(candidates)
+        let all = distinct(levelledAll.filter { $0.source != .habit })
+        let habit = levelledAll.first { c in c.source == .habit && !all.contains { sameLine($0.route, c.route) } }
+        guard !all.isEmpty else { return habit.map { [($0, [.alternative])] } ?? [] }
         // `computedTime`, nicht `time`: die angezeigte Fahrzeit kommt aus dem
         // gemessenen Schnitt, und der kennt nur die Länge. Welche von drei
         // Linien die schnellste ist, entscheidet die Rechnung — sie ist die
@@ -375,10 +388,7 @@ struct BikeCandidate {
             // „ruhig", und die Mischlinie stand als namenlose „Alternative" an
             // vierter Stelle. Seit „ruhig" eine eigene Linie hat, muss „optimal"
             // nicht mehr die ruhigste sein.
-            // Eine Linie, die man ohnehin fährt, geht vor — wie bisher über die
-            // Wertung, in der vertraute Meter nicht stören.
-            let habitual = pool.contains { all[$0].familiar >= Self.habitual }
-            let mix = habitual ? nil : pool.first { all[$0].source == .brouter(.trekking) }
+            let mix = pool.first { all[$0].source == .brouter(.trekking) }
             balanced = mix ?? pool.min { all[$0].balancedScore(s) < all[$1].balancedScore(s) } ?? fastest
         } else {
             // Ohne Straßendaten bleibt, was der Router selbst sagt: die
@@ -394,9 +404,11 @@ struct BikeCandidate {
         // Und bringt auch die ganze Liste keinen weiteren Weg, füllt, was an
         // anderen Linien da ist, die freien Plätze — die ausgewogenste zuerst.
         let spare = fill ? all.indices.sorted { all[$0].balancedScore(s) < all[$1].balancedScore(s) } : []
-        return RoleAssignment.assign(order: s.bikeVariantOrder.filter { $0 != .alternative },
-                                     winner: { winner[$0] }, count: Swift.max(1, s.bikeOptions),
-                                     spare: spare, filler: .alternative)
+        let picked = RoleAssignment.assign(order: s.bikeVariantOrder.filter { $0 != .alternative },
+                                           winner: { winner[$0] }, count: Swift.max(1, s.bikeOptions),
+                                           spare: spare, filler: .alternative)
             .map { (all[$0.index], $0.roles) }
+        // Als „Alternative" ohne weitere Rolle heißt sie auf dem Bildschirm „gewohnt".
+        return picked + (habit.map { [($0, [BikeVariant.alternative])] } ?? [])
     }
 }

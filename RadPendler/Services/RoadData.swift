@@ -41,10 +41,13 @@ struct RoadData {
               let elements = root["elements"] as? [[String: Any]] else { throw OverpassError.malformed }
         var signals: [CLLocationCoordinate2D] = []
         var roads: [Road] = []
+        // Ein gewachsener Schlauch besteht aus mehreren Antworten, und wo sie
+        // sich überlappen, steht dieselbe Ampel und dieselbe Straße zweimal da.
+        var seenSignals = Set<String>(), seenRoads = Set<String>()
         for e in elements {
             if e["type"] as? String == "node", let lat = e["lat"] as? Double, let lon = e["lon"] as? Double {
                 let c = CLLocationCoordinate2D(latitude: lat, longitude: lon)
-                if Geo.valid(c) { signals.append(c) }
+                if Geo.valid(c), seenSignals.insert(String(format: "%.6f,%.6f", lat, lon)).inserted { signals.append(c) }
                 continue
             }
             guard let tags = e["tags"] as? [String: String],
@@ -55,18 +58,38 @@ struct RoadData {
             let name = [ref, tags["name"].flatMap { $0.isEmpty ? nil : $0 }].compactMap { $0 }.first ?? L("Hauptstraße")
             let points = Geo.validated(coords.filter { $0.count >= 2 }
                 .map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) })
-            guard points.count >= 2 else { continue }
+            guard points.count >= 2, let first = points.first, let last = points.last else { continue }
+            let key = String(format: "%@|%d|%.6f,%.6f|%.6f,%.6f", name, points.count,
+                             first.latitude, first.longitude, last.latitude, last.longitude)
+            guard seenRoads.insert(key).inserted else { continue }
             roads.append(Road(name: name, points: points))
         }
         return RoadData(signals: signals, roads: roads)
     }
 
+    /// Zwei Antworten in einer, als dieselbe Art Datei: die Elemente beider
+    /// hintereinander. Was dabei doppelt kommt, sortiert `parse` aus.
+    static func merged(_ a: Data, _ b: Data) -> Data {
+        func elements(_ d: Data) -> [Any] {
+            let root = Log.attempt("Straßendaten zusammenlegen (lesen)") { try JSONSerialization.jsonObject(with: d) }
+            return (root as? [String: Any])?["elements"] as? [Any] ?? []
+        }
+        let all = elements(a) + elements(b)
+        return Log.attempt("Straßendaten zusammenlegen") { try JSONSerialization.data(withJSONObject: ["elements": all]) } ?? b
+    }
+
     enum OverpassError: LocalizedError {
         case malformed
         case corridorTooBig
+        /// Die Abfrage läuft noch; die Planung wartet nicht länger darauf.
+        case stillFetching
+        /// Overpass hat eben abgelehnt; für ein paar Minuten wird nicht gefragt.
+        case unavailable
         var errorDescription: String? {
             switch self {
             case .malformed: L("OpenStreetMap-Daten: unerwartete Antwort")
+            case .stillFetching: L("OpenStreetMap-Daten werden noch geholt")
+            case .unavailable: L("OpenStreetMap antwortet gerade nicht")
             case .corridorTooBig: L("Strecke zu lang für die Ampelzählung (OpenStreetMap)")
             }
         }
@@ -110,22 +133,36 @@ struct Corridor: Codable, Equatable {
         guard let first = coords.first(where: Geo.valid) else { return Corridor(points: [], radius: radius) }
         let mPerDegLat = 111_320.0
         let mPerDegLon = mPerDegLat * cos(first.latitude * .pi / 180)
-        var seen = Set<Int64>()
+        // **Behalten wird, was kein schon behaltener Punkt erreicht** — mit
+        // demselben Maß, mit dem `covers` später prüft. Bis 1.17 entschied
+        // allein die Nachbarzelle: zwei behaltene Punkte lagen dann bis zu
+        // 300 m auseinander, die Mitte dazwischen 150 m und mehr von beiden,
+        // und `covers` verlangt höchstens 150. Ein Schlauch deckte so die
+        // Strecke nicht, für die er selbst geholt worden war: der
+        // Zwischenspeicher traf fast nie, jede Planung fragte Overpass neu,
+        // und die Ampeln fehlten, sooft Overpass nicht wollte (gemessen
+        // 09.10.2026: drei Planungen hintereinander, drei Abfragen).
+        let reach = Swift.min(spacing, radius - needed) * 0.9
+        let reach2 = reach * reach
+        var cells: [Int64: [(x: Double, y: Double)]] = [:]
         var kept: [CLLocationCoordinate2D] = []
         for c in coords where Geo.valid(c) {
-            let x = Int64((c.longitude * mPerDegLon / spacing).rounded(.down))
-            let y = Int64((c.latitude * mPerDegLat / spacing).rounded(.down))
-            // Die eigene Zelle und ihre acht Nachbarn: sonst lägen zwei Punkte
-            // beiderseits einer Zellgrenze beide drin, obwohl sie einen Meter
-            // auseinander sind.
+            let (mx, my) = (c.longitude * mPerDegLon, c.latitude * mPerDegLat)
+            let x = Int64((mx / spacing).rounded(.down))
+            let y = Int64((my / spacing).rounded(.down))
+            // Die eigene Zelle und ihre acht Nachbarn — weiter als eine Zelle
+            // reicht `reach` nicht.
             var near = false
             for dx in -1...1 where !near {
                 for dy in -1...1 where !near {
-                    if seen.contains((x + Int64(dx)) &* 1_000_003 &+ (y + Int64(dy))) { near = true }
+                    for p in cells[(x + Int64(dx)) &* 1_000_003 &+ (y + Int64(dy))] ?? [] {
+                        let (ex, ey) = (p.x - mx, p.y - my)
+                        if ex * ex + ey * ey <= reach2 { near = true; break }
+                    }
                 }
             }
             if near { continue }
-            seen.insert(x &* 1_000_003 &+ y)
+            cells[x &* 1_000_003 &+ y, default: []].append((mx, my))
             kept.append(c)
         }
         return Corridor(points: kept.map { [$0.latitude, $0.longitude] }, radius: radius)
@@ -152,6 +189,25 @@ struct Corridor: Codable, Equatable {
         return true
     }
 
+    /// Die Punkte einer Strecke, die dieser Schlauch **nicht** erreicht — das,
+    /// wonach noch gefragt werden muss. Dasselbe Maß wie `covers`, aber an
+    /// jedem Punkt: ein übersprungener wäre ein Loch im Nachgeholten.
+    func unreached(of coords: [CLLocationCoordinate2D]) -> [CLLocationCoordinate2D] {
+        let mine = coordinates
+        let limit = radius - Self.needed
+        guard !mine.isEmpty, limit > 0 else { return coords }
+        // In Metern auf einer Ebene: auf diese Entfernungen genau genug, und
+        // sechstausend Punkte gegen sechshundert sind sonst Millionen
+        // Großkreisrechnungen.
+        let kLat = 111_320.0, kLon = kLat * cos(mine[0].latitude * .pi / 180)
+        let flat = mine.map { ($0.latitude * kLat, $0.longitude * kLon) }
+        let limit2 = limit * limit
+        return coords.filter { c in
+            let (y, x) = (c.latitude * kLat, c.longitude * kLon)
+            return !flat.contains { let dy = $0.0 - y, dx = $0.1 - x; return dy * dy + dx * dx <= limit2 }
+        }
+    }
+
     /// Beantwortet dieser Schlauch alles, was jener beantwortet hat? Mit
     /// demselben Maß wie beim Lesen, nur an **jedem** Stützpunkt des anderen:
     /// dessen Punkte liegen ohnehin 150 m auseinander, und ein übersprungener
@@ -176,6 +232,18 @@ actor RoadDataStore {
         func contains(_ o: Box) -> Bool {
             let e = 1e-6
             return south <= o.south + e && west <= o.west + e && north >= o.north - e && east >= o.east - e
+        }
+
+        /// Ob die beiden sich berühren — dann lässt sich an das eine anbauen,
+        /// was für das andere fehlt.
+        func overlaps(_ o: Box) -> Bool {
+            south <= o.north && o.south <= north && west <= o.east && o.west <= east
+        }
+
+        /// Der kleinste Kasten um beide.
+        func union(_ o: Box) -> Box {
+            Box(south: Swift.min(south, o.south), west: Swift.min(west, o.west),
+                north: Swift.max(north, o.north), east: Swift.max(east, o.east))
         }
 
         /// Identifies the box. Not the file name — that would write the
@@ -222,8 +290,12 @@ actor RoadDataStore {
     /// Dienste längst ins Leere liefen.
     private let session: URLSession
 
-    init(session: URLSession = .shared) {
+    /// Für Tests: ein eigener Ordner statt des Zwischenspeichers der App.
+    private let folder: URL?
+
+    init(session: URLSession = .shared, folder: URL? = nil) {
         self.session = session
+        self.folder = folder
     }
 
     private var memory: [Box: (data: RoadData, corridor: Corridor?)] = [:]
@@ -232,94 +304,196 @@ actor RoadDataStore {
     /// cache, and Overpass answers the same 4-MB question three times — and
     /// throttles, which turned a 2-second plan into a 24-second one.
     private var inFlight: [Box: Task<RoadData, Error>] = [:]
-    /// Korridore, für die gerade ein zweiter, geduldigerer Versuch läuft.
-    private var warming: Set<Box> = []
     /// Drei fragen je Planung: Rad, Auto und die Zubringer von Rad + Bahn.
     /// Mit zweien verdrängten sie sich gegenseitig, und der dritte fragte
     /// jedes Mal die Platte. Mehr ist ein Leck, kein Zwischenspeicher.
     static let maxBoxesInMemory = 3
     private let maxAge: TimeInterval = 30 * 86_400
     private var directory: URL {
-        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent("osm-roads")
+        folder ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent("osm-roads")
     }
 
-    func data(covering coords: [CLLocationCoordinate2D]) async throws -> RoadData {
+    /// So lange wartet eine Planung auf Straßendaten, die erst geholt werden
+    /// müssen. Bis 1.17 wartete sie, bis Overpass antwortete oder aufgab —
+    /// gemessen am 09.10.2026: die vier Radrouten standen nach 3,6 s, dann
+    /// neun Sekunden Warten auf ein `504`, und beim nächsten Plan wieder
+    /// sieben. Jetzt läuft die Abfrage neben der Planung weiter; was sie
+    /// bringt, liegt dreißig Tage auf der Platte, und der nächste Plan hat es.
+    static let planPatience: TimeInterval = 4
+
+    /// - Parameter patience: wie lange höchstens gewartet wird, wenn die Daten
+    ///   erst geholt werden müssen; nil wartet bis zum Ende. Die Abfrage selbst
+    ///   läuft in jedem Fall weiter.
+    func data(covering coords: [CLLocationCoordinate2D],
+              patience: TimeInterval? = RoadDataStore.planPatience) async throws -> RoadData {
         guard !coords.isEmpty else { throw RoadData.OverpassError.malformed }
         let box = Box(around: coords)
         guard !box.isTooLarge else { throw RoadData.OverpassError.corridorTooBig }
-        // Der Kasten bleibt der Schlüssel — er ist über Tage hinweg derselbe,
-        // während der Schlauch mit jeder neu gefundenen Route ein wenig
-        // anders aussieht. Benutzt wird ein Treffer aber nur, wenn sein
-        // Schlauch auch diese Strecke deckt.
-        if let hit = memory.first(where: { $0.key.contains(box) && ($0.value.corridor?.covers(coords) ?? true) }) {
-            return hit.value.data
-        }
-        // Someone is already fetching a corridor that covers this one: wait for
-        // their answer instead of asking the same question again. The task is
-        // registered before the first `await`, or the actor would let the next
-        // caller past this line while we suspend.
-        if let running = inFlight.first(where: { $0.key.contains(box) })?.value {
-            return try await running.value
-        }
-        if let (b, d, c) = loadFromDisk(covering: box, coords: coords) {
-            remember(b, d, c)
-            return d
-        }
-        // Erst hier: den Schlauch braucht nur, wer wirklich fragt. Vorher lag
-        // er vor beiden Zwischenspeichern und wurde auch dann gerechnet, wenn
-        // die Antwort längst auf der Platte lag.
-        let corridor = Corridor.around(coords)
-        let task = Task { [directory] () throws -> RoadData in
-            let raw = try await self.fetch(corridor)
-            let parsed = try RoadData.parse(raw)
-            Self.store(raw, in: directory, as: box)
-            let file = directory.appendingPathComponent("\(box.fileName).json")
-            Self.writeSidecar(box, corridor: corridor, next: file)
-            return parsed
-        }
-        inFlight[box] = task
-        defer { inFlight[box] = nil }
-        do {
-            let parsed = try await task.value
-            remember(box, parsed, corridor)
-            sweep(keeping: box, corridor)
-            return parsed
-        } catch {
-            Log.note("Straßendaten holen", error)
-            // Overpass antwortet auf eine kleine Frage in zwei Sekunden und
-            // auf diese hier mit `504`: die Abfrage ist teuer, nicht der
-            // Server kaputt. Der Plan wartet darauf nicht — er sagt, dass die
-            // Ampeln fehlen, und holt sie in Ruhe nach. Einmal geholt, liegen
-            // sie dreißig Tage auf der Platte, und der nächste Plan hat sie.
-            //
-            // **Nicht nach einem Abbruch.** Wer auf das Adressfeld tippt,
-            // bricht die Planung ab, weil er etwas anderes sucht; ihm dann
-            // noch eine Abfrage mit dreieinhalb Minuten Geduld hinterherzu-
-            // schicken, holt Daten für eine Strecke, die niemand mehr fährt.
-            if !(error is CancellationError), !Task.isCancelled {
-                warm(box, corridor)
+        let deadline = patience.map { Date.now.addingTimeInterval($0) }
+        // Mehrmals: wer auf die Abfrage eines anderen wartet, bekommt deren
+        // Schlauch — und der deckt die eigene Strecke vielleicht nicht ganz.
+        // Dann wird nachgeholt, was fehlt.
+        for _ in 0..<3 {
+            // Der Kasten bleibt der Schlüssel — er ist über Tage hinweg derselbe,
+            // während der Schlauch mit jeder neu gefundenen Route ein wenig
+            // anders aussieht. Benutzt wird ein Treffer aber nur, wenn sein
+            // Schlauch auch diese Strecke deckt.
+            if let hit = memory.first(where: { $0.key.contains(box) && ($0.value.corridor?.covers(coords) ?? true) }) {
+                return hit.value.data
             }
-            throw error
+            if let (b, d, c) = loadFromDisk(covering: box, coords: coords) {
+                remember(b, d, c)
+                return d
+            }
+            // Overpass hat eben zweimal abgelehnt: nicht bei jeder Planung
+            // wieder anklopfen und vier Sekunden auf dieselbe Absage warten.
+            if let gaveUp, Date.now.timeIntervalSince(gaveUp) < Self.backOff {
+                throw RoadData.OverpassError.unavailable
+            }
+            // **Eine Abfrage zur Zeit**, wem sie auch gehört. Rad, Auto und die
+            // Zubringer fragen im selben Augenblick nach drei Schläuchen; der
+            // öffentliche Server lässt zwei Anfragen je Adresse zu und
+            // beantwortet die dritte mit `504` (gemessen 09.10.2026). Wer
+            // wartet, baut danach an das an, was die erste gebracht hat. Der
+            // Auftrag steht vor dem ersten `await`, sonst ließe der Akteur den
+            // Nächsten an dieser Zeile vorbei.
+            let task = inFlight.values.first ?? start(box, coords)
+            // Im zweiten, geduldigen Versuch dauert es Minuten — darauf wartet
+            // keine Planung.
+            if secondAttempt, patience != nil { throw RoadData.OverpassError.stillFetching }
+            let remaining = deadline.map { Swift.max(0, $0.timeIntervalSinceNow) }
+            _ = try await Self.value(of: task, within: remaining)
+        }
+        if let hit = memory.first(where: { $0.key.contains(box) }) { return hit.value.data }
+        throw RoadData.OverpassError.stillFetching
+    }
+
+    /// Ob die laufende Abfrage schon ihr zweiter Versuch ist.
+    private var secondAttempt = false
+    /// Wann Overpass zuletzt auch den zweiten Versuch abgelehnt hat.
+    private var gaveUp: Date?
+    /// So lange wird danach nicht wieder gefragt.
+    static let backOff: TimeInterval = 180
+
+    private func retrying() { secondAttempt = true }
+
+    /// Holt, was für diese Strecke **noch fehlt**, und legt es zu dem, was
+    /// schon da ist.
+    ///
+    /// Bis 1.17 galt: deckt der gespeicherte Schlauch die neue Linie nicht
+    /// ganz, wird alles neu geholt — der ganze Schlauch um alle Linien, knapp
+    /// ein Megabyte, zehn Sekunden, und oft ein `504`. Mit vier Radlinien, der
+    /// gewohnten und den Zubringern sah die Linienmenge bei fast jeder Planung
+    /// ein wenig anders aus; die Ampeln fehlten entsprechend oft. Jetzt wächst
+    /// der Schlauch: gefragt wird nur nach den Stücken, die kein gespeicherter
+    /// Punkt erreicht, und die Antwort wird angehängt. Nach ein paar Planungen
+    /// ist alles da, was auf diesem Weg je gebraucht wird.
+    ///
+    /// Die Abfrage gehört niemandem: sie läuft zu Ende, auch wenn die Planung,
+    /// die sie ausgelöst hat, längst weiter ist, und versucht es nach einem
+    /// Fehlschlag einmal mit viel mehr Geduld.
+    private func start(_ box: Box, _ coords: [CLLocationCoordinate2D]) -> Task<RoadData, Error> {
+        let base = partial(containing: box)
+        let missing = base.map { $0.corridor.unreached(of: coords) } ?? coords
+        let piece = Corridor.around(missing)
+        // Der Kasten wächst mit: die ruhige Linie über andere Straßen oder ein
+        // Bahnhof weiter draußen sprengen ihn sonst, und es finge von vorn an.
+        let target = base.map { $0.box.union(box) } ?? box
+        let task = Task { [directory] () throws -> RoadData in
+            do {
+                let raw: Data
+                do {
+                    raw = try await self.fetch(piece)
+                } catch {
+                    // Overpass antwortet auf eine kleine Frage in zwei Sekunden
+                    // und auf eine große gern mit `504`: die Abfrage ist teuer,
+                    // nicht der Server kaputt. Noch einmal, in Ruhe.
+                    Log.note("Straßendaten holen", error)
+                    self.retrying()
+                    raw = try await self.fetch(piece, serverSeconds: 180, requestSeconds: 210)
+                }
+                let merged = base.map { RoadData.merged($0.raw, raw) } ?? raw
+                let corridor = Corridor(points: (base?.corridor.points ?? []) + piece.points, radius: piece.radius)
+                let parsed = try RoadData.parse(merged)
+                Self.store(merged, in: directory, as: target)
+                let file = directory.appendingPathComponent("\(target.fileName).json")
+                Self.writeSidecar(target, corridor: corridor, next: file)
+                self.finish(target, parsed, corridor)
+                return parsed
+            } catch {
+                Log.note("Straßendaten nachholen", error)
+                self.finish(target, nil, nil)
+                throw error
+            }
+        }
+        inFlight[target] = task
+        return task
+    }
+
+    private func finish(_ box: Box, _ data: RoadData?, _ corridor: Corridor?) {
+        inFlight[box] = nil
+        secondAttempt = false
+        gaveUp = data == nil ? .now : nil
+        guard let data, let corridor else { return }
+        remember(box, data, corridor)
+        sweep(keeping: box, corridor)
+    }
+
+    /// Wartet auf eine laufende Abfrage, aber nicht länger als `seconds`.
+    /// Wer zu früh geht, bricht sie nicht ab.
+    private static func value(of task: Task<RoadData, Error>, within seconds: TimeInterval?) async throws -> RoadData {
+        guard let seconds else { return try await task.value }
+        let once = Once()
+        return try await withCheckedThrowingContinuation { continuation in
+            Task {
+                let result = await task.result
+                if once.first() { continuation.resume(with: result) }
+            }
+            Task {
+                try? await Task.sleep(for: .seconds(seconds))
+                if once.first() { continuation.resume(throwing: RoadData.OverpassError.stillFetching) }
+            }
         }
     }
 
-    /// Der zweite Versuch: derselbe Korridor, aber mit viel mehr Geduld — auf
-    /// beiden Seiten. Er blockiert nichts und meldet nichts; er füllt nur den
-    /// Zwischenspeicher.
-    private func warm(_ box: Box, _ corridor: Corridor) {
-        guard warming.insert(box).inserted else { return }
-        Task { [directory] in
-            defer { warming.remove(box) }
-            guard let raw = await Log.attemptAsync("Straßendaten nachholen", {
-                      try await self.fetch(corridor, serverSeconds: 180, requestSeconds: 210)
-                  }),
-                  let parsed = Log.attempt("Straßendaten auspacken", { try RoadData.parse(raw) }) else { return }
-            Self.store(raw, in: directory, as: box)
-            let file = directory.appendingPathComponent("\(box.fileName).json")
-            Self.writeSidecar(box, corridor: corridor, next: file)
-            remember(box, parsed, corridor)
-            sweep(keeping: box, corridor)
+    private final class Once: @unchecked Sendable {
+        private let lock = NSLock()
+        private var done = false
+        func first() -> Bool {
+            lock.lock(); defer { lock.unlock() }
+            if done { return false }
+            done = true
+            return true
         }
+    }
+
+    /// Wie alt eine Datei ist; unendlich, wenn es sich nicht sagen lässt —
+    /// dann gilt sie als abgelaufen.
+    static func age(of file: URL) -> TimeInterval {
+        // swiftlint:disable:next naked_try_optional
+        (try? file.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
+            .map { Date.now.timeIntervalSince($0) } ?? .infinity
+    }
+
+    /// Was zu diesem Kasten schon auf der Platte liegt, auch wenn es die
+    /// Strecke nicht ganz deckt — das, woran angebaut wird. Von mehreren das
+    /// mit dem längsten Schlauch.
+    private func partial(containing box: Box) -> (box: Box, raw: Data, corridor: Corridor)? {
+        let fm = FileManager.default
+        guard let files = Log.attempt("Straßendaten-Ordner lesen", missingIsFine: true, {
+            try fm.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.contentModificationDateKey])
+        }) else { return nil }
+        var best: (box: Box, file: URL, corridor: Corridor)?
+        for f in files where f.pathExtension == "json" {
+            guard let side = self.sidecar(of: f), side.box.overlaps(box), let corridor = side.corridor,
+                  !side.box.union(box).isTooLarge else { continue }
+            let age = Self.age(of: f)
+            let longest = best?.corridor.points.count ?? 0
+            guard maxAge > age, corridor.points.count > longest else { continue }
+            best = (side.box, f, corridor)
+        }
+        guard let best, let raw = Log.attempt("Straßendaten lesen", { try Data(contentsOf: best.file) }) else { return nil }
+        return (best.box, raw, best.corridor)
     }
 
     /// Keeps the memory cache to the three corridors a plan asks for.
@@ -415,8 +589,7 @@ actor RoadDataStore {
         }) else { return }
         for f in files where f.pathExtension == "json" {
             guard f.deletingPathExtension().lastPathComponent != box.fileName else { continue }
-            let age = (try? f.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
-                .map { Date.now.timeIntervalSince($0) } ?? .infinity
+            let age = Self.age(of: f)
             // No sidecar means the file predates this scheme: it is unreadable
             // to us now, so it is rubbish either way.
             let redundant = self.sidecar(of: f).map { Self.superseded($0.box, $0.corridor, by: box, corridor) } ?? true
@@ -440,8 +613,7 @@ actor RoadDataStore {
         for f in files where f.pathExtension == "json" {
             guard let side = self.sidecar(of: f), side.box.contains(box) else { continue }
             guard side.corridor?.covers(coords) ?? true else { continue }
-            let age = (try? f.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
-                .map { Date.now.timeIntervalSince($0) } ?? .infinity
+            let age = Self.age(of: f)
             guard age < maxAge, let data = Log.attempt("Straßendaten lesen", { try Data(contentsOf: f) }),
                   let parsed = Log.attempt("Straßendaten auspacken", { try RoadData.parse(data) }) else { continue }
             return (side.box, parsed, side.corridor)

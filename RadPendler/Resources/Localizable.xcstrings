@@ -2817,6 +2817,28 @@
         }
       }
     },
+    "OpenStreetMap antwortet gerade nicht": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenStreetMap is not answering right now"
+          }
+        }
+      }
+    },
+    "OpenStreetMap-Daten werden noch geholt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenStreetMap data is still being fetched"
+          }
+        }
+      }
+    },
     "OpenStreetMap-Daten: unerwartete Antwort": {
       "extractionState": "manual",
       "localizations": {

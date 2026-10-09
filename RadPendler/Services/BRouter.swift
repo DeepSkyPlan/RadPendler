@@ -66,6 +66,15 @@ struct BRouterClient {
             + (profile.cycleStreetAdvantage.map { "|fs\($0)" } ?? "")
             + via.map { String(format: "|über %.5f,%.5f", $0.latitude, $0.longitude) }.joined()
         if cached, let hit = await RouteCache.shared.route(for: key) { return hit }
+        // Und über den Neustart hinweg: die Antwort von gestern liegt auf der
+        // Platte (`RouteDisk`). Der erste Plan nach dem Öffnen der App holte
+        // bis 1.17 jede Linie neu — vier Profile hochladen, vier Routen, 3,6 s.
+        let disk = cached && session === URLSession.shared ? key : nil
+        if let disk, let raw = RouteDisk.read(disk),
+           let hit = Log.attempt("Radroute von der Platte auspacken", { try Self.parse(raw) }) {
+            await RouteCache.shared.keep(hit, for: key)
+            return hit
+        }
         let route: StreetRoute
         if profile.isCustom || profile.prefersCycleStreets || avoidCobbles {
             // Hochgeladene Profile räumt der Server irgendwann weg. Scheitert
@@ -78,11 +87,12 @@ struct BRouterClient {
             do {
                 route = try await fetch(from: from, to: to, via: via,
                                         profile: try await CustomProfile.shared.id(custom, session: session),
-                                        alternative: alternative)
+                                        alternative: alternative, keep: disk)
             } catch {
                 do {
                     let fresh = try await CustomProfile.shared.id(custom, session: session, renew: true)
-                    route = try await fetch(from: from, to: to, via: via, profile: fresh, alternative: alternative)
+                    route = try await fetch(from: from, to: to, via: via, profile: fresh, alternative: alternative,
+                                            keep: disk)
                 } catch {
                     // Ab hier fährt die Linie ohne das, was sie ausmacht —
                     // und sieht auf dem Bildschirm aus wie immer. Wenigstens
@@ -100,15 +110,19 @@ struct BRouterClient {
                 }
             }
         } else {
-            route = try await fetch(from: from, to: to, via: via, profile: profile.rawValue, alternative: alternative)
+            route = try await fetch(from: from, to: to, via: via, profile: profile.rawValue, alternative: alternative,
+                                    keep: disk)
         }
         if cached { await RouteCache.shared.keep(route, for: key) }
         return route
     }
 
+    /// - Parameter keep: unter diesem Schlüssel bleibt die Antwort auf der
+    ///   Platte. Nur für das Profil, nach dem gefragt war — eine Linie aus dem
+    ///   Rückfall auf ein anderes darf nicht einen Tag lang als die richtige gelten.
     private func fetch(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
                        via: [CLLocationCoordinate2D] = [],
-                       profile: String, alternative: Int) async throws -> StreetRoute {
+                       profile: String, alternative: Int, keep: String? = nil) async throws -> StreetRoute {
         var c = URLComponents(string: "https://brouter.de/brouter")!
         c.queryItems = [
             // Zwischenpunkte stehen einfach dazwischen: BRouter fährt sie der
@@ -126,7 +140,9 @@ struct BRouterClient {
         if let http = response as? HTTPURLResponse, http.statusCode != 200 {
             throw BRouterError.server(String(data: data.prefix(200), encoding: .utf8) ?? "HTTP \(http.statusCode)")
         }
-        return try Self.parse(data)
+        let route = try Self.parse(data)
+        if let keep { RouteDisk.write(data, for: keep) }
+        return route
     }
 
     static func parse(_ data: Data) throws -> StreetRoute {
@@ -383,20 +399,49 @@ actor CustomProfile {
         }
     }
 
-    private var current: [Kind: (id: String, at: Date)] = [:]
+    private var current: [String: (id: String, at: Date)] = [:]
+    /// Was gerade hochgeladen wird. Drei Zubringer fragen im selben Augenblick
+    /// nach demselben Profil; ohne das lud jeder es selbst hoch (gemessen
+    /// 09.10.2026: dreimal dasselbe in einer Planung).
+    private var uploading: [String: Task<String, Error>] = [:]
+    private static let storeKey = "brouterProfiles"
 
     func id(_ kind: Kind, session: URLSession, renew: Bool = false) async throws -> String {
-        if !renew, let c = current[kind], Date.now.timeIntervalSince(c.at) < Self.lifetime { return c.id }
         guard let url = Bundle.main.url(forResource: kind.resource, withExtension: "brf"),
               var text = try? String(contentsOf: url, encoding: .utf8) else { throw BRouterClient.BRouterError.malformed }
         text = Self.adjusted(text, withoutCobbles: kind.withoutCobbles,
                              cycleStreets: kind.profile.cycleStreetAdvantage)
+        // Der Schlüssel hängt am Text: ändert eine neue Fassung der App einen
+        // Faktor, ist es ein anderes Profil und wird neu hochgeladen.
+        let key = "\(kind.resource)|\(Self.fingerprint(text))"
+        // Über den Neustart hinweg gemerkt wird nur im echten Betrieb — ein
+        // Test soll weder etwas hinterlassen noch etwas vorfinden.
+        let remembered = session === URLSession.shared ? Self.stored(key) : nil
+        if !renew, let c = current[key] ?? remembered, Date.now.timeIntervalSince(c.at) < Self.lifetime {
+            current[key] = c
+            return c.id
+        }
+        if let running = uploading[key] { return try await running.value }
+        let upload = text
+        let task = Task { try await Self.upload(upload, session: session) }
+        uploading[key] = task
+        defer { uploading[key] = nil }
+        let id = try await task.value
+        current[key] = (id, .now)
+        // Sonst lädt jedes Öffnen der App vier Profile hoch, bevor die erste
+        // Route gefragt werden kann.
+        if session === URLSession.shared { Self.store(key, id) }
+        return id
+    }
+
+    private static func upload(_ text: String, session: URLSession) async throws -> String {
         var request = URLRequest(url: URL(string: "https://brouter.de/brouter/profile")!, timeoutInterval: 20)
         request.httpMethod = "POST"
         request.setValue("text/plain", forHTTPHeaderField: "Content-Type")
         request.setValue(AppIdentity.userAgent, forHTTPHeaderField: "User-Agent")
         request.httpBody = Data(text.utf8)
-        let (data, response) = try await BRouterGate.shared.limited { try await session.data(for: request) }
+        let ready = request
+        let (data, response) = try await BRouterGate.shared.limited { try await session.data(for: ready) }
         // Ein Profil mit Fehler bekommt trotzdem eine Kennung — und jede
         // Anfrage damit endet in 500. Das Feld `error` sagt es vorher.
         guard (response as? HTTPURLResponse)?.statusCode == 200,
@@ -405,8 +450,30 @@ actor CustomProfile {
               let id = json["profileid"] as? String, id.hasPrefix("custom_") else {
             throw BRouterClient.BRouterError.server(String(data: data.prefix(200), encoding: .utf8) ?? "upload")
         }
-        current[kind] = (id, .now)
         return id
+    }
+
+    nonisolated static func fingerprint(_ text: String) -> String {
+        var hash: UInt64 = 0xcbf29ce484222325
+        for byte in text.utf8 { hash = (hash ^ UInt64(byte)) &* 0x100000001b3 }
+        return String(format: "%016llx", hash)
+    }
+
+    private static func stored(_ key: String) -> (id: String, at: Date)? {
+        guard let all = UserDefaults.standard.dictionary(forKey: storeKey),
+              let entry = all[key] as? [String: Any],
+              let id = entry["id"] as? String, let at = entry["at"] as? Date else { return nil }
+        return (id, at)
+    }
+
+    private static func store(_ key: String, _ id: String) {
+        // Nur was noch gilt bleibt stehen — sonst sammelt sich hier jede
+        // Fassung jedes Profils.
+        var all = (UserDefaults.standard.dictionary(forKey: storeKey) ?? [:]).filter { _, value in
+            ((value as? [String: Any])?["at"] as? Date).map { Date.now.timeIntervalSince($0) < lifetime } ?? false
+        }
+        all[key] = ["id": id, "at": Date.now]
+        UserDefaults.standard.set(all, forKey: storeKey)
     }
 
     /// Kopfsteinpflaster kostet das Hundertfache: die Zeile `assign costfactor`

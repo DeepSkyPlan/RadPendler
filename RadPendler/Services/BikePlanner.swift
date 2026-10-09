@@ -86,16 +86,21 @@ extension TripPlanner {
         // bei jeder Planung mit und wurde gleich wieder weggeworfen.
         let appleLine: [BikeLineSource] = [.apple]
         let asked = (req.settings.avoidCobbles ? [] : appleLine) + requests(for: order.prefix(n))
+        // Die eigene typische Fahrt, sauber nachgefahren — **neben** den
+        // anderen, nicht danach: die Schranke am Server (`BRouterGate`) zählt
+        // ohnehin alle Anfragen zusammen, und hintereinander kostete sie eine
+        // Sekunde, in der sonst nichts geschah.
+        async let usual: StreetRoute? = { () -> StreetRoute? in
+            guard let habitVia else { return nil }
+            return await Log.attemptAsync("Radroute (gewohnt)") {
+                try await brouter.route(from: o, to: d, via: habitVia, profile: .trekking)
+            }
+        }()
         var found = await fetch(asked)
         if req.settings.avoidCobbles, found.isEmpty {
             found = await fetch(appleLine)
         }
-        // Die eigene typische Fahrt, sauber nachgefahren: danach, nicht
-        // daneben — der Server will höchstens drei Anfragen gleichzeitig.
-        if let habitVia, !found.isEmpty,
-           let usual = await Log.attemptAsync("Radroute (gewohnt)", {
-               try await brouter.route(from: o, to: d, via: habitVia, profile: .trekking)
-           }) {
+        if let usual = await usual, !found.isEmpty {
             found.append((.habit, usual))
         }
         guard !found.isEmpty else { throw PlannerError.noBikeRoute }

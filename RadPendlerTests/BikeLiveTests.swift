@@ -33,4 +33,45 @@ final class BikeLiveTests: XCTestCase {
         for e in Log.recent { print("LIVE stumm:", e.what, e.error) }
         XCTAssertGreaterThan(options.count, 1)
     }
+
+    /// Was eine Planung ans Netz schickt, kalt und gleich noch einmal:
+    ///
+    ///     TEST_RUNNER_PLAN_LIVE=1 [TEST_RUNNER_BIKE_FROM=… TEST_RUNNER_BIKE_TO=…] ./dev test
+    func testWhatAPlanAsksTheNetwork() async throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["PLAN_LIVE"] == "1", "set PLAN_LIVE=1")
+        func place(_ key: String, _ name: String, _ lat: Double, _ lon: Double) -> Place {
+            let parts = (ProcessInfo.processInfo.environment[key] ?? "").split(separator: ",").compactMap { Double($0) }
+            return Place(name: name, latitude: parts.count == 2 ? parts[0] : lat, longitude: parts.count == 2 ? parts[1] : lon)
+        }
+        let req = PlanRequest(origin: place("BIKE_FROM", "Start", 52.5210, 13.4130),
+                              destination: place("BIKE_TO", "Ziel", 52.3914, 13.0672),
+                              target: .departAfter(.now), settings: PlanSettings())
+        let planner = TripPlanner()
+        for (round, only) in [("Rad, kalt", TravelMode.bike), ("Rad, gleich noch einmal", .bike),
+                              ("alle vier, danach", nil)] as [(String, TravelMode?)] {
+            RequestSpy.start()
+            let began = Date()
+            let result = await planner.plan(req, only: only)
+            let seconds = Date().timeIntervalSince(began)
+            let log = RequestSpy.stop()
+            print(String(format: "PLAN == %@: %.1f s, %d Anfragen, %d kB, %d Möglichkeiten", round, seconds, log.count,
+                         log.map(\.bytes).reduce(0, +) / 1000, result.options.count))
+            for e in log.sorted(by: { $0.at < $1.at }) {
+                print(String(format: "PLAN   +%4.1f s  %4.1f s  %3d  %5d kB  %@  %@", e.at, e.seconds, e.status,
+                             e.bytes / 1000, e.host, e.what))
+            }
+            for o in result.options where o.mode == .bike {
+                print("PLAN   Rad:", o.bikeRoute?.source.label ?? "?", o.bikeRoute?.variants.map(\.rawValue) ?? [],
+                      "Ampeln \(o.bikeRoute?.stats?.signals ?? -1)")
+            }
+        }
+        // Die App bleibt nach dem Planen offen; was neben der Planung noch
+        // geholt wird, soll ankommen dürfen, bevor der Prozess endet.
+        RequestSpy.start()
+        try? await Task.sleep(for: .seconds(Double(ProcessInfo.processInfo.environment["PLAN_LINGER"] ?? "0") ?? 0))
+        for e in RequestSpy.stop() {
+            print(String(format: "PLAN   danach: %4.1f s  %3d  %5d kB  %@  %@", e.seconds, e.status, e.bytes / 1000, e.host, e.what))
+        }
+        for e in Log.recent { print("PLAN stumm:", e.what, e.error) }
+    }
 }
