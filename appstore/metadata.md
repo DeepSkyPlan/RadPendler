@@ -194,7 +194,7 @@ neu ist, nicht was immer gilt.
 
 ## Beschreibung (max 4000)
 
-Länge: **3998** von 4000 Zeichen. Stand 1.8.
+Länge: **3998** von 4000 Zeichen. Stand 1.18.
 
 ```
 Wie kommst du heute zur Arbeit?
@@ -207,10 +207,9 @@ Gebaut für einen echten Arbeitsweg — und sie sagt, was sie nicht weiß, statt
 zu raten.
 
 DIE VIER WEGE
-• Fahrrad in vier Linien: schnellst, kürzest, ruhig — über Fahrradstraßen und
-  Nebenstraßen — und optimal, die Mischung aus allen dreien. Aus mehreren
-  BRouter-Profilen, bewertet nach Ampeln, Hauptstraßen und Fahrradstraßen;
-  Kopfsteinpflaster meidet jede von ihnen
+• Fahrrad in vier Linien: schnellst, kürzest, ruhig (über Fahrradstraßen) und
+  optimal, der Mix daraus. Nach Ampeln und Hauptstraßen bewertet,
+  nie über Kopfsteinpflaster
 • Rad + Bahn: die App sucht sich die Bahnhöfe selbst, radelt hin, fährt mit und
   radelt weiter
 • Auto: optimal, schnellst, kürzest oder wenig Ampeln — jede Linie, die
@@ -928,7 +927,7 @@ AFTERWARDS
 
 ### Description
 
-Length: **3576** of 4000 characters. As of 1.8.
+Length: **3623** of 4000 characters. As of 1.18.
 
 ```
 How are you getting to work today?

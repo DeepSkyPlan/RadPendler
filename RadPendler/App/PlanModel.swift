@@ -47,6 +47,42 @@ final class PlanModel {
 
     init(planner: TripPlanner = TripPlanner()) {
         self.planner = planner
+        // Die Straßendaten kamen nach dem Plan: Rad und Auto mit den Ampeln
+        // nachrechnen, statt auf den nächsten Plan zu warten.
+        roadObserver = NotificationCenter.default.addObserver(forName: RoadDataStore.arrived, object: nil,
+                                                              queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.roadDataArrived() }
+        }
+    }
+
+    /// Lebt so lange wie die App; aufgehoben, damit er nicht in der Luft hängt.
+    @ObservationIgnored private var roadObserver: NSObjectProtocol?
+
+    /// Die Frage, auf die der Plan auf dem Bildschirm antwortet.
+    private var lastRequest: PlanRequest?
+    private var late: Task<Void, Never>?
+
+    /// Ob dem Plan etwas fehlt, das Straßendaten bringen: Ampeln und
+    /// Hauptstraßen an einer Rad- oder Autolinie.
+    static func lacksRoadData(_ options: [TripOption]) -> Bool {
+        options.contains { ($0.mode == .bike && $0.bikeRoute != nil && $0.bikeRoute?.stats == nil)
+            || ($0.mode == .car && $0.carRoute != nil && $0.carRoute?.signals == nil) }
+    }
+
+    private func roadDataArrived() {
+        guard !isLoading, late == nil, let req = lastRequest, Self.lacksRoadData(options) else { return }
+        let mark = lastMark
+        late = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { self.late = nil }
+            let updated = await planner.withRoadData(result, req)
+            // Inzwischen neu geplant oder eine andere Frage gestellt: dann
+            // gilt deren Antwort, nicht diese.
+            guard !Task.isCancelled, !isLoading, mark == lastMark else { return }
+            result = updated
+            selection = selection.filter { _, id in updated.options.contains { $0.id == id } }
+            publishToWatch()
+        }
     }
 
     var options: [TripOption] { result.options }
@@ -252,6 +288,8 @@ final class PlanModel {
         }
         let req = PlanRequest(origin: origin, destination: destination, target: target,
                               settings: settings.snapshot)
+        lastRequest = req
+        late?.cancel()
         places = (origin.shortName, destination.shortName)
         directKm = origin.coordinate.distance(to: destination.coordinate) / 1000
         longTripKm = settings.snapshot.longTripKm

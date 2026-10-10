@@ -1,5 +1,18 @@
 # Changelog
 
+## Unveröffentlicht — Ampeln kommen nach, ohne Neustart
+
+- **Der erste Plan wartet kürzer, und die Ampeln kommen von selbst** (Nutzer, 10.10.2026: „erster
+  Plan 8–10 s, keine Ampeln; nach Neustart der App mit Ampeln ok“). Die Planung wartete vier
+  Sekunden auf Straßendaten und stand danach trotzdem ohne da; die Antwort kam später und galt erst
+  für den nächsten Plan. Jetzt wartet sie anderthalb Sekunden (`RoadDataStore.planPatience`), und
+  sobald die Daten da sind, rechnet der Plan auf dem Bildschirm Rad und Auto nach
+  (`PlanModel.roadDataArrived`, `TripPlanner.withRoadData`) — aus dem Zwischenspeicher, ohne neue
+  Anfragen, und ohne Fahrplan und Regen noch einmal zu holen. Nicht am Gerät geprüft.
+- **Store-Paket** (`./dev store`): jedes Feld aus `appstore/metadata.md` als Datei, deutsch und
+  englisch, die Screenshots daneben, ein Zip — und ein Abbruch, wenn ein Feld über seiner Grenze
+  liegt. Die deutsche Beschreibung stand seit dem 08.10. bei 4094 von 4000 Zeichen; gekürzt auf 3998.
+
 ## 1.18 (Build 58) — „optimal“ ist die Mischlinie; sparsamer fragen, Ampeln zuverlässig
 
 Rückmeldung vom 09.10.2026: erstes Laden 5 s, Ampeln oft nicht dabei, „optimal“ mal mit und mal ohne

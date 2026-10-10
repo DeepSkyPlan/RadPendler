@@ -128,6 +128,40 @@ struct TripPlanner {
         return result
     }
 
+    /// Rad und Auto noch einmal, mit den Straßendaten, die inzwischen da sind —
+    /// alles andere bleibt, wie es war. Die Linien kommen aus dem
+    /// Zwischenspeicher; hinaus geht dafür nichts mehr, und der Fahrplan wird
+    /// nicht ein zweites Mal gefragt.
+    func withRoadData(_ old: PlanResult, _ req: PlanRequest) async -> PlanResult {
+        async let bike = capture { try await bikeOptions(req) }
+        async let car = capture { try await carOptions(req) }
+        var fresh: [TravelMode: [TripOption]] = [:]
+        if case .success(let options) = await bike { fresh[.bike] = Array(options.prefix(req.settings.bikeOptions + 1)) }
+        if case .success(let options) = await car { fresh[.car] = Array(options.prefix(Swift.max(1, req.settings.optionsPerMode))) }
+        var result = Self.replacing(fresh, in: old)
+        Self.settle(&result, req)
+        return result
+    }
+
+    /// Die neuen Möglichkeiten eines Verkehrsmittels an die Stelle der alten.
+    /// Was unverändert wiederkommt, behält seinen Regen — der wird nicht noch
+    /// einmal gefragt. Ein Verkehrsmittel, das diesmal nichts fand, behält,
+    /// was es hatte.
+    static func replacing(_ fresh: [TravelMode: [TripOption]], in old: PlanResult) -> PlanResult {
+        var result = old
+        for (mode, options) in fresh where !options.isEmpty {
+            let before = Dictionary(old.options.filter { $0.mode == mode }.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+            result.options.removeAll { $0.mode == mode }
+            result.options += options.map { option in
+                var option = option
+                option.rain = option.rain ?? before[option.id]?.rain
+                return option
+            }
+            result.failures[mode] = nil
+        }
+        return result
+    }
+
     /// Fixpunkte prüfen, sortieren, empfehlen — auf dem Stand, der gerade da
     /// ist. Ein Zwischenstand ist damit genauso vollständig beschrieben wie
     /// das Endergebnis, nur mit weniger Möglichkeiten darin.

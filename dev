@@ -54,9 +54,13 @@ case "${1:-test}" in
     else
       echo "Referenzrouten: NICHT in Ordnung (Protokoll: $LOG)." >&2; exit 1
     fi ;;
+  # Das Paket für App Store Connect: jedes Feld als Datei, die Screenshots
+  # daneben, ein Zip — aus appstore/metadata.md. Prüft die Längen und lädt
+  # nichts hoch.
+  store) python3 tools/store_package.py ;;
   # Was CI tut, in derselben Reihenfolge.
   check)  "$0" lint && "$0" test ;;
   # Nur auf Ansage: Buildnummer +1, Tests, Archiv, Upload, Commit, Push.
   testflight) shift; exec tools/testflight.sh "$@" ;;
-  *) echo "usage: ./dev [generate|build|test|lint [baseline]|check|routes|open|clean|testflight [version]]" >&2; exit 2 ;;
+  *) echo "usage: ./dev [generate|build|test|lint [baseline]|check|routes|store|open|clean|testflight [version]]" >&2; exit 2 ;;
 esac

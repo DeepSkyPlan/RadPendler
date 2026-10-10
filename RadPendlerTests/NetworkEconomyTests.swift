@@ -216,3 +216,41 @@ final class NetworkEconomyTests: XCTestCase {
         XCTAssertEqual(RouteDisk.lifetime, 24 * 3600)
     }
 }
+
+/// Die Straßendaten kommen nach dem Plan: Rad und Auto werden nachgerechnet,
+/// der Rest bleibt stehen.
+final class LateRoadDataTests: XCTestCase {
+    private func option(_ mode: TravelMode, km: Double, stats: BikeRouteStats? = nil, rain: Bool = false) -> TripOption {
+        let now = Date(timeIntervalSince1970: 1_780_000_000)
+        let leg = Leg(kind: mode == .transit ? .walk : .bike, fromName: "A", toName: "B", departure: now,
+                      arrival: now.addingTimeInterval(km * 180), distance: km * 1000, coordinates: [])
+        var o = TripOption(mode: mode, legs: [leg], prep: 0)
+        if mode == .bike { o.bikeRoute = BikeRouteInfo(variants: [.balanced], stats: stats, source: .brouter(.trekking)) }
+        if rain { o.rain = RainAssessment(readings: []) }
+        return o
+    }
+
+    /// Ein Plan ohne Ampeln an der Radroute wartet auf Straßendaten — einer
+    /// mit Ampeln, oder ganz ohne Rad und Auto, nicht.
+    @MainActor func testOnlyAPlanWithoutLightsWaitsForRoadData() {
+        XCTAssertTrue(PlanModel.lacksRoadData([option(.bike, km: 20)]))
+        XCTAssertFalse(PlanModel.lacksRoadData([option(.bike, km: 20, stats: BikeRouteStats(signals: 5, crossings: [], mainRoadMeters: 0))]))
+        XCTAssertFalse(PlanModel.lacksRoadData([option(.transit, km: 1)]))
+        XCTAssertFalse(PlanModel.lacksRoadData([]))
+    }
+
+    /// Die nachgerechnete Radroute ersetzt die alte; die Bahn bleibt, und der
+    /// Regen wird nicht noch einmal gefragt.
+    func testFreshBikeOptionsReplaceTheOldOnesAndKeepTheirRain() {
+        let old = PlanResult(options: [option(.bike, km: 20, rain: true), option(.transit, km: 1)],
+                             failures: [.car: "kein Netz"])
+        let withLights = option(.bike, km: 20, stats: BikeRouteStats(signals: 31, crossings: [], mainRoadMeters: 3_000))
+        let result = TripPlanner.replacing([.bike: [withLights], .car: []], in: old)
+        XCTAssertEqual(result.options.count, 2)
+        let bike = result.options.first { $0.mode == .bike }
+        XCTAssertEqual(bike?.bikeRoute?.stats?.signals, 31)
+        XCTAssertNotNil(bike?.rain, "derselbe Weg, derselbe Regen")
+        XCTAssertTrue(result.options.contains { $0.mode == .transit })
+        XCTAssertEqual(result.failures[.car], "kein Netz", "wer diesmal nichts fand, behält, was er hatte")
+    }
+}

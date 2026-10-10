@@ -319,7 +319,17 @@ actor RoadDataStore {
     /// neun Sekunden Warten auf ein `504`, und beim nächsten Plan wieder
     /// sieben. Jetzt läuft die Abfrage neben der Planung weiter; was sie
     /// bringt, liegt dreißig Tage auf der Platte, und der nächste Plan hat es.
-    static let planPatience: TimeInterval = 4
+    ///
+    /// Anderthalb Sekunden, seit 1.19: kommt die Antwort später, meldet der
+    /// Speicher es (`arrived`), und der Plan auf dem Bildschirm rechnet Rad
+    /// und Auto mit den Ampeln nach. Mit vier Sekunden dauerte der erste Plan
+    /// nach einem Update acht bis zehn, und die Ampeln standen trotzdem erst
+    /// nach dem Neustart da (Nutzer, 10.10.2026).
+    static let planPatience: TimeInterval = 1.5
+
+    /// Geht hinaus, sobald neue Straßendaten da sind — für den Plan, der
+    /// ohne sie fertig wurde.
+    static let arrived = Notification.Name("RoadDataStore.arrived")
 
     /// - Parameter patience: wie lange höchstens gewartet wird, wenn die Daten
     ///   erst geholt werden müssen; nil wartet bis zum Ende. Die Abfrage selbst
@@ -437,6 +447,11 @@ actor RoadDataStore {
         guard let data, let corridor else { return }
         remember(box, data, corridor)
         sweep(keeping: box, corridor)
+        // Nur der Speicher der App meldet sich; der eines Tests hat niemanden,
+        // den es etwas anginge.
+        if folder == nil {
+            Task { @MainActor in NotificationCenter.default.post(name: Self.arrived, object: nil) }
+        }
     }
 
     /// Wartet auf eine laufende Abfrage, aber nicht länger als `seconds`.
