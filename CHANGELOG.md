@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — „optimal“ ist die Mischlinie; sparsamer fragen, Ampeln zuverlässig
+## 1.18 (Build 58) — „optimal“ ist die Mischlinie; sparsamer fragen, Ampeln zuverlässig
 
 Rückmeldung vom 09.10.2026: erstes Laden 5 s, Ampeln oft nicht dabei, „optimal“ mal mit und mal ohne
 Prinzregentenstraße, „gewohnt“ einmal da und dann wieder nicht. Gemessen mit einem Mitschnitt aller
