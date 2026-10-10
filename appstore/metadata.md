@@ -10,24 +10,31 @@ Fassung von Name, Untertitel, Keywords und Beschreibung steht am Ende und
 gehört in die Lokalisierung **Englisch (USA)**, damit die Seite in Stores
 außerhalb Deutschlands nicht leer aussieht.
 
-## Einreichungs-Checkliste (1.17, Build 57 — die einzureichende Fassung)
+## Einreichungs-Checkliste (1.18, Build 58 — die einzureichende Fassung)
 
-Was seit der 1.8.1-Liste dazugekommen ist; alles andere gilt wie dort.
+Was seit der 1.8.1-Liste dazugekommen ist; alles andere gilt wie dort. Im Store steht 1.13;
+1.14 bis 1.17 waren nur TestFlight.
 
-1. **Build 1.17 (57)** auswählen — liegt seit dem 07.10.2026 in TestFlight. Im Store steht 1.13.
-2. **Screenshots neu aufgenommen am 07.10.2026 mit Build 57** (iPhone und iPad): unter dem
-   Rad-Kasten stehen vier Wege, und in den Vorlieben vier Radrouten. Die Uhr-Bilder sind
-   unverändert.
-3. **Was ist neu** — Text unten, **für 1.17**, deutsch und englisch.
+1. **Build 1.18 (58)** auswählen — liegt seit dem 10.10.2026 in TestFlight.
+2. **Screenshots neu aufgenommen am 10.10.2026 mit Build 58**: `screenshots/iphone-6.5/`
+   (8 Bilder, 1284 × 2778) und `screenshots/ipad-13/` (7 Bilder, 2064 × 2752), in der Reihenfolge
+   der Dateinummern. Unter dem Rad-Kasten stehen vier Wege, die Radroute zeigt ihre Ampeln. Die
+   Uhr-Bilder (`screenshots/watch-46/`) sind unverändert. Die alten Bilder im Schacht vorher
+   löschen — App Store Connect hängt neue sonst hinten an.
+3. **Was ist neu** — Text unten, **für 1.18**, deutsch und englisch.
 4. **Beschreibung** deutsch und englisch: die Zeile „Fahrrad in vier Linien“ ersetzt die
    Aufzählung mit „wenig Autos“ und „wenig Halts“ — in beide Sprachen neu einfügen.
 5. **Hinweis an die Prüfung**: der englische Text zu allen drei Hintergrundmoden aus der
    1.8.1-Liste (Punkt 4, „Seit 07.10.2026 ausführlicher“).
-6. **Datenschutzseite vor dem Einreichen veröffentlichen**: `appstore/pages/radpendler-privacy/`
+6. **Kopfzeile und Suchergebnisse** (neuer Abschnitt in App Store Connect seit iOS 27): leer
+   lassen. Das sind freiwillige Werbeflächen; ohne sie zeigt der Store die Screenshots.
+7. **Datenschutzseite vor dem Einreichen veröffentlichen**: `appstore/pages/radpendler-privacy/`
    nach `deepskyplan.github.io/radpendler-privacy`. Die Fassung im Repository nennt die
    Adressen an externe Dienste im ersten Absatz und beschreibt die Aufzeichnung.
-7. App-Datenschutz-Fragebogen unverändert. Übertragen wird nichts Neues: die Profile für
+8. App-Datenschutz-Fragebogen unverändert. Übertragen wird nichts Neues: die Profile für
    „ruhig“ und „optimal“ gehen als Profiltext an brouter.de, ohne Koordinaten oder Kennung.
+   Neu **auf dem Gerät** (nicht übertragen): die Radrouten der letzten 24 Stunden im
+   Zwischenspeicher der App.
 
 ## Einreichungs-Checkliste (1.8.1, Build 45)
 
@@ -709,8 +716,8 @@ beiden Schächte annimmt, sind kurz; alles andere wird beim Hochladen abgelehnt:
 Ein 6,9″-Telefon (iPhone 17 Pro Max) nimmt mit 1320 × 2868 auf, und das steht
 **nicht** auf der Liste — der 6,5″-Satz muss aus einem 6,5″-Simulator kommen.
 
-Reihenfolge und der Bildtext, den jedes Bild tragen soll (Stand 07.10.2026,
-aufgenommen mit 1.17, Build 57):
+Reihenfolge und der Bildtext, den jedes Bild tragen soll (Stand 10.10.2026,
+aufgenommen mit 1.18, Build 58):
 
 **iPhone** — acht Bilder
 
@@ -804,6 +811,15 @@ mit diesem Namen die Einstellungsseite.
 geplanten Route, steht ein rotes „151 m neben der Route“ quer über dem Bild.
 Der Test fährt deshalb 80 Sekunden statt 45: dann hat die App von selbst neu
 geplant, das Band ist weg, und im Kopf steht stattdessen der Zähler „1×“.
+
+**Zwei weitere, am 10.10.2026 bezahlt:**
+
+- **Frisch installiert fehlen die Ampeln.** Antwortet OpenStreetMap beim ersten Plan nicht, steht
+  unter der Radroute „Ampeln und Hauptstraßen unbekannt“ und im Fahrtmodus „0 Ampelhalts“ — kein
+  Bild fürs Schaufenster. Dann den Test **ohne** neu zu installieren noch einmal laufen lassen
+  (`test-without-building`): die Daten sind inzwischen im Zwischenspeicher.
+- **`xcodebuild` endet nicht.** Nach dem letzten Test sammelt es bis zu zehn Minuten Diagnosen
+  (`simctl diagnose`). Steht „TEST EXECUTE SUCCEEDED“ schon da: `pkill -f 'simctl diagnos'`.
 
 **Zwei Fallen, beide am 26.09.2026 bezahlt:**
 
