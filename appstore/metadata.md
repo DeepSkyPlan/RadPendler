@@ -16,11 +16,14 @@ Was seit der 1.8.1-Liste dazugekommen ist; alles andere gilt wie dort. Im Store 
 1.14 bis 1.17 waren nur TestFlight.
 
 1. **Build 1.18 (58)** auswählen — liegt seit dem 10.10.2026 in TestFlight.
-2. **Screenshots neu aufgenommen am 10.10.2026 mit Build 58**: `screenshots/iphone-6.5/`
-   (8 Bilder, 1284 × 2778) und `screenshots/ipad-13/` (7 Bilder, 2064 × 2752), in der Reihenfolge
-   der Dateinummern. Unter dem Rad-Kasten stehen vier Wege, die Radroute zeigt ihre Ampeln. Die
-   Uhr-Bilder (`screenshots/watch-46/`) sind unverändert. Die alten Bilder im Schacht vorher
-   löschen — App Store Connect hängt neue sonst hinten an.
+2. **Screenshots neu aufgenommen am 10.10.2026 mit Build 58**, in der Reihenfolge der
+   Dateinummern: `screenshots/iphone-6.3/` (8 Bilder, 1206 × 2622) in den Schacht „iPhone 6,1″
+   oder 6,3″“ — den zeigt App Store Connect inzwischen zuerst, und er lehnt den 6,5″-Satz ab.
+   `screenshots/iphone-6.5/` (8 Bilder, 1284 × 2778) nur, wenn der 6,5″-Schacht gefragt ist.
+   `screenshots/ipad-13/` (7 Bilder, 2064 × 2752), `screenshots/watch-46/` (4 Bilder, 416 × 496,
+   ebenfalls neu: vier Radwege, „optimal“ statt „ruhigst“). Die alten Bilder im Schacht vorher
+   löschen — App Store Connect hängt neue sonst hinten an. Bilder für das iPhone Duo sind erst
+   für Einreichungen ab April 2027 Pflicht.
 3. **Was ist neu** — Text unten, **für 1.18**, deutsch und englisch.
 4. **Beschreibung** deutsch und englisch: die Zeile „Fahrrad in vier Linien“ ersetzt die
    Aufzählung mit „wenig Autos“ und „wenig Halts“ — in beide Sprachen neu einfügen.
@@ -709,11 +712,17 @@ beiden Schächte annimmt, sind kurz; alles andere wird beim Hochladen abgelehnt:
 
 | Geräteklasse | Simulator | Größe | Ordner |
 |---|---|---|---|
+| iPhone 6,1″/6,3″ | iPhone 17 | 1206 × 2622 | `screenshots/iphone-6.3/` |
 | iPhone 6,5″ | DF-iphone65 (iPhone 13 Pro Max) | 1284 × 2778 | `screenshots/iphone-6.5/` |
 | iPad 13″ | iPad Pro 13-inch (M5) | 2064 × 2752 | `screenshots/ipad-13/` |
+| Apple Watch 46 mm | Apple Watch Series 11 (46mm) | 416 × 496 | `screenshots/watch-46/` |
 
-Ein 6,9″-Telefon (iPhone 17 Pro Max) nimmt mit 1320 × 2868 auf, und das steht
-**nicht** auf der Liste — der 6,5″-Satz muss aus einem 6,5″-Simulator kommen.
+Die Größe muss zum Schacht passen: der 6,5″-Satz im 6,1″/6,3″-Schacht wird abgelehnt
+(so geschehen am 10.10.2026) und umgekehrt. Ein Satz genügt.
+
+Die Uhr hat keinen UI-Test: Uhr-App im Simulator installieren, einen Plan des Telefons als
+`lastPlan` in ihre `defaults` schreiben, starten, `simctl io screenshot`. Für die Seiten hinter
+dem Countdown braucht es Wischen von Hand oder einen vorübergehenden Startschalter.
 
 Reihenfolge und der Bildtext, den jedes Bild tragen soll (Stand 10.10.2026,
 aufgenommen mit 1.18, Build 58):

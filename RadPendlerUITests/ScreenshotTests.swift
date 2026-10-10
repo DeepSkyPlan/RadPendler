@@ -5,8 +5,9 @@ import XCTest
 /// scheme (`RadPendlerShots`), because it needs the network and takes minutes.
 ///
 /// The frames come out at the simulator's native size, so the device decides
-/// the App Store slot: a 6.5" phone gives 1284 × 2778, an iPad Pro 13" gives
-/// 2064 × 2752. Anything else is rejected on upload.
+/// the App Store slot: an iPhone 17 gives 1206 × 2622 (slot 6.1"/6.3"), a 6.5"
+/// phone 1284 × 2778, an iPad Pro 13" 2064 × 2752. A size that does not match
+/// its slot is rejected on upload.
 final class ScreenshotTests: XCTestCase {
     private var app: XCUIApplication!
     private var shot = 0

@@ -14,7 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 META = (ROOT / "appstore/metadata.md").read_text(encoding="utf-8")
 LIMITS = {"name": 30, "untertitel": 30, "werbetext": 170, "beschreibung": 4000, "keywords": 100, "was-ist-neu": 4000}
-SHOTS = {"iphone-6.5": (1284, 2778), "ipad-13": (2064, 2752), "watch-46": (416, 496)}
+SHOTS = {"iphone-6.3": (1206, 2622), "iphone-6.5": (1284, 2778), "ipad-13": (2064, 2752), "watch-46": (416, 496)}
 
 
 def setting(key):
@@ -120,8 +120,11 @@ ist eine Datei zum Kopieren, die Bilder liegen in der Reihenfolge ihrer Dateinum
 1. Neue Version **{version}** anlegen, Build **{build}** auswählen.
 2. Je Sprache (Deutsch, Englisch USA): Werbetext, Beschreibung, Keywords und „Neue Funktionen“
    aus `de/` bzw. `en/` einfügen. Name und Untertitel nur, wenn sie sich geändert haben.
-3. Screenshots: die alten im Schacht löschen, dann `screenshots/iphone-6.5/` in den 6,5″-Schacht,
+3. Screenshots: die alten im Schacht löschen, dann `screenshots/iphone-6.3/` (1206 × 2622) in den
+   Schacht „iPhone 6,1″ oder 6,3″“ — bietet App Store Connect stattdessen 6,5″ an, dorthin
+   `screenshots/iphone-6.5/` (1284 × 2778). Ein Satz genügt, die Größe muss zum Schacht passen.
    `screenshots/ipad-13/` in den 13″-Schacht, `screenshots/watch-46/` zur Apple Watch.
+   Bilder für das iPhone Duo sind erst für Einreichungen ab April 2027 Pflicht.
 4. „Kopfzeile und Suchergebnisse“ leer lassen — freiwillige Werbeflächen.
 5. App-Prüfung → Notizen: den Text aus `pruefhinweis-en.txt`.
 6. Support-URL {urls['Support-URL']} · Marketing-URL {urls['Marketing-URL']} ·
