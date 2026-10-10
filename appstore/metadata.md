@@ -277,6 +277,73 @@ ODbL), Deutscher Wetterdienst und Open-Meteo.
 Alle Zeiten ohne Gewähr.
 ```
 
+## Was ist neu (1.18)
+
+Für das Feld „Neue Funktionen“ der Version 1.18 (DE 1706, EN 1561 Zeichen, max
+4000). Deckt alles seit 1.13 ab — das ist die Fassung im Store (App Store Connect,
+abgefragt am 07.10.2026); 1.14 bis 1.17 waren nur TestFlight.
+
+```
+• Vier Radlinien, jede mit einer klaren Frage: schnellst, kürzest, ruhig und
+  optimal. „ruhig“ führt über Fahrradstraßen und Nebenstraßen, weg von den
+  Autos; „optimal“ ist die Mischung aus allen dreien und nimmt Fahrradstraßen
+  mit, wo sie kaum Umweg kosten. „wenig Autos“ heißt nun „ruhig“, „wenig
+  Halts“ entfällt.
+• Dein gewohnter Weg steht für sich: Fährst du eine Strecke regelmäßig anders,
+  als die App vorschlägt, erscheint sie als fünfter Weg „gewohnt“ — immer,
+  nicht nur gelegentlich.
+• Kopfsteinpflaster meidet jede Radroute, immer. Den Schalter dafür gibt es
+  nicht mehr.
+• Schneller und sparsamer: Radrouten, Ampeln und Hauptstraßen deiner Strecke
+  bleiben auf dem Gerät. Beim nächsten Öffnen steht der Plan sofort da, ohne
+  neue Abfragen — und die Ampeln fehlen nicht mehr, wenn ein Dienst gerade
+  nicht antwortet.
+• Wie viel Umweg ist dir die Ruhe wert? Unter Einstellungen → Verkehrsmittel
+  legst du mit „Für Ruhe höchstens“ fest, ob „optimal“ 5, 10 oder 15 % länger
+  dauern darf als die schnellste Linie.
+• Auto: Die App lernt aus deinen aufgezeichneten Autofahrten, wie du im
+  Vergleich zu Apple Karten fährst, und rechnet die Fahrzeit damit — auf jeder
+  Strecke, nicht nur auf dem Arbeitsweg.
+• Ton beim Anhalten und Weiterfahren: zwei kurze Töne abwärts, wenn die
+  Aufzeichnung pausiert, zwei aufwärts, wenn sie weiterläuft.
+• Behoben: Auf der Autobahn fehlten Strecke und Linie, sobald du schneller als
+  108 km/h warst.
+• Behoben: Nach einer Fahrt, die sich selbst beendet hatte, zählten die
+  folgenden Fahrten keine Halte und keine Ampeln.
+• Behoben: Die Fahrtenliste sagt jetzt auch dann Bescheid, wenn iCloud die
+  Linie einer einzelnen Fahrt nicht angenommen hat.
+```
+
+English:
+
+```
+• Four bike lines, each answering one question: fastest, shortest, quiet and
+  balanced. “quiet” runs along cycle streets and side streets, away from the
+  cars; “balanced” is the mix of all three and takes cycle streets where they
+  cost hardly any detour. “few cars” is now called “quiet”; “few stops” is gone.
+• Your usual way stands on its own: if you regularly ride a route differently
+  from what the app suggests, it appears as a fifth way, “usual” — always, not
+  just now and then.
+• Every bike route avoids cobblestones, always. The switch for it is gone.
+• Faster and lighter on the network: bike routes, traffic lights and main roads
+  of your route stay on the device. The next time you open the app the plan is
+  there at once, without new requests — and the traffic lights no longer go
+  missing when a service is not answering.
+• How much of a detour is quiet worth to you? Under Settings → Modes,
+  “For quiet, at most” lets “balanced” take 5, 10 or 15 % longer than the
+  fastest line.
+• Car: the app learns from your recorded car trips how you drive compared to
+  Apple Maps and uses that for the travel time — on any route, not only your
+  commute.
+• A sound when recording pauses and resumes: two short tones down when it
+  pauses, two up when it continues.
+• Fixed: on the motorway, distance and track went missing above 108 km/h.
+• Fixed: after a ride that had ended by itself, the following rides counted no
+  stops and no traffic lights.
+• Fixed: the ride list now also tells you when iCloud did not accept the track
+  of a single ride.
+```
+
 ## Was ist neu (1.17)
 
 Für das Feld „Neue Funktionen“ der Version 1.17 (DE 1326, EN 1136 Zeichen, max
