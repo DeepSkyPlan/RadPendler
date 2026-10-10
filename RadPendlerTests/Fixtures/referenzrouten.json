@@ -1,0 +1,193 @@
+{
+ "_": "Referenzrouten: was eine Planung auf bekannten Strecken ergeben muss. Nur öffentliche Orte — die eigene Strecke steht in ~/.config/radpendler/referenzrouten.json (gleiches Format) und nie hier. Geprüft von ReferenceRouteTests über ./dev routes, vor jedem ./dev testflight. Die Schwellen liegen bei rund drei Vierteln dessen, was am 10.10.2026 gemessen wurde: Steglitz → Hbf 1099 m an der Prinzregentenstraße und 2,2 km Fahrradstraße (zurück 368 m und 2,2 km), Pinneberg 3,5–4,9 km Fahrradstraße bei 23,1–23,5 km, München 3,0 km bei 14,5 km; Kopfsteinpflaster höchstens 40 m je Linie, gepflasterte Einmündungen.",
+ "streets": {
+  "prinzregentenstrasse": [
+   [
+    52.47728,
+    13.33276
+   ],
+   [
+    52.47774,
+    13.33277
+   ],
+   [
+    52.47811,
+    13.33276
+   ],
+   [
+    52.47849,
+    13.33275
+   ],
+   [
+    52.47886,
+    13.33275
+   ],
+   [
+    52.47945,
+    13.33276
+   ],
+   [
+    52.47983,
+    13.33277
+   ],
+   [
+    52.48048,
+    13.33301
+   ],
+   [
+    52.48083,
+    13.33321
+   ],
+   [
+    52.48124,
+    13.33329
+   ],
+   [
+    52.48161,
+    13.33329
+   ],
+   [
+    52.48231,
+    13.33325
+   ],
+   [
+    52.48297,
+    13.33324
+   ],
+   [
+    52.48381,
+    13.33323
+   ],
+   [
+    52.48469,
+    13.33319
+   ],
+   [
+    52.48577,
+    13.33316
+   ],
+   [
+    52.48613,
+    13.33315
+   ],
+   [
+    52.48749,
+    13.33312
+   ],
+   [
+    52.48835,
+    13.33311
+   ],
+   [
+    52.4889,
+    13.3331
+   ],
+   [
+    52.48986,
+    13.33307
+   ],
+   [
+    52.49061,
+    13.33305
+   ],
+   [
+    52.49109,
+    13.33304
+   ],
+   [
+    52.49154,
+    13.33304
+   ],
+   [
+    52.49198,
+    13.33305
+   ],
+   [
+    52.49238,
+    13.33305
+   ],
+   [
+    52.49287,
+    13.33306
+   ]
+  ]
+ },
+ "routes": [
+  {
+   "name": "Rathaus Steglitz → Berlin Hbf",
+   "from": [
+    52.456,
+    13.322
+   ],
+   "to": [
+    52.5256,
+    13.3694
+   ],
+   "optimal": {
+    "along": "prinzregentenstrasse",
+    "alongMeters": 800,
+    "minCycleStreetMeters": 1500,
+    "maxKm": 10.6
+   },
+   "every": {
+    "maxCobbleMeters": 60
+   }
+  },
+  {
+   "name": "Berlin Hbf → Rathaus Steglitz",
+   "from": [
+    52.5256,
+    13.3694
+   ],
+   "to": [
+    52.456,
+    13.322
+   ],
+   "optimal": {
+    "along": "prinzregentenstrasse",
+    "alongMeters": 250,
+    "minCycleStreetMeters": 1500,
+    "maxKm": 10.8
+   },
+   "every": {
+    "maxCobbleMeters": 60
+   }
+  },
+  {
+   "name": "Pinneberg → Hamburg Hbf",
+   "from": [
+    53.659,
+    9.7967
+   ],
+   "to": [
+    53.5528,
+    10.0067
+   ],
+   "optimal": {
+    "minCycleStreetMeters": 2500,
+    "maxKm": 24.5
+   },
+   "every": {
+    "maxCobbleMeters": 30
+   }
+  },
+  {
+   "name": "München Pasing → Ostbahnhof",
+   "from": [
+    48.1499,
+    11.4613
+   ],
+   "to": [
+    48.1273,
+    11.6045
+   ],
+   "optimal": {
+    "minCycleStreetMeters": 2000,
+    "maxKm": 15.5
+   },
+   "every": {
+    "maxCobbleMeters": 30
+   }
+  }
+ ]
+}

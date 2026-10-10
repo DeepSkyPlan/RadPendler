@@ -22,6 +22,9 @@ struct StreetRoute {
     /// Meter auf Fahrradstraßen, wo der Router es sagt (BRouter). 0 heißt
     /// keine — oder niemand hat es gesagt.
     var cycleStreetMeters = 0.0
+    /// Meter auf Kopfsteinpflaster, wo der Router den Belag nennt. Jede Linie
+    /// soll es meiden; `ReferenceRouteTests` hält fest, wie viel bleibt.
+    var cobbleMeters = 0.0
     /// Summierter Anstieg in Metern — alles Bergauf der Strecke zusammen, das
     /// Bergab zählt nicht dagegen. nil heißt **unbekannt**, nicht flach:
     /// BRouter kennt die Höhen, Apple Karten liefert keine.

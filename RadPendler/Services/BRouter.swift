@@ -161,19 +161,24 @@ struct BRouterClient {
         return StreetRoute(distance: length, expectedTravelTime: time, coordinates: points,
                            mix: roads.mix, roadPoints: roads.points,
                            cycleStreetMeters: Self.cycleStreetMeters(messages),
+                           cobbleMeters: Self.meters(messages) { $0.contains("surface=sett") || $0.contains("surface=cobblestone") },
                            ascent: Self.ascent(props: props, coordinates: coords))
     }
 
     /// Wie viele Meter der Linie Fahrradstraße sind — aus derselben Tabelle,
     /// aus der die Straßenklassen kommen. Daran wird „ruhig" gemessen.
     static func cycleStreetMeters(_ messages: [[String]]?) -> Double {
+        meters(messages) { $0.contains("bicycle_road=yes") || $0.contains("cyclestreet=yes") }
+    }
+
+    /// Die Meter aller Abschnitte, deren Merkmale `matches` erfüllen.
+    static func meters(_ messages: [[String]]?, where matches: (String) -> Bool) -> Double {
         guard let messages, let header = messages.first,
               let distanceColumn = header.firstIndex(of: "Distance"),
               let tagColumn = header.firstIndex(of: "WayTags") else { return 0 }
         return messages.dropFirst().reduce(0) { sum, row in
             guard row.count > max(distanceColumn, tagColumn), let metres = Double(row[distanceColumn]),
-                  row[tagColumn].contains("bicycle_road=yes") || row[tagColumn].contains("cyclestreet=yes")
-            else { return sum }
+                  matches(row[tagColumn]) else { return sum }
             return sum + metres
         }
     }

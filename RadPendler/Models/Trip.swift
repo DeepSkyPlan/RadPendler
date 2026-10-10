@@ -267,6 +267,8 @@ struct BikeRouteInfo {
     var familiar: Double = 0
     /// Meter auf Fahrradstraßen — woran „ruhig" gemessen wird.
     var cycleStreetMeters = 0.0
+    /// Meter auf Kopfsteinpflaster — siehe `StreetRoute.cobbleMeters`.
+    var cobbleMeters = 0.0
     /// Die Zwischenpunkte, über die diese Linie geplant wurde: Fixpunkte und,
     /// bei „gewohnt", die Punkte auf der eigenen Fahrt. Eine Neuplanung
     /// unterwegs fährt die noch vor einem liegenden ebenfalls an.

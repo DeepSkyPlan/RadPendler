@@ -9,7 +9,8 @@
 #   4. Commit „<version> (<n>) an TestFlight" und push.
 #
 # Scheitert ein Schritt, werden project.yml und CHANGELOG zurückgesetzt.
-# Nur auf Ansage des Nutzers benutzen. SKIP_TESTS=1 überspringt die Tests,
+# Nur auf Ansage des Nutzers benutzen. Vor allem anderen laufen die
+# Referenzrouten (./dev routes; SKIP_ROUTES=1 lässt sie aus). SKIP_TESTS=1 überspringt die Tests,
 # DRY_RUN=1 baut nur das Archiv und setzt alles zurück.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -40,6 +41,12 @@ grep -q "Was ist neu ($version)" appstore/metadata.md 2>/dev/null \
 
 echo "→ $version ($build)"
 xcodegen generate >/dev/null
+# Referenzrouten zuerst: zweimal ging eine Fassung hinaus, in der „optimal"
+# nicht mehr über die Fahrradstraße führte. SKIP_ROUTES=1 lässt sie aus — für
+# den Fall, dass BRouter nicht antwortet und es trotzdem hinaus muss.
+if [ -z "${SKIP_ROUTES:-}" ]; then
+  ./dev routes || { echo "Referenzrouten rot — nichts hochgeladen. (Bewusst trotzdem: SKIP_ROUTES=1)" >&2; false; }
+fi
 if [ -z "${SKIP_TESTS:-}" ]; then
   xcodebuild -project RadPendler.xcodeproj -scheme RadPendler \
     -destination 'platform=iOS Simulator,name=iPhone 18 Pro' test 2>&1 | grep -E "error:|Executed [0-9]+ tests|TEST (SUCC|FAIL)" | tail -3

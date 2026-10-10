@@ -12,6 +12,13 @@ Anfragen einer Planung (`RequestSpy`, `BikeLiveTests.testWhatAPlanAsksTheNetwork
 | Rad, gleich noch einmal | 7,0 s, 1 Anfrage, keine Ampeln | 4,0 s, 0 neue Anfragen |
 | Rad, nächster Start der App | wie der erste | 0,2 s, 0 Anfragen, Ampeln da |
 
+- **Referenzrouten** (`./dev routes`, Skill `/referenzrouten`): die Planung dieser Fassung auf
+  bekannten Strecken, frisch gegen BRouter, gegen das, was dort gelten muss — „optimal“ über die
+  Fahrradstraße (Rathaus Steglitz ↔ Berlin Hbf über die Prinzregentenstraße, Pinneberg → Hamburg,
+  München Pasing → Ostbahnhof, dazu lokal der eigene Arbeitsweg in beiden Richtungen), keine Linie
+  mit mehr als ein paar Metern Kopfsteinpflaster. `./dev testflight` läuft sie als Erstes und lädt
+  bei Rot nichts hoch. Die Linien kennen dafür ihre Meter auf Kopfsteinpflaster
+  (`StreetRoute.cobbleMeters`).
 - **Der Zwischenspeicher für Ampeln und Hauptstraßen traf fast nie.** Der Schlauch um die Routen
   wurde auf Stützpunkte im Abstand von bis zu 300 m ausgedünnt; „deckt er diese Strecke?“ verlangt
   aber einen Stützpunkt im Umkreis von 150 m. Ein Schlauch deckte so nicht einmal die Strecke, für

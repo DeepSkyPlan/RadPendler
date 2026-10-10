@@ -34,9 +34,29 @@ case "${1:-test}" in
     command -v swiftlint >/dev/null || { echo "swiftlint fehlt: https://github.com/realm/SwiftLint/releases (portable_swiftlint.zip nach ~/.local/bin)" >&2; exit 127; }
     if [ "${2:-}" = baseline ]; then swiftlint lint --quiet --write-baseline .swiftlint-baseline.json || true
     else swiftlint lint --quiet --strict --baseline .swiftlint-baseline.json; fi ;;
+  # Referenzrouten: die Planung dieser Fassung auf bekannten Strecken, gegen
+  # das, was dort gelten muss (Arbeitsweg über die Fahrradstraße, nirgends
+  # Kopfsteinpflaster). Fragt BRouter wirklich, rund eine Minute. Die
+  # öffentlichen Strecken stehen in RadPendlerTests/Fixtures/referenzrouten.json,
+  # die eigene in ~/.config/radpendler/referenzrouten.json — nie im Repository.
+  routes)
+    need_project
+    PRIVATE="$HOME/.config/radpendler/referenzrouten.json"
+    [ -r "$PRIVATE" ] || echo "Hinweis: $PRIVATE fehlt — nur die öffentlichen Strecken werden geprüft." >&2
+    LOG=$(mktemp)
+    TEST_RUNNER_REF_ROUTES=1 TEST_RUNNER_REF_PRIVATE="$PRIVATE" \
+      xcodebuild -project "$PROJ" -scheme "$SCHEME" -destination "$DEST" test \
+      -only-testing:RadPendlerTests/ReferenceRouteTests/testReferenceRoutes > "$LOG" 2>&1 || true
+    grep -E '^REF' "$LOG" || true
+    grep -E 'error: -\[' "$LOG" | sed -E 's/.*testReferenceRoutes\] : /✗ /' || true
+    if grep -q '\*\* TEST SUCCEEDED \*\*' "$LOG" && grep -q '^REF' "$LOG"; then
+      rm -f "$LOG"; echo "Referenzrouten: in Ordnung."
+    else
+      echo "Referenzrouten: NICHT in Ordnung (Protokoll: $LOG)." >&2; exit 1
+    fi ;;
   # Was CI tut, in derselben Reihenfolge.
   check)  "$0" lint && "$0" test ;;
   # Nur auf Ansage: Buildnummer +1, Tests, Archiv, Upload, Commit, Push.
   testflight) shift; exec tools/testflight.sh "$@" ;;
-  *) echo "usage: ./dev [generate|build|test|lint [baseline]|check|open|clean|testflight [version]]" >&2; exit 2 ;;
+  *) echo "usage: ./dev [generate|build|test|lint [baseline]|check|routes|open|clean|testflight [version]]" >&2; exit 2 ;;
 esac
