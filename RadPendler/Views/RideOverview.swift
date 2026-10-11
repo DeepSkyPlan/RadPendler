@@ -20,7 +20,6 @@ struct RideOverview: View {
         } label: {
             if collapsed { button } else { map }
         }
-        .buttonStyle(.plain)
         .accessibilityLabel(collapsed ? L("Übersichtskarte ausklappen") : L("Übersichtskarte einklappen"))
         .accessibilityHint(L("Übersichtskarte: die ganze Route und wo du bist"))
     }
@@ -31,6 +30,7 @@ struct RideOverview: View {
             .foregroundStyle(Theme.accent)
             .frame(width: 36, height: 36)
             .background(.regularMaterial, in: Circle())
+            .contentShape(Circle())
     }
 
     private var map: some View {

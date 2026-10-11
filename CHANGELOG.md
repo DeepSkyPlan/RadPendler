@@ -26,12 +26,16 @@
   mein Ort nicht zur Abfahrt passt“). Steht man beim Tipp mehr als 400 m vom eingetragenen Start und
   mehr als 200 m neben der Linie, wird der Start auf den Standort gesetzt und neu geplant; eine
   orange Zeile sagt es, der zweite Tipp startet (`RideTracker.startsElsewhere`). Nur mit einer
-  Ortung der letzten 15 Sekunden. Auf der Linie unterwegs ändert sich nichts. Nicht am Gerät
-  geprüft (Prüfliste o9).
+  Ortung der letzten 15 Sekunden. Auf der Linie unterwegs ändert sich nichts. Im Simulator
+  gesehen (1,3 km neben dem Start: Zeile erscheint, Start wird der Standort, zweiter Tipp startet);
+  am Gerät offen (Prüfliste o9).
 - **Übersichtskarte auf dem Fahrtbildschirm**, unten links über den Zahlen: die ganze Route nach
   Norden, Ziel rot, Fahrer grün. Ein Tipp klappt sie zu einem Knopf ein und wieder aus; die Wahl
-  bleibt (`RideOverview`). Gebaut und im Test der Ausschnitt geprüft — **auf dem Bildschirm noch
-  nicht gesehen und die CPU nicht gemessen** (Prüfliste o10).
+  bleibt (`RideOverview`). Im Simulator gesehen, quer: ein- und ausgeklappt, die Wahl übersteht den
+  Neustart; CPU der App mit offener Karte bei einer Ortung je Sekunde im Mittel 2,7 %. Hochkant
+  und am Gerät offen (Prüfliste o10).
+- Gesehen wurde beides mit `simweb` — der Simulator im Browser, neu unter `~/.config/simweb/`
+  (Starter `simweb radpendler`).
 : jedes Feld aus `appstore/metadata.md` als Datei, deutsch und
   englisch, die Screenshots daneben, ein Zip — und ein Abbruch, wenn ein Feld über seiner Grenze
   liegt. Die deutsche Beschreibung stand seit dem 08.10. bei 4094 von 4000 Zeichen; gekürzt auf 3998.
