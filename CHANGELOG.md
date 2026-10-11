@@ -9,6 +9,19 @@
   sobald die Daten da sind, rechnet der Plan auf dem Bildschirm Rad und Auto nach
   (`PlanModel.roadDataArrived`, `TripPlanner.withRoadData`) — aus dem Zwischenspeicher, ohne neue
   Anfragen, und ohne Fahrplan und Regen noch einmal zu holen. Nicht am Gerät geprüft.
+- **Auto: keine Vorschläge mehr zurück zum Abfahrtsort** (Nutzer, 11.10.2026: „wieder mehrfach
+  Routenvorschläge als Geisterfahrer auf Autobahn/Landstraße“). Die geteilte Fahrt zeigt: die Linie
+  lief andersherum als die Fahrt — Namen in der neuen Richtung, Linie noch in der alten. 13 Minuten
+  fuhr die Fahrt auf ihr zurück; ab der ersten Abweichung plante jede Neuplanung zum Ende der Linie,
+  also zum Abfahrtsort (fünfmal übernommen, achtmal als Wende verworfen). Zwei Ursachen, beide behoben:
+  - Nach „Richtung tauschen“ blieb der alte Plan stehen, bis der neue da war; ein Tipp auf „Fahrt“ in
+    dieser Lücke nahm die Linie der Gegenrichtung mit. Jetzt verschwindet der Plan sofort, wenn ein
+    Ende mehr als 150 m woanders liegt (`PlanModel.isAnotherTrip`).
+  - Die Prüfung „am Ziel losgefahren“ sah nur die 400 m ums Ziel. Die Aufzeichnung begann aber 2 km
+    dahinter, schon im Rollen. Jetzt dreht sich die Fahrt auch um, wenn sie 20 Ortungen am Stück auf
+    der Linie gegen deren Richtung fährt (`RideTracker.noticeWrongWay`, `OffRoute.against`) — auf
+    dieser Fahrt nachgestellt: nach 95 Sekunden, eine Viertelstunde vor der ersten Neuplanung.
+  Nicht am Gerät geprüft (Prüfliste o7, o8).
 - **Store-Paket** (`./dev store`): jedes Feld aus `appstore/metadata.md` als Datei, deutsch und
   englisch, die Screenshots daneben, ein Zip — und ein Abbruch, wenn ein Feld über seiner Grenze
   liegt. Die deutsche Beschreibung stand seit dem 08.10. bei 4094 von 4000 Zeichen; gekürzt auf 3998.

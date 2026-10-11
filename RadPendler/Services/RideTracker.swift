@@ -100,9 +100,9 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// The store the finished ride goes to; injected so tests can leave it out.
     private let store: RideStore
 
-    init(store: RideStore = .shared) {
+    init(store: RideStore = .shared, replanner custom: Replanner? = nil) {
         self.store = store
-        replanner = Replanner()
+        replanner = custom ?? Replanner()
         super.init()
         replanner.log = { [weak self] kind, note, at in self?.log(kind, note, at: at) }
         replanner.isActive = { [weak self] in self?.isRecording ?? false }
@@ -349,6 +349,8 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         events = []
         lastPoorFixLog = .distantPast
         directionChecked = false
+        turned = false
+        againstFixes = 0
         log("start", "\(subject.mode), Profil \(plan.bikeProfile.rawValue), Pflaster meiden \(plan.avoidCobbles ? "an" : "aus"), "
             + "\(plan.via.count) Fixpunkte, Route \(Int(TurnGuide.cumulative(plannedRoute).last ?? 0)) m, "
             + "Neuplanung ab \(Int(plan.replanOffRouteMeters)) m, App \(RideMeter.appVersion ?? "?")",
@@ -619,7 +621,9 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
             if let a = plannedRoute.first, let b = plannedRoute.last {
                 log("richtung", "\(Int(here.distance(to: a))) m vom Start, \(Int(here.distance(to: b))) m vom Ziel, ±\(Int(first.accuracy)) m", at: here)
             }
-            if Self.startsAtEnd(here, route: plannedRoute) { turnAround(at: here) }
+            if Self.startsAtEnd(here, route: plannedRoute) {
+                turnAround(at: here, why: "am Ziel losgefahren — Richtung gedreht")
+            }
         }
         for fix in fixes { meter.add(fix) }
         if let poor = fixes.last(where: { $0.accuracy < 0 || $0.accuracy > RideMeter.maxAccuracy }),
@@ -646,6 +650,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
             // Neuplanung von einem Ort, an dem niemand war (Fahrt 30.09.2026).
             if last.accuracy >= 0, last.accuracy <= RideMeter.maxAccuracy {
                 replanner.update(at: last.coordinate, course: course)
+                noticeWrongWay(last, course: courses.last ?? -1)
             }
         }
         // The receiver only reports a course while it is sure of one. Standing
@@ -725,10 +730,47 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
     /// So genau muss die Ortung für diese Frage sein — die Hälfte der Grenze.
     static let directionAccuracy = 200.0
 
+    /// Wie viele Ortungen in Folge gegen die Linie liefen, und ob die Fahrt
+    /// schon einmal gedreht wurde — ein zweites Mal gibt es nicht.
+    private var againstFixes = 0
+    private var turned = false
+    /// So viele Ortungen am Stück gegen die Linie heißen: die Linie liegt
+    /// verkehrt herum. Eine Wende auf der Straße dauert kürzer.
+    static let againstLimit = 20
+    /// Darunter ist der Kurs des Empfängers geraten.
+    static let againstSpeed = 3.0
+
+    /// Auf der Linie, aber gegen sie — und nicht am Ziel losgefahren, sondern
+    /// schon unterwegs, als die Aufzeichnung begann (Fahrt 11.10.2026: 2 km
+    /// hinter dem Ziel der Linie gestartet, 13 Minuten auf ihr zurück, dann
+    /// plante jede Neuplanung zum Abfahrtsort). Die Prüfung beim ersten Fix
+    /// sieht das nicht, sie fragt nur nach den 400 m ums Ziel. Nur auf der
+    /// Linie vom Start: eine neu geplante beginnt hier und zeigt nach vorn.
+    private func noticeWrongWay(_ fix: RideMeter.Fix, course: CLLocationDirection) {
+        guard !turned, replanner.replans == 0, detour == nil,
+              let a = plannedRoute.first, let b = plannedRoute.last,
+              a.distance(to: b) >= Self.minEndMeters * 3 else {
+            againstFixes = 0
+            return
+        }
+        // Im Stehen sagt der Empfänger nichts über die Richtung; gezählt
+        // wird weiter, wenn es wieder rollt.
+        guard course >= 0, fix.speed >= Self.againstSpeed else { return }
+        guard OffRoute.against(course: course, at: fix.coordinate, on: plannedRoute) else {
+            againstFixes = 0
+            return
+        }
+        againstFixes += 1
+        if againstFixes >= Self.againstLimit {
+            turnAround(at: fix.coordinate, why: "fährt gegen die Linie — Richtung gedreht")
+        }
+    }
+
     /// Dreht die Fahrt um: Anlass, Linie, Abbiegungen, Ampeln, Beläge — und
     /// plant den Weg zum bisherigen Start neu, auch wenn die Neuplanung
     /// unterwegs abgeschaltet ist; die umgedrehte Linie ist nur ein Behelf.
-    private func turnAround(at here: CLLocationCoordinate2D) {
+    private func turnAround(at here: CLLocationCoordinate2D, why: String) {
+        turned = true
         if var s = subject {
             (s.origin, s.destination) = (s.destination, s.origin)
             subject = s
@@ -744,7 +786,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         roadPoints.reverse()
         meter.roadPoints = roadPoints
         meter.plannedLine = originalRoute
-        log("verkehrt", "am Ziel losgefahren — Richtung gedreht", at: here)
+        log("verkehrt", why, at: here)
         replanner.replan(from: here, course: course)
     }
 

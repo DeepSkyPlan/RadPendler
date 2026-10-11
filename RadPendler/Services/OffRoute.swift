@@ -98,6 +98,36 @@ enum OffRoute {
                    bearing: TurnGuide.bearing(from: here, to: point), nearest: point)
     }
 
+    /// Ob man **auf** der Linie fährt, aber gegen ihre Richtung: jedes Stück
+    /// in Reichweite zeigt dem Kurs entgegen, keines mit ihm. „Keines mit
+    /// ihm" ist die Ausnahme für den Stich, den eine Linie hin und zurück
+    /// fährt — dort liegen beide Richtungen übereinander, und der Rückweg ist
+    /// nicht verkehrt.
+    static func against(course: CLLocationDirection, at here: CLLocationCoordinate2D,
+                        on route: [CLLocationCoordinate2D]) -> Bool {
+        guard course >= 0, route.count >= 2 else { return false }
+        let flat = Flat(latitude: here.latitude)
+        let p = flat.point(here)
+        var opposed = false
+        for (a, b) in zip(route, route.dropFirst()) {
+            let pa = flat.point(a), pb = flat.point(b)
+            let ab = pb - pa
+            let len2 = simd_length_squared(ab)
+            guard len2 > 0 else { continue }
+            let t = Swift.max(0, Swift.min(1, simd_dot(p - pa, ab) / len2))
+            guard simd_length(p - (pa + ab * t)) <= backOnMeters else { continue }
+            let diff = abs((TurnGuide.bearing(from: a, to: b) - course + 540)
+                .truncatingRemainder(dividingBy: 360) - 180)
+            if diff < 90 { return false }
+            if diff > againstDegrees { opposed = true }
+        }
+        return opposed
+    }
+
+    /// Ab so vielen Grad zwischen Kurs und Linie gilt „entgegen". Weniger
+    /// wäre eine Querstraße, die die Linie kreuzt.
+    static let againstDegrees = 150.0
+
     /// Ob man (noch) als abgewichen gilt. Mit Hysterese — hinein ab
     /// `offMeters`, heraus erst unter `backOnMeters`.
     static func isOff(_ meters: Double, was: Bool) -> Bool {

@@ -159,6 +159,73 @@ final class RideTrackerTests: XCTestCase {
         XCTAssertNil(tracker.here)
     }
 
+    // MARK: Gegen die Linie
+
+    /// Fahrt 11.10.2026: die Aufzeichnung begann unterwegs, weit vom Ziel der
+    /// Linie, und die Fahrt lief auf ihr zurück. Nach zwanzig Ortungen gegen
+    /// die Linie dreht sich die Fahrt um — einmal, und nicht wieder zurück.
+    func testDrivingAlongTheLineAgainstItTurnsTheRideAround() {
+        let tracker = RideTracker(store: store, replanner: Replanner(router: DeadRouter(), signalsAlong: { _ in [] }))
+        tracker.authorization = { .authorizedWhenInUse }
+        tracker.start(RidePlan(subject: .init(origin: "A", destination: "B", mode: TravelMode.car.rawValue),
+                               signals: [], route: [east(0), east(5_000)]))
+        let t0 = Date.now.addingTimeInterval(-60)
+        func drive(_ seconds: ClosedRange<Int>) {
+            for second in seconds {
+                tracker.accept([RideMeter.Fix(coordinate: east(3_000 - Double(second) * 15),
+                                              time: t0.addingTimeInterval(Double(second)), speed: 15)], [270])
+            }
+        }
+        drive(0...18)
+        XCTAssertEqual(tracker.subject?.destination, "B", "eine Wende auf der Straße dauert kürzer")
+        drive(19...40)
+        XCTAssertEqual(tracker.subject?.destination, "A")
+        XCTAssertEqual(tracker.plannedRoute.first?.longitude, east(5_000).longitude)
+        XCTAssertEqual(tracker.plannedRoute.last?.longitude, east(0).longitude)
+        tracker.stop()
+    }
+
+    func testDrivingWithTheLineTurnsNothing() {
+        let tracker = RideTracker(store: store, replanner: Replanner(router: DeadRouter(), signalsAlong: { _ in [] }))
+        tracker.authorization = { .authorizedWhenInUse }
+        tracker.start(RidePlan(subject: .init(origin: "A", destination: "B", mode: TravelMode.car.rawValue),
+                               signals: [], route: [east(0), east(5_000)]))
+        let t0 = Date.now.addingTimeInterval(-60)
+        for second in 0...40 {
+            tracker.accept([RideMeter.Fix(coordinate: east(1_000 + Double(second) * 15),
+                                          time: t0.addingTimeInterval(Double(second)), speed: 15)], [90])
+        }
+        XCTAssertEqual(tracker.subject?.destination, "B")
+        tracker.stop()
+    }
+
+    /// Gegen die Linie heißt: kein Stück in Reichweite zeigt mit dem Kurs.
+    func testAgainstTheLineIsNotACrossingOrTheWayBackOnASpur() {
+        let line = [east(0), east(2_000)]
+        XCTAssertTrue(OffRoute.against(course: 270, at: east(1_000), on: line))
+        XCTAssertFalse(OffRoute.against(course: 90, at: east(1_000), on: line))
+        XCTAssertFalse(OffRoute.against(course: 0, at: east(1_000), on: line), "eine Querstraße")
+        XCTAssertFalse(OffRoute.against(course: -1, at: east(1_000), on: line), "kein Kurs, keine Auskunft")
+        XCTAssertFalse(OffRoute.against(course: 270, at: east(1_000), on: line + [east(0)]),
+                       "hin und zurück auf derselben Straße")
+        let north = CLLocationCoordinate2D(latitude: base.latitude + 0.002, longitude: east(1_000).longitude)
+        XCTAssertFalse(OffRoute.against(course: 270, at: north, on: line), "220 m daneben ist nicht auf der Linie")
+    }
+
+    /// Fahrt 11.10.2026: Richtung getauscht, „Fahrt“ getippt, bevor der neue
+    /// Plan da war — die Linie der Gegenrichtung fuhr mit.
+    func testSwappedEndsAreAnotherTripAndTheSamePlaceRelocatedIsNot() {
+        let a = Place(name: "A", latitude: 52.5210, longitude: 13.4130)
+        let b = Place(name: "B", latitude: 52.4213, longitude: 13.1794)
+        let nearA = Place(name: "Mein Standort", latitude: 52.5212, longitude: 13.4133)
+        func request(_ from: Place, _ to: Place) -> PlanRequest {
+            PlanRequest(origin: from, destination: to, target: .departAfter(.now), settings: PlanSettings())
+        }
+        XCTAssertTrue(PlanModel.isAnotherTrip(request(a, b), request(b, a)))
+        XCTAssertFalse(PlanModel.isAnotherTrip(request(a, b), request(a, b)))
+        XCTAssertFalse(PlanModel.isAnotherTrip(request(a, b), request(nearA, b)))
+    }
+
     // MARK: Von Anfang bis Ende
 
     /// Drei Minuten mit 5 m/s nach Osten: die Fahrt liegt danach in der Liste,

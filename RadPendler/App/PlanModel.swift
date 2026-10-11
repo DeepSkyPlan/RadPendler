@@ -171,6 +171,16 @@ final class PlanModel {
         }
     }
 
+    /// Ob die neue Frage eine andere Strecke meint als die alte: ein Ende
+    /// liegt woanders. Derselbe Ort, neu geortet, ist keine andere Strecke.
+    static func isAnotherTrip(_ old: PlanRequest, _ new: PlanRequest) -> Bool {
+        old.origin.coordinate.distance(to: new.origin.coordinate) > samePlaceMeters
+            || old.destination.coordinate.distance(to: new.destination.coordinate) > samePlaceMeters
+    }
+
+    /// Wie bei `AppSettings.role(of:)`: bis dahin ist es derselbe Ort.
+    static let samePlaceMeters = 150.0
+
     /// Stops whatever is in flight. Tapping an address field calls this: a
     /// long-distance search occupies the network and the main thread for
     /// seconds, and waiting for it before one can even type a new destination
@@ -288,6 +298,11 @@ final class PlanModel {
         }
         let req = PlanRequest(origin: origin, destination: destination, target: target,
                               settings: settings.snapshot)
+        // Eine andere Strecke: was noch dasteht, antwortet auf die alte Frage
+        // und darf nicht stehen bleiben, bis die neue Antwort da ist — ein
+        // Tipp auf „Fahrt“ in dieser Lücke nahm die Linie der Gegenrichtung
+        // mit auf den Weg (Fahrt 11.10.2026).
+        if let old = lastRequest, Self.isAnotherTrip(old, req) { result = PlanResult() }
         lastRequest = req
         late?.cancel()
         places = (origin.shortName, destination.shortName)
