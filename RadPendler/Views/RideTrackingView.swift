@@ -71,6 +71,7 @@ struct RideTrackingView: View {
                         banner
                         controls(settings: $settings.rideOrientation)
                         Spacer(minLength: 0)
+                        RideOverview(side: 112)
                     }
                     Spacer(minLength: 0)
                     panel.frame(width: 260)
@@ -81,6 +82,8 @@ struct RideTrackingView: View {
                     banner
                     controls(settings: $settings.rideOrientation)
                     Spacer(minLength: 0)
+                    RideOverview(side: 132)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     panel
                 }
                 .padding(10)

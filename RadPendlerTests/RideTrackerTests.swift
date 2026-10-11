@@ -1,4 +1,5 @@
 import CoreLocation
+import MapKit
 import XCTest
 @testable import RadPendler
 
@@ -224,6 +225,30 @@ final class RideTrackerTests: XCTestCase {
         XCTAssertTrue(PlanModel.isAnotherTrip(request(a, b), request(b, a)))
         XCTAssertFalse(PlanModel.isAnotherTrip(request(a, b), request(a, b)))
         XCTAssertFalse(PlanModel.isAnotherTrip(request(a, b), request(nearA, b)))
+    }
+
+    /// Der Tipp auf „Fahrt“ woanders als am Start: nur wer auch nicht auf
+    /// der Linie steht, bekommt einen neuen Start.
+    func testStartingAwayFromStartAndLineIsElsewhere() {
+        let line = [east(0), east(5_000)]
+        let off = CLLocationCoordinate2D(latitude: base.latitude + 0.01, longitude: east(2_000).longitude)
+        XCTAssertFalse(RideTracker.startsElsewhere(east(100), origin: east(0), route: line), "am Start")
+        XCTAssertFalse(RideTracker.startsElsewhere(east(2_000), origin: east(0), route: line), "unterwegs auf der Linie")
+        XCTAssertTrue(RideTracker.startsElsewhere(off, origin: east(0), route: line), "1,1 km neben der Linie")
+        XCTAssertTrue(RideTracker.startsElsewhere(off, origin: east(0), route: []), "ohne Linie zählt der Start")
+    }
+
+    /// Die Übersichtskarte zeigt die ganze Linie mit Rand, und eine kurze
+    /// nicht als Hauswand.
+    func testTheOverviewFramesTheWholeLine() throws {
+        let rect = try XCTUnwrap(RideOverview.rect(around: [east(0), east(5_000)]))
+        XCTAssertTrue(rect.contains(MKMapPoint(east(0))))
+        XCTAssertTrue(rect.contains(MKMapPoint(east(5_000))))
+        let metres = MKMapPointsPerMeterAtLatitude(base.latitude)
+        XCTAssertGreaterThan(rect.height / metres, 300, "eine Linie ohne Höhe bekommt trotzdem ein Bild")
+        let tiny = try XCTUnwrap(RideOverview.rect(around: [east(0)]))
+        XCTAssertGreaterThan(tiny.width / metres, 300)
+        XCTAssertNil(RideOverview.rect(around: []))
     }
 
     // MARK: Von Anfang bis Ende

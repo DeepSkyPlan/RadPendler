@@ -1497,6 +1497,17 @@
         }
       }
     },
+    "Du stehst nicht am Start — Start auf deinen Standort gesetzt. Gleich noch einmal auf „Fahrt“ tippen.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You're not at the start — start set to your location. Tap “Ride” again in a moment."
+          }
+        }
+      }
+    },
     "Du stehst seit %d Minuten. Die Aufzeichnung läuft weiter, sobald es weitergeht.": {
       "extractionState": "manual",
       "localizations": {
@@ -5200,6 +5211,39 @@
           "stringUnit": {
             "state": "translated",
             "value": "Apply"
+          }
+        }
+      }
+    },
+    "Übersichtskarte ausklappen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expand overview map"
+          }
+        }
+      }
+    },
+    "Übersichtskarte einklappen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collapse overview map"
+          }
+        }
+      }
+    },
+    "Übersichtskarte: die ganze Route und wo du bist": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Overview map: the whole route and where you are"
           }
         }
       }

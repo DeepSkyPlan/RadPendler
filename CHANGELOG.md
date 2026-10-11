@@ -22,7 +22,17 @@
     der Linie gegen deren Richtung fährt (`RideTracker.noticeWrongWay`, `OffRoute.against`) — auf
     dieser Fahrt nachgestellt: nach 95 Sekunden, eine Viertelstunde vor der ersten Neuplanung.
   Nicht am Gerät geprüft (Prüfliste o7, o8).
-- **Store-Paket** (`./dev store`): jedes Feld aus `appstore/metadata.md` als Datei, deutsch und
+- **„Fahrt“ woanders als am Start** (Nutzer, 11.10.2026: „beim Start erkennt er nicht von allein, dass
+  mein Ort nicht zur Abfahrt passt“). Steht man beim Tipp mehr als 400 m vom eingetragenen Start und
+  mehr als 200 m neben der Linie, wird der Start auf den Standort gesetzt und neu geplant; eine
+  orange Zeile sagt es, der zweite Tipp startet (`RideTracker.startsElsewhere`). Nur mit einer
+  Ortung der letzten 15 Sekunden. Auf der Linie unterwegs ändert sich nichts. Nicht am Gerät
+  geprüft (Prüfliste o9).
+- **Übersichtskarte auf dem Fahrtbildschirm**, unten links über den Zahlen: die ganze Route nach
+  Norden, Ziel rot, Fahrer grün. Ein Tipp klappt sie zu einem Knopf ein und wieder aus; die Wahl
+  bleibt (`RideOverview`). Gebaut und im Test der Ausschnitt geprüft — **auf dem Bildschirm noch
+  nicht gesehen und die CPU nicht gemessen** (Prüfliste o10).
+: jedes Feld aus `appstore/metadata.md` als Datei, deutsch und
   englisch, die Screenshots daneben, ein Zip — und ein Abbruch, wenn ein Feld über seiner Grenze
   liegt. Die deutsche Beschreibung stand seit dem 08.10. bei 4094 von 4000 Zeichen; gekürzt auf 3998.
 

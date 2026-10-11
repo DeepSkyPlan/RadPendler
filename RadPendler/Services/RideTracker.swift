@@ -721,6 +721,19 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         return here.distance(to: end) < radius && here.distance(to: start) > radius
     }
 
+    /// Weder am Start noch auf der Linie: der Plan gilt für eine Strecke,
+    /// die so nicht gefahren wird — Zeit, Länge und Ampeln stimmen nicht, und
+    /// hinterher wird gegen sie verglichen. Auf der Linie unterwegs ist
+    /// dagegen nichts verkehrt: wer die Aufzeichnung erst an der Ecke
+    /// startet, fährt denselben Weg. „Auf der Linie" reicht bis dorthin, wo
+    /// die Fahrt ohnehin neu planen würde.
+    nonisolated static func startsElsewhere(_ here: CLLocationCoordinate2D, origin: CLLocationCoordinate2D,
+                                            route: [CLLocationCoordinate2D]) -> Bool {
+        guard here.distance(to: origin) > endMeters else { return false }
+        guard let fix = OffRoute.nearest(to: here, on: route) else { return true }
+        return fix.meters > OffRoute.replanMeters
+    }
+
     /// So nah am Ende heißt „dort losgefahren" — dieselbe Grenze wie beim
     /// Erraten der Pendelrichtung (`AppSettings.commuteDestination`).
     static let endMeters = 400.0

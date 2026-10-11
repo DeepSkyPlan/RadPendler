@@ -317,6 +317,9 @@ struct ContentView: View {
         }
     }
 
+    /// So jung muss die Ortung sein, um den Start zu versetzen.
+    static let freshFix: TimeInterval = 15
+
     /// Der Knopf „Fahrt“. Steht man am **Ziel** der Route statt an ihrem
     /// Start, gilt noch die Richtung vom letzten Mal — morgens geplant, abends
     /// zurück (Fahrt 01.10.2026). Dann wird gedreht und neu geplant statt
@@ -330,8 +333,9 @@ struct ContentView: View {
         checkingStart = true
         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
         Task {
-            let here = await locator.current(within: 3)?.coordinate
-            checkingStart = false
+            defer { checkingStart = false }
+            let fix = await locator.current(within: 3)
+            let here = fix?.coordinate
             if let here, let from = settings.origin?.coordinate, let to = settings.destination?.coordinate,
                RideTracker.startsAtEnd(here, route: [from, to]) {
                 settings.swapDirection()
@@ -339,6 +343,23 @@ struct ContentView: View {
                 refresh()
                 UINotificationFeedbackGenerator().notificationOccurred(.warning)
                 withAnimation { startNote = L("Du stehst am Ziel — Richtung gedreht. Gleich noch einmal auf „Fahrt“ tippen.") }
+                return
+            }
+            // Weder am Start noch auf der Linie: der Plan gilt einer anderen
+            // Strecke. Dann ist der Start hier, und geplant wird neu. Nur mit
+            // einer Ortung von eben — die gespeicherte darf fünf Minuten alt
+            // sein, und im Auto sind das Kilometer.
+            if let fix, abs(fix.timestamp.timeIntervalSinceNow) < Self.freshFix,
+               let from = settings.origin?.coordinate,
+               RideTracker.startsElsewhere(fix.coordinate, origin: from,
+                                           route: RidePlan.route(of: model.options, selected: option.id)) {
+                settings.origin = await locator.place(for: fix)
+                model.applyDefaultWhen(settings: settings)
+                refresh()
+                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                withAnimation {
+                    startNote = L("Du stehst nicht am Start — Start auf deinen Standort gesetzt. Gleich noch einmal auf „Fahrt“ tippen.")
+                }
                 return
             }
             startNote = nil
