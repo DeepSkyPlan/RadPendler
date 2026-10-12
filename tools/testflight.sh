@@ -48,8 +48,8 @@ if [ -z "${SKIP_ROUTES:-}" ]; then
   ./dev routes || { echo "Referenzrouten rot — nichts hochgeladen. (Bewusst trotzdem: SKIP_ROUTES=1)" >&2; false; }
 fi
 if [ -z "${SKIP_TESTS:-}" ]; then
-  xcodebuild -project RadPendler.xcodeproj -scheme RadPendler \
-    -destination 'platform=iOS Simulator,name=iPhone 18 Pro' test 2>&1 | grep -E "error:|Executed [0-9]+ tests|TEST (SUCC|FAIL)" | tail -3
+  tools/run_tests.sh -project RadPendler.xcodeproj -scheme RadPendler \
+    -destination 'platform=iOS Simulator,name=iPhone 18 Pro' 2>&1 | grep -E "error:|Executed [0-9]+ tests|TEST (SUCC|FAIL)" | tail -3
   [ "${PIPESTATUS[0]}" -eq 0 ] || { echo "Tests rot." >&2; false; }
 fi
 

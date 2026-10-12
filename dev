@@ -24,7 +24,8 @@ need_project() { [ -d "$PROJ" ] || generate; }
 case "${1:-test}" in
   generate|gen) generate ;;
   build)  need_project; xcodebuild -project "$PROJ" -scheme "$SCHEME" -destination "$DEST" build ;;
-  test)   need_project; xcodebuild -project "$PROJ" -scheme "$SCHEME" -destination "$DEST" test ;;
+  # Mit Wächter: xcodebuild kehrt nach den Tests nicht immer zurück (tools/run_tests.sh).
+  test)   need_project; tools/run_tests.sh -project "$PROJ" -scheme "$SCHEME" -destination "$DEST" ;;
   open)   need_project; open "$PROJ" ;;
   clean)  rm -rf "$PROJ"; xcodebuild -scheme "$SCHEME" clean 2>/dev/null || true ;;
   # Wenige Regeln, die Fehler finden (.swiftlint.yml). Was es am 07.10.2026 schon
