@@ -1,5 +1,15 @@
 # Changelog
 
+## Unveröffentlicht — Demo-Fahrten für den Simulator
+
+- **`./dev demo [anzahl]`**: baut, installiert und startet die App im Simulator mit erfundenen
+  Fahrten (Vorgabe 18), damit Fahrtenliste, Monatssummen und Heatmap etwas zeigen. Drei Radlinien
+  und eine Autolinie zwischen Alexanderplatz und S Wannsee von den echten Routern, hin und zurück,
+  mit Halten an immer denselben Stellen; ein zweiter Lauf ersetzt die Fahrten. Nur in
+  Debug-Fassungen (`DemoRides`, `#if DEBUG`), in der Store-Fassung nicht enthalten. Anderes Gerät:
+  `DEMO_DEVICE="iPhone 17 Pro" ./dev demo`. Damit im Simulator gesehen: Heatmap mit Kreisen an den
+  Ampeln und der Liste „Wo die Zeit liegen bleibt“ samt Straßennamen.
+
 ## 1.19 (Build 59) — Fahrt: Richtung und Start stimmen, Übersichtskarte; Ampeln kommen nach
 
 - **Der erste Plan wartet kürzer, und die Ampeln kommen von selbst** (Nutzer, 10.10.2026: „erster

@@ -61,7 +61,20 @@ case "${1:-test}" in
   store) python3 tools/store_package.py ;;
   # Was CI tut, in derselben Reihenfolge.
   check)  "$0" lint && "$0" test ;;
+  # Erfundene Fahrten in den Simulator, damit Fahrtenliste und Heatmap etwas
+  # zeigen: baut, installiert und startet die App mit -demoRides (nur Debug,
+  # `DemoRides`). `./dev demo 30` für mehr, DEMO_DEVICE für ein anderes Gerät.
+  demo)
+    need_project
+    DEVICE="${DEMO_DEVICE:-iPhone 18 Pro}"
+    xcodebuild -project "$PROJ" -scheme "$SCHEME" -destination "$DEST" build | grep -E "error|BUILD" || true
+    APP=$(xcodebuild -project "$PROJ" -scheme "$SCHEME" -destination "$DEST" -showBuildSettings 2>/dev/null \
+          | awk -F' = ' '/ BUILT_PRODUCTS_DIR /{d=$2} / FULL_PRODUCT_NAME /{n=$2} END{print d"/"n}')
+    xcrun simctl terminate "$DEVICE" de.keese.radpendler 2>/dev/null || true
+    xcrun simctl install "$DEVICE" "$APP"
+    xcrun simctl launch "$DEVICE" de.keese.radpendler -demoRides "${2:-18}"
+    echo "Demo-Fahrten werden angelegt (ein paar Sekunden, braucht Netz für die Linien)." ;;
   # Nur auf Ansage: Buildnummer +1, Tests, Archiv, Upload, Commit, Push.
   testflight) shift; exec tools/testflight.sh "$@" ;;
-  *) echo "usage: ./dev [generate|build|test|lint [baseline]|check|routes|store|open|clean|testflight [version]]" >&2; exit 2 ;;
+  *) echo "usage: ./dev [generate|build|test|lint [baseline]|check|routes|store|demo [anzahl]|open|clean|testflight [version]]" >&2; exit 2 ;;
 esac

@@ -41,6 +41,10 @@ struct RadPendlerApp: App {
                     // statt sich zweite zu bauen, die dieselben Schlüssel noch
                     // einmal schreiben.
                     BackgroundReplan.live = { settings }
+                    #if DEBUG
+                    // Erfundene Fahrten für den Simulator (`./dev demo`).
+                    if DemoRides.requested > 0 { await DemoRides.seed(into: rides, count: DemoRides.requested) }
+                    #endif
                     // Addresses and preferences travel through iCloud, so the
                     // iPad starts with what the iPhone already knows.
                     CloudStore.shared.onPull = {

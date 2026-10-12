@@ -4,7 +4,7 @@ Multimodaler Pendel-Planer (iPhone, iPad, Watch). SwiftUI, XcodeGen, iOS 17+, `d
 
 **Wiedereinstieg: Kopf von `HANDOVER.md` lesen.** Dort stehen Stand, Build und die offene Prüfliste.
 
-- Einziger Einstieg ist `./dev` (`generate|build|test|lint|check|routes|store|open|clean|testflight`). Kein eigenes
+- Einziger Einstieg ist `./dev` (`generate|build|test|lint|check|routes|store|demo|open|clean|testflight`). Kein eigenes
   `-derivedDataPath` — Xcode und Kommandozeile teilen sich die Standard-DerivedData.
 - Tests: `./dev test` (~350 Tests, rund 10 s). `MOTIS_LIVE=1` schaltet den echten Transitous-Aufruf zu.
 - Referenzrouten: `./dev routes` (Skill `/referenzrouten`) — die Radplanung dieser Fassung auf bekannten
@@ -15,6 +15,8 @@ Multimodaler Pendel-Planer (iPhone, iPad, Watch). SwiftUI, XcodeGen, iOS 17+, `d
 - Store-Paket: `./dev store` baut aus `appstore/metadata.md` `build/appstore-<version>/` und ein Zip
   (jedes Feld als Datei, DE und EN, Screenshots, Prüfhinweis) und bricht ab, wenn ein Feld über seiner
   Grenze liegt. Lädt nichts hoch. Die Texte werden nur in `metadata.md` geändert.
+- Leerer Simulator: `./dev demo [anzahl]` legt erfundene Fahrten an (nur Debug, `DemoRides`), damit
+  Fahrtenliste und Heatmap etwas zeigen; `DEMO_DEVICE="…"` wählt das Gerät. Ansehen mit `simweb radpendler`.
 - Ausliefern nur auf Ansage: `./dev testflight [version]` bzw. Skill `/testflight`.
 - Was nur auf dem Gerät prüfbar ist (Ortung, Hintergrund, iCloud, Töne, Uhr): abhakbare Liste
   `tools/pruefliste.html`, veröffentlicht unter <https://claude.ai/artifact/1cPcVH6bKB63rFqTYmGCLk>
