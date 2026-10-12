@@ -2,8 +2,14 @@
 
 ## Unveröffentlicht — Demo-Fahrten für den Simulator
 
-- **Heatmap: Strecken von grau (einmal) über blau (öfter) zu grün (meist)** statt blau, orange, rot
-  (Nutzer, 12.10.2026). Rot und Orange gehören damit allein den Ampeln.
+- **Heatmap: die Strecke als rote Punktwolke, deren Dichte steigt** (Nutzer, 12.10.2026: drei
+  Linienstärken „zu undifferenziert“). Je Ort ein Punkt, umso kräftiger, je mehr Fahrten dort
+  durchgingen — stufenlos, logarithmisch und gemessen am dichtesten Punkt der Karte
+  (`RideHeat.strength`), damit nach einem Jahr Pendeln nicht alles gleich rot ist. Vier Auflösungen
+  (12, 48, 192, 768 m), die Karte nimmt je Maßstab die feinste, deren Punkte sich noch nicht
+  überdecken (`HeatMap.CloudRenderer`). Die Ampeln bleiben, wie sie waren. Im Simulator mit den
+  Demo-Fahrten gesehen, in der Übersicht und eine Stufe hineingezoomt; ganz nah und mit vielen
+  echten Fahrten nicht.
 - **`./dev demo [anzahl]`**: baut, installiert und startet die App im Simulator mit erfundenen
   Fahrten (Vorgabe 18), damit Fahrtenliste, Monatssummen und Heatmap etwas zeigen. Drei Radlinien
   und eine Autolinie zwischen Alexanderplatz und S Wannsee von den echten Routern, hin und zurück,

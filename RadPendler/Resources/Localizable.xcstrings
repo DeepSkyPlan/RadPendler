@@ -4434,17 +4434,6 @@
         }
       }
     },
-    "einmal": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "once"
-          }
-        }
-      }
-    },
     "fertig machen %@": {
       "extractionState": "manual",
       "localizations": {
@@ -4819,17 +4808,6 @@
         }
       }
     },
-    "meist": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "most often"
-          }
-        }
-      }
-    },
     "nach deinem Auto-Schnitt von %@": {
       "extractionState": "manual",
       "localizations": {
@@ -4951,6 +4929,17 @@
         }
       }
     },
+    "oft": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "often"
+          }
+        }
+      }
+    },
     "ohne Fixpunkte": {
       "extractionState": "manual",
       "localizations": {
@@ -5046,6 +5035,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "for %@"
+          }
+        }
+      }
+    },
+    "selten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "rarely"
           }
         }
       }
@@ -5420,17 +5420,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Overview map: the whole route and where you are"
-          }
-        }
-      }
-    },
-    "öfter": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "repeatedly"
           }
         }
       }

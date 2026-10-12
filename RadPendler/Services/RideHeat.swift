@@ -1,8 +1,8 @@
 import CoreLocation
 import Foundation
 
-/// Alle Fahrten übereinander: welche Straßen wie oft gefahren wurden, und an
-/// welchen Ampeln wie lange gestanden wurde.
+/// Alle Fahrten übereinander: eine Punktwolke, die dort dicht wird, wo oft
+/// gefahren wurde, und die Ampeln, an denen gestanden wurde.
 ///
 /// Eine einzelne Fahrt sagt, wie dieser Tag war. Erst alle zusammen zeigen
 /// den Weg, den man wirklich fährt — und die drei Ampeln, an denen die
@@ -11,15 +11,22 @@ import Foundation
 ///
 /// Rein und ohne Karte, damit es ohne Fahrt zu prüfen ist.
 struct RideHeat {
-    /// Ein Stück Linie, das in einem Zug gezeichnet wird: gleiche Häufigkeit
-    /// von Anfang bis Ende.
-    struct Run {
-        var level: Level
-        var coordinates: [CLLocationCoordinate2D]
+    /// Ein Punkt der Wolke: wo gefahren wurde und von wie vielen Fahrten.
+    struct Dot {
+        var coordinate: CLLocationCoordinate2D
+        var rides: Int
     }
 
-    /// Drei Stufen reichen: mehr unterscheidet auf einer Karte niemand.
-    enum Level: Int, CaseIterable { case once, often, most }
+    /// Die Wolke in einer Auflösung. Aus der Nähe sieht man jede Spur, von
+    /// weitem die Stadt — und eine Karte, die für beides dieselben Punkte
+    /// zeichnet, ist aus der Nähe leer oder von weitem ein roter Balken.
+    struct Layer {
+        /// Kantenlänge der Zellen, in Metern.
+        var meters: Double
+        var dots: [Dot]
+        /// So viele Fahrten liegen im dichtesten Punkt.
+        var most: Int
+    }
 
     /// Eine Ampel, wie die Fahrten sie erlebt haben.
     struct Signal: Identifiable {
@@ -34,17 +41,17 @@ struct RideHeat {
         var mean: TimeInterval { stops > 0 ? total / Double(stops) : 0 }
     }
 
-    var runs: [Run] = []
+    /// Die feinste Auflösung zuerst.
+    var layers: [Layer] = []
     /// Die Ampeln, die mit der meisten Wartezeit zuerst.
     var signals: [Signal] = []
     /// Wie viele Fahrten eine Linie beigetragen haben.
     var rides = 0
-    /// So viele Fahrten liegen auf dem meistgefahrenen Stück.
-    var most = 0
 
-    /// Kantenlänge einer Zelle: so nah beieinander ist es dieselbe Straße.
-    /// Breiter als die Ungenauigkeit der Ortung, schmaler als ein Häuserblock.
-    static let cellMeters = 30.0
+    /// Die Zellgrößen der Wolke. Die feinste liegt bei der Ungenauigkeit der
+    /// Ortung: zwei Fahrten auf derselben Spur treffen dieselbe Zelle, die
+    /// Gegenfahrbahn eine andere.
+    static let layerMeters = [12.0, 48, 192, 768]
     /// Halte näher beieinander als das gehören zu derselben Ampel — auch der
     /// von der Gegenseite der Kreuzung.
     static let signalMeters = 45.0
@@ -54,70 +61,62 @@ struct RideHeat {
         var y: Int32
     }
 
-    private struct Edge: Hashable {
-        var a: Cell
-        var b: Cell
-
-        init(_ a: Cell, _ b: Cell) {
-            // Hin und zurück ist dieselbe Straße.
-            if a.x < b.x || (a.x == b.x && a.y <= b.y) { (self.a, self.b) = (a, b) } else { (self.a, self.b) = (b, a) }
-        }
-    }
-
     static func build(_ tracks: [RideTrack]) -> RideHeat {
         // Je Fahrt ihre Stücke, in gleichmäßigen Schritten: der Empfänger
         // liefert einen Punkt je Sekunde, und das sind auf der Autobahn
         // vierzig Meter — zwei Fahrten über dieselbe Straße träfen sonst
         // selten dieselbe Zelle.
-        let rides = tracks.map { resampled($0.coordinates) }.filter { !$0.isEmpty }
-        guard let anchor = rides.first?.first?.first else {
+        let rides = tracks.map { Array(resampled($0.coordinates).joined()) }.filter { !$0.isEmpty }
+        guard let anchor = rides.first?.first else {
             return RideHeat(signals: waits(in: tracks))
         }
-        // Ein Gitter in Grad, an der ersten Fahrt ausgerichtet: über eine
-        // Stadt hinweg ändert sich die Breite eines Längengrads kaum.
-        let dy = cellMeters / 111_320
-        let dx = cellMeters / (111_320 * Swift.max(0.2, cos(anchor.latitude * .pi / 180)))
-        func cell(_ c: CLLocationCoordinate2D) -> Cell {
-            Cell(x: Int32((c.longitude / dx).rounded(.down)), y: Int32((c.latitude / dy).rounded(.down)))
-        }
-        // Erst zählen: je Zelle, wie viele **Fahrten** hindurchgingen — nicht
-        // wie viele Punkte, sonst zählte eine rote Ampel wie zehn Fahrten.
-        var count: [Cell: Int] = [:]
-        for pieces in rides {
-            for c in Set(pieces.joined().map(cell)) { count[c, default: 0] += 1 }
-        }
-        let most = count.values.max() ?? 0
-        // Dann zeichnen: jedes Stück Straße einmal, in Zügen gleicher Stufe.
-        var drawn = Set<Edge>()
-        var runs: [Run] = []
-        for line in rides.joined() {
-            var run: Run?
-            func close() {
-                if let r = run, r.coordinates.count > 1 { runs.append(r) }
-                run = nil
-            }
-            for (from, to) in zip(line, line.dropFirst()) {
-                let (a, b) = (cell(from), cell(to))
-                // Innerhalb einer Zelle ist nichts zu zeichnen; der Zug läuft weiter.
-                if a == b { continue }
-                guard drawn.insert(Edge(a, b)).inserted else {
-                    close()
-                    continue
-                }
-                let l = level(Swift.min(count[a] ?? 0, count[b] ?? 0), most: most)
-                if run?.level == l { run?.coordinates.append(to) } else {
-                    close()
-                    run = Run(level: l, coordinates: [from, to])
+        let layers = layerMeters.map { meters -> Layer in
+            // Ein Gitter in Grad, an der ersten Fahrt ausgerichtet: über eine
+            // Stadt hinweg ändert sich die Breite eines Längengrads kaum.
+            let dy = meters / 111_320
+            let dx = meters / (111_320 * Swift.max(0.2, cos(anchor.latitude * .pi / 180)))
+            // Je Zelle, wie viele **Fahrten** hindurchgingen — nicht wie viele
+            // Punkte, sonst zählte eine rote Ampel wie zehn Fahrten. Und wo
+            // in der Zelle: die Mitte dessen, was dort gefahren wurde, nicht
+            // die Mitte des Gitters, sonst läge die Wolke im Karomuster.
+            var sum: [Cell: (lat: Double, lon: Double, points: Int, rides: Int)] = [:]
+            for line in rides {
+                var seen = Set<Cell>()
+                for c in line {
+                    let cell = Cell(x: Int32((c.longitude / dx).rounded(.down)), y: Int32((c.latitude / dy).rounded(.down)))
+                    var s = sum[cell] ?? (0, 0, 0, 0)
+                    s.lat += c.latitude
+                    s.lon += c.longitude
+                    s.points += 1
+                    if seen.insert(cell).inserted { s.rides += 1 }
+                    sum[cell] = s
                 }
             }
-            close()
+            let dots = sum.values.map {
+                Dot(coordinate: CLLocationCoordinate2D(latitude: $0.lat / Double($0.points),
+                                                       longitude: $0.lon / Double($0.points)), rides: $0.rides)
+            }
+            return Layer(meters: meters, dots: dots, most: dots.map(\.rides).max() ?? 0)
         }
-        return RideHeat(runs: runs, signals: waits(in: tracks), rides: rides.count, most: most)
+        return RideHeat(layers: layers, signals: waits(in: tracks), rides: rides.count)
     }
 
+    /// Wie kräftig ein Punkt gezeichnet wird, von 0 bis 1: stufenlos, und
+    /// gemessen am dichtesten Punkt dieser Karte — sonst wäre nach einem Jahr
+    /// Pendeln alles gleich rot. Logarithmisch: der Schritt von einer Fahrt
+    /// zu zweien zählt mehr als der von vierzig zu einundvierzig.
+    static func strength(_ rides: Int, most: Int) -> Double {
+        guard rides > 0 else { return 0 }
+        guard most > 1 else { return 1 }
+        return faintest + (1 - faintest) * log(Double(rides)) / log(Double(most))
+    }
+
+    /// Eine einzelne Fahrt bleibt sichtbar.
+    static let faintest = 0.16
+
     /// So weit auseinander liegen die Punkte, mit denen gerechnet wird — unter
-    /// der Zellgröße, damit keine Zelle übersprungen wird.
-    static let stepMeters = cellMeters / 2
+    /// der feinsten Zellgröße, damit keine Zelle übersprungen wird.
+    static let stepMeters = 6.0
     /// Eine Lücke über dem ist kein Stück Straße, sondern ein Tunnel oder ein
     /// Aussetzer: dort wird nichts gezählt und nichts gezeichnet.
     static let gapMeters = 1_000.0
@@ -146,13 +145,6 @@ struct RideHeat {
         }
         if piece.count > 1 { pieces.append(piece) }
         return pieces
-    }
-
-    /// Einmal ist einmal. „Meist" ist die obere Hälfte dessen, was am
-    /// häufigsten gefahren wurde — bei drei Fahrten also schon die zweite.
-    static func level(_ rides: Int, most: Int) -> Level {
-        if rides <= 1 { return .once }
-        return Double(rides) >= Swift.max(2, Double(most) / 2) ? .most : .often
     }
 
     /// Halte an Ampeln, nach Ort zusammengelegt.

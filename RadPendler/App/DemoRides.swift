@@ -72,6 +72,8 @@ enum DemoRides {
         }
     }
 
+    /// So weit streuen die erfundenen Ortungen um die Linie.
+    static let scatterMeters = 7.0
     /// So weit auseinander stehen die erfundenen Ampeln.
     static let signalEvery = 900.0
 
@@ -95,8 +97,11 @@ enum DemoRides {
             let span = cum[segment + 1] - cum[segment]
             let f = span > 0 ? (travelled - cum[segment]) / span : 0
             let (a, b) = (way[segment], way[segment + 1])
-            let here = CLLocationCoordinate2D(latitude: a.latitude + (b.latitude - a.latitude) * f,
-                                              longitude: a.longitude + (b.longitude - a.longitude) * f)
+            // Ein paar Meter Streuung, wie sie ein Empfänger hat: ohne sie
+            // lägen alle Fahrten auf einem Strich, und die Wolke wäre keine.
+            let drift = (dice.next() - 0.5) * 2 * scatterMeters / 111_320
+            let here = CLLocationCoordinate2D(latitude: a.latitude + (b.latitude - a.latitude) * f + drift,
+                                              longitude: a.longitude + (b.longitude - a.longitude) * f + drift * 1.2)
             let fromStart = back ? total - travelled : travelled
             let v = speed * (0.85 + 0.3 * dice.next())
             points.append(RidePoint(lat: here.latitude, lon: here.longitude, t: clock, v: v))

@@ -259,47 +259,54 @@ final class RideTrackerTests: XCTestCase {
         }, stops: stops)
     }
 
-    /// Drei Fahrten über dieselbe Straße, eine davon biegt ab: das gemeinsame
-    /// Stück ist „meist“, der Abzweig „einmal“ — und jedes Stück steht einmal
-    /// da, nicht je Fahrt.
-    func testTheHeatMapCountsRidesPerStreetAndDrawsEachStreetOnce() {
+    /// Drei Fahrten über dieselbe Straße, eine davon biegt ab: auf der Straße
+    /// liegen drei Fahrten je Punkt, auf dem Abzweig eine — gezählt je Fahrt,
+    /// nicht je Ortung, und hin und zurück ist dieselbe Straße.
+    func testTheCloudCountsRidesPerPlace() throws {
         let street = stride(from: 0.0, through: 1_000, by: 10).map { east($0) }
         let branch = stride(from: 0.0, through: 500, by: 10).map {
             CLLocationCoordinate2D(latitude: base.latitude + $0 / 111_320, longitude: east(1_000).longitude)
         }
         let heat = RideHeat.build([track(street), track(street.reversed()), track(street + branch)])
         XCTAssertEqual(heat.rides, 3)
-        XCTAssertEqual(heat.most, 3)
-        func metres(_ level: RideHeat.Level) -> Double {
-            heat.runs.filter { $0.level == level }.reduce(0) { $0 + (TurnGuide.cumulative($1.coordinates).last ?? 0) }
-        }
-        XCTAssertEqual(metres(.most), 1_000, accuracy: 80, "die Straße, einmal gezeichnet — hin, zurück und noch einmal")
-        XCTAssertEqual(metres(.once), 500, accuracy: 80, "der Abzweig")
-        XCTAssertEqual(metres(.often), 0, accuracy: 40)
+        let fine = try XCTUnwrap(heat.layers.first)
+        XCTAssertEqual(fine.most, 3)
+        let onStreet = fine.dots.filter { abs($0.coordinate.latitude - base.latitude) < 0.00002 && $0.coordinate.longitude < east(950).longitude }
+        XCTAssertGreaterThan(onStreet.count, 60, "ein Punkt je Zelle, die ganze Straße entlang")
+        XCTAssertTrue(onStreet.allSatisfy { $0.rides == 3 })
+        let onBranch = fine.dots.filter { $0.coordinate.latitude > base.latitude + 0.0005 }
+        XCTAssertFalse(onBranch.isEmpty)
+        XCTAssertTrue(onBranch.allSatisfy { $0.rides == 1 })
+        // Von weitem dieselbe Wolke mit weniger Punkten.
+        XCTAssertEqual(heat.layers.map(\.meters), RideHeat.layerMeters)
+        XCTAssertLessThan(heat.layers[1].dots.count, fine.dots.count)
     }
 
     /// Im Auto liegt ein Punkt je Sekunde vierzig Meter vom nächsten: zwei
     /// Fahrten über dieselbe Straße müssen sich trotzdem treffen. Und über
-    /// eine Lücke von Kilometern wird keine Linie gezogen.
-    func testFastRidesStillShareTheirStreetAndGapsStayOpen() {
+    /// eine Lücke von Kilometern wird nichts gezählt.
+    func testFastRidesStillShareTheirStreetAndGapsStayOpen() throws {
         let fast = stride(from: 0.0, through: 2_000, by: 40).map { east($0) }
         let offset = stride(from: 17.0, through: 2_000, by: 37).map { east($0) }
-        let heat = RideHeat.build([track(fast), track(offset)])
-        let shared = heat.runs.filter { $0.level == .most }.reduce(0) { $0 + (TurnGuide.cumulative($1.coordinates).last ?? 0) }
-        XCTAssertEqual(shared, 2_000, accuracy: 120)
+        let fine = try XCTUnwrap(RideHeat.build([track(fast), track(offset)]).layers.first)
+        let shared = fine.dots.filter { $0.rides == 2 }.count
+        XCTAssertGreaterThan(Double(shared) / Double(fine.dots.count), 0.95)
         let torn = RideHeat.resampled([east(0), east(300), east(5_000), east(5_300)])
         XCTAssertEqual(torn.count, 2, "vor und hinter dem Tunnel")
         XCTAssertLessThan(torn[0].last!.distance(to: east(300)), RideHeat.stepMeters + 1)
     }
 
-    func testOneRideIsOnceEverywhereAndNoRideIsNothing() {
-        let heat = RideHeat.build([track(stride(from: 0.0, through: 300, by: 10).map { east($0) })])
-        XCTAssertTrue(heat.runs.allSatisfy { $0.level == .once })
-        XCTAssertFalse(heat.runs.isEmpty)
-        XCTAssertTrue(RideHeat.build([]).runs.isEmpty)
-        XCTAssertEqual(RideHeat.level(2, most: 10), .often)
-        XCTAssertEqual(RideHeat.level(5, most: 10), .most)
-        XCTAssertEqual(RideHeat.level(2, most: 3), .most)
+    /// Stufenlos, und gemessen am dichtesten Punkt: eine Fahrt bleibt
+    /// sichtbar, die meisten sind voll, dazwischen steigt es.
+    func testStrengthRisesWithRidesAndIsRelativeToTheBusiest() {
+        XCTAssertEqual(RideHeat.strength(0, most: 10), 0)
+        XCTAssertEqual(RideHeat.strength(1, most: 10), RideHeat.faintest, accuracy: 0.001)
+        XCTAssertEqual(RideHeat.strength(10, most: 10), 1, accuracy: 0.001)
+        XCTAssertEqual(RideHeat.strength(1, most: 1), 1, "eine einzige Fahrt ist die ganze Karte")
+        let steps = (1...10).map { RideHeat.strength($0, most: 10) }
+        XCTAssertEqual(steps, steps.sorted())
+        XCTAssertEqual(Set(steps).count, 10, "zehn Fahrten, zehn Stufen")
+        XCTAssertTrue(RideHeat.build([]).layers.isEmpty)
     }
 
     /// Halte an derselben Kreuzung gehören zusammen, auch von der anderen

@@ -56,7 +56,7 @@ struct RideHeatView: View {
     @ViewBuilder private var map: some View {
         ZStack {
             if let heat {
-                if heat.runs.isEmpty {
+                if heat.layers.first?.dots.isEmpty ?? true {
                     ContentUnavailableView(L("Keine Linien"), systemImage: "map",
                                            description: Text(L("Zu diesen Fahrten liegt auf diesem Gerät keine gefahrene Linie.")))
                 } else {
@@ -78,13 +78,15 @@ struct RideHeatView: View {
 
     private var legend: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 12) {
-                ForEach(RideHeat.Level.allCases, id: \.self) { level in
-                    HStack(spacing: 5) {
-                        Capsule().fill(Color(HeatMap.color(level))).frame(width: 22, height: HeatMap.width(level))
-                        Text(Self.title(level))
-                    }
+            // Die Wolke erklärt sich an fünf Punkten: von einer Fahrt bis zum
+            // dichtesten Stück.
+            HStack(spacing: 5) {
+                Text(L("selten"))
+                ForEach([0.0, 0.25, 0.5, 0.75, 1], id: \.self) { f in
+                    Circle().fill(Color(HeatMap.cloud.withAlphaComponent(RideHeat.faintest + (1 - RideHeat.faintest) * f)))
+                        .frame(width: 10, height: 10)
                 }
+                Text(L("oft"))
                 Spacer(minLength: 0)
             }
             HStack(spacing: 12) {
@@ -103,14 +105,6 @@ struct RideHeatView: View {
         }
         .font(.system(size: 11, design: .rounded))
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    static func title(_ level: RideHeat.Level) -> String {
-        switch level {
-        case .once: L("einmal")
-        case .often: L("öfter")
-        case .most: L("meist")
-        }
     }
 
     static func waitTitle(_ seconds: TimeInterval) -> String {
@@ -197,9 +191,8 @@ struct RideHeatView: View {
     }
 }
 
-/// Die Karte dazu. `MKMapView` statt SwiftUIs `Map`: ein paar tausend Stücke
-/// Linie sind dort drei `MKMultiPolyline`, hier wären es ein paar tausend
-/// Ansichten.
+/// Die Karte dazu. `MKMapView` statt SwiftUIs `Map`: die Wolke ist eine
+/// einzige Auflage mit eigenem Zeichner, dort wären es zehntausend Ansichten.
 struct HeatMap: UIViewRepresentable {
     var heat: RideHeat
     /// Die Ampel, die in der Liste angetippt wurde.
@@ -208,30 +201,61 @@ struct HeatMap: UIViewRepresentable {
     static let shortWait: TimeInterval = 20
     static let longWait: TimeInterval = 45
 
-    static func color(_ level: RideHeat.Level) -> UIColor {
-        switch level {
-        // Von selten zu häufig: grau, blau, grün (Nutzer, 12.10.2026). Rot
-        // und Orange bleiben den Ampeln — dort heißen sie „lange gewartet".
-        case .once: .systemGray.withAlphaComponent(0.85)
-        case .often: .systemBlue
-        case .most: .systemGreen
-        }
-    }
-
-    static func width(_ level: RideHeat.Level) -> CGFloat {
-        switch level {
-        case .once: 2.5
-        case .often: 4
-        case .most: 5.5
-        }
-    }
+    /// Die Farbe der Wolke — „dann alles als rote Punkte, deren Dichte
+    /// steigt" (Nutzer, 12.10.2026). Die Ampeln tragen dazu einen weißen Rand.
+    static let cloud = UIColor.systemRed
 
     static func color(wait seconds: TimeInterval) -> UIColor {
         seconds < shortWait ? .systemGreen : seconds < longWait ? .systemOrange : .systemRed
     }
 
-    final class Lines: MKMultiPolyline {
-        var level = RideHeat.Level.once
+    /// Die Wolke als eine Auflage: gezeichnet wird je Kachel, was in ihr liegt.
+    final class Cloud: NSObject, MKOverlay {
+        struct Level {
+            /// Zellgröße in Kartenpunkten.
+            var size: Double
+            var points: [(at: MKMapPoint, strength: CGFloat)]
+        }
+
+        let levels: [Level]
+        let boundingMapRect: MKMapRect
+        var coordinate: CLLocationCoordinate2D { MKMapPoint(x: boundingMapRect.midX, y: boundingMapRect.midY).coordinate }
+
+        init(_ heat: RideHeat) {
+            var bounds = MKMapRect.null
+            levels = heat.layers.map { layer in
+                let scale = layer.dots.first.map { MKMapPointsPerMeterAtLatitude($0.coordinate.latitude) } ?? 1
+                return Level(size: layer.meters * scale, points: layer.dots.map {
+                    (MKMapPoint($0.coordinate), CGFloat(RideHeat.strength($0.rides, most: layer.most)))
+                })
+            }
+            for p in levels.first?.points ?? [] {
+                bounds = bounds.union(MKMapRect(x: p.at.x, y: p.at.y, width: 0, height: 0))
+            }
+            boundingMapRect = bounds
+        }
+    }
+
+    /// Zeichnet die Wolke. Die Auflösung richtet sich nach dem Maßstab: die
+    /// feinste, deren Zellen noch mindestens `minCell` Bildpunkte groß sind —
+    /// darunter lägen die Punkte übereinander, und alles wäre gleich rot.
+    final class CloudRenderer: MKOverlayRenderer {
+        static let minCell = 3.0
+
+        override func draw(_ mapRect: MKMapRect, zoomScale: MKZoomScale, in context: CGContext) {
+            guard let cloud = overlay as? Cloud, !cloud.levels.isEmpty else { return }
+            let level = cloud.levels.first { $0.size * Double(zoomScale) >= Self.minCell } ?? cloud.levels[cloud.levels.count - 1]
+            // Punkte, die sich gerade berühren: eine Spur ist eine Perlenkette,
+            // viele Spuren nebeneinander ein Band.
+            let radius = Swift.max(level.size * 0.62, 1.6 / Double(zoomScale))
+            let reach = mapRect.insetBy(dx: -radius, dy: -radius)
+            let color = HeatMap.cloud
+            for p in level.points where reach.contains(p.at) {
+                let c = point(for: p.at)
+                context.setFillColor(color.withAlphaComponent(p.strength).cgColor)
+                context.fillEllipse(in: CGRect(x: c.x - radius, y: c.y - radius, width: radius * 2, height: radius * 2))
+            }
+        }
     }
 
     final class Pin: NSObject, MKAnnotation {
@@ -255,22 +279,14 @@ struct HeatMap: UIViewRepresentable {
         let c = context.coordinator
         // Nur neu aufbauen, wenn es andere Fahrten sind — nicht bei jedem
         // Tipp in die Liste.
-        let mark = "\(heat.rides)|\(heat.runs.count)|\(heat.signals.count)|\(heat.most)"
+        let mark = "\(heat.rides)|\(heat.layers.first?.dots.count ?? 0)|\(heat.signals.count)"
         if c.mark != mark {
             c.mark = mark
             map.removeOverlays(map.overlays)
             map.removeAnnotations(map.annotations)
-            var bounds = MKMapRect.null
-            for level in RideHeat.Level.allCases {
-                let lines = heat.runs.filter { $0.level == level }
-                    .map { MKPolyline(coordinates: $0.coordinates, count: $0.coordinates.count) }
-                guard !lines.isEmpty else { continue }
-                let overlay = Lines(lines)
-                overlay.level = level
-                // In dieser Reihenfolge: das Häufige liegt obenauf.
-                map.addOverlay(overlay, level: .aboveRoads)
-                bounds = bounds.union(overlay.boundingMapRect)
-            }
+            let cloud = Cloud(heat)
+            let bounds = cloud.boundingMapRect
+            if !bounds.isNull { map.addOverlay(cloud, level: .aboveRoads) }
             map.addAnnotations(heat.signals.map(Pin.init))
             if !bounds.isNull {
                 map.setVisibleMapRect(bounds, edgePadding: UIEdgeInsets(top: 30, left: 30, bottom: 30, right: 30),
@@ -293,13 +309,7 @@ struct HeatMap: UIViewRepresentable {
         var focused: Int?
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-            guard let lines = overlay as? Lines else { return MKOverlayRenderer(overlay: overlay) }
-            let r = MKMultiPolylineRenderer(multiPolyline: lines)
-            r.strokeColor = HeatMap.color(lines.level)
-            r.lineWidth = HeatMap.width(lines.level)
-            r.lineCap = .round
-            r.lineJoin = .round
-            return r
+            overlay is Cloud ? CloudRenderer(overlay: overlay) : MKOverlayRenderer(overlay: overlay)
         }
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
