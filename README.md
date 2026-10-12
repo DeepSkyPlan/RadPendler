@@ -47,8 +47,13 @@ eingecheckt — die Struktur steht in `project.yml` (XcodeGen).
 
 ## Datenquellen
 
-- **VBB HAFAS** (`fahrinfo.vbb.de`, inoffiziell, Profil nach `hafas-client`) —
-  Fahrplan und Echtzeit für Berlin/Brandenburg.
+- **VBB-API** (`fahrinfo.vbb.de/restproxy`, die offizielle HAFAS-ReST-Schnittstelle der
+  VBB Verkehrsverbund Berlin-Brandenburg GmbH) — Fahrplan, Echtzeit und Fahrradmitnahme je
+  Zug für Berlin/Brandenburg. Genutzt mit Zustimmung des VBB und einer eigenen Access-ID;
+  die steht nicht im Repository. Wer selbst baut, beantragt eine beim VBB und trägt sie in
+  `Secrets.xcconfig` ein (Vorlage `Secrets.xcconfig.example`) — ohne sie fragt die App auch
+  in Berlin/Brandenburg Transitous.
+- **Transitous** (`api.transitous.org`, MOTIS auf dem DELFI-Datensatz) — Fahrpläne überall sonst.
 - **Apple MapKit** — Auto- und Fußwege, Kartendarstellung, Adresssuche.
 - **BRouter** (`brouter.de`) — Radrouten auf OpenStreetMap-Daten.
 - **OpenStreetMap über Overpass** — Ampeln und Hauptstraßen entlang der Route.

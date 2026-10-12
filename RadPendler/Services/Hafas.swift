@@ -1,27 +1,46 @@
 import CoreLocation
 import Foundation
 
-/// Client for the VBB HAFAS "mgate" endpoint that the VBB web app uses.
+/// Der Zugang zur VBB-API: eine Access-ID, die der VBB auf Antrag vergibt.
 ///
-/// This is not a published API: the client/auth block below is the one the
-/// open-source `hafas-client` VBB profile sends. The public wrapper
-/// v6.vbb.transport.rest answered 503 during the Phase-0 probe (2026-09-19),
-/// the endpoint itself answered in ~0.2 s. If VBB ever rotates the AID, the
-/// official route is an access key from VBB for their HAFAS ReST API.
+/// Sie steht in `Secrets.xcconfig` (lokal, nicht im Repository) und kommt über
+/// `Config.xcconfig` und die Info.plist ins Paket. Wer das Projekt ohne sie
+/// baut, bekommt eine App ohne VBB: dann beantwortet Transitous auch Berlin
+/// und Brandenburg (`TimetableSource.resolved`).
+enum VbbAccess {
+    static var id: String? {
+        let raw = (Bundle.main.infoDictionary?["VBBAccessID"] as? String ?? "")
+            .trimmingCharacters(in: .whitespaces)
+        return raw.isEmpty || raw.hasPrefix("$(") ? nil : raw
+    }
+}
+
+/// Client for the VBB's official HAFAS ReST API (`fahrinfo.vbb.de/restproxy`).
+///
+/// Used with the VBB's consent (08.10.2026) and an access id of our own. Until
+/// 1.19 the app spoke to the "mgate" endpoint of the VBB web app instead, with
+/// the client block of the open-source `hafas-client` profile — that was never
+/// a published interface, and it is gone from here.
 struct HafasClient {
-    var endpoint = URL(string: "https://fahrinfo.vbb.de/bin/mgate.exe")!
+    var endpoint = URL(string: "https://fahrinfo.vbb.de/restproxy/latest")!
+    var accessID: String? = VbbAccess.id
     var session: URLSession = .shared
+
+    var isConfigured: Bool { accessID != nil }
 
     enum Location {
         case station(lid: String)
         case address(name: String, coordinate: CLLocationCoordinate2D)
 
-        var json: [String: Any] {
+        /// `origin…` or `dest…`, as the trip search names its two ends.
+        func query(_ end: String) -> [URLQueryItem] {
             switch self {
             case .station(let lid):
-                return ["lid": lid]
+                return [URLQueryItem(name: "\(end)Id", value: lid)]
             case .address(let name, let c):
-                return ["type": "A", "name": name, "crd": HafasCoord.encode(c)]
+                return [URLQueryItem(name: "\(end)CoordLat", value: String(format: "%.6f", c.latitude)),
+                        URLQueryItem(name: "\(end)CoordLong", value: String(format: "%.6f", c.longitude)),
+                        URLQueryItem(name: "\(end)CoordName", value: name)]
             }
         }
     }
@@ -40,11 +59,15 @@ struct HafasClient {
 
     enum HafasError: LocalizedError {
         case server(code: String, text: String)
+        /// No access id in this build, or the VBB refuses the one it has
+        /// (`API_AUTH`, `API_QUOTA`). The planner answers with Transitous then.
+        case denied
         case malformed
 
         var errorDescription: String? {
             switch self {
             case .server(let code, let text): "VBB-Auskunft: \(foreignText(text)) (\(code))"
+            case .denied: L("VBB-Auskunft: Zugang abgelehnt")
             case .malformed: L("VBB-Auskunft: unerwartete Antwort")
             }
         }
@@ -71,12 +94,14 @@ struct HafasClient {
 
     private func askNearbyStations(around c: CLLocationCoordinate2D, radius: Double,
                                    productMask: Int) async throws -> [Station] {
-        let req: [String: Any] = [
-            "ring": ["cCrd": HafasCoord.encode(c), "maxDist": Int(radius)],
-            "getPOIs": false, "getStops": true, "maxLoc": 20,
-            "locFltrL": [["type": "PROD", "mode": "INC", "value": String(productMask)]],
-        ]
-        let res = try await call("LocGeoPos", req)
+        let res = try await call("location.nearbystops", [
+            URLQueryItem(name: "originCoordLat", value: String(format: "%.6f", c.latitude)),
+            URLQueryItem(name: "originCoordLong", value: String(format: "%.6f", c.longitude)),
+            URLQueryItem(name: "r", value: String(Int(radius))),
+            URLQueryItem(name: "maxNo", value: "20"),
+            URLQueryItem(name: "type", value: "S"),
+            URLQueryItem(name: "products", value: String(productMask)),
+        ])
         return HafasParser.stations(res, productMask: productMask)
     }
 
@@ -85,39 +110,42 @@ struct HafasClient {
     func journeys(from: Location, to: Location, departing date: Date, arriveBy: Bool = false,
                   bikeCarriage: Bool, productMask: Int = TransitProduct.allMask,
                   results: Int = 4) async throws -> [[Leg]] {
-        var filters: [[String: Any]] = [["type": "PROD", "mode": "INC", "value": String(productMask)]]
-        if bikeCarriage { filters.append(["type": "BC", "mode": "INC", "value": "1"]) }
         let (day, time) = HafasTime.format(date)
-        let req: [String: Any] = [
-            "depLocL": [from.json], "arrLocL": [to.json],
-            "outDate": day, "outTime": time, "outFrwd": !arriveBy,
-            "numF": results, "getPolyline": true, "getPasslist": false,
-            "jnyFltrL": filters,
+        var query = from.query("origin") + to.query("dest") + [
+            URLQueryItem(name: "date", value: day),
+            URLQueryItem(name: "time", value: time),
+            URLQueryItem(name: "numF", value: String(results)),
+            URLQueryItem(name: "products", value: String(productMask)),
+            // Die Linie als Google-Polyline; ohne `polyEnc` käme sie als
+            // Zahlenliste in einem anderen Feld.
+            URLQueryItem(name: "poly", value: "1"),
+            URLQueryItem(name: "polyEnc", value: "GPA"),
+            URLQueryItem(name: "passlist", value: "0"),
         ]
+        if arriveBy { query.append(URLQueryItem(name: "searchForArrival", value: "1")) }
+        if bikeCarriage { query.append(URLQueryItem(name: "bikeCarriage", value: "1")) }
         do {
-            let res = try await call("TripSearch", req)
-            return try HafasParser.journeys(res)
-        } catch HafasError.server(let code, _) where code == "H890" || code == "H9380" {
+            return HafasParser.journeys(try await call("trip", query))
+        } catch HafasError.server(let code, _) where HafasParser.emptyCodes.contains(code) {
             return []   // "no connection found" / "departure = arrival"
         }
     }
 
     // MARK: Transport
 
-    private func call(_ method: String, _ req: [String: Any]) async throws -> [String: Any] {
-        let body: [String: Any] = [
-            "lang": "de",
-            "client": ["type": "WEB", "id": "VBB", "name": "VBB WebApp", "l": "vs_webapp_vbb"],
-            "ext": "VBB.1", "ver": "1.45",
-            "auth": ["type": "AID", "aid": "hafas-vbb-webapp"],
-            "svcReqL": [["meth": method, "req": req]],
-        ]
-        var request = URLRequest(url: endpoint, timeoutInterval: 20)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+    /// The access id travels in the `Authorization` header, not as `accessId`
+    /// in the query: a URL ends up in error objects and logs, a header does not.
+    private func call(_ service: String, _ query: [URLQueryItem]) async throws -> [String: Any] {
+        guard let accessID else { throw HafasError.denied }
+        let url = endpoint.appending(path: service).appending(queryItems: query + [
+            URLQueryItem(name: "lang", value: "de"), URLQueryItem(name: "format", value: "json"),
+        ])
+        var request = URLRequest(url: url, timeoutInterval: 20)
+        request.setValue("Bearer \(accessID)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(AppIdentity.userAgent, forHTTPHeaderField: "User-Agent")
         let (data, _) = try await session.data(for: request)
-        return try HafasParser.serviceResult(data)
+        return try HafasParser.answer(data)
     }
 }
 
@@ -153,20 +181,8 @@ actor StationCache {
     }
 }
 
-/// HAFAS integer micro-degrees.
-enum HafasCoord {
-    static func encode(_ c: CLLocationCoordinate2D) -> [String: Int] {
-        ["x": Int((c.longitude * 1_000_000).rounded()), "y": Int((c.latitude * 1_000_000).rounded())]
-    }
-
-    static func decode(_ crd: Any?) -> CLLocationCoordinate2D? {
-        guard let d = crd as? [String: Any], let x = d["x"] as? Int, let y = d["y"] as? Int else { return nil }
-        return CLLocationCoordinate2D(latitude: Double(y) / 1_000_000, longitude: Double(x) / 1_000_000)
-    }
-}
-
-/// HAFAS clock strings. Times are local (Europe/Berlin); a leg past midnight
-/// carries a day offset in front: "01002500" = 00:25 on the following day.
+/// HAFAS clock strings: "2026-09-21" and "17:15:00". Times are local
+/// (Europe/Berlin); a stop past midnight carries its own date.
 enum HafasTime {
     static let zone = TimeZone(identifier: "Europe/Berlin")!
 
@@ -177,21 +193,17 @@ enum HafasTime {
     }
 
     static func format(_ date: Date) -> (day: String, time: String) {
-        let c = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
-        return (String(format: "%04d%02d%02d", c.year!, c.month!, c.day!),
-                String(format: "%02d%02d%02d", c.hour!, c.minute!, c.second!))
+        let c = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        return (String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0),
+                String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0))
     }
 
     static func date(day: String, time: String) -> Date? {
-        guard day.count == 8, time.count >= 6, let y = Int(day.prefix(4)),
-              let m = Int(day.dropFirst(4).prefix(2)), let d = Int(day.suffix(2)) else { return nil }
-        let t = Array(time)
-        let offsetDays = t.count > 6 ? Int(String(t[0..<(t.count - 6)])) ?? 0 : 0
-        let hms = t.suffix(6)
-        guard let hh = Int(String(hms.prefix(2))), let mm = Int(String(hms.dropFirst(2).prefix(2))),
-              let ss = Int(String(hms.suffix(2))) else { return nil }
-        let base = calendar.date(from: DateComponents(year: y, month: m, day: d, hour: hh, minute: mm, second: ss))
-        return base.flatMap { calendar.date(byAdding: .day, value: offsetDays, to: $0) }
+        let d = day.split(separator: "-").compactMap { Int($0) }
+        let t = time.split(separator: ":").compactMap { Int($0) }
+        guard d.count == 3, t.count >= 2 else { return nil }
+        return calendar.date(from: DateComponents(year: d[0], month: d[1], day: d[2],
+                                                  hour: t[0], minute: t[1], second: t.count > 2 ? t[2] : 0))
     }
 }
 
@@ -226,39 +238,41 @@ enum Polyline {
     }
 }
 
-/// Turns mgate JSON into the app's model. Pure functions, tested against
+/// Turns the ReST answers into the app's model. Pure functions, tested against
 /// responses captured in RadPendlerTests/Fixtures.
 enum HafasParser {
-    static func serviceResult(_ data: Data) throws -> [String: Any] {
+    /// "No connection found" and "start equals destination": an empty list,
+    /// not an error anyone needs to read.
+    static let emptyCodes: Set<String> = ["SVC_NO_RESULT", "SVC_LOC_EQUAL"]
+    private static let deniedCodes: Set<String> = ["API_AUTH", "API_QUOTA"]
+
+    /// The JSON object of an answer. An error arrives as an object with
+    /// `errorCode` — sometimes with HTTP 400, sometimes with 200.
+    static func answer(_ data: Data) throws -> [String: Any] {
         guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw HafasClient.HafasError.malformed
         }
-        if let err = root["err"] as? String, err != "OK" {
-            throw HafasClient.HafasError.server(code: err, text: root["errTxt"] as? String ?? err)
+        if let code = root["errorCode"] as? String {
+            if deniedCodes.contains(code) { throw HafasClient.HafasError.denied }
+            let text = root["internalErrorTextOut"] as? String ?? root["errorText"] as? String ?? code
+            throw HafasClient.HafasError.server(code: code, text: text)
         }
-        guard let svc = (root["svcResL"] as? [[String: Any]])?.first else {
-            throw HafasClient.HafasError.malformed
-        }
-        if let err = svc["err"] as? String, err != "OK" {
-            let text = svc["errTxtOut"] as? String ?? svc["errTxt"] as? String ?? err
-            throw HafasClient.HafasError.server(code: err, text: text)
-        }
-        guard let res = svc["res"] as? [String: Any] else { throw HafasClient.HafasError.malformed }
-        return res
+        return root
     }
 
     static func stations(_ res: [String: Any], productMask: Int) -> [Station] {
         var seen = Set<String>()
         var out: [Station] = []
-        for l in res["locL"] as? [[String: Any]] ?? [] {
-            guard let name = l["name"] as? String, let lid = l["lid"] as? String,
-                  let c = HafasCoord.decode(l["crd"]) else { continue }
-            let mask = l["pCls"] as? Int ?? 0
+        for entry in res["stopLocationOrCoordLocation"] as? [[String: Any]] ?? [] {
+            guard let l = entry["StopLocation"] as? [String: Any],
+                  let name = l["name"] as? String, let lid = l["extId"] as? String ?? l["id"] as? String,
+                  let c = coordinate(l) else { continue }
+            let mask = l["products"] as? Int ?? 0
             guard mask & productMask != 0 else { continue }
             let base = baseName(name)
             guard seen.insert(base).inserted else { continue }
             out.append(Station(name: name, lid: lid, coordinate: c,
-                               distance: Double(l["dist"] as? Int ?? 0), productMask: mask))
+                               distance: l["dist"] as? Double ?? 0, productMask: mask))
         }
         return out.sorted { $0.distance < $1.distance }
     }
@@ -270,108 +284,89 @@ enum HafasParser {
         name.components(separatedBy: " [").first ?? name
     }
 
-    static func journeys(_ res: [String: Any]) throws -> [[Leg]] {
-        guard let cons = res["outConL"] as? [[String: Any]] else { return [] }
-        let common = res["common"] as? [String: Any] ?? [:]
-        let ctx = Context(common)
-        return cons.compactMap { journey($0, ctx) }
+    static func journeys(_ res: [String: Any]) -> [[Leg]] {
+        (res["Trip"] as? [[String: Any]] ?? []).compactMap(journey)
     }
 
-    private struct Context {
-        let locs: [[String: Any]]
-        let prods: [[String: Any]]
-        let rems: [[String: Any]]
-        let polys: [[String: Any]]
-
-        init(_ common: [String: Any]) {
-            locs = common["locL"] as? [[String: Any]] ?? []
-            prods = common["prodL"] as? [[String: Any]] ?? []
-            rems = common["remL"] as? [[String: Any]] ?? []
-            polys = common["polyL"] as? [[String: Any]] ?? []
-        }
-
-        func loc(_ x: Any?) -> [String: Any] {
-            guard let i = x as? Int, locs.indices.contains(i) else { return [:] }
-            return locs[i]
-        }
-
-        func name(_ x: Any?) -> String { loc(x)["name"] as? String ?? "?" }
-        func coord(_ x: Any?) -> CLLocationCoordinate2D? { HafasCoord.decode(loc(x)["crd"]) }
-
-        func remarks(_ msgL: Any?) -> [[String: Any]] {
-            (msgL as? [[String: Any]] ?? []).compactMap { m in
-                guard let i = m["remX"] as? Int, rems.indices.contains(i) else { return nil }
-                return rems[i]
-            }
-        }
-
-        func polyline(_ jny: [String: Any]) -> [CLLocationCoordinate2D] {
-            guard let g = jny["polyG"] as? [String: Any], let xs = g["polyXL"] as? [Int] else { return [] }
-            return xs.flatMap { i -> [CLLocationCoordinate2D] in
-                guard polys.indices.contains(i), let enc = polys[i]["crdEncYX"] as? String else { return [] }
-                return Polyline.decode(enc)
-            }
-        }
+    private static func coordinate(_ stop: [String: Any]) -> CLLocationCoordinate2D? {
+        guard let lat = stop["lat"] as? Double, let lon = stop["lon"] as? Double else { return nil }
+        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
     }
 
-    private static func journey(_ con: [String: Any], _ ctx: Context) -> [Leg]? {
-        guard let day = con["date"] as? String, let secs = con["secL"] as? [[String: Any]] else { return nil }
+    /// Fahrplanzeit und, wenn es eine gibt, die Prognose eines Halts.
+    private static func times(_ stop: [String: Any]) -> (planned: Date?, real: Date?) {
+        let day = stop["date"] as? String ?? ""
+        let planned = HafasTime.date(day: day, time: stop["time"] as? String ?? "")
+        let real = (stop["rtTime"] as? String).flatMap {
+            HafasTime.date(day: stop["rtDate"] as? String ?? day, time: $0)
+        }
+        return (planned, real)
+    }
+
+    private static func notes(_ holder: [String: Any]) -> [[String: Any]] {
+        (holder["Notes"] as? [String: Any])?["Note"] as? [[String: Any]] ?? []
+    }
+
+    private static func polyline(_ sec: [String: Any]) -> [CLLocationCoordinate2D] {
+        let parts = (sec["PolylineGroup"] as? [String: Any])?["polylineDesc"] as? [[String: Any]] ?? []
+        return parts.flatMap { ($0["crdEncYX"] as? String).map { Polyline.decode($0) } ?? [] }
+    }
+
+    private static func journey(_ trip: [String: Any]) -> [Leg]? {
+        guard let secs = (trip["LegList"] as? [String: Any])?["Leg"] as? [[String: Any]] else { return nil }
         var legs: [Leg] = []
         for sec in secs {
-            guard let dep = sec["dep"] as? [String: Any], let arr = sec["arr"] as? [String: Any] else { continue }
-            let planned = (HafasTime.date(day: day, time: dep["dTimeS"] as? String ?? ""),
-                           HafasTime.date(day: day, time: arr["aTimeS"] as? String ?? ""))
-            let real = ((dep["dTimeR"] as? String).flatMap { HafasTime.date(day: day, time: $0) },
-                        (arr["aTimeR"] as? String).flatMap { HafasTime.date(day: day, time: $0) })
-            guard let pDep = planned.0, let pArr = planned.1 else { continue }
-            let from = ctx.name(dep["locX"]), to = ctx.name(arr["locX"])
-            let ends = [ctx.coord(dep["locX"]), ctx.coord(arr["locX"])].compactMap { $0 }
+            guard let dep = sec["Origin"] as? [String: Any], let arr = sec["Destination"] as? [String: Any] else { continue }
+            let depTimes = times(dep), arrTimes = times(arr)
+            guard let pDep = depTimes.planned, let pArr = arrTimes.planned else { continue }
+            let from = dep["name"] as? String ?? "?", to = arr["name"] as? String ?? "?"
+            let ends = [coordinate(dep), coordinate(arr)].compactMap { $0 }
 
             switch sec["type"] as? String {
             case "JNY":
-                guard let jny = sec["jny"] as? [String: Any] else { continue }
-                let prodIndex = jny["prodX"] as? Int ?? -1
-                let prod = ctx.prods.indices.contains(prodIndex) ? ctx.prods[prodIndex] : [:]
-                let line = (prod["name"] as? String ?? "?").trimmingCharacters(in: .whitespaces)
-                let remarks = ctx.remarks(jny["msgL"]) + ctx.remarks(dep["msgL"]) + ctx.remarks(arr["msgL"])
-                let poly = ctx.polyline(jny)
+                // Ein Eintrag je Abschnitt der Fahrt; ältere Fassungen der
+                // Schnittstelle schicken das Objekt ohne Liste.
+                let prod = (sec["Product"] as? [[String: Any]])?.first ?? sec["Product"] as? [String: Any] ?? [:]
+                let line = (prod["name"] as? String ?? sec["name"] as? String ?? "?")
+                    .trimmingCharacters(in: .whitespaces)
+                let cls = (prod["cls"] as? String).flatMap { Int($0) } ?? prod["cls"] as? Int
+                    ?? TransitProduct.unknown.rawValue
+                let poly = polyline(sec)
                 legs.append(Leg(
-                    kind: .transit(line: line, product: TransitProduct(cls: prod["cls"] as? Int ?? 64)),
+                    kind: .transit(line: line, product: TransitProduct(cls: cls)),
                     fromName: from, toName: to,
-                    departure: real.0 ?? pDep, arrival: real.1 ?? pArr,
+                    departure: depTimes.real ?? pDep, arrival: arrTimes.real ?? pArr,
                     plannedDeparture: pDep, plannedArrival: pArr,
                     coordinates: poly.isEmpty ? ends : poly,
-                    departurePlatform: platform(dep, "d"), arrivalPlatform: platform(arr, "a"),
-                    direction: jny["dirTxt"] as? String,
-                    bikeCarriage: bikeCarriage(remarks) ? .yes : .unknown,
-                    cancelled: (jny["isCncl"] as? Bool ?? false) || (dep["dCncl"] as? Bool ?? false)
-                        || (arr["aCncl"] as? Bool ?? false)))
+                    departurePlatform: platform(dep), arrivalPlatform: platform(arr),
+                    direction: sec["direction"] as? String,
+                    bikeCarriage: bikeCarriage(notes(sec)) ? .yes : .unknown,
+                    cancelled: [sec, dep, arr].contains { $0["cancelled"] as? Bool ?? false }))
             default:   // WALK, TRSF (transfer inside a station), DEVI
                 if from == to && pDep == pArr { continue }
-                let gis = sec["gis"] as? [String: Any]
                 legs.append(Leg(kind: .walk, fromName: from, toName: to,
-                                departure: real.0 ?? pDep, arrival: real.1 ?? pArr,
-                                distance: (gis?["dist"] as? Int).map(Double.init),
+                                departure: depTimes.real ?? pDep, arrival: arrTimes.real ?? pArr,
+                                distance: sec["dist"] as? Double,
                                 coordinates: ends))
             }
         }
         return legs.contains(where: \.isTransit) ? legs : nil
     }
 
-    private static func platform(_ stop: [String: Any], _ p: String) -> String? {
-        (stop["\(p)PltfR"] as? [String: Any])?["txt"] as? String
-            ?? (stop["\(p)PltfS"] as? [String: Any])?["txt"] as? String
-            ?? stop["\(p)PlatfR"] as? String ?? stop["\(p)PlatfS"] as? String
+    private static func platform(_ stop: [String: Any]) -> String? {
+        (stop["rtPlatform"] as? [String: Any])?["text"] as? String
+            ?? (stop["platform"] as? [String: Any])?["text"] as? String
+            ?? stop["rtTrack"] as? String ?? stop["track"] as? String
     }
 
-    /// A leg carries bikes if HAFAS attaches the "FK" remark ("Fahrradmitnahme
+    /// A leg carries bikes if HAFAS attaches the "FK" note ("Fahrradmitnahme
     /// möglich") and nothing on the leg says the opposite.
-    static func bikeCarriage(_ remarks: [[String: Any]]) -> Bool {
-        let texts = remarks.map { (($0["txtN"] as? String) ?? "").lowercased() }
+    static func bikeCarriage(_ notes: [[String: Any]]) -> Bool {
+        let texts = notes.map { (($0["txtN"] as? String) ?? ($0["value"] as? String) ?? "").lowercased() }
         if texts.contains(where: { $0.contains("keine fahrradmitnahme") || $0.contains("fahrradmitnahme nicht") }) {
             return false
         }
-        return remarks.contains { ($0["code"] as? String) == "FK" }
+        return notes.contains { ($0["key"] as? String) == "FK" }
             || texts.contains { $0.contains("fahrradmitnahme möglich") || $0.contains("fahrradmitnahme begrenzt") }
     }
 }

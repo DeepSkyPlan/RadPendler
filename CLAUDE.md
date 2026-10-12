@@ -6,7 +6,11 @@ Multimodaler Pendel-Planer (iPhone, iPad, Watch). SwiftUI, XcodeGen, iOS 17+, `d
 
 - Einziger Einstieg ist `./dev` (`generate|build|test|lint|check|routes|store|demo|open|clean|testflight`). Kein eigenes
   `-derivedDataPath` — Xcode und Kommandozeile teilen sich die Standard-DerivedData.
-- Tests: `./dev test` (~350 Tests, rund 10 s). `MOTIS_LIVE=1` schaltet den echten Transitous-Aufruf zu.
+- Tests: `./dev test` (~380 Tests, rund 10 s). `MOTIS_LIVE=1` schaltet den echten Transitous-Aufruf zu,
+  `TEST_RUNNER_VBB_LIVE=1 ./dev test` den echten Aufruf der VBB-API.
+- VBB-API: offizielle Schnittstelle (`Hafas.swift`), Access-ID nur in `Secrets.xcconfig` (lokal) →
+  `Config.xcconfig` → Info.plist `VBBAccessID`. Ohne sie fragt die App überall Transitous; die ID nie
+  ausgeben, nie in eine Adresse, eine Testantwort oder ein Protokoll schreiben.
 - Referenzrouten: `./dev routes` (Skill `/referenzrouten`) — die Radplanung dieser Fassung auf bekannten
   Strecken, frisch gegen BRouter: „optimal“ muss über die Fahrradstraße führen, keine Linie über
   Kopfsteinpflaster. Läuft vor jedem `./dev testflight` von selbst und nach jeder Änderung an Profilen,

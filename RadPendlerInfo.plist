@@ -23,5 +23,9 @@
 	<array>
 		<string>de.keese.radpendler.replan</string>
 	</array>
+	<!-- Die Access-ID der VBB-API, aus Secrets.xcconfig (lokal). Leer, wenn
+	     ohne sie gebaut wird — siehe VbbAccess. -->
+	<key>VBBAccessID</key>
+	<string>$(VBB_ACCESS_ID)</string>
 </dict>
 </plist>

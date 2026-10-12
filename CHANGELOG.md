@@ -1,6 +1,20 @@
 # Changelog
 
-## Unveröffentlicht — Demo-Fahrten für den Simulator
+## Unveröffentlicht — VBB-API, Demo-Fahrten für den Simulator
+
+- **Fahrplan in Berlin/Brandenburg über die offizielle VBB-API** (Nutzer, 12.10.2026: Zugang
+  freigeschaltet). `Hafas.swift` fragt jetzt `fahrinfo.vbb.de/restproxy/latest` — Bahnhöfe in der
+  Nähe, Verbindungen mit Fahrradmitnahme, Echtzeit, Gleise, Ausfälle — statt der inoffiziellen
+  mgate-Schnittstelle der VBB-Webapp; die ist entfernt. Die Access-ID steht nur lokal in
+  `Secrets.xcconfig`, reist im `Authorization`-Kopf und nie in der Adresse. Ohne ID (CI, fremde
+  Builds) und wenn der VBB den Zugang abweist, antwortet Transitous auch in Berlin/Brandenburg.
+  `./dev testflight` bricht ohne ID ab.
+- **Die Nutzung ist ausdrücklich genannt:** Einstellungen → „Daten, Rechte und Version“ („VBB-API der
+  VBB Verkehrsverbund Berlin-Brandenburg GmbH … genutzt mit Zustimmung des VBB“), ein Link „VBB-API
+  (vbb.de)“ neben Transitous und OpenStreetMap, der Hinweis unter „Bus & Bahn“, README, Store-Texte
+  (DE/EN), Support- und Datenschutzseite (dort auch: die Zugangskennung der App geht mit).
+- Geprüft: Antworten der Schnittstelle als Testdaten (`vbb_*.json`), 8 neue Tests, und einmal echt
+  gegen den VBB (`TEST_RUNNER_VBB_LIVE=1 ./dev test`). Nicht geprüft: Rad + Bahn auf dem Gerät.
 
 - Der Heatmap-Knopf in „Fahrten“ ist eine gefüllte Flamme von Gelb nach Rot mit Schein, die beim
   Öffnen der Liste einmal hüpft (Nutzer, 12.10.2026: „flashier, wie ein Feuer“). Kein Dauerflackern.

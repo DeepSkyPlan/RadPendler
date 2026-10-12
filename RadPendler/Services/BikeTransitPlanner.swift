@@ -1,24 +1,31 @@
 import CoreLocation
 import Foundation
 
-// Alles mit Fahrplan: die Bahn allein und Rad + Bahn — im VBB über HAFAS mit
+// Alles mit Fahrplan: die Bahn allein und Rad + Bahn — im VBB über die VBB-API (HAFAS) mit
 // selbst gewählten Bahnhöfen und Zubringern, sonst über Transitous (MOTIS),
 // das die Bahnhöfe selbst wählt.
 
 extension TripPlanner {
     func transitOptions(_ req: PlanRequest) async throws -> [TripOption] {
-        let journeys = try await source(req) == .transitous
-            ? motis.journeys(from: req.origin.coordinate, to: req.destination.coordinate,
-                             at: req.arriveBy ?? req.earliestLeave, arriveBy: req.isArrival,
-                             access: .walk, results: 4)
-            // HAFAS routes on the coordinate; the name is only display text it
-            // echoes back. Sending the street and house number would tell the
-            // timetable more about the user than it needs to answer.
-            : hafas.journeys(
-            from: .address(name: "Start", coordinate: req.origin.coordinate),
-            to: .address(name: "Ziel", coordinate: req.destination.coordinate),
-            departing: req.arriveBy ?? req.earliestLeave, arriveBy: req.isArrival,
-            bikeCarriage: false, results: 4)
+        let journeys: [[Leg]]
+        if source(req) == .transitous {
+            journeys = try await motisTransitJourneys(req)
+        } else {
+            do {
+                // HAFAS routes on the coordinate; the name is only display text it
+                // echoes back. Sending the street and house number would tell the
+                // timetable more about the user than it needs to answer.
+                journeys = try await hafas.journeys(
+                    from: .address(name: "Start", coordinate: req.origin.coordinate),
+                    to: .address(name: "Ziel", coordinate: req.destination.coordinate),
+                    departing: req.arriveBy ?? req.earliestLeave, arriveBy: req.isArrival,
+                    bikeCarriage: false, results: 4)
+            } catch HafasClient.HafasError.denied {
+                // Der VBB weist den Zugang ab (gesperrt, Kontingent): lieber
+                // der bundesweite Fahrplan als gar keiner.
+                journeys = try await motisTransitJourneys(req)
+            }
+        }
         let penalty = req.settings.transferPenalty
         let running = journeys.filter { !$0.contains(where: \.cancelled) }
         var options = running.map { TripOption(mode: .transit, legs: $0, prep: req.settings.prep) }
@@ -31,9 +38,16 @@ extension TripPlanner {
         return Array(options.prefix(3))
     }
 
+    private func motisTransitJourneys(_ req: PlanRequest) async throws -> [[Leg]] {
+        try await motis.journeys(from: req.origin.coordinate, to: req.destination.coordinate,
+                                 at: req.arriveBy ?? req.earliestLeave, arriveBy: req.isArrival,
+                                 access: .walk, results: 4)
+    }
+
     /// Which timetable answers for this request.
     func source(_ req: PlanRequest) -> TimetableSource {
-        TimetableSource.resolved(from: req.origin.coordinate, to: req.destination.coordinate)
+        TimetableSource.resolved(from: req.origin.coordinate, to: req.destination.coordinate,
+                                 vbbAvailable: hafas.isConfigured)
     }
 
     /// Bike at both ends, planned by Transitous in one request: MOTIS routes
@@ -92,9 +106,8 @@ extension TripPlanner {
     }
 
     /// Ride to a station, take only trains that carry bikes, ride on from the
-    /// arrival station. The app does the station choice itself: VBB's HAFAS has
-    /// a "bike & ride" mode in its web app, but the mgate request for it is not
-    /// documented, and with address endpoints plus the bike filter it finds nothing.
+    /// arrival station. The app does the station choice itself: with address
+    /// endpoints plus the bike filter the VBB's HAFAS finds nothing.
     ///
     /// S-Bahn and regional trains first — they always have a bike compartment.
     /// The main search uses only S/RE stations and S/RE trains; a small second
@@ -102,6 +115,14 @@ extension TripPlanner {
     /// those results are kept only as the alternative.
     func bikeTransitOptions(_ req: PlanRequest) async throws -> [TripOption] {
         guard source(req) == .vbb else { return try await motisBikeTransitOptions(req) }
+        do {
+            return try await vbbBikeTransitOptions(req)
+        } catch HafasClient.HafasError.denied {
+            return try await motisBikeTransitOptions(req)
+        }
+    }
+
+    private func vbbBikeTransitOptions(_ req: PlanRequest) async throws -> [TripOption] {
         let s = req.settings
         let radius = s.maxBikeToStationKm * 1000
         async let fromList = hafas.nearbyStations(around: req.origin.coordinate, radius: radius)

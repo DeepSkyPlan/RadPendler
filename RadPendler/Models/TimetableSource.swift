@@ -5,8 +5,8 @@ import CoreLocation
 /// festnageln; gebraucht hat das niemand, und falsch gewählt fand die App
 /// außerhalb des VBB-Gebiets gar nichts.
 enum TimetableSource: String {
-    /// The VBB's own HAFAS: the best real-time data for the region, and the
-    /// only one that states bike carriage per train.
+    /// The VBB's own HAFAS, through the official VBB-API: the best real-time
+    /// data for the region, and the only one that states bike carriage per train.
     case vbb
     /// Transitous (MOTIS) on the nationwide DELFI dataset and beyond.
     case transitous
@@ -20,8 +20,11 @@ enum TimetableSource: String {
             && c.longitude >= vbbArea.west && c.longitude <= vbbArea.east
     }
 
-    /// The source that answers for this pair of places.
-    static func resolved(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D) -> TimetableSource {
-        covers(from) && covers(to) ? .vbb : .transitous
+    /// The source that answers for this pair of places. Without an access id
+    /// for the VBB-API (a build from the public repository) there is no VBB
+    /// to ask, and Transitous answers everywhere.
+    static func resolved(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+                         vbbAvailable: Bool = VbbAccess.id != nil) -> TimetableSource {
+        vbbAvailable && covers(from) && covers(to) ? .vbb : .transitous
     }
 }

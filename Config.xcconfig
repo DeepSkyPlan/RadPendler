@@ -1,0 +1,6 @@
+// Bau-Einstellungen, die von außen kommen. Eingecheckt, ohne Inhalt:
+// der Schlüssel selbst steht in Secrets.xcconfig, und die gibt es nur lokal
+// (Vorlage: Secrets.xcconfig.example). Fehlt sie, bleibt VBB_ACCESS_ID leer —
+// die App baut trotzdem und fragt dann überall Transitous statt des VBB.
+VBB_ACCESS_ID =
+#include? "Secrets.xcconfig"

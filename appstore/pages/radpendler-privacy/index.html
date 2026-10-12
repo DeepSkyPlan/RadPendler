@@ -109,10 +109,11 @@ laufen über keinen Server dieses Projekts, und wir sehen sie nicht.</p>
 <table>
 <tr><th>Dienst</th><th>Wofür</th><th>Was übertragen wird</th></tr>
 <tr>
-  <td><a href="https://www.vbb.de/">VBB</a> Verkehrsverbund Berlin-Brandenburg
-      (<code>fahrinfo.vbb.de</code>)</td>
+  <td>VBB-API der <a href="https://www.vbb.de/">VBB</a> Verkehrsverbund
+      Berlin-Brandenburg GmbH (<code>fahrinfo.vbb.de</code>)</td>
   <td>Fahrplan und Echtzeit in Berlin und Brandenburg, Fahrradmitnahme je Zug</td>
-  <td>Start- und Zielkoordinaten bzw. Haltestellen, Datum und Uhrzeit</td>
+  <td>Start- und Zielkoordinaten bzw. Haltestellen, Datum und Uhrzeit; dazu die
+      Zugangskennung der App (für alle Nutzer dieselbe, keine Kennung der Person)</td>
 </tr>
 <tr>
   <td><a href="https://transitous.org/">Transitous</a> / MOTIS
@@ -153,7 +154,7 @@ laufen über keinen Server dieses Projekts, und wir sehen sie nicht.</p>
 </tr>
 </table>
 
-<p>Jede Anfrage an Transitous, BRouter, die Overpass API und Open-Meteo trägt
+<p>Jede Anfrage an die VBB-API, Transitous, BRouter, die Overpass API und Open-Meteo trägt
 außerdem einen <code>User-Agent</code>, der die App benennt — „RadPendler“, die
 Versionsnummer, „Commute App“ und die Adresse des Quelltexts als Kontakt. Er ist
 für alle Nutzer derselbe und sagt nichts über dich oder dein Gerät; die

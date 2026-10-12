@@ -1046,13 +1046,13 @@
         }
       }
     },
-    "Den Fahrplan liefert der VBB, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link.": {
+    "Den Fahrplan liefert die VBB-API des Verkehrsverbunds Berlin-Brandenburg, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The timetable comes from the VBB as long as start and destination lie in Berlin/Brandenburg — it is more accurate there and the only one that says which train takes bikes. Everything beyond that is answered by Transitous, a volunteer-run MOTIS instance on the nationwide DELFI dataset. Transitous plans bike and rail in one go and picks the stations itself. Where its data comes from is behind the link."
+            "value": "The timetable comes from the VBB-API of Verkehrsverbund Berlin-Brandenburg as long as start and destination lie in Berlin/Brandenburg — it is more accurate there and the only one that says which train takes bikes. Everything beyond that is answered by Transitous, a volunteer-run MOTIS instance on the nationwide DELFI dataset. Transitous plans bike and rail in one go and picks the stations itself. Where its data comes from is behind the link."
           }
         }
       }
@@ -1651,13 +1651,13 @@
         }
       }
     },
-    "Fahrplan und Echtzeit: VBB Verkehrsverbund Berlin-Brandenburg (HAFAS-Fahrinfo).": {
+    "Fahrplan und Echtzeit in Berlin und Brandenburg: VBB-API der VBB Verkehrsverbund Berlin-Brandenburg GmbH (fahrinfo.vbb.de), genutzt mit Zustimmung des VBB und einem eigenen Zugang.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Timetable and real time: VBB Verkehrsverbund Berlin-Brandenburg (HAFAS Fahrinfo)."
+            "value": "Timetable and real time in Berlin and Brandenburg: VBB-API of VBB Verkehrsverbund Berlin-Brandenburg GmbH (fahrinfo.vbb.de), used with the VBB’s consent and an access of our own."
           }
         }
       }
@@ -3792,6 +3792,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Below the map it says how old the result is — “As of 14:48 · just now”. Tapping it plans again."
+          }
+        }
+      }
+    },
+    "VBB-API (vbb.de)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VBB-API (vbb.de)"
+          }
+        }
+      }
+    },
+    "VBB-Auskunft: Zugang abgelehnt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VBB service: access denied"
           }
         }
       }

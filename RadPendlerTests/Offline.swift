@@ -17,6 +17,8 @@ extension TripPlanner {
         let session = URLSession(configuration: config)
         var planner = TripPlanner()
         planner.hafas.session = session
+        // Mit oder ohne Schlüssel im Paket (CI hat keinen): derselbe Weg.
+        planner.hafas.accessID = "test"
         planner.motis.session = session
         planner.brouter.session = session
         planner.brouter.cached = false

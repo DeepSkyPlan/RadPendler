@@ -14,10 +14,12 @@
 > gespeichert). Neu darin und noch ungeprüft: Neuplanung bei gesperrtem Gerät (h6) und die
 > Meldezeile in der Fahrtenliste (c6). Nach jeder Runde eine Fahrt teilen →
 > `python3 tools/ride_report.py` → Zeile „Stumme Fehler“.
-> **Offen — VBB-API:** der VBB hat der Nutzung seiner API in der Store-Fassung zugestimmt
-> (08.10.2026), der Zugang ist beantragt (09.10.2026). Der Schlüssel liegt in `Secrets.xcconfig`
-> (lokal), wird aber noch mit `401 API_AUTH` abgelehnt. Sobald er geht: offiziellen Client bauen,
-> als Ersatz für die inoffizielle Schnittstelle in `Hafas.swift`. Auf `main` liegt außerdem
+> **VBB-API (12.10.2026):** der Zugang ist freigeschaltet, die App fragt jetzt die offizielle
+> Schnittstelle `fahrinfo.vbb.de/restproxy/latest` (`Hafas.swift`), die inoffizielle mgate-Anbindung
+> ist entfernt. Die Access-ID steht in `Secrets.xcconfig` (lokal) und kommt über `Config.xcconfig`
+> und `RadPendlerInfo.plist` (`VBBAccessID`) ins Paket; ohne sie — CI, fremde Builds — antwortet
+> überall Transitous. `./dev testflight` bricht ohne sie ab. Echte Abfrage:
+> `TEST_RUNNER_VBB_LIVE=1 ./dev test`. Noch in keiner TestFlight-Fassung. Auf `main` liegt außerdem
 > unveröffentlicht „optimal ist die Mischlinie“ (CHANGELOG).
 > Ausliefern nur auf Ansage: `./dev testflight [version]`.
 
@@ -144,7 +146,7 @@ xcrun simctl spawn booted defaults write <bundle-id> origin -data <hex-json>
   `Motis` (Transitous/MOTIS 2: `MotisClient` + `MotisParser`, inkl.
   Polylinien-Dekoder), `CloudStore` (iCloud-Schlüssel-Wert-Abgleich der Einstellungen **und** der
   Fahrt-Kennzahlen; hört auf `UserDefaults.didChangeNotification` statt auf zwanzig
-  Setter, `placeHistory` und `rides` werden zusammengeführt statt ersetzt), `WatchLink` (Plan an die Uhr), `Hafas` (VBB mgate + Parser, `StationCache`: Bahnhöfe je Punkt einen Tag), `BRouter` (+ `CompositeRouter`, `BRouterGate`), `RouteCache` (der eine für alle Rad- und Fußwege), `StreetRouter`
+  Setter, `placeHistory` und `rides` werden zusammengeführt statt ersetzt), `WatchLink` (Plan an die Uhr), `Hafas` (VBB-API + Parser, `StationCache`: Bahnhöfe je Punkt einen Tag), `BRouter` (+ `CompositeRouter`, `BRouterGate`), `RouteCache` (der eine für alle Rad- und Fußwege), `StreetRouter`
   (MapKit), `RoadData` (Overpass + `RouteAnalyzer` + `SegmentGrid`), `Rain` (Open-Meteo),
   `RadarOverlay` (DWD-WMS-Kacheln), `Waypoints`, `TripPlanner` (Kern; je Modus
   `BikePlanner`, `CarPlanner`, `BikeTransitPlanner` + `BikeTransitComposer`, dazu
@@ -244,9 +246,13 @@ Fahrradmitnahme-Texte der VBB-Auskunft!), der User-Agent, JSON-Schlüssel und al
 
 ## Datenquellen und ihre Fallen
 
-- **VBB HAFAS** `https://fahrinfo.vbb.de/bin/mgate.exe`, aid `hafas-vbb-webapp`, ver 1.45, ext VBB.1 —
-  inoffiziell. `v6.vbb.transport.rest` antwortete mit 503. Offizieller Zugang: Mail an api@vbb.de,
-  erst Testserver, dann Produktivsystem.
+- **VBB-API** `https://fahrinfo.vbb.de/restproxy/latest` (HAFAS ReST, Stand 12.10.2026 Fassung 2.49) —
+  offiziell, mit Zustimmung des VBB (08.10.2026) und eigener Access-ID im Kopf `Authorization: Bearer …`
+  (nie in der Adresse). Benutzt werden `location.nearbystops` und `trip` (`products` = dieselbe
+  Bitmaske wie `TransitProduct`, `bikeCarriage=1`, `searchForArrival=1`, `poly=1&polyEnc=GPA` — ohne
+  `polyEnc` kommt die Linie als Zahlenliste). Fehler stehen als `errorCode` in der Antwort, teils mit
+  HTTP 200: `SVC_NO_RESULT`/`SVC_LOC_EQUAL` = leere Liste, `API_AUTH`/`API_QUOTA` = Transitous springt
+  ein. Bis 1.19 lief das über die inoffizielle mgate-Schnittstelle der VBB-Webapp.
 - Fahrradmitnahme = Vermerk **`FK`** je Fahrt. Der Filter `{"type":"BC"…}` liefert nur zwischen
   Haltestellen Ergebnisse, mit Adressen kommt H890 → die App wählt die Bahnhöfe selbst (3 × 4
   bevorzugte S/RE-Paare plus 3 × 3 beliebige für die U-Bahn/Tram-Alternative: je Ende die zwei

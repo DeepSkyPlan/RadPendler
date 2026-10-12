@@ -279,7 +279,8 @@ Was du eingibst, bleibt auf deinen Geräten und in deiner eigenen iCloud; es
 geht an keinen Server dieses Projekts, weil es keinen gibt. Kein Konto, keine Anmeldung, keine
 Analytik, keine Werbung. Quelloffen (MIT).
 
-Datenquellen: VBB, Transitous/MOTIS auf dem DELFI-Datensatz, Apple Karten,
+Datenquellen: VBB-API des Verkehrsverbunds Berlin-Brandenburg (Fahrplan und
+Echtzeit in Berlin/Brandenburg), Transitous/MOTIS auf dem DELFI-Datensatz, Apple Karten,
 BRouter und Overpass auf OpenStreetMap-Daten (© OpenStreetMap-Mitwirkende,
 ODbL), Deutscher Wetterdienst und Open-Meteo.
 
@@ -664,7 +665,8 @@ Was trotzdem gesagt gehört, und was die Datenschutzseite ausdrücklich sagt:
 • **Start- und Zielkoordinaten gehen zwangsläufig an die Routing-Dienste** —
   anders ist keine Route zu berechnen. Wer eine Route will, verrät, wo sie
   anfängt. Die Dienste sind:
-  – **VBB** (`fahrinfo.vbb.de`) — Fahrplan und Echtzeit in Berlin/Brandenburg
+  – **VBB-API** (`fahrinfo.vbb.de`, offizielle Schnittstelle des VBB, mit dessen
+    Zustimmung und eigener Access-ID) — Fahrplan und Echtzeit in Berlin/Brandenburg
   – **Transitous / MOTIS** (`api.transitous.org`) — Fahrpläne darüber hinaus.
     Jede Anfrage trägt einen `User-Agent` mit Name, Version und einer
     Kontaktadresse, wie deren Nutzungsbedingungen es verlangen
@@ -1008,7 +1010,8 @@ there is none. No account, no sign-in, no analytics, no advertising.
 
 RadPendler is open source (MIT).
 
-Data sources: VBB, Transitous and MOTIS on the DELFI dataset, Apple Maps,
+Data sources: the VBB-API of Verkehrsverbund Berlin-Brandenburg (timetable and
+real time in Berlin/Brandenburg), Transitous and MOTIS on the DELFI dataset, Apple Maps,
 BRouter on OpenStreetMap data, OpenStreetMap via Overpass (© OpenStreetMap
 contributors, ODbL), Deutscher Wetterdienst and Open-Meteo.
 

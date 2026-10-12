@@ -21,6 +21,10 @@ KEY_ID=PAGC3W2GBL
 KEY=~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
 ISSUER=$(cat ~/.appstoreconnect/issuer_id.txt)
 [ -r "$KEY" ] || { echo "API-Schlüssel fehlt: $KEY" >&2; exit 1; }
+# Ohne die Access-ID ginge eine Fassung hinaus, die den VBB nie fragt — und
+# niemand sähe es, weil Transitous still einspringt.
+grep -Eq '^VBB_ACCESS_ID *= *[^ ]' Secrets.xcconfig 2>/dev/null \
+  || { echo "VBB_ACCESS_ID fehlt in Secrets.xcconfig — die Fassung hätte keinen VBB-Fahrplan." >&2; exit 1; }
 
 old_build=$(sed -n 's/^ *CURRENT_PROJECT_VERSION: "\([0-9]*\)"/\1/p' project.yml | head -1)
 old_version=$(sed -n 's/^ *MARKETING_VERSION: "\(.*\)"/\1/p' project.yml | head -1)

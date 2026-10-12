@@ -327,6 +327,9 @@ struct ModeSettingsView: View {
                          : L("Die Fahrzeit kommt von Apple Karten mit Verkehrslage. Wie viel länger oder kürzer du wirklich brauchst, lernt die App aus deinen aufgezeichneten Autofahrten: gefahrene Zeit Tür zu Tür geteilt durch Apples Ansage, der Median der letzten Fahrten, sobald es drei gibt. Mit diesem Faktor wird Apples Zeit malgenommen — auf jeder Strecke, Stadt wie Autobahn; Parkplatzsuche und Gesamtschnitt gelten dann nicht mehr, sie stecken darin. Bis dahin gilt Apple plus Parkplatzsuche, und dein Gesamtschnitt als Untergrenze, außer wo Apple die Linie mehr als anderthalbmal so schnell fährt wie er."))
                 }
                 Section {
+                    Link(destination: URL(string: "https://www.vbb.de/vbb-services/api-open-data/api/")!) {
+                        Label(L("VBB-API (vbb.de)"), systemImage: "arrow.up.right.square")
+                    }
                     Link(destination: URL(string: "https://transitous.org/sources/")!) {
                         Label("transitous.org/sources", systemImage: "arrow.up.right.square")
                     }
@@ -336,7 +339,7 @@ struct ModeSettingsView: View {
                 } header: {
                     Text(L("Bus & Bahn"))
                 } footer: {
-                    Hint(L("Jeder Umstieg wird beim Sortieren und Empfehlen wie 10 Minuten längere Fahrt gewertet: eine direkte Verbindung gewinnt, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.") + "\n\n" + L("Den Fahrplan liefert der VBB, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link."))
+                    Hint(L("Jeder Umstieg wird beim Sortieren und Empfehlen wie 10 Minuten längere Fahrt gewertet: eine direkte Verbindung gewinnt, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.") + "\n\n" + L("Den Fahrplan liefert die VBB-API des Verkehrsverbunds Berlin-Brandenburg, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link."))
                 }
                 Section {
                     NavigationLink {
@@ -424,7 +427,7 @@ struct SettingsView: View {
                     Text(L("Daten, Rechte und Version"))
                 } footer: {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(L("Fahrplan und Echtzeit: VBB Verkehrsverbund Berlin-Brandenburg (HAFAS-Fahrinfo)."))
+                        Text(L("Fahrplan und Echtzeit in Berlin und Brandenburg: VBB-API der VBB Verkehrsverbund Berlin-Brandenburg GmbH (fahrinfo.vbb.de), genutzt mit Zustimmung des VBB und einem eigenen Zugang."))
                         Text(L("Fahrpläne außerhalb Berlin/Brandenburg: Transitous (MOTIS), Quellen unter transitous.org/sources."))
                         Text(L("Karten, Adresssuche und Autorouten: Apple Karten. © Apple Inc. und Mitwirkende."))
                         Text(L("Radrouten: BRouter (brouter.de), auf Basis von OpenStreetMap."))

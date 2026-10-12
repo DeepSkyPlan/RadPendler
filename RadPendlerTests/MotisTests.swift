@@ -108,10 +108,12 @@ extension MotisTests {
         let berlin = CLLocationCoordinate2D(latitude: 52.52, longitude: 13.41)
         let potsdam = CLLocationCoordinate2D(latitude: 52.39, longitude: 13.07)
         let hamburg = CLLocationCoordinate2D(latitude: 53.55, longitude: 10.00)
-        XCTAssertEqual(TimetableSource.resolved(from: berlin, to: potsdam), .vbb,
+        XCTAssertEqual(TimetableSource.resolved(from: berlin, to: potsdam, vbbAvailable: true), .vbb,
                        "inside the VBB area the VBB knows more")
-        XCTAssertEqual(TimetableSource.resolved(from: berlin, to: hamburg), .transitous,
+        XCTAssertEqual(TimetableSource.resolved(from: berlin, to: hamburg, vbbAvailable: true), .transitous,
                        "one end outside is enough")
+        XCTAssertEqual(TimetableSource.resolved(from: berlin, to: potsdam, vbbAvailable: false), .transitous,
+                       "ohne Access-ID gibt es keinen VBB zu fragen")
     }
 }
 

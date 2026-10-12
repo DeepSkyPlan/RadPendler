@@ -68,6 +68,11 @@ targets:
         # sobald Xcode die eigenen erneuert hat.
         com.apple.developer.icloud-container-identifiers: [iCloud.de.keese.radpendler]
         com.apple.developer.icloud-services: [CloudKit]
+    # Die Access-ID der VBB-API kommt aus Secrets.xcconfig (lokal), über
+    # Config.xcconfig; RadPendlerInfo.plist reicht sie als `VBBAccessID` weiter.
+    configFiles:
+      Debug: Config.xcconfig
+      Release: Config.xcconfig
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: de.keese.radpendler
