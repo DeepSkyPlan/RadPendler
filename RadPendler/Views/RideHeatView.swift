@@ -210,9 +210,11 @@ struct HeatMap: UIViewRepresentable {
 
     static func color(_ level: RideHeat.Level) -> UIColor {
         switch level {
-        case .once: .systemBlue.withAlphaComponent(0.55)
-        case .often: .systemOrange
-        case .most: .systemRed
+        // Von selten zu häufig: grau, blau, grün (Nutzer, 12.10.2026). Rot
+        // und Orange bleiben den Ampeln — dort heißen sie „lange gewartet".
+        case .once: .systemGray.withAlphaComponent(0.85)
+        case .often: .systemBlue
+        case .most: .systemGreen
         }
     }
 

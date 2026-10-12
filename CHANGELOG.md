@@ -2,6 +2,8 @@
 
 ## Unveröffentlicht — Demo-Fahrten für den Simulator
 
+- **Heatmap: Strecken von grau (einmal) über blau (öfter) zu grün (meist)** statt blau, orange, rot
+  (Nutzer, 12.10.2026). Rot und Orange gehören damit allein den Ampeln.
 - **`./dev demo [anzahl]`**: baut, installiert und startet die App im Simulator mit erfundenen
   Fahrten (Vorgabe 18), damit Fahrtenliste, Monatssummen und Heatmap etwas zeigen. Drei Radlinien
   und eine Autolinie zwischen Alexanderplatz und S Wannsee von den echten Routern, hin und zurück,
