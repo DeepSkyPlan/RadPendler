@@ -135,6 +135,14 @@ const GROUPS = [
     ["u2", "Eine Fahrt aufzeichnen und beenden", "Die Uhr zeigt während der Fahrt laufende Zahlen und danach die Zusammenfassung."],
     ["u3", "Auf der Uhr eine andere Kategorie wählen", "Das Telefon zeigt dieselbe Kategorie."],
   ]},
+  { id: "rueckblick", title: "Nach der Fahrt und Heatmap", why: "Im Simulator gesehen: die Ansicht nach der Fahrt und die Heatmap mit zwei kurzen Fahrten ohne Ampelhalt. Nicht prüfbar: echte Fahrten, Ampeln, viele Linien.", items: [
+    ["r1", "Eine Fahrt beenden", "Es erscheint dieselbe Ansicht wie später in der Fahrtenliste: Karte, Zahlen, Halte. Oben rechts „Teilen“, links „Fertig“."],
+    ["r2", "In dieser Ansicht auf „Teilen“ tippen und die Datei an den Mac schicken", "Es kommt eine RadPendler-Fahrt-….json an, die tools/ride_report.py auswertet."],
+    ["r3", "Fahrten öffnen und oben links auf die Flamme tippen", "Die Karte zeigt alle Rad-, Rad+Bahn- und Autofahrten: selten gefahrene Straßen dünn blau, der Arbeitsweg dick rot. Mit vielen Fahrten bleibt die Karte flüssig."],
+    ["r4", "In der Heatmap die Kreise ansehen und einen antippen", "Kreise liegen an Ampeln, an denen gehalten wurde: größer = öfter, rot = lange gewartet. Der Tipp zeigt Halte, Mittel und längsten Halt."],
+    ["r5", "Unter der Karte eine Zeile aus „Wo die Zeit liegen bleibt“ antippen", "Die Zeilen tragen Straßennamen, sortiert nach gesamter Wartezeit. Die Karte springt zur Ampel."],
+    ["r6", "In der Heatmap zwischen „Alle“, „Fahrrad“ und „Auto“ wechseln", "Die Karte zeigt nur die Fahrten dieses Verkehrsmittels. Den Umschalter gibt es nur, wenn es mehr als eines gibt."],
+  ]},
   { id: "danach", title: "Nach jeder Runde", why: "Seit dieser Fassung schreibt die App stumme Fehler in die geteilte Auswertung.", items: [
     ["n1", "Eine Fahrt teilen (Fahrten → Fahrt → Teilen) und auf dem Mac auswerten", "Im Bericht von tools/ride_report.py steht keine Zeile „Stumme Fehler“. Steht eine da: in die Notiz kopieren."],
   ]},

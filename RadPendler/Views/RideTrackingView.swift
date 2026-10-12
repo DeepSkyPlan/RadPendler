@@ -695,37 +695,25 @@ struct RideArrivalPill: View {
 
 /// What the ride was, right after it ended — the one moment one actually wants
 /// to read the numbers.
+///
+/// Dieselbe Ansicht wie später in der Fahrtenliste (`RideDetailView`), samt
+/// „Teilen“: bis 1.18 stand hier eine eigene, kürzere — ohne Halteliste und
+/// ohne die Möglichkeit, die Fahrt gleich zur Auswertung zu schicken. Wer
+/// etwas Seltsames erlebt hat, will das jetzt tun, nicht erst die Fahrt in
+/// der Liste suchen.
 struct RideSummarySheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(RideStore.self) private var store
     @Environment(RideTracker.self) private var tracker
     var ride: Ride
-    @State private var track: RideTrack?
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 14) {
-                    if tracker.stoppedByItself {
-                        Label(L("Von selbst beendet: du standst lange an derselben Stelle, und dort ist keine Ampel. Gezählt wurde bis zum Anfang des Stillstands."),
-                              systemImage: "stopwatch")
-                            .font(.system(size: 12, design: .rounded))
-                            .foregroundStyle(.orange)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    RideFacts(ride: ride, track: track)
-                    RideMapCard(ride: ride)
-                        .frame(height: 260)
+            RideDetailView(ride: ride, note: tracker.stoppedByItself
+                ? L("Von selbst beendet: du standst lange an derselben Stelle, und dort ist keine Ampel. Gezählt wurde bis zum Anfang des Stillstands.")
+                : nil)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button(L("Fertig")) { dismiss() } }
                 }
-                .padding(Theme.gutter)
-            }
-            .task { track = await store.track(for: ride) }
-            .background(Theme.background)
-            .navigationTitle(L("Angekommen"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button(L("Fertig")) { dismiss() } }
-            }
         }
     }
 }

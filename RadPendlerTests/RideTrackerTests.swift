@@ -251,6 +251,75 @@ final class RideTrackerTests: XCTestCase {
         XCTAssertNil(RideOverview.rect(around: []))
     }
 
+    // MARK: Heatmap
+
+    private func track(_ points: [CLLocationCoordinate2D], stops: [RideStop] = []) -> RideTrack {
+        RideTrack(id: UUID(), points: points.enumerated().map { i, c in
+            RidePoint(lat: c.latitude, lon: c.longitude, t: Date(timeIntervalSince1970: Double(i)), v: 5)
+        }, stops: stops)
+    }
+
+    /// Drei Fahrten über dieselbe Straße, eine davon biegt ab: das gemeinsame
+    /// Stück ist „meist“, der Abzweig „einmal“ — und jedes Stück steht einmal
+    /// da, nicht je Fahrt.
+    func testTheHeatMapCountsRidesPerStreetAndDrawsEachStreetOnce() {
+        let street = stride(from: 0.0, through: 1_000, by: 10).map { east($0) }
+        let branch = stride(from: 0.0, through: 500, by: 10).map {
+            CLLocationCoordinate2D(latitude: base.latitude + $0 / 111_320, longitude: east(1_000).longitude)
+        }
+        let heat = RideHeat.build([track(street), track(street.reversed()), track(street + branch)])
+        XCTAssertEqual(heat.rides, 3)
+        XCTAssertEqual(heat.most, 3)
+        func metres(_ level: RideHeat.Level) -> Double {
+            heat.runs.filter { $0.level == level }.reduce(0) { $0 + (TurnGuide.cumulative($1.coordinates).last ?? 0) }
+        }
+        XCTAssertEqual(metres(.most), 1_000, accuracy: 80, "die Straße, einmal gezeichnet — hin, zurück und noch einmal")
+        XCTAssertEqual(metres(.once), 500, accuracy: 80, "der Abzweig")
+        XCTAssertEqual(metres(.often), 0, accuracy: 40)
+    }
+
+    /// Im Auto liegt ein Punkt je Sekunde vierzig Meter vom nächsten: zwei
+    /// Fahrten über dieselbe Straße müssen sich trotzdem treffen. Und über
+    /// eine Lücke von Kilometern wird keine Linie gezogen.
+    func testFastRidesStillShareTheirStreetAndGapsStayOpen() {
+        let fast = stride(from: 0.0, through: 2_000, by: 40).map { east($0) }
+        let offset = stride(from: 17.0, through: 2_000, by: 37).map { east($0) }
+        let heat = RideHeat.build([track(fast), track(offset)])
+        let shared = heat.runs.filter { $0.level == .most }.reduce(0) { $0 + (TurnGuide.cumulative($1.coordinates).last ?? 0) }
+        XCTAssertEqual(shared, 2_000, accuracy: 120)
+        let torn = RideHeat.resampled([east(0), east(300), east(5_000), east(5_300)])
+        XCTAssertEqual(torn.count, 2, "vor und hinter dem Tunnel")
+        XCTAssertLessThan(torn[0].last!.distance(to: east(300)), RideHeat.stepMeters + 1)
+    }
+
+    func testOneRideIsOnceEverywhereAndNoRideIsNothing() {
+        let heat = RideHeat.build([track(stride(from: 0.0, through: 300, by: 10).map { east($0) })])
+        XCTAssertTrue(heat.runs.allSatisfy { $0.level == .once })
+        XCTAssertFalse(heat.runs.isEmpty)
+        XCTAssertTrue(RideHeat.build([]).runs.isEmpty)
+        XCTAssertEqual(RideHeat.level(2, most: 10), .often)
+        XCTAssertEqual(RideHeat.level(5, most: 10), .most)
+        XCTAssertEqual(RideHeat.level(2, most: 3), .most)
+    }
+
+    /// Halte an derselben Kreuzung gehören zusammen, auch von der anderen
+    /// Seite; ein Halt ohne Ampel zählt nicht. Sortiert nach der Zeit, die
+    /// dort liegen blieb.
+    func testStopsAtTheSameLightAreOneSignal() {
+        func stop(_ metres: Double, _ seconds: TimeInterval, signal: Bool = true) -> RideStop {
+            RideStop(lat: east(metres).latitude, lon: east(metres).longitude, start: .now, seconds: seconds, atSignal: signal)
+        }
+        let signals = RideHeat.waits(in: [track([], stops: [stop(0, 20), stop(600, 90)]),
+                                            track([], stops: [stop(25, 40), stop(300, 500, signal: false)])])
+        XCTAssertEqual(signals.count, 2)
+        XCTAssertEqual(signals.first?.total, 90, "die meiste Wartezeit zuerst")
+        let crossing = signals[1]
+        XCTAssertEqual(crossing.stops, 2)
+        XCTAssertEqual(crossing.total, 60)
+        XCTAssertEqual(crossing.longest, 40)
+        XCTAssertEqual(crossing.mean, 30)
+    }
+
     // MARK: Von Anfang bis Ende
 
     /// Drei Minuten mit 5 m/s nach Osten: die Fahrt liegt danach in der Liste,

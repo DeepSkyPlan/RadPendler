@@ -36,7 +36,24 @@
   und am Gerät offen (Prüfliste o10).
 - Gesehen wurde beides mit `simweb` — der Simulator im Browser, neu unter `~/.config/simweb/`
   (Starter `simweb radpendler`).
-: jedes Feld aus `appstore/metadata.md` als Datei, deutsch und
+- **Nach der Fahrt steht dieselbe Ansicht wie in der Fahrtenliste** (Nutzer, 12.10.2026), samt
+  „Teilen“: Karte, Zahlen, Halteliste. Bisher war es ein eigenes, kürzeres Blatt ohne Halte und
+  ohne die Möglichkeit, die Fahrt gleich zur Auswertung zu schicken (`RideSummarySheet` zeigt jetzt
+  `RideDetailView`). Der Hinweis „von selbst beendet“ steht weiter obenan. Im Simulator gesehen.
+- **Heatmap** (Fahrten → Flamme oben links): alle Rad-, Rad+Bahn- und Autofahrten auf einer Karte.
+  Straßen in drei Stufen nach der Zahl der Fahrten (einmal, öfter, meist — „meist“ ist die obere
+  Hälfte des meistgefahrenen Stücks); Kreise an den Ampeln, an denen gehalten wurde, größer = öfter,
+  Farbe = mittlere Wartezeit (unter 20 s, bis 45 s, länger). Darunter „Wo die Zeit liegen bleibt“:
+  die acht Ampeln mit der meisten Wartezeit, mit Straßennamen (Apple-Geocoder, wie bei „Mein
+  Standort“), ein Tipp zeigt sie auf der Karte. Umschalter je Verkehrsmittel. Gerechnet wird auf dem
+  Gerät aus den gespeicherten Linien (`RideHeat`): gleichmäßig auf 15 m abgetastet, in Zellen von
+  30 m gezählt — je Fahrt einmal, hin und zurück ist dieselbe Straße —, Lücken über 1 km bleiben
+  offen. Im Simulator mit zwei kurzen Fahrten gesehen (Linien und Legende); **Kreise und Liste nur
+  im Test, nicht auf dem Bildschirm**, und mit vielen Fahrten nicht gemessen (Prüfliste r1–r6).
+- `./dev test`, `check`, `routes` und `testflight` laufen über `tools/run_tests.sh`: `xcodebuild`
+  kehrte nach bestandenen Tests etwa jedes dritte Mal nicht zurück (seit 11.10.2026, Ursache
+  ungeklärt). Der Wächter beendet es eine Minute nach dem Ende der Tests und nimmt deren Ergebnis.
+- **Store-Paket** (`./dev store`): jedes Feld aus `appstore/metadata.md` als Datei, deutsch und
   englisch, die Screenshots daneben, ein Zip — und ein Abbruch, wenn ein Feld über seiner Grenze
   liegt. Die deutsche Beschreibung stand seit dem 08.10. bei 4094 von 4000 Zeichen; gekürzt auf 3998.
 

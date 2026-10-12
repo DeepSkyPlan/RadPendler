@@ -210,6 +210,17 @@
         }
       }
     },
+    "%d Fahrten · Kreis: je größer, desto öfter gehalten; Farbe: mittlere Wartezeit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d rides · circle: the larger, the more stops; colour: average wait"
+          }
+        }
+      }
+    },
     "%d Hauptstraßen queren": {
       "extractionState": "manual",
       "localizations": {
@@ -309,6 +320,17 @@
         }
       }
     },
+    "%d von %d Fahrten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$d of %2$d rides"
+          }
+        }
+      }
+    },
     "%d/%d Ampeln": {
       "extractionState": "manual",
       "localizations": {
@@ -327,6 +349,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "%d×"
+          }
+        }
+      }
+    },
+    "%d× gehalten · Ø %d s · längster %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$d stops · avg %2$d s · longest %3$@"
           }
         }
       }
@@ -492,6 +525,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Refreshing"
+          }
+        }
+      }
+    },
+    "Alle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All"
           }
         }
       }
@@ -2190,6 +2234,28 @@
         }
       }
     },
+    "Heatmap": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heat map"
+          }
+        }
+      }
+    },
+    "Heatmap aller Fahrten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heat map of all rides"
+          }
+        }
+      }
+    },
     "Hilfe und Rechtliches": {
       "extractionState": "manual",
       "localizations": {
@@ -2417,6 +2483,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "No track"
+          }
+        }
+      }
+    },
+    "Keine Linien": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No lines"
           }
         }
       }
@@ -4027,6 +4104,17 @@
         }
       }
     },
+    "Wo die Zeit liegen bleibt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Where the time goes"
+          }
+        }
+      }
+    },
     "Womit die App plant, wenn sie die Wahl hat. „Für Ruhe höchstens“ gilt für die Radroute „optimal“: so viel länger als die schnellste Linie darf sie dauern, wenn sie dafür von der Hauptstraße wegführt. Steht „optimal“ trotzdem auf der Hauptstraße, ist die ruhige Linie langsamer als das. Ab dem gewählten Regen wird nicht mehr die ganze Strecke geradelt, sondern das Rad in die Bahn gestellt — „starker Regen“ heißt also praktisch immer fahren.": {
       "extractionState": "manual",
       "localizations": {
@@ -4045,6 +4133,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Surface ridden"
+          }
+        }
+      }
+    },
+    "Zeigt die Ampel auf der Karte": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shows the light on the map"
           }
         }
       }
@@ -4122,6 +4221,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Destination: "
+          }
+        }
+      }
+    },
+    "Zu diesen Fahrten liegt auf diesem Gerät keine gefahrene Linie.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "None of these rides has its line on this device."
           }
         }
       }
@@ -4258,6 +4368,17 @@
         }
       }
     },
+    "bis %d s": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "up to %d s"
+          }
+        }
+      }
+    },
     "die Mischung aus allen dreien: zügig, kurz, ruhig": {
       "extractionState": "manual",
       "localizations": {
@@ -4309,6 +4430,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "another way — not the best at anything, but different"
+          }
+        }
+      }
+    },
+    "einmal": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "once"
           }
         }
       }
@@ -4654,6 +4786,17 @@
         }
       }
     },
+    "länger": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "longer"
+          }
+        }
+      }
+    },
     "läuft": {
       "extractionState": "manual",
       "localizations": {
@@ -4672,6 +4815,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "more"
+          }
+        }
+      }
+    },
+    "meist": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "most often"
           }
         }
       }
@@ -4995,6 +5149,17 @@
         }
       }
     },
+    "unter %d s": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "under %d s"
+          }
+        }
+      }
+    },
     "unterwegs · %@": {
       "extractionState": "manual",
       "localizations": {
@@ -5090,6 +5255,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "locating …"
+          }
+        }
+      }
+    },
+    "zusammen %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ in total"
           }
         }
       }
@@ -5244,6 +5420,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Overview map: the whole route and where you are"
+          }
+        }
+      }
+    },
+    "öfter": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "repeatedly"
           }
         }
       }

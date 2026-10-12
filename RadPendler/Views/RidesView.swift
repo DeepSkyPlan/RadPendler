@@ -43,6 +43,15 @@ struct RidesView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button(L("Fertig")) { dismiss() } }
+                // Alle Fahrten auf einer Karte — erst mit zweien sagt sie etwas.
+                if store.rides.count > 1 {
+                    ToolbarItem(placement: .topBarLeading) {
+                        NavigationLink { RideHeatView() } label: {
+                            Label(L("Heatmap"), systemImage: "flame")
+                        }
+                        .accessibilityLabel(L("Heatmap aller Fahrten"))
+                    }
+                }
             }
         }
     }
@@ -167,11 +176,20 @@ struct RideRow: View {
 struct RideDetailView: View {
     @Environment(RideStore.self) private var store
     var ride: Ride
+    /// Eine Zeile über der Karte — direkt nach der Fahrt etwa, dass sie von
+    /// selbst geendet hat.
+    var note: String? = nil
     @State private var track: RideTrack?
 
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
+                if let note {
+                    Label(note, systemImage: "stopwatch")
+                        .font(.system(size: 12, design: .rounded))
+                        .foregroundStyle(.orange)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 RideMapCard(ride: ride).frame(height: 300)
                 RideFacts(ride: ride, track: track)
                 StopList(ride: ride)
