@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — Ampeln kommen nach, ohne Neustart
+## Unveröffentlicht — Fahrt: Richtung und Start stimmen, Übersichtskarte; Ampeln kommen nach
 
 - **Der erste Plan wartet kürzer, und die Ampeln kommen von selbst** (Nutzer, 10.10.2026: „erster
   Plan 8–10 s, keine Ampeln; nach Neustart der App mit Ampeln ok“). Die Planung wartete vier
