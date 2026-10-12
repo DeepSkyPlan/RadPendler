@@ -46,7 +46,7 @@ case "${1:-test}" in
     [ -r "$PRIVATE" ] || echo "Hinweis: $PRIVATE fehlt — nur die öffentlichen Strecken werden geprüft." >&2
     LOG=$(mktemp)
     TEST_RUNNER_REF_ROUTES=1 TEST_RUNNER_REF_PRIVATE="$PRIVATE" \
-      xcodebuild -project "$PROJ" -scheme "$SCHEME" -destination "$DEST" test \
+      tools/run_tests.sh -project "$PROJ" -scheme "$SCHEME" -destination "$DEST" \
       -only-testing:RadPendlerTests/ReferenceRouteTests/testReferenceRoutes > "$LOG" 2>&1 || true
     grep -E '^REF' "$LOG" || true
     grep -E 'error: -\[' "$LOG" | sed -E 's/.*testReferenceRoutes\] : /✗ /' || true

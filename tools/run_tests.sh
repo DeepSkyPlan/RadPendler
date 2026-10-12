@@ -17,7 +17,7 @@ TAIL=$!
 finished=0 hung=0
 while kill -0 "$PID" 2>/dev/null; do
   sleep 2
-  if [ "$finished" -eq 0 ] && grep -qE "Test Suite 'All tests' (passed|failed)" "$LOG"; then finished=$(date +%s); fi
+  if [ "$finished" -eq 0 ] && grep -qE "Test Suite '(All|Selected) tests' (passed|failed)" "$LOG"; then finished=$(date +%s); fi
   if [ "$finished" -ne 0 ] && [ $(( $(date +%s) - finished )) -gt "${TEST_GRACE:-60}" ]; then
     hung=1; kill "$PID" 2>/dev/null; break
   fi
@@ -25,7 +25,7 @@ done
 wait "$PID" 2>/dev/null; code=$?
 sleep 1; kill "$TAIL" 2>/dev/null; wait "$TAIL" 2>/dev/null
 if [ "$hung" -eq 1 ]; then
-  if grep -q "Test Suite 'All tests' passed" "$LOG"; then code=0; echo "** TEST SUCCEEDED ** (xcodebuild kehrte nicht zurück und wurde beendet)"
+  if grep -qE "Test Suite '(All|Selected) tests' passed" "$LOG"; then code=0; echo "** TEST SUCCEEDED ** (xcodebuild kehrte nicht zurück und wurde beendet)"
   else code=1; echo "** TEST FAILED ** (xcodebuild kehrte nicht zurück und wurde beendet)"; fi
 fi
 rm -f "$LOG"
