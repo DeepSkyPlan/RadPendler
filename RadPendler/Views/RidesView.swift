@@ -9,6 +9,8 @@ struct RidesView: View {
     @Environment(RideStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var pendingDelete: Ride?
+    /// Zählt hoch, wenn die Liste erscheint: die Flamme hüpft einmal.
+    @State private var flare = 0
     /// Warum die Linien gerade nicht reisen — leer, solange sie es tun.
     @State private var cloudTrouble: String?
 
@@ -47,8 +49,20 @@ struct RidesView: View {
                 if store.rides.count > 1 {
                     ToolbarItem(placement: .topBarLeading) {
                         NavigationLink { RideHeatView() } label: {
-                            Label(L("Heatmap"), systemImage: "flame")
+                            // Ein Feuer, kein Umriss: gelb im Kern, rot an der
+                            // Spitze, und einmal ein Hüpfer, wenn die Liste
+                            // aufgeht. Kein Dauerflackern — eine Animation ohne
+                            // Ende in einer Werkzeugleiste war der Hänger aus 1.2.
+                            Label(L("Heatmap"), systemImage: "flame.fill")
+                                .font(.system(size: 19, weight: .bold))
+                                .foregroundStyle(LinearGradient(colors: [.yellow, .orange, .red],
+                                                                startPoint: .bottom, endPoint: .top))
+                                .shadow(color: .orange.opacity(0.55), radius: 4)
+                                .symbolEffect(.bounce, value: flare)
                         }
+                        // Sonst färbt die Leiste alles in der Akzentfarbe ein.
+                        .buttonStyle(.plain)
+                        .onAppear { flare += 1 }
                         .accessibilityLabel(L("Heatmap aller Fahrten"))
                     }
                 }

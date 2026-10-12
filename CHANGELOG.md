@@ -2,6 +2,9 @@
 
 ## Unveröffentlicht — Demo-Fahrten für den Simulator
 
+- Der Heatmap-Knopf in „Fahrten“ ist eine gefüllte Flamme von Gelb nach Rot mit Schein, die beim
+  Öffnen der Liste einmal hüpft (Nutzer, 12.10.2026: „flashier, wie ein Feuer“). Kein Dauerflackern.
+
 - **Heatmap, Versuch: Größe = wie oft, Farbe = wie schnell** (Nutzer, 12.10.2026). Ein Punkt wächst
   mit der Zahl der Fahrten (Halbmesser 0,16 bis 0,6 der Zelle, gemessen am dichtesten Punkt seines
   Verkehrsmittels) und trägt die Farbe des mittleren Tempos dort — über alle Fahrten, nur im Rollen,
