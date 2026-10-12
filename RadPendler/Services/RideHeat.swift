@@ -15,6 +15,10 @@ struct RideHeat {
     struct Dot {
         var coordinate: CLLocationCoordinate2D
         var rides: Int
+        /// Wie schnell dort im Mittel gefahren wurde, in km/h — über alle
+        /// Fahrten, nur im Rollen: wer an der Ampel steht, hinterlässt hier
+        /// keinen Punkt.
+        var kmh = 0.0
         /// Womit dort gefahren wurde (`TravelMode.rawValue`) — jedes
         /// Verkehrsmittel hat seine eigene Wolke in seiner Farbe. Leer, wo
         /// niemand es angegeben hat.
@@ -73,9 +77,9 @@ struct RideHeat {
         // liefert einen Punkt je Sekunde, und das sind auf der Autobahn
         // vierzig Meter — zwei Fahrten über dieselbe Straße träfen sonst
         // selten dieselbe Zelle.
-        let rides = tracks.map { (mode: modes[$0.id] ?? "", line: Array(resampled($0.coordinates).joined())) }
+        let rides = tracks.map { (mode: modes[$0.id] ?? "", line: Array(resampled($0.points).joined())) }
             .filter { !$0.line.isEmpty }
-        guard let anchor = rides.first?.line.first else {
+        guard let anchor = rides.first?.line.first?.coordinate else {
             return RideHeat(signals: waits(in: tracks))
         }
         let layers = layerMeters.map { meters -> Layer in
@@ -87,15 +91,17 @@ struct RideHeat {
             // Punkte, sonst zählte eine rote Ampel wie zehn Fahrten. Und wo
             // in der Zelle: die Mitte dessen, was dort gefahren wurde, nicht
             // die Mitte des Gitters, sonst läge die Wolke im Karomuster.
-            var sum: [Cell: (lat: Double, lon: Double, points: Int, rides: Int)] = [:]
+            var sum: [Cell: (lat: Double, lon: Double, kmh: Double, points: Int, rides: Int)] = [:]
             for (mode, line) in rides {
                 var seen = Set<Cell>()
-                for c in line {
+                for sample in line {
+                    let c = sample.coordinate
                     let cell = Cell(x: Int32((c.longitude / dx).rounded(.down)), y: Int32((c.latitude / dy).rounded(.down)),
                                     mode: mode)
-                    var s = sum[cell] ?? (0, 0, 0, 0)
+                    var s = sum[cell] ?? (0, 0, 0, 0, 0)
                     s.lat += c.latitude
                     s.lon += c.longitude
+                    s.kmh += sample.kmh
                     s.points += 1
                     if seen.insert(cell).inserted { s.rides += 1 }
                     sum[cell] = s
@@ -104,7 +110,7 @@ struct RideHeat {
             let dots = sum.map { cell, s in
                 Dot(coordinate: CLLocationCoordinate2D(latitude: s.lat / Double(s.points),
                                                        longitude: s.lon / Double(s.points)),
-                    rides: s.rides, mode: cell.mode)
+                    rides: s.rides, kmh: s.kmh / Double(s.points), mode: cell.mode)
             }
             return Layer(meters: meters, dots: dots, most: dots.map(\.rides).max() ?? 0)
         }
@@ -131,27 +137,43 @@ struct RideHeat {
     /// Aussetzer: dort wird nichts gezählt und nichts gezeichnet.
     static let gapMeters = 1_000.0
 
+    /// Ein Punkt der abgetasteten Linie: wo, und wie schnell dort.
+    struct Sample {
+        var coordinate: CLLocationCoordinate2D
+        var kmh: Double
+    }
+
     /// Die Linie in gleichmäßigen Schritten, an Lücken geteilt.
     static func resampled(_ line: [CLLocationCoordinate2D]) -> [[CLLocationCoordinate2D]] {
-        guard var last = line.first else { return [] }
-        var pieces: [[CLLocationCoordinate2D]] = []
+        resampled(line.map { RidePoint(lat: $0.latitude, lon: $0.longitude, t: .distantPast, v: 0) })
+            .map { $0.map(\.coordinate) }
+    }
+
+    /// Dasselbe mit dem Tempo: zwischen zwei Ortungen gilt das Mittel beider.
+    static func resampled(_ line: [RidePoint]) -> [[Sample]] {
+        guard let first = line.first else { return [] }
+        var last = Sample(coordinate: first.coordinate, kmh: first.kmh)
+        var pieces: [[Sample]] = []
         var piece = [last]
-        for next in line.dropFirst() {
-            let d = last.distance(to: next)
+        for point in line.dropFirst() {
+            let next = point.coordinate
+            let d = last.coordinate.distance(to: next)
             if d > gapMeters {
                 if piece.count > 1 { pieces.append(piece) }
-                piece = [next]
-                last = next
+                last = Sample(coordinate: next, kmh: point.kmh)
+                piece = [last]
                 continue
             }
             guard d >= stepMeters else { continue }
-            let steps = Int(d / stepMeters)
-            for i in 1...steps {
+            let kmh = (last.kmh + point.kmh) / 2
+            let from = last.coordinate
+            for i in 1...Int(d / stepMeters) {
                 let f = Double(i) * stepMeters / d
-                piece.append(CLLocationCoordinate2D(latitude: last.latitude + (next.latitude - last.latitude) * f,
-                                                    longitude: last.longitude + (next.longitude - last.longitude) * f))
+                piece.append(Sample(coordinate: CLLocationCoordinate2D(
+                    latitude: from.latitude + (next.latitude - from.latitude) * f,
+                    longitude: from.longitude + (next.longitude - from.longitude) * f), kmh: kmh))
             }
-            last = piece[piece.count - 1]
+            last = Sample(coordinate: piece[piece.count - 1].coordinate, kmh: point.kmh)
         }
         if piece.count > 1 { pieces.append(piece) }
         return pieces

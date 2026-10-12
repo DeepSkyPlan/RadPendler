@@ -2,6 +2,13 @@
 
 ## Unveröffentlicht — Demo-Fahrten für den Simulator
 
+- **Heatmap, Versuch: Größe = wie oft, Farbe = wie schnell** (Nutzer, 12.10.2026). Ein Punkt wächst
+  mit der Zahl der Fahrten (Halbmesser 0,16 bis 0,6 der Zelle, gemessen am dichtesten Punkt seines
+  Verkehrsmittels) und trägt die Farbe des mittleren Tempos dort — über alle Fahrten, nur im Rollen,
+  auf der Skala der Fahrtkarte (Rad < 8 bis > 26 km/h, Auto < 20 bis > 100 km/h; `Dot.kmh`,
+  `RideHeat.resampled`). Ersetzt die Farbe je Verkehrsmittel aus dem Eintrag darunter. Offen: die
+  Tempofarben sind dieselben Rot-, Orange- und Grüntöne wie die Ampelkreise; die unterscheidet nur
+  Größe und weißer Rand. Im Simulator mit den Demo-Fahrten gesehen.
 - **Heatmap: jede Wolke in der Farbe ihres Verkehrsmittels, kleinere Punkte** (Nutzer, 12.10.2026).
   Rad, Rad + Bahn und Auto liegen als eigene Wolken übereinander, das Auto zuunterst; wie kräftig
   ein Punkt ist, misst sich am dichtesten Punkt **seines** Verkehrsmittels — drei Autofahrten neben

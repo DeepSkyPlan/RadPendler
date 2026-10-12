@@ -103,7 +103,9 @@ enum DemoRides {
             let here = CLLocationCoordinate2D(latitude: a.latitude + (b.latitude - a.latitude) * f + drift,
                                               longitude: a.longitude + (b.longitude - a.longitude) * f + drift * 1.2)
             let fromStart = back ? total - travelled : travelled
-            let v = speed * (0.85 + 0.3 * dice.next())
+            // Schnelle und langsame Abschnitte an immer denselben Stellen —
+            // sonst wäre die Karte der Geschwindigkeiten einfarbig.
+            let v = speed * (0.6 + 0.6 * abs(sin(fromStart / 1_400))) * (0.9 + 0.2 * dice.next())
             points.append(RidePoint(lat: here.latitude, lon: here.longitude, t: clock, v: v))
             top = Swift.max(top, v)
             // An jeder Ampel knapp jede zweite Fahrt; manche sind lang.

@@ -30,6 +30,16 @@ struct RideHeatView: View {
     /// Was die Karte gerade zeigt — für die Legende.
     private var shown: [TravelMode] { mode.map { [$0] } ?? present }
 
+    /// Die Tempofarben, die auf der Karte vorkommen: Rad und Auto haben
+    /// verschiedene Skalen, sonst wäre das Auto überall dieselbe Farbe.
+    private var scales: [(title: String, scale: RideColors.Scale)] {
+        var out: [(String, RideColors.Scale)] = []
+        for m in shown where !out.contains(where: { $0.1 == RideColors.Scale.of(m) }) {
+            out.append((RideColors.Scale.of(m) == .bike ? L("Tempo Rad") : L("Tempo Auto"), .of(m)))
+        }
+        return out
+    }
+
     private var present: [TravelMode] {
         Self.modes.filter { m in store.rides.contains { $0.travelMode == m } }
     }
@@ -81,23 +91,22 @@ struct RideHeatView: View {
 
     private var legend: some View {
         VStack(alignment: .leading, spacing: 6) {
-            // Die Wolke erklärt sich an vier Punkten: von einer Fahrt bis zum
-            // dichtesten Stück — je Verkehrsmittel in seiner Farbe.
-            HStack(spacing: 12) {
-                ForEach(shown) { m in
-                    HStack(spacing: 4) {
-                        ForEach([0.0, 0.33, 0.66, 1], id: \.self) { f in
-                            Circle().fill(m.color.opacity(RideHeat.faintest + (1 - RideHeat.faintest) * f))
-                                .frame(width: 8, height: 8)
-                        }
-                        Text(m.title)
-                    }
+            // Größe = wie oft, Farbe = wie schnell (Nutzer, 12.10.2026).
+            HStack(spacing: 6) {
+                Text(L("selten"))
+                ForEach([0.0, 0.5, 1], id: \.self) { f in
+                    Circle().fill(.secondary).frame(width: 4 + 8 * f, height: 4 + 8 * f)
                 }
+                Text(L("oft"))
                 Spacer(minLength: 0)
             }
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
-            Text(L("blass = selten, kräftig = oft")).foregroundStyle(.secondary)
+            ForEach(scales, id: \.title) { entry in
+                HStack(spacing: 6) {
+                    SpeedLegend(scale: entry.scale)
+                    Text(entry.title).foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                }
+            }
             HStack(spacing: 12) {
                 ForEach([10.0, 30, 60], id: \.self) { seconds in
                     HStack(spacing: 5) {
@@ -211,13 +220,6 @@ struct HeatMap: UIViewRepresentable {
     static let shortWait: TimeInterval = 20
     static let longWait: TimeInterval = 45
 
-    /// Die Farbe der Wolke: die des Verkehrsmittels, wie überall in der App
-    /// (Nutzer, 12.10.2026) — Rad, Rad + Bahn und Auto liegen als eigene
-    /// Wolken übereinander. Die Ampeln tragen dazu einen weißen Rand.
-    static func cloud(_ mode: String) -> UIColor {
-        TravelMode(rawValue: mode).map { UIColor($0.color) } ?? .systemRed
-    }
-
     static func color(wait seconds: TimeInterval) -> UIColor {
         seconds < shortWait ? .systemGreen : seconds < longWait ? .systemOrange : .systemRed
     }
@@ -227,7 +229,8 @@ struct HeatMap: UIViewRepresentable {
         struct Level {
             /// Zellgröße in Kartenpunkten.
             var size: Double
-            var points: [(at: MKMapPoint, color: CGColor)]
+            /// `weight` von 0 (eine Fahrt) bis 1 (das meistgefahrene Stück).
+            var points: [(at: MKMapPoint, color: CGColor, weight: Double)]
         }
 
         let levels: [Level]
@@ -238,19 +241,16 @@ struct HeatMap: UIViewRepresentable {
             var bounds = MKMapRect.null
             levels = heat.layers.map { layer in
                 let scale = layer.dots.first.map { MKMapPointsPerMeterAtLatitude($0.coordinate.latitude) } ?? 1
-                // Das Auto zuunterst, das Rad obenauf; innerhalb das Blasse
-                // zuerst, damit das Kräftige nicht überdeckt wird.
-                let dots = layer.dots.sorted { ($0.mode == "car" ? 0 : 1, $0.rides) < ($1.mode == "car" ? 0 : 1, $1.rides) }
-                var colors: [String: UIColor] = [:]
+                // Das Seltene zuerst, damit das Häufige obenauf liegt.
+                let dots = layer.dots.sorted { $0.rides < $1.rides }
                 // Gemessen am dichtesten Punkt **dieses** Verkehrsmittels: drei
-                // Autofahrten neben dreißig Radfahrten wären sonst ein Hauch
-                // Rot auf grauer Autobahn.
+                // Autofahrten neben dreißig Radfahrten wären sonst Staub.
                 let top = Dictionary(grouping: layer.dots, by: \.mode).mapValues { $0.map(\.rides).max() ?? 1 }
                 return Level(size: layer.meters * scale, points: dots.map { dot in
-                    let base = colors[dot.mode] ?? HeatMap.cloud(dot.mode)
-                    colors[dot.mode] = base
-                    return (MKMapPoint(dot.coordinate),
-                            base.withAlphaComponent(CGFloat(RideHeat.strength(dot.rides, most: top[dot.mode] ?? layer.most))).cgColor)
+                    let most = top[dot.mode] ?? layer.most
+                    let weight = most > 1 ? (RideHeat.strength(dot.rides, most: most) - RideHeat.faintest) / (1 - RideHeat.faintest) : 1
+                    let color = RideColors.Scale.of(TravelMode(rawValue: dot.mode)).uiColor(dot.kmh)
+                    return (MKMapPoint(dot.coordinate), color.withAlphaComponent(0.9).cgColor, weight)
                 })
             }
             for p in levels.first?.points ?? [] {
@@ -267,8 +267,8 @@ struct HeatMap: UIViewRepresentable {
         static let minCell = 3.0
         /// Halbmesser eines Punkts, als Anteil der Zelle — und in Bildpunkten
         /// nie kleiner als das, sonst verschwindet eine einzelne Fahrt.
-        static let dotSize = 0.38
-        static let minRadius = 1.0
+        static let dotSize = 0.16...0.6
+        static let minRadius = 0.7...2.6
 
         override func draw(_ mapRect: MKMapRect, zoomScale: MKZoomScale, in context: CGContext) {
             guard let cloud = overlay as? Cloud, !cloud.levels.isEmpty else { return }
@@ -276,10 +276,14 @@ struct HeatMap: UIViewRepresentable {
             // Punkte mit Luft dazwischen: eine Spur ist eine Perlenkette, viele
             // Spuren nebeneinander eine Wolke. Bis hierher berührten sie sich
             // (0,62 der Zelle) und lasen sich als Strich (Nutzer, 12.10.2026).
-            let radius = Swift.max(level.size * Self.dotSize, Self.minRadius / Double(zoomScale))
-            let reach = mapRect.insetBy(dx: -radius, dy: -radius)
+            let largest = Swift.max(level.size * Self.dotSize.upperBound, Self.minRadius.upperBound / Double(zoomScale))
+            let reach = mapRect.insetBy(dx: -largest, dy: -largest)
             for p in level.points where reach.contains(p.at) {
                 let c = point(for: p.at)
+                // Die Größe sagt, wie oft: von einem Staubkorn bis zu Punkten,
+                // die sich berühren.
+                let radius = Swift.max(level.size * Self.dotSize.at(p.weight),
+                                       Self.minRadius.at(p.weight) / Double(zoomScale))
                 context.setFillColor(p.color)
                 context.fillEllipse(in: CGRect(x: c.x - radius, y: c.y - radius, width: radius * 2, height: radius * 2))
             }
@@ -358,4 +362,9 @@ struct HeatMap: UIViewRepresentable {
             return view
         }
     }
+}
+
+private extension ClosedRange where Bound == Double {
+    /// Der Wert an der Stelle `f` zwischen 0 und 1.
+    func at(_ f: Double) -> Double { lowerBound + (upperBound - lowerBound) * Swift.max(0, Swift.min(1, f)) }
 }

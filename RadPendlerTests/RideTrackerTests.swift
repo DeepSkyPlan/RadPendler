@@ -309,6 +309,18 @@ final class RideTrackerTests: XCTestCase {
         XCTAssertEqual(fine.most, 2)
     }
 
+    /// Das Tempo eines Orts ist das Mittel aller Fahrten dort — im Rollen.
+    func testTheCloudKnowsHowFastAPlaceIsRidden() throws {
+        func ride(_ speed: Double) -> RideTrack {
+            RideTrack(id: UUID(), points: stride(from: 0.0, through: 600, by: 10).enumerated().map { i, m in
+                RidePoint(lat: east(m).latitude, lon: east(m).longitude, t: Date(timeIntervalSince1970: Double(i)), v: speed)
+            })
+        }
+        let fine = try XCTUnwrap(RideHeat.build([ride(4), ride(6)]).layers.first)
+        XCTAssertFalse(fine.dots.isEmpty)
+        for dot in fine.dots { XCTAssertEqual(dot.kmh, 18, accuracy: 0.5, "4 und 6 m/s sind im Mittel 18 km/h") }
+    }
+
     /// Stufenlos, und gemessen am dichtesten Punkt: eine Fahrt bleibt
     /// sichtbar, die meisten sind voll, dazwischen steigt es.
     func testStrengthRisesWithRidesAndIsRelativeToTheBusiest() {
