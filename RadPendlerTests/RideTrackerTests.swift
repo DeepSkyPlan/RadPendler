@@ -296,6 +296,19 @@ final class RideTrackerTests: XCTestCase {
         XCTAssertLessThan(torn[0].last!.distance(to: east(300)), RideHeat.stepMeters + 1)
     }
 
+    /// Rad und Auto über dieselbe Straße sind zwei Wolken: jede zählt ihre
+    /// eigenen Fahrten und trägt ihr Verkehrsmittel.
+    func testEachModeHasItsOwnCloud() throws {
+        let street = stride(from: 0.0, through: 600, by: 10).map { east($0) }
+        let (a, b, c) = (track(street), track(street), track(street))
+        let heat = RideHeat.build([a, b, c], modes: [a.id: "bike", b.id: "bike", c.id: "car"])
+        let fine = try XCTUnwrap(heat.layers.first)
+        XCTAssertEqual(Set(fine.dots.map(\.mode)), ["bike", "car"])
+        XCTAssertTrue(fine.dots.filter { $0.mode == "bike" }.allSatisfy { $0.rides == 2 })
+        XCTAssertTrue(fine.dots.filter { $0.mode == "car" }.allSatisfy { $0.rides == 1 })
+        XCTAssertEqual(fine.most, 2)
+    }
+
     /// Stufenlos, und gemessen am dichtesten Punkt: eine Fahrt bleibt
     /// sichtbar, die meisten sind voll, dazwischen steigt es.
     func testStrengthRisesWithRidesAndIsRelativeToTheBusiest() {

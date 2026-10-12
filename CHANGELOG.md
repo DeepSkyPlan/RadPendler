@@ -2,7 +2,13 @@
 
 ## Unveröffentlicht — Demo-Fahrten für den Simulator
 
-- **Heatmap: die Strecke als rote Punktwolke, deren Dichte steigt** (Nutzer, 12.10.2026: drei
+- **Heatmap: jede Wolke in der Farbe ihres Verkehrsmittels, kleinere Punkte** (Nutzer, 12.10.2026).
+  Rad, Rad + Bahn und Auto liegen als eigene Wolken übereinander, das Auto zuunterst; wie kräftig
+  ein Punkt ist, misst sich am dichtesten Punkt **seines** Verkehrsmittels — drei Autofahrten neben
+  dreißig Radfahrten wären sonst kaum zu sehen. Die Punkte berühren sich nicht mehr (Halbmesser
+  0,38 statt 0,62 der Zelle), eine Spur liest sich als Perlenkette statt als Strich. Im Simulator
+  mit den Demo-Fahrten gesehen.
+- **Heatmap: die Strecke als Punktwolke, deren Dichte steigt** (Nutzer, 12.10.2026: drei
   Linienstärken „zu undifferenziert“). Je Ort ein Punkt, umso kräftiger, je mehr Fahrten dort
   durchgingen — stufenlos, logarithmisch und gemessen am dichtesten Punkt der Karte
   (`RideHeat.strength`), damit nach einem Jahr Pendeln nicht alles gleich rot ist. Vier Auflösungen

@@ -15,6 +15,10 @@ struct RideHeat {
     struct Dot {
         var coordinate: CLLocationCoordinate2D
         var rides: Int
+        /// Womit dort gefahren wurde (`TravelMode.rawValue`) — jedes
+        /// Verkehrsmittel hat seine eigene Wolke in seiner Farbe. Leer, wo
+        /// niemand es angegeben hat.
+        var mode = ""
     }
 
     /// Die Wolke in einer Auflösung. Aus der Nähe sieht man jede Spur, von
@@ -59,15 +63,19 @@ struct RideHeat {
     private struct Cell: Hashable {
         var x: Int32
         var y: Int32
+        var mode: String
     }
 
-    static func build(_ tracks: [RideTrack]) -> RideHeat {
+    /// `modes` sagt je Fahrt, womit sie gefahren wurde; ohne Angabe liegt
+    /// alles in einer Wolke.
+    static func build(_ tracks: [RideTrack], modes: [UUID: String] = [:]) -> RideHeat {
         // Je Fahrt ihre Stücke, in gleichmäßigen Schritten: der Empfänger
         // liefert einen Punkt je Sekunde, und das sind auf der Autobahn
         // vierzig Meter — zwei Fahrten über dieselbe Straße träfen sonst
         // selten dieselbe Zelle.
-        let rides = tracks.map { Array(resampled($0.coordinates).joined()) }.filter { !$0.isEmpty }
-        guard let anchor = rides.first?.first else {
+        let rides = tracks.map { (mode: modes[$0.id] ?? "", line: Array(resampled($0.coordinates).joined())) }
+            .filter { !$0.line.isEmpty }
+        guard let anchor = rides.first?.line.first else {
             return RideHeat(signals: waits(in: tracks))
         }
         let layers = layerMeters.map { meters -> Layer in
@@ -80,10 +88,11 @@ struct RideHeat {
             // in der Zelle: die Mitte dessen, was dort gefahren wurde, nicht
             // die Mitte des Gitters, sonst läge die Wolke im Karomuster.
             var sum: [Cell: (lat: Double, lon: Double, points: Int, rides: Int)] = [:]
-            for line in rides {
+            for (mode, line) in rides {
                 var seen = Set<Cell>()
                 for c in line {
-                    let cell = Cell(x: Int32((c.longitude / dx).rounded(.down)), y: Int32((c.latitude / dy).rounded(.down)))
+                    let cell = Cell(x: Int32((c.longitude / dx).rounded(.down)), y: Int32((c.latitude / dy).rounded(.down)),
+                                    mode: mode)
                     var s = sum[cell] ?? (0, 0, 0, 0)
                     s.lat += c.latitude
                     s.lon += c.longitude
@@ -92,9 +101,10 @@ struct RideHeat {
                     sum[cell] = s
                 }
             }
-            let dots = sum.values.map {
-                Dot(coordinate: CLLocationCoordinate2D(latitude: $0.lat / Double($0.points),
-                                                       longitude: $0.lon / Double($0.points)), rides: $0.rides)
+            let dots = sum.map { cell, s in
+                Dot(coordinate: CLLocationCoordinate2D(latitude: s.lat / Double(s.points),
+                                                       longitude: s.lon / Double(s.points)),
+                    rides: s.rides, mode: cell.mode)
             }
             return Layer(meters: meters, dots: dots, most: dots.map(\.rides).max() ?? 0)
         }

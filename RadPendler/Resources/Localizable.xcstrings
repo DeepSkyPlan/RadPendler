@@ -4379,6 +4379,17 @@
         }
       }
     },
+    "blass = selten, kräftig = oft": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "pale = rarely, strong = often"
+          }
+        }
+      }
+    },
     "die Mischung aus allen dreien: zügig, kurz, ruhig": {
       "extractionState": "manual",
       "localizations": {
@@ -4929,17 +4940,6 @@
         }
       }
     },
-    "oft": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "often"
-          }
-        }
-      }
-    },
     "ohne Fixpunkte": {
       "extractionState": "manual",
       "localizations": {
@@ -5035,17 +5035,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "for %@"
-          }
-        }
-      }
-    },
-    "selten": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "rarely"
           }
         }
       }
