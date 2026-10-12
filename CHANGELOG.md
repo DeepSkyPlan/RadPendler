@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht
+## Unveröffentlicht — Halt = Ampel, großes Tempo, Heatmap als Summe, Töne wie Musik
 
 Zehn Punkte aus dem Test von 1.20 (60) (Nutzer, 12.10.2026).
 
