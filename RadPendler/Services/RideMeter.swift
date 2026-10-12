@@ -72,16 +72,6 @@ struct RideMeter {
     /// stopped at before — what turns a standstill into a traffic light.
     var signals: [CLLocationCoordinate2D] = []
 
-    /// A standstill at least this long is a red light wherever it happens.
-    /// OpenStreetMap does not know every light, and it knows none of the
-    /// crossings that merely behave like one; half a minute standing on a
-    /// commute is not something one does for the view.
-    /// Fest seit 1.9.1 — als Einstellung („Ampelhalt ab") hat sie niemand
-    /// verstellt, und wer es tat, verschob nur, was als gelernte Ampel gilt.
-    /// Veränderlich bleibt sie für die Tests.
-    var signalSeconds: TimeInterval = RideMeter.defaultSignalSeconds
-    static let defaultSignalSeconds: TimeInterval = 30
-
     /// The planned route with the kind of road each stretch is. Empty means
     /// nobody classified it, and then `mix` stays empty too — an empty bar is
     /// an honest "not known", a full one would be a guess.
@@ -170,19 +160,16 @@ struct RideMeter {
         return (since, seconds)
     }
 
-    /// Ob der laufende Stillstand nach denselben Regeln eine Ampel ist, nach
-    /// denen er am Ende gezählt wird — einschließlich der Regel, dass ein
-    /// Stillstand ab `signalSeconds` überall eine Ampel ist. Er wird es also
-    /// im Stehen, und genau dann springt die Anzeige von „gestanden" auf
-    /// „gewartet".
-    func standingAtSignal(at now: Date) -> Bool {
-        guard standingAfterRiding, let at = standingAt else { return false }
-        return nearSignal(at) || standingSeconds(at: now) >= signalSeconds
+    /// Ob der laufende Stillstand schon ein Halt ist, der zählt — nach
+    /// denselben Regeln, nach denen er am Ende gezählt wird: nach dem ersten
+    /// Tritt in die Pedale und ab `minStop`.
+    func standingCounts(at now: Date) -> Bool {
+        standingAfterRiding && standingAt != nil && standingSeconds(at: now) >= Self.minStop
     }
 
-    /// Ampelhalts und Wartezeit **einschließlich** des laufenden Halts.
+    /// Halte und Wartezeit **einschließlich** des laufenden Halts.
     func liveSignals(at now: Date) -> (stops: Int, wait: TimeInterval) {
-        guard standingAtSignal(at: now) else { return (signalStops, signalWaitTotal) }
+        guard standingCounts(at: now) else { return (signalStops, signalWaitTotal) }
         return (signalStops + 1, signalWaitTotal + standingSeconds(at: now))
     }
 
@@ -328,23 +315,25 @@ struct RideMeter {
         }
     }
 
-    /// Ein Stillstand wird zum Halt — und manchmal zur Ampel.
+    /// Ein Stillstand wird zum Halt.
     ///
-    /// Zwei Stillstände sind die eigene Haustür und keine Kreuzung: der vor
+    /// Warum man steht, ist gleich (Nutzer, 12.10.2026): Ampel, Schranke,
+    /// Vorfahrt, Stau — es kostet dieselbe Zeit, und die Planung soll es an
+    /// derselben Stelle wieder einrechnen. Bis 1.20 war ein Halt nur dann eine
+    /// „Ampel“ (`atSignal`), wenn die Karte dort eine kannte oder er länger
+    /// als dreißig Sekunden dauerte; alles andere zählte daneben und wurde nie
+    /// gelernt. Jetzt trägt jeder Halt unterwegs `atSignal` — das Feld heißt
+    /// weiter so, weil es gespeichert ist.
+    ///
+    /// Zwei Stillstände bleiben draußen, sie sind die eigene Haustür: der vor
     /// der ersten Kurbelumdrehung (man steht in der Einfahrt und sucht die
     /// Handschuhe) und der, den erst das Ende der Fahrt schließt (man ist
-    /// angekommen und tippt eine halbe Minute später auf „Fahrt beenden").
-    /// Über die Dreißig-Sekunden-Regel wurde daraus bisher eine Ampel, die es
-    /// dort nie gab — und die von da an jede Planung verlängerte.
-    ///
-    /// Die Regel gilt nur für *diese* Regel: steht am Ende der Fahrt eine
-    /// Ampel, die die Karte kennt, war es eine Ampel. Vor dem Losfahren
-    /// dagegen nie — an einer Ampel wartet man erst, wenn man unterwegs ist.
+    /// angekommen und tippt eine halbe Minute später auf „Fahrt beenden") —
+    /// es sei denn, am Ende steht eine Kreuzung, die die Karte kennt.
     private mutating func close(since: Date, until: Date, ending: Bool = false) {
         let seconds = until.timeIntervalSince(since)
         if seconds >= Self.minStop, let at = standingAt {
-            let atSignal = standingAfterRiding
-                && (nearSignal(at) || (!ending && seconds >= signalSeconds))
+            let atSignal = standingAfterRiding && (nearSignal(at) || !ending)
             stops.append(RideStop(lat: at.latitude, lon: at.longitude, start: since,
                                   seconds: seconds, atSignal: atSignal))
         }

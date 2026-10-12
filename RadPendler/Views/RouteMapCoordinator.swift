@@ -313,7 +313,7 @@ extension RouteMapView {
                 d.coordinate = stop.coordinate
                 d.atSignal = stop.atSignal
                 d.seconds = stop.seconds
-                d.title = stop.atSignal ? L("Ampel") : L("Halt")
+                d.title = L("Halt")
                 return d
             })
         }

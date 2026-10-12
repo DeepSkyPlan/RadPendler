@@ -33,8 +33,53 @@ final class RideSounds {
     /// es nur kurz absenkend. Steht hier und nicht im Aufruf, weil daran hängt,
     /// ob die App anderen den Ton wegnimmt — `RideSoundsTests` hält es fest.
     nonisolated static let category = AVAudioSession.Category.playback
-    nonisolated static let mode = AVAudioSession.Mode.voicePrompt
+    /// `.default` und nicht `.voicePrompt` (so bis 1.20): ein Ansagemodus hat
+    /// im Auto und an manchem Kopfhörer seinen eigenen Pegel, neben dem der
+    /// Musik. Die Töne sollen so laut sein, wie das Gerät gestellt ist — wie
+    /// Musik (Nutzer, 12.10.2026).
+    nonisolated static let mode = AVAudioSession.Mode.default
     nonisolated static let options: AVAudioSession.CategoryOptions = [.mixWithOthers, .duckOthers]
+    /// Zwischen den Tönen, solange eine Fahrt läuft: nur mischen, nichts
+    /// absenken. Die Sitzung bleibt an, damit die Lautstärketasten während
+    /// der ganzen Fahrt die Medienlautstärke stellen — bei ausgeschalteter
+    /// Sitzung stellen sie den Klingelton, und der Ton danach kam so laut, wie
+    /// die Musik zuletzt irgendwann war.
+    nonisolated static let idleOptions: AVAudioSession.CategoryOptions = [.mixWithOthers]
+    /// Ob gerade eine Fahrt läuft.
+    private var held = false
+
+    /// Die Fahrt beginnt: ab jetzt gehören die Lautstärketasten den Tönen.
+    func hold() {
+        held = true
+        guard enabled else { return }
+        idle()
+    }
+
+    /// Die Fahrt ist zu Ende — nach dem letzten Ton gibt `play` die Sitzung
+    /// wieder frei.
+    func release() {
+        let was = held
+        held = false
+        // Nur ausschalten, was hier eingeschaltet wurde — und nicht mitten
+        // im Schlusston.
+        guard was, enabled, player?.isPlaying != true else { return }
+        Log.attempt("Ton: ausschalten") {
+            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        }
+    }
+
+    /// Im Testlauf bleibt die Sitzung zwischen den Tönen aus: eine, die nach
+    /// dem letzten Test noch an ist, hält `xcodebuild` offen.
+    private static let underTest = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+
+    private func idle() {
+        guard !Self.underTest else { return }
+        let session = AVAudioSession.sharedInstance()
+        Log.attempt("Ton: Kategorie zwischen den Tönen") {
+            try session.setCategory(Self.category, mode: Self.mode, options: Self.idleOptions)
+        }
+        Log.attempt("Ton: einschalten") { try session.setActive(true) }
+    }
     private var player: AVAudioPlayer?
     private var cache: [String: Data] = [:]
 
@@ -58,10 +103,13 @@ final class RideSounds {
         Task { [weak self] in
             try? await Task.sleep(for: .seconds(length + 0.3))
             guard self?.player === p else { return }
-            // Die Musik wieder auf volle Lautstärke.
+            // Die Musik wieder auf volle Lautstärke: abgesenkt bleibt sie, bis
+            // die Sitzung aus ist. Läuft die Fahrt noch, geht sie gleich
+            // wieder an — ohne Absenken.
             Log.attempt("Ton: ausschalten") {
                 try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
             }
+            if self?.held == true { self?.idle() }
         }
         switch cue {
         case .turnNow, .stop: UINotificationFeedbackGenerator().notificationOccurred(.success)

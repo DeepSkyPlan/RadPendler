@@ -2,7 +2,7 @@ import CoreLocation
 import Foundation
 
 /// Alle Fahrten übereinander: eine Punktwolke, die dort dicht wird, wo oft
-/// gefahren wurde, und die Ampeln, an denen gestanden wurde.
+/// gefahren wurde, und die Stellen, an denen gestanden wurde.
 ///
 /// Eine einzelne Fahrt sagt, wie dieser Tag war. Erst alle zusammen zeigen
 /// den Weg, den man wirklich fährt — und die drei Ampeln, an denen die
@@ -64,57 +64,168 @@ struct RideHeat {
     /// von der Gegenseite der Kreuzung.
     static let signalMeters = 45.0
 
-    private struct Cell: Hashable {
-        var x: Int32
-        var y: Int32
-        var mode: String
-    }
+    /// Was mit eigener Kraft oder eigenem Lenkrad gefahren wird. Eine reine
+    /// Bahnfahrt hat keine Straße und keinen Halt.
+    static let modes: [TravelMode] = [.bike, .bikeTransit, .car]
 
     /// `modes` sagt je Fahrt, womit sie gefahren wurde; ohne Angabe liegt
     /// alles in einer Wolke.
     static func build(_ tracks: [RideTrack], modes: [UUID: String] = [:]) -> RideHeat {
-        // Je Fahrt ihre Stücke, in gleichmäßigen Schritten: der Empfänger
-        // liefert einen Punkt je Sekunde, und das sind auf der Autobahn
-        // vierzig Meter — zwei Fahrten über dieselbe Straße träfen sonst
-        // selten dieselbe Zelle.
-        let rides = tracks.map { (mode: modes[$0.id] ?? "", line: Array(resampled($0.points).joined())) }
-            .filter { !$0.line.isEmpty }
-        guard let anchor = rides.first?.line.first?.coordinate else {
-            return RideHeat(signals: waits(in: tracks))
+        var sum = Sum()
+        for track in tracks { sum.add(track, mode: modes[track.id] ?? "") }
+        return sum.heat()
+    }
+
+    /// Alle Fahrten als **Summe**: je Zelle, was dort zusammenkam, und welche
+    /// Fahrten schon darin stecken.
+    ///
+    /// Bis 1.20 las die Heatmap bei jedem Öffnen jede Linie von der Platte und
+    /// rechnete alles neu — mit jeder Fahrt etwas länger, nach einem Jahr
+    /// Pendeln spürbar (Nutzer, 12.10.2026). Die Summe wird weggeschrieben
+    /// (`RideStore.heatSum`), und eine neue Fahrt kommt nur noch dazu. Sie ist
+    /// kein gespeicherter Stand, sondern ein Zwischenspeicher: was nicht mehr
+    /// passt — eine gelöschte Fahrt, eine andere Fassung —, wird verworfen und
+    /// neu gerechnet.
+    struct Sum: Codable, Sendable {
+        /// Hochzählen, wenn sich ändert, wie gerechnet wird.
+        static let version = 1
+
+        struct Cell: Hashable, Sendable {
+            var x: Int32
+            var y: Int32
+            var mode: String
         }
-        let layers = layerMeters.map { meters -> Layer in
-            // Ein Gitter in Grad, an der ersten Fahrt ausgerichtet: über eine
-            // Stadt hinweg ändert sich die Breite eines Längengrads kaum.
-            let dy = meters / 111_320
-            let dx = meters / (111_320 * Swift.max(0.2, cos(anchor.latitude * .pi / 180)))
-            // Je Zelle, wie viele **Fahrten** hindurchgingen — nicht wie viele
-            // Punkte, sonst zählte eine rote Ampel wie zehn Fahrten. Und wo
-            // in der Zelle: die Mitte dessen, was dort gefahren wurde, nicht
-            // die Mitte des Gitters, sonst läge die Wolke im Karomuster.
-            var sum: [Cell: (lat: Double, lon: Double, kmh: Double, points: Int, rides: Int)] = [:]
-            for (mode, line) in rides {
+
+        /// Was in einer Zelle zusammenkam: die Summe der Lagen und Tempi aller
+        /// Punkte — und von wie vielen Fahrten.
+        struct Spot: Codable, Sendable {
+            var x: Int32
+            var y: Int32
+            var mode: String
+            var lat = 0.0
+            var lon = 0.0
+            var kmh = 0.0
+            var points = 0
+            var rides = 0
+        }
+
+        /// Ein Halt, wie er in der Linie stand. Zusammengelegt wird erst beim
+        /// Zeigen: welche Halte dieselbe Kreuzung sind, hängt davon ab, welche
+        /// Verkehrsmittel gerade gezeigt werden.
+        struct Wait: Codable, Sendable {
+            var lat: Double
+            var lon: Double
+            var seconds: TimeInterval
+            var mode: String
+        }
+
+        /// Eine Fahrt, die schon in der Summe steckt.
+        struct Entry: Codable, Sendable, Equatable {
+            var mode: String
+            /// Ob sie eine Linie beigetragen hat.
+            var line: Bool
+        }
+
+        private(set) var version = Sum.version
+        /// Woran das Gitter ausgerichtet ist: die Breite der ersten Fahrt.
+        private(set) var anchor: Double?
+        /// Je Auflösung (`layerMeters`) die Zellen.
+        private(set) var cells: [[Cell: Spot]] = RideHeat.layerMeters.map { _ in [:] }
+        private(set) var waits: [Wait] = []
+        private(set) var rides: [UUID: Entry] = [:]
+
+        init() {}
+
+        /// Ob die Summe genau aus Fahrten besteht, die es noch gibt — mit dem
+        /// Verkehrsmittel, das sie heute tragen. Herausrechnen lässt sich eine
+        /// Fahrt nicht (die Zelle weiß nicht mehr, was von wem kam); dann wird
+        /// neu gerechnet.
+        func fits(_ wanted: [UUID: String]) -> Bool {
+            version == Self.version && cells.count == RideHeat.layerMeters.count
+                && rides.allSatisfy { wanted[$0.key] == $0.value.mode }
+        }
+
+        /// Eine Fahrt dazu. Zweimal dieselbe ändert nichts.
+        mutating func add(_ track: RideTrack, mode: String) {
+            guard rides[track.id] == nil else { return }
+            // In gleichmäßigen Schritten: der Empfänger liefert einen Punkt je
+            // Sekunde, und das sind auf der Autobahn vierzig Meter — zwei
+            // Fahrten über dieselbe Straße träfen sonst selten dieselbe Zelle.
+            let line = Array(RideHeat.resampled(track.points).joined())
+            rides[track.id] = Entry(mode: mode, line: !line.isEmpty)
+            waits += track.stops.filter(\.atSignal).map {
+                Wait(lat: $0.lat, lon: $0.lon, seconds: $0.seconds, mode: mode)
+            }
+            guard let first = line.first else { return }
+            let latitude = anchor ?? first.coordinate.latitude
+            anchor = latitude
+            for (i, meters) in RideHeat.layerMeters.enumerated() {
+                // Ein Gitter in Grad: über eine Stadt hinweg ändert sich die
+                // Breite eines Längengrads kaum.
+                let dy = meters / 111_320
+                let dx = meters / (111_320 * Swift.max(0.2, cos(latitude * .pi / 180)))
+                // Je Zelle, wie viele **Fahrten** hindurchgingen — nicht wie
+                // viele Punkte, sonst zählte eine rote Ampel wie zehn Fahrten.
                 var seen = Set<Cell>()
                 for sample in line {
                     let c = sample.coordinate
-                    let cell = Cell(x: Int32((c.longitude / dx).rounded(.down)), y: Int32((c.latitude / dy).rounded(.down)),
-                                    mode: mode)
-                    var s = sum[cell] ?? (0, 0, 0, 0, 0)
+                    let cell = Cell(x: Int32((c.longitude / dx).rounded(.down)),
+                                    y: Int32((c.latitude / dy).rounded(.down)), mode: mode)
+                    var s = cells[i][cell] ?? Spot(x: cell.x, y: cell.y, mode: mode)
                     s.lat += c.latitude
                     s.lon += c.longitude
                     s.kmh += sample.kmh
                     s.points += 1
                     if seen.insert(cell).inserted { s.rides += 1 }
-                    sum[cell] = s
+                    cells[i][cell] = s
                 }
             }
-            let dots = sum.map { cell, s in
-                Dot(coordinate: CLLocationCoordinate2D(latitude: s.lat / Double(s.points),
-                                                       longitude: s.lon / Double(s.points)),
-                    rides: s.rides, kmh: s.kmh / Double(s.points), mode: cell.mode)
-            }
-            return Layer(meters: meters, dots: dots, most: dots.map(\.rides).max() ?? 0)
         }
-        return RideHeat(layers: layers, signals: waits(in: tracks), rides: rides.count)
+
+        /// Die Karte daraus — für alle Verkehrsmittel oder für eines.
+        func heat(only mode: String? = nil) -> RideHeat {
+            let layers = zip(RideHeat.layerMeters, cells).map { meters, cells -> Layer in
+                // Wo in der Zelle: die Mitte dessen, was dort gefahren wurde,
+                // nicht die Mitte des Gitters, sonst läge die Wolke im Karomuster.
+                let dots = cells.values.filter { mode == nil || $0.mode == mode }.map { s in
+                    Dot(coordinate: CLLocationCoordinate2D(latitude: s.lat / Double(s.points),
+                                                           longitude: s.lon / Double(s.points)),
+                        rides: s.rides, kmh: s.kmh / Double(s.points), mode: s.mode)
+                }
+                return Layer(meters: meters, dots: dots, most: dots.map(\.rides).max() ?? 0)
+            }
+            let shown = waits.filter { mode == nil || $0.mode == mode }
+            let lines = rides.values.filter { $0.line && (mode == nil || $0.mode == mode) }.count
+            return RideHeat(layers: lines > 0 ? layers : [],
+                            signals: RideHeat.clustered(shown.map {
+                                (CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon), $0.seconds)
+                            }),
+                            rides: lines)
+        }
+
+        // Die Zellen als Liste: ein Wörterbuch mit zusammengesetztem
+        // Schlüssel schriebe `Codable` ohnehin so, nur doppelt.
+        private enum CodingKeys: String, CodingKey { case version, anchor, cells, waits, rides }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            version = try c.decode(Int.self, forKey: .version)
+            anchor = try c.decodeIfPresent(Double.self, forKey: .anchor)
+            cells = try c.decode([[Spot]].self, forKey: .cells).map { spots in
+                Dictionary(spots.map { (Cell(x: $0.x, y: $0.y, mode: $0.mode), $0) }, uniquingKeysWith: { a, _ in a })
+            }
+            waits = try c.decode([Wait].self, forKey: .waits)
+            rides = try c.decode([UUID: Entry].self, forKey: .rides)
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            try c.encode(version, forKey: .version)
+            try c.encodeIfPresent(anchor, forKey: .anchor)
+            try c.encode(cells.map { Array($0.values) }, forKey: .cells)
+            try c.encode(waits, forKey: .waits)
+            try c.encode(rides, forKey: .rides)
+        }
     }
 
     /// Wie kräftig ein Punkt gezeichnet wird, von 0 bis 1: stufenlos, und
@@ -179,16 +290,20 @@ struct RideHeat {
         return pieces
     }
 
-    /// Halte an Ampeln, nach Ort zusammengelegt.
+    /// Die Halte der Fahrten, nach Ort zusammengelegt.
     static func waits(in tracks: [RideTrack]) -> [Signal] {
+        clustered(tracks.flatMap(\.stops).filter(\.atSignal).map { ($0.coordinate, $0.seconds) })
+    }
+
+    static func clustered(_ stops: [(coordinate: CLLocationCoordinate2D, seconds: TimeInterval)]) -> [Signal] {
         var found: [Signal] = []
-        for stop in tracks.flatMap(\.stops) where stop.atSignal {
+        for stop in stops {
             if let i = found.firstIndex(where: { $0.coordinate.distance(to: stop.coordinate) <= signalMeters }) {
                 // Der Ort wandert mit: der Schwerpunkt aller Halte.
                 let n = Double(found[i].stops)
                 found[i].coordinate = CLLocationCoordinate2D(
-                    latitude: (found[i].coordinate.latitude * n + stop.lat) / (n + 1),
-                    longitude: (found[i].coordinate.longitude * n + stop.lon) / (n + 1))
+                    latitude: (found[i].coordinate.latitude * n + stop.coordinate.latitude) / (n + 1),
+                    longitude: (found[i].coordinate.longitude * n + stop.coordinate.longitude) / (n + 1))
                 found[i].stops += 1
                 found[i].total += stop.seconds
                 found[i].longest = Swift.max(found[i].longest, stop.seconds)

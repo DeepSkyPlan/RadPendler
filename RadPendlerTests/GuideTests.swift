@@ -148,34 +148,26 @@ final class GuideTests: XCTestCase {
         XCTAssertEqual(list.count, LearnedSignal.limit)
     }
 
-    /// Ein halbminütiger Stillstand ist eine Ampel, auch wenn keine Karte dort
-    /// eine kennt — das war der Befund der ersten Testfahrt.
-    func testALongStopIsARedLightWithoutAnyMap() {
-        var m = RideMeter()
-        m.signals = []
-        m.signalSeconds = 30
+    /// Ein Stillstand unterwegs ist ein Halt, der zählt, auch wenn keine
+    /// Karte dort eine Ampel kennt — ob vierzig Sekunden oder zehn. Bis 1.20
+    /// lag die Grenze bei dreißig; warum man steht, ist gleich.
+    func testAStopIsAStopWithoutAnyMap() {
         let start = Date(timeIntervalSince1970: 1_780_000_000)
         func fix(_ meters: Double, _ s: Double, _ v: Double) -> RideMeter.Fix {
             RideMeter.Fix(coordinate: east(meters), time: start.addingTimeInterval(s), speed: v, accuracy: 5)
         }
-        // Unterwegs, nicht am Ziel: die Fahrt geht danach weiter. Der letzte
-        // Stillstand einer Fahrt ist die Ankunft und darf keine Ampel werden.
-        for i in 0...9 { m.add(fix(Double(i) * 5, Double(i), 5)) }
-        for i in 10...50 { m.add(fix(45, Double(i), 0.1)) }     // 40 s Stillstand
-        for i in 51...60 { m.add(fix(45 + Double(i - 50) * 5, Double(i), 5)) }
-        m.finish(at: start.addingTimeInterval(60))
-        XCTAssertEqual(m.signalStops, 1)
-        XCTAssertEqual(m.otherStops, 0)
-
-        // Zehn Sekunden sind weiterhin nur ein Halt.
-        var short = RideMeter()
-        short.signalSeconds = 30
-        for i in 0...9 { short.add(fix(Double(i) * 5, Double(i), 5)) }
-        for i in 10...20 { short.add(fix(45, Double(i), 0.1)) }
-        for i in 21...30 { short.add(fix(45 + Double(i - 20) * 5, Double(i), 5)) }
-        short.finish(at: start.addingTimeInterval(30))
-        XCTAssertEqual(short.signalStops, 0)
-        XCTAssertEqual(short.otherStops, 1)
+        for standing in [40, 10] {
+            var m = RideMeter()
+            m.signals = []
+            // Unterwegs, nicht am Ziel: die Fahrt geht danach weiter. Der letzte
+            // Stillstand einer Fahrt ist die Ankunft und darf kein Halt werden.
+            for i in 0...9 { m.add(fix(Double(i) * 5, Double(i), 5)) }
+            for i in 10...(10 + standing) { m.add(fix(45, Double(i), 0.1)) }
+            for i in 1...10 { m.add(fix(45 + Double(i) * 5, Double(10 + standing + i), 5)) }
+            m.finish(at: start.addingTimeInterval(Double(20 + standing)))
+            XCTAssertEqual(m.signalStops, 1, "\(standing) s")
+            XCTAssertEqual(m.otherStops, 0, "\(standing) s")
+        }
     }
 
     // MARK: Der Doppeltipp

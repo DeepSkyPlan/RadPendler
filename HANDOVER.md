@@ -21,6 +21,11 @@
 > überall Transitous. `./dev testflight` bricht ohne sie ab. Echte Abfrage:
 > `TEST_RUNNER_VBB_LIVE=1 ./dev test`. Noch in keiner TestFlight-Fassung. Auf `main` liegt außerdem
 > unveröffentlicht „optimal ist die Mischlinie“ (CHANGELOG).
+> **Nach 1.20 (60), unveröffentlicht (12.10.2026):** zehn Punkte aus dem Test — Halt = Ampel
+> (jeder Halt unterwegs zählt und wird gelernt), Stand- und Ampelzeit eine Zahl, Zahlen vor der Karte,
+> Tempo groß, Tipp auf die Zahlen und auf die Übersichtskarte schaltet weiter, Heatmap gedämpft und
+> als weggeschriebene Summe (`RideHeat.Sum`), Töne folgen der Medienlautstärke. Siehe CHANGELOG
+> „Unveröffentlicht“; auf dem Gerät offen: Prüfliste t7, t8, o10, r7.
 > Ausliefern nur auf Ansage: `./dev testflight [version]`.
 
 Multimodaler Pendel-Planer für iPhone, iPad und Apple Watch: Büro ↔ Zuhause mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln,

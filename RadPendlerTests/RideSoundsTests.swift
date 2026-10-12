@@ -42,6 +42,16 @@ final class RideSoundsTests: XCTestCase {
         XCTAssertTrue(RideSounds.options.contains(.duckOthers))
     }
 
+    /// So laut, wie das Gerät gestellt ist, wie Musik: kein Ansagemodus mit
+    /// eigenem Pegel — und zwischen den Tönen bleibt die Sitzung an, damit
+    /// die Lautstärketasten die Medienlautstärke stellen, aber sie senkt dann
+    /// nichts ab.
+    func testTheCuesFollowTheMediaVolume() {
+        XCTAssertEqual(RideSounds.mode, .default)
+        XCTAssertTrue(RideSounds.idleOptions.contains(.mixWithOthers))
+        XCTAssertFalse(RideSounds.idleOptions.contains(.duckOthers), "sonst wäre die Musik die ganze Fahrt über leise")
+    }
+
     /// Jeder Ton ist ein Hinweis, kein Stück: unter einer Sekunde. Danach gibt
     /// die App den Ton wieder frei (`setActive(false)`).
     func testEveryCueIsShorterThanASecond() {

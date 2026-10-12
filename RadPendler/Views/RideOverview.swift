@@ -3,25 +3,55 @@ import SwiftUI
 
 /// Die ganze Route im Kleinen, unten links auf dem Fahrtbildschirm: die große
 /// Karte folgt dem Fahrer und zeigt die nächsten paar hundert Meter — wo man
-/// auf dem ganzen Weg ist, sieht man dort nicht. Ein Tipp klappt sie zu einem
-/// Knopf zusammen und wieder auf; die Wahl bleibt über die Fahrt hinaus.
+/// auf dem ganzen Weg ist, sieht man dort nicht. Ein Tipp schaltet weiter:
+/// ganze Route → doppelt so nah, um den Fahrer → aus (Nutzer, 12.10.2026);
+/// die Wahl bleibt über die Fahrt hinaus.
 ///
 /// Eigene Ansicht, damit die Ortung je Sekunde nur dieses Kärtchen neu
 /// aufbaut. Nach Norden, ohne Gesten, ohne Tempofarben: es ist ein Lageplan.
 struct RideOverview: View {
     @Environment(RideTracker.self) private var tracker
-    @AppStorage("rideOverviewCollapsed") private var collapsed = false
+    @AppStorage("rideOverviewMode") private var mode = Mode.route
     var side: CGFloat
     @State private var camera: MapCameraPosition = .automatic
 
-    var body: some View {
-        Button {
-            withAnimation(.snappy(duration: 0.2)) { collapsed.toggle() }
-        } label: {
-            if collapsed { button } else { map }
+    enum Mode: String, CaseIterable {
+        /// Die ganze Route.
+        case route
+        /// Doppelt so nah, mit dem Fahrer in der Mitte.
+        case near
+        /// Nur der Knopf.
+        case off
+
+        var next: Mode {
+            let all = Self.allCases
+            return all.firstIndex(of: self).map { all[($0 + 1) % all.count] } ?? self
         }
-        .accessibilityLabel(collapsed ? L("Übersichtskarte ausklappen") : L("Übersichtskarte einklappen"))
-        .accessibilityHint(L("Übersichtskarte: die ganze Route und wo du bist"))
+
+        var title: String {
+            switch self {
+            case .route: L("ganze Route")
+            case .near: L("doppelt so nah")
+            case .off: L("aus")
+            }
+        }
+    }
+
+    var body: some View {
+        // Hier gelesen und nicht erst im Inhalt der Karte: `Map` wertet seinen
+        // Inhalt außerhalb dieser Ansicht aus, und was nur dort gelesen wird,
+        // meldet sich bei SwiftUI nie als Änderung. Bis 1.20 blieb der grüne
+        // Punkt deshalb am Start stehen (Nutzer, 12.10.2026).
+        let here = tracker.here
+        let route = tracker.plannedRoute
+        return Button {
+            withAnimation(.snappy(duration: 0.2)) { mode = mode.next }
+            frame(tracker.plannedRoute, here: tracker.here)
+        } label: {
+            if mode == .off { button } else { map(route, here: here) }
+        }
+        .accessibilityLabel(L("Übersichtskarte: %@", mode.title))
+        .accessibilityHint(L("Tippen für %@", mode.next.title))
     }
 
     private var button: some View {
@@ -33,9 +63,8 @@ struct RideOverview: View {
             .contentShape(Circle())
     }
 
-    private var map: some View {
-        let route = tracker.plannedRoute
-        return Map(position: $camera, interactionModes: []) {
+    private func map(_ route: [CLLocationCoordinate2D], here: CLLocationCoordinate2D?) -> some View {
+        Map(position: $camera, interactionModes: []) {
             if route.count > 1 {
                 MapPolyline(coordinates: route).stroke(.blue, lineWidth: 3)
             }
@@ -45,10 +74,11 @@ struct RideOverview: View {
                         .overlay(Circle().stroke(.white, lineWidth: 1.5))
                 }
             }
-            if let here = tracker.here {
+            if let here {
                 Annotation("", coordinate: here) {
-                    Circle().fill(.green).frame(width: 11, height: 11)
-                        .overlay(Circle().stroke(.white, lineWidth: 2))
+                    Circle().fill(.green).frame(width: 13, height: 13)
+                        .overlay(Circle().stroke(.white, lineWidth: 2.5))
+                        .shadow(color: .black.opacity(0.4), radius: 2)
                 }
             }
         }
@@ -61,9 +91,19 @@ struct RideOverview: View {
         .overlay(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous).stroke(.white.opacity(0.7), lineWidth: 1))
         .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
         .contentShape(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
-        // Der Ausschnitt ändert sich nur mit der Linie — nicht je Ortung.
-        .onAppear { frame(route) }
-        .onChange(of: Self.key(route)) { frame(tracker.plannedRoute) }
+        // Die ganze Route: der Ausschnitt ändert sich nur mit der Linie.
+        // Nah: er wandert mit dem Fahrer, aber erst nach ein paar Metern —
+        // nicht je Ortung.
+        .onAppear { frame(route, here: here) }
+        .onChange(of: Self.key(route)) { frame(tracker.plannedRoute, here: tracker.here) }
+        .onChange(of: here.map(Self.step)) {
+            if mode == .near { frame(tracker.plannedRoute, here: tracker.here) }
+        }
+    }
+
+    /// Die Lage auf rund zehn Meter: so oft wandert der nahe Ausschnitt mit.
+    static func step(_ c: CLLocationCoordinate2D) -> String {
+        "\(Int(c.latitude * 10_000))|\(Int(c.longitude * 10_000))"
     }
 
     /// Woran eine andere Linie zu erkennen ist, ohne sie Punkt für Punkt zu
@@ -72,9 +112,17 @@ struct RideOverview: View {
         "\(route.count)|\(route.first?.latitude ?? 0)|\(route.first?.longitude ?? 0)|\(route.last?.latitude ?? 0)"
     }
 
-    private func frame(_ route: [CLLocationCoordinate2D]) {
-        guard let rect = Self.rect(around: route + [tracker.here].compactMap { $0 }) else { return }
-        camera = .rect(rect)
+    private func frame(_ route: [CLLocationCoordinate2D], here: CLLocationCoordinate2D?) {
+        guard let rect = Self.rect(around: route + [here].compactMap { $0 }) else { return }
+        camera = .rect(mode == .near ? Self.zoomed(rect, on: here) : rect)
+    }
+
+    /// Derselbe Ausschnitt in halber Kantenlänge, um den Fahrer herum. Ohne
+    /// Ortung um die Mitte.
+    static func zoomed(_ rect: MKMapRect, on here: CLLocationCoordinate2D?, by factor: Double = 2) -> MKMapRect {
+        let centre = here.map { MKMapPoint($0) } ?? MKMapPoint(x: rect.midX, y: rect.midY)
+        let (w, h) = (rect.width / factor, rect.height / factor)
+        return MKMapRect(x: centre.x - w / 2, y: centre.y - h / 2, width: w, height: h)
     }
 
     /// Der Ausschnitt um alle Punkte, mit einem Rand — und nie kleiner als

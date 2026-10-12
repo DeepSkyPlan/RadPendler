@@ -366,6 +366,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         pushToWatch(force: true)
         announcedTurn = nil
         calledTurn = nil
+        RideSounds.shared.hold()
         RideSounds.shared.play(.start)
     }
 
@@ -504,6 +505,7 @@ final class RideTracker: NSObject, CLLocationManagerDelegate {
         tune(.full)
         meter.finish(at: end)
         RideSounds.shared.play(.stop)
+        RideSounds.shared.release()
         let (ride, track) = result(subject, end: end)
         self.subject = nil
         applyIdleTimer()

@@ -135,8 +135,8 @@ private struct MonthHeader: View {
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
                 .foregroundStyle(Theme.accent)
             Spacer(minLength: 0)
-            Text(L("%d× · %@ · Ø %@ · %d Ampeln", month.rides.count, Fmt.km(month.meters),
-                   Fmt.kmh(month.averageKmh), month.signalStops))
+            Text(L("%d× · %@ · Ø %@ · %d Halte", month.rides.count, Fmt.km(month.meters),
+                   Fmt.kmh(month.averageKmh), month.stops))
                 .font(.system(size: 11, design: .rounded))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
@@ -171,10 +171,10 @@ struct RideRow: View {
             HStack(spacing: 5) {
                 Chip(text: Fmt.km(ride.meters), symbol: "ruler")
                 Chip(text: Fmt.kmh(ride.averageKmh), symbol: "speedometer")
-                Chip(text: ride.plannedSignals.map { "\(ride.signalStops)/\($0)" } ?? "\(ride.signalStops)",
+                Chip(text: ride.plannedSignals.flatMap { $0 > 0 ? "\(ride.stops)/\($0)" : nil } ?? "\(ride.stops)",
                      icon: AnyView(TrafficLightIcon()))
-                if ride.signalStops > 0 {
-                    Chip(text: Fmt.clock(ride.signalWaitTotal), symbol: "hourglass")
+                if ride.standingSeconds >= 1 {
+                    Chip(text: Fmt.clock(ride.standingSeconds), symbol: "hourglass")
                 }
                 Spacer(minLength: 0)
             }
@@ -186,11 +186,13 @@ struct RideRow: View {
     }
 }
 
-/// One ride: the map of the way taken, and every number that was measured.
+/// One ride: every number that was measured, then the map of the way taken.
+/// Die Zahlen zuerst (Nutzer, 12.10.2026): nach der Fahrt will man wissen, wie
+/// sie war — die Karte kennt man.
 struct RideDetailView: View {
     @Environment(RideStore.self) private var store
     var ride: Ride
-    /// Eine Zeile über der Karte — direkt nach der Fahrt etwa, dass sie von
+    /// Eine Zeile über den Zahlen — direkt nach der Fahrt etwa, dass sie von
     /// selbst geendet hat.
     var note: String? = nil
     @State private var track: RideTrack?
@@ -204,8 +206,8 @@ struct RideDetailView: View {
                         .foregroundStyle(.orange)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                RideMapCard(ride: ride).frame(height: 300)
                 RideFacts(ride: ride, track: track)
+                RideMapCard(ride: ride).frame(height: 300)
                 StopList(ride: ride)
             }
             .padding(Theme.gutter)
@@ -352,12 +354,14 @@ struct RideFacts: View {
                      RideColors.color(ride.movingKmh, scale: .of(ride.travelMode)))
                 fact(L("Spitze (km/h)"), Self.number(ride.maxKmh),
                      RideColors.color(ride.maxKmh, scale: .of(ride.travelMode)))
-                fact(L("gestanden (m:ss)"), Fmt.clock(ride.standingSeconds), .orange)
-                fact(ride.plannedSignals == nil ? L("Ampelhalts") : L("Ampeln / Plan"),
-                     versus("\(ride.signalStops)", ride.plannedSignals.map { "\($0)" }),
+                fact(L("rollend (min)"), Self.minutes(ride.movingSeconds), .primary)
+                // Ein Halt ist ein Halt: Ampel, Schranke, Vorfahrt. Gezählt
+                // gegen das, was die Planung an der Strecke erwartet hat.
+                fact(ride.plannedSignals == nil ? L("Halte") : L("Halte / Plan"),
+                     versus("\(ride.stops)", ride.plannedSignals.map { "\($0)" }),
                      .yellow)
-                fact(L("Ampelwartezeit (m:ss)"), Fmt.clock(ride.signalWaitTotal), .yellow)
-                fact(L("Ø je Ampel (m:ss)"), ride.signalStops == 0 ? "–" : Fmt.clock(ride.signalWaitAverage), .yellow)
+                fact(L("gestanden (m:ss)"), Fmt.clock(ride.standingSeconds), .orange)
+                fact(L("Ø je Halt (m:ss)"), ride.stops == 0 ? "–" : Fmt.clock(ride.standingAverage), .orange)
             }
             if let mix = ride.mix, !mix.isEmpty {
                 VStack(alignment: .leading, spacing: 5) {
@@ -445,14 +449,8 @@ private struct StopList: View {
                         .font(.system(.subheadline, design: .rounded, weight: .bold))
                     ForEach(stops.sorted { $0.seconds > $1.seconds }.prefix(12)) { stop in
                         HStack(spacing: 8) {
-                            if stop.atSignal {
-                                TrafficLightIcon()
-                            } else {
-                                Image(systemName: "pause.circle")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(.secondary)
-                            }
-                            Text(stop.atSignal ? L("Ampel") : L("Halt"))
+                            TrafficLightIcon()
+                            Text(L("Halt"))
                                 .font(.system(size: 13, design: .rounded))
                             Text(Fmt.time(stop.start))
                                 .font(.system(size: 11, design: .rounded))

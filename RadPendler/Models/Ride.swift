@@ -149,7 +149,12 @@ struct Ride: Codable, Identifiable, Equatable {
     var signalWaitAverage: TimeInterval {
         signalStops > 0 ? signalWaitTotal / Double(signalStops) : 0
     }
+    /// Jeder Halt, gleich warum: seit 1.21 zählt die App Ampel und Halt als
+    /// dasselbe. Ältere Fahrten tragen beides getrennt — die Summe stimmt für
+    /// beide.
     var stops: Int { signalStops + otherStops }
+    /// Was ein Halt im Mittel gekostet hat, über alles Stehen der Fahrt.
+    var standingAverage: TimeInterval { stops > 0 ? standingSeconds / Double(stops) : 0 }
     var travelMode: TravelMode? { TravelMode(rawValue: mode) }
     /// Das Zeichen dieser Fahrt — nach dem Fahrzeug, mit dem sie gefahren
     /// wurde, nicht nach dem, was gerade eingestellt ist.
@@ -294,6 +299,7 @@ extension Ride {
         var seconds: TimeInterval { rides.reduce(0) { $0 + $1.seconds } }
         var averageKmh: Double { seconds > 0 ? meters / seconds * 3.6 : 0 }
         var signalStops: Int { rides.reduce(0) { $0 + $1.signalStops } }
+        var stops: Int { rides.reduce(0) { $0 + $1.stops } }
     }
 
     struct Year: Identifiable, Equatable {

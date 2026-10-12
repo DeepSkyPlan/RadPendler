@@ -35,6 +35,28 @@ struct RideTrackingView: View {
     /// stops being useful a hundred metres later.
     @State private var pannedAt: Date?
     static let recenterAfter: Duration = .seconds(30)
+    /// Wie viel der Kasten unten zeigt — ein Tipp darauf schaltet weiter.
+    @AppStorage("ridePanelDetail") private var detail = PanelDetail.full
+
+    /// Alles, das Nötigste, die Hälfte (Nutzer, 12.10.2026). Am Lenker reichen
+    /// drei Zahlen, und die Karte bekommt den Platz; an der Ampel will man
+    /// den Rest.
+    enum PanelDetail: String, CaseIterable {
+        case full, minimal, half
+
+        var next: PanelDetail {
+            let all = Self.allCases
+            return all.firstIndex(of: self).map { all[($0 + 1) % all.count] } ?? self
+        }
+
+        var title: String {
+            switch self {
+            case .full: L("alle Zahlen")
+            case .minimal: L("nur Tempo, Fahrzeit, Ankunft")
+            case .half: L("die wichtigsten Zahlen")
+            }
+        }
+    }
 
     private var isLandscape: Bool { heightClass == .compact }
 
@@ -325,18 +347,31 @@ struct RideTrackingView: View {
 
     private var panel: some View {
         VStack(spacing: 8) {
-            header
-            // Only these two numbers run on a clock.
+            if detail != .minimal { header }
+            // Only these numbers run on a clock.
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 VStack(spacing: 8) {
-                    clock(now: context.date)
-                    numbers(now: context.date)
-                    signalRow(now: context.date)
-                    if let left = remaining {
-                        arrivalRow(left, now: context.date)
+                    switch detail {
+                    case .full:
+                        clock(now: context.date)
+                        numbers(now: context.date)
+                        signalRow(now: context.date)
+                        if let left = remaining {
+                            arrivalRow(left, now: context.date)
+                        }
+                    case .minimal:
+                        speedRow(now: context.date, rows: [[.time, .arrival]])
+                    case .half:
+                        speedRow(now: context.date, rows: [[.time, .stops, .standing], [.left, .arrival]])
                     }
                 }
             }
+            // Der Tipp auf die Zahlen schaltet weiter; Ziel, Pause und Ende
+            // sind eigene Knöpfe und liegen außerhalb.
+            .contentShape(Rectangle())
+            .onTapGesture { withAnimation(.snappy(duration: 0.2)) { detail = detail.next } }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint(L("Tippen für %@", detail.next.title))
             HStack(spacing: 8) {
                 pauseButton
                 stopButton
@@ -344,6 +379,46 @@ struct RideTrackingView: View {
         }
         .padding(12)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
+    }
+
+    /// Die Zahlen der beiden kurzen Fassungen.
+    private enum Figure { case time, stops, standing, left, arrival }
+
+    /// Das Tempo groß und links, daneben Zeilen kleiner Felder — die beiden
+    /// kurzen Fassungen des Kastens.
+    private func speedRow(now: Date, rows: [[Figure]]) -> some View {
+        HStack(spacing: 8) {
+            speedTile(size: rows.count > 1 ? 64 : 52)
+            VStack(spacing: 6) {
+                ForEach(rows.indices, id: \.self) { i in
+                    HStack(spacing: 6) {
+                        ForEach(rows[i].indices, id: \.self) { j in figure(rows[i][j], now: now) }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    @ViewBuilder private func figure(_ figure: Figure, now: Date) -> some View {
+        let live = tracker.meter.liveSignals(at: now)
+        switch figure {
+        case .time: tile(L("Fahrzeit"), Fmt.clock(tracker.seconds(at: now)), tint: .primary)
+        case .stops:
+            let planned = tracker.progress?.plannedSignals ?? 0
+            tile(L("Halte"), planned > 0 ? "\(live.stops)/\(planned)" : "\(live.stops)", tint: .primary)
+        case .standing: tile(L("gestanden"), Fmt.clock(standing(at: now)), tint: .orange)
+        case .left: tile(L("noch"), remaining.map { Fmt.duration($0.seconds) } ?? "–", tint: .primary)
+        case .arrival:
+            tile(L("Ankunft"), remaining.map { Fmt.time(now.addingTimeInterval($0.seconds)) } ?? "–",
+                 tint: LegKind.bike.color)
+        }
+    }
+
+    /// Alles Stehen dieser Fahrt, das laufende eingeschlossen.
+    private func standing(at now: Date) -> TimeInterval {
+        max(0, tracker.meter.seconds(at: now) - tracker.meter.movingSeconds)
     }
 
     private var header: some View {
@@ -407,27 +482,38 @@ struct RideTrackingView: View {
     /// average and the distance are for afterwards and may be small.
     private func numbers(now: Date) -> some View {
         HStack(spacing: 8) {
-            VStack(spacing: -4) {
-                Text(Fmt.kmh(tracker.meter.currentSpeed * 3.6))
-                    .font(.system(size: 34, weight: .heavy, design: .rounded))
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .minimumScaleFactor(0.5)
-                    .lineLimit(1)
-                    .foregroundStyle(scale.color(tracker.meter.currentSpeed * 3.6))
-                Text(L("jetzt"))
-                    .font(.system(size: 10, design: .rounded))
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 4)
-            .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: Theme.innerCorner))
+            speedTile(size: 64)
             VStack(spacing: 6) {
                 averageTile(now: now)
                 tile(L("Strecke"), Fmt.km(tracker.meter.meters), tint: .primary)
             }
             .frame(maxWidth: .infinity)
         }
+        // Die Zeile ist so hoch wie die beiden Felder rechts — und das Tempo
+        // füllt sie ganz, statt als kleineres Feld daneben zu hängen.
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func speedTile(size: CGFloat) -> some View {
+        // Nur die Zahl, die Einheit klein darunter: „21,3 km/h“ in einer Zeile
+        // passt in das halbe Feld nur in halber Größe.
+        VStack(spacing: -6) {
+            Text(RideFacts.number(tracker.meter.currentSpeed * 3.6))
+                .font(.system(size: size, weight: .heavy, design: .rounded))
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .minimumScaleFactor(0.4)
+                .lineLimit(1)
+                .foregroundStyle(scale.color(tracker.meter.currentSpeed * 3.6))
+            Text("km/h")
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 6)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: Theme.innerCorner))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(L("Tempo %@", Fmt.kmh(tracker.meter.currentSpeed * 3.6)))
     }
 
     /// Der gefahrene Schnitt und der geplante in **einem** Feld: „13,2 / 14,7
@@ -451,39 +537,37 @@ struct RideTrackingView: View {
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
         }
-        .frame(maxWidth: .infinity)
         .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: Theme.innerCorner))
         .accessibilityElement(children: .combine)
         .accessibilityLabel(planned.map { L("Schnitt %@, geplant %@", Fmt.kmh(measured), Fmt.kmh($0)) }
                             ?? L("Schnitt %@", Fmt.kmh(measured)))
     }
 
-    /// The count the whole recording is for.
-    /// Ampelhalts, die dort verbrachte Zeit — und daneben, was **insgesamt**
-    /// gestanden wurde. Die beiden Zahlen sind nicht dasselbe: an der Ampel
-    /// wartet man, im Stau und vor der eigenen Haustür auch, und auf einer
-    /// Pendelfahrt ist der Unterschied genau das, was man wissen will.
+    /// The count the whole recording is for: wie oft gehalten wurde und wie
+    /// lange gestanden.
+    ///
+    /// Eine Zahl für beides (Nutzer, 12.10.2026): bis 1.20 standen hier
+    /// „Ampelhalts“ und „gewartet“ links und „gestanden · n sonst“ rechts —
+    /// und warum man steht, ist am Lenker gleich.
     private func signalRow(now: Date) -> some View {
         // Einschließlich des Halts, an dem man **gerade** steht: eine
         // Wartezeit, die erst beim Losfahren um eine Minute springt, ist keine
         // Anzeige. Sekündlich, weil der Kasten ohnehin sekündlich tickt.
-        let live = tracker.meter.liveSignals(at: now)
-        let stops = live.stops
-        let total = live.wait
+        let stops = tracker.meter.liveSignals(at: now).stops
         let planned = tracker.progress?.plannedSignals ?? 0
-        let standing = max(0, tracker.meter.seconds(at: now) - tracker.meter.movingSeconds)
+        let standing = standing(at: now)
         return HStack(spacing: 8) {
             TrafficLightIcon()
             VStack(alignment: .leading, spacing: 0) {
                 // „3/9": gehalten von geplant. Ohne Plan bleibt es bei der Zahl.
-                Text(planned > 0 ? L("%d/%d Ampeln", stops, planned)
-                                 : L(stops == 1 ? "%d Ampelhalt" : "%d Ampelhalts", stops))
+                Text(planned > 0 ? L("%d/%d Halte", stops, planned)
+                                 : L(stops == 1 ? "%d Halt" : "%d Halte", stops))
                     .font(.system(.subheadline, design: .rounded, weight: .bold))
                     .monospacedDigit()
                     .contentTransition(.numericText())
-                Text(stops == 0 ? L("noch keine Wartezeit")
-                     : L("%@ gewartet · Ø %@", Fmt.clock(total), Fmt.clock(total / Double(stops))))
+                Text(stops == 0 ? L("noch kein Halt") : L("Ø %@ je Halt", Fmt.clock(standing / Double(stops))))
                     .font(.system(size: 11, design: .rounded))
                     .monospacedDigit()
                     .contentTransition(.numericText())
@@ -495,9 +579,7 @@ struct RideTrackingView: View {
                     .font(.system(.subheadline, design: .rounded, weight: .bold))
                     .monospacedDigit()
                     .contentTransition(.numericText())
-                Text(tracker.meter.otherStops > 0
-                     ? L("gestanden · %d sonst", tracker.meter.otherStops)
-                     : L("gestanden"))
+                Text(L("gestanden"))
                     .font(.system(size: 11, design: .rounded))
                     .foregroundStyle(.secondary)
             }
@@ -523,7 +605,7 @@ struct RideTrackingView: View {
                     .font(.system(.subheadline, design: .rounded, weight: .bold))
                     .monospacedDigit()
                     .contentTransition(.numericText())
-                Text("\(Fmt.km(left.meters))\(left.signals > 0 ? " · \(left.signals) Ampeln" : "")")
+                Text(left.signals > 0 ? L("%@ · %d Halte", Fmt.km(left.meters), left.signals) : Fmt.km(left.meters))
                     .font(.system(size: 11, design: .rounded))
                     .foregroundStyle(.secondary)
             }
@@ -577,6 +659,8 @@ struct RideTrackingView: View {
             Text(title)
                 .font(.system(size: 10, design: .rounded))
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
             Text(value)
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
                 .monospacedDigit()
@@ -584,8 +668,8 @@ struct RideTrackingView: View {
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
         }
-        .frame(maxWidth: .infinity)
         .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: Theme.innerCorner))
     }
 }

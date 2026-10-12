@@ -10,22 +10,14 @@ struct RideHeatView: View {
     @State private var mode: TravelMode?
     @State private var heat: RideHeat?
     @State private var loaded = 0
+    @State private var loading = 0
     @State private var focus: RideHeat.Signal?
     /// Straßennamen der Ampeln in der Liste, nachgeschlagen.
     @State private var names: [Int: String] = [:]
 
-    /// Was mit eigener Kraft oder eigenem Lenkrad gefahren wird. Eine reine
-    /// Bahnfahrt hat keine Straße und keine Ampel.
-    static let modes: [TravelMode] = [.bike, .bikeTransit, .car]
+    static let modes = RideHeat.modes
     /// So viele Ampeln stehen in der Liste.
     static let listed = 8
-
-    private var rides: [Ride] {
-        store.rides.filter { ride in
-            guard let m = ride.travelMode, Self.modes.contains(m) else { return false }
-            return mode == nil || m == mode
-        }
-    }
 
     /// Was die Karte gerade zeigt — für die Legende.
     private var shown: [TravelMode] { mode.map { [$0] } ?? present }
@@ -76,7 +68,7 @@ struct RideHeatView: View {
                     HeatMap(heat: heat, focus: focus)
                 }
             } else {
-                ProgressView(L("%d von %d Fahrten", loaded, rides.count))
+                ProgressView(loading > 0 ? L("%d von %d Fahrten", loaded, loading) : "")
                     .font(.system(size: 12, design: .rounded))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -146,7 +138,7 @@ struct RideHeatView: View {
                     HStack(spacing: 10) {
                         Circle().fill(Color(HeatMap.color(wait: signal.mean))).frame(width: 12, height: 12)
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(names[signal.id] ?? L("Ampel"))
+                            Text(names[signal.id] ?? L("Halt"))
                                 .font(.system(.subheadline, design: .rounded, weight: .semibold))
                                 .foregroundStyle(.primary)
                             Text(Self.facts(signal))
@@ -163,7 +155,7 @@ struct RideHeatView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityHint(L("Zeigt die Ampel auf der Karte"))
+                .accessibilityHint(L("Zeigt die Stelle auf der Karte"))
                 Divider()
             }
         }
@@ -175,23 +167,21 @@ struct RideHeatView: View {
         L("%d× gehalten · Ø %d s · längster %@", signal.stops, Int(signal.mean.rounded()), Fmt.clock(signal.longest))
     }
 
-    /// Die Linien nacheinander von der Platte, gerechnet wird daneben: bei
-    /// dreihundert Fahrten sind das ein paar Sekunden, in denen die Ansicht
-    /// bedienbar bleibt.
+    /// Die Summe aller Fahrten liegt auf der Platte (`RideStore.heatSum`);
+    /// gelesen und gerechnet wird nur, was seit dem letzten Mal dazukam. Der
+    /// Wechsel des Verkehrsmittels ist dann nur noch ein Filter.
     private func load() async {
         heat = nil
         focus = nil
         names = [:]
         loaded = 0
-        var tracks: [RideTrack] = []
-        for ride in rides {
-            if Task.isCancelled { return }
-            if let track = await store.track(for: ride) { tracks.append(track) }
-            loaded += 1
+        loading = 0
+        let sum = await store.heatSum { done, of in
+            loaded = done
+            loading = of
         }
-        let all = tracks
-        let modes = Dictionary(rides.map { ($0.id, $0.mode) }, uniquingKeysWith: { a, _ in a })
-        let built = await Task.detached(priority: .userInitiated) { RideHeat.build(all, modes: modes) }.value
+        let only = mode?.rawValue
+        let built = await Task.detached(priority: .userInitiated) { sum.heat(only: only) }.value
         guard !Task.isCancelled else { return }
         heat = built
     }
@@ -250,7 +240,7 @@ struct HeatMap: UIViewRepresentable {
                     let most = top[dot.mode] ?? layer.most
                     let weight = most > 1 ? (RideHeat.strength(dot.rides, most: most) - RideHeat.faintest) / (1 - RideHeat.faintest) : 1
                     let color = RideColors.Scale.of(TravelMode(rawValue: dot.mode)).uiColor(dot.kmh)
-                    return (MKMapPoint(dot.coordinate), color.withAlphaComponent(0.9).cgColor, weight)
+                    return (MKMapPoint(dot.coordinate), HeatMap.vivid(color).cgColor, weight)
                 })
             }
             for p in levels.first?.points ?? [] {
@@ -265,10 +255,11 @@ struct HeatMap: UIViewRepresentable {
     /// darunter lägen die Punkte übereinander, und alles wäre gleich rot.
     final class CloudRenderer: MKOverlayRenderer {
         static let minCell = 3.0
+        static let rim = UIColor.black.withAlphaComponent(0.45).cgColor
         /// Halbmesser eines Punkts, als Anteil der Zelle — und in Bildpunkten
         /// nie kleiner als das, sonst verschwindet eine einzelne Fahrt.
-        static let dotSize = 0.16...0.6
-        static let minRadius = 0.7...2.6
+        static let dotSize = 0.22...0.62
+        static let minRadius = 1.1...3.2
 
         override func draw(_ mapRect: MKMapRect, zoomScale: MKZoomScale, in context: CGContext) {
             guard let cloud = overlay as? Cloud, !cloud.levels.isEmpty else { return }
@@ -284,11 +275,28 @@ struct HeatMap: UIViewRepresentable {
                 // die sich berühren.
                 let radius = Swift.max(level.size * Self.dotSize.at(p.weight),
                                        Self.minRadius.at(p.weight) / Double(zoomScale))
+                let dot = CGRect(x: c.x - radius, y: c.y - radius, width: radius * 2, height: radius * 2)
+                // Ein dunkler Saum: auf der hellen Karte ist Gelb sonst Papier.
+                context.setFillColor(Self.rim)
+                context.fillEllipse(in: dot.insetBy(dx: -radius * 0.22, dy: -radius * 0.22))
                 context.setFillColor(p.color)
-                context.fillEllipse(in: CGRect(x: c.x - radius, y: c.y - radius, width: radius * 2, height: radius * 2))
+                context.fillEllipse(in: dot)
             }
         }
     }
+
+    /// Dieselbe Farbe, satt und deckend: die Tempofarben sind für eine Linie
+    /// auf der Karte gemacht, und als Punktwolke gingen sie auf ihr unter
+    /// (Nutzer, 12.10.2026).
+    static func vivid(_ color: UIColor) -> UIColor {
+        var (h, s, b, a) = (CGFloat(0), CGFloat(0), CGFloat(0), CGFloat(0))
+        guard color.getHue(&h, saturation: &s, brightness: &b, alpha: &a) else { return color.withAlphaComponent(1) }
+        return UIColor(hue: h, saturation: Swift.min(1, s * 1.25 + 0.1), brightness: Swift.min(1, b * 1.05), alpha: 1)
+    }
+
+    /// Ein Schleier über der ganzen Karte, unter der Wolke: die Karte tritt
+    /// zurück, die Fahrten bleiben, wie sie sind.
+    final class Veil: MKPolygon {}
 
     final class Pin: NSObject, MKAnnotation {
         let signal: RideHeat.Signal
@@ -302,7 +310,11 @@ struct HeatMap: UIViewRepresentable {
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView()
         map.delegate = context.coordinator
-        map.pointOfInterestFilter = .excludingAll
+        // Gedämpft und ohne alles, was nicht Straße ist.
+        let quiet = MKStandardMapConfiguration(emphasisStyle: .muted)
+        quiet.pointOfInterestFilter = .excludingAll
+        quiet.showsTraffic = false
+        map.preferredConfiguration = quiet
         map.register(MKAnnotationView.self, forAnnotationViewWithReuseIdentifier: "signal")
         return map
     }
@@ -318,6 +330,10 @@ struct HeatMap: UIViewRepresentable {
             map.removeAnnotations(map.annotations)
             let cloud = Cloud(heat)
             let bounds = cloud.boundingMapRect
+            let world = MKMapRect.world
+            let corners = [world.origin, MKMapPoint(x: world.maxX, y: world.minY),
+                           MKMapPoint(x: world.maxX, y: world.maxY), MKMapPoint(x: world.minX, y: world.maxY)]
+            map.addOverlay(Veil(points: corners, count: corners.count), level: .aboveRoads)
             if !bounds.isNull { map.addOverlay(cloud, level: .aboveRoads) }
             map.addAnnotations(heat.signals.map(Pin.init))
             if !bounds.isNull {
@@ -341,7 +357,12 @@ struct HeatMap: UIViewRepresentable {
         var focused: Int?
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-            overlay is Cloud ? CloudRenderer(overlay: overlay) : MKOverlayRenderer(overlay: overlay)
+            if overlay is Cloud { return CloudRenderer(overlay: overlay) }
+            guard let veil = overlay as? Veil else { return MKOverlayRenderer(overlay: overlay) }
+            let renderer = MKPolygonRenderer(polygon: veil)
+            // Hell wird heller, dunkel dunkler — in beiden Fällen blasser.
+            renderer.fillColor = UIColor.systemBackground.withAlphaComponent(0.45)
+            return renderer
         }
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {

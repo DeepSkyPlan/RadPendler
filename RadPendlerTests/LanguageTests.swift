@@ -29,7 +29,7 @@ final class LanguageTests: XCTestCase {
         AppLanguage.current = .en
         XCTAssertEqual(L("Abfahrt"), "Departure")
         XCTAssertEqual(L("Fahrt beenden"), "End ride")
-        XCTAssertEqual(L("%d/%d Ampeln", 3, 9), "3/9 lights")
+        XCTAssertEqual(L("%d/%d Halte", 3, 9), "3/9 stops")
     }
 
     func testAMissingTranslationFallsBackToTheGermanKey() {

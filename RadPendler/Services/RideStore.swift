@@ -139,6 +139,66 @@ final class RideStore {
         return fetched
     }
 
+    // MARK: Heatmap
+
+    private var heatFile: URL { folder.appending(path: "heat.plist") }
+    private var heat: RideHeat.Sum?
+
+    /// Alle Fahrten als eine Summe, für die Heatmap — siehe `RideHeat.Sum`.
+    ///
+    /// Gelesen und gerechnet wird nur, was noch nicht darin steckt: beim
+    /// ersten Mal jede Linie, danach die Fahrten seit dem letzten Öffnen.
+    /// `progress` meldet, wie viele von wie vielen Linien schon geholt sind.
+    func heatSum(progress: (Int, Int) -> Void = { _, _ in }) async -> RideHeat.Sum {
+        let file = heatFile
+        var sum: RideHeat.Sum
+        if let heat {
+            sum = heat
+        } else {
+            sum = await Task.detached(priority: .userInitiated) { () -> RideHeat.Sum? in
+                guard let data = Log.attempt("Heatmap lesen", missingIsFine: true, { try Data(contentsOf: file) })
+                else { return nil }
+                // Eine Summe aus einer anderen Fassung liest sich trotzdem —
+                // `fits` verwirft sie dann, und es wird neu gerechnet.
+                return Log.attempt("Heatmap dekodieren") { try PropertyListDecoder().decode(RideHeat.Sum.self, from: data) }
+            }.value ?? RideHeat.Sum()
+        }
+        let wanted = rides.filter { ride in ride.travelMode.map(RideHeat.modes.contains) ?? false }
+        let modes = Dictionary(wanted.map { ($0.id, $0.mode) }, uniquingKeysWith: { a, _ in a })
+        if !sum.fits(modes) { sum = RideHeat.Sum() }
+        let missing = wanted.filter { sum.rides[$0.id] == nil }
+        var new: [RideTrack] = []
+        for (i, ride) in missing.enumerated() {
+            if Task.isCancelled { break }
+            progress(i, missing.count)
+            // An `tracks` vorbei, wo es geht: dreihundert Linien im Speicher
+            // zu behalten, um sie einmal zu zählen, ist der andere Weg, auf
+            // dem eine lange Historie teuer wird.
+            let known = tracks[ride.id] != nil
+            if let track = await track(for: ride) { new.append(track) }
+            if !known { tracks[ride.id] = nil }
+        }
+        guard !new.isEmpty || heat == nil else { return sum }
+        let (before, added) = (sum, new)
+        sum = await Task.detached(priority: .userInitiated) {
+            var sum = before
+            for track in added { sum.add(track, mode: modes[track.id] ?? "") }
+            if !added.isEmpty || !FileManager.default.fileExists(atPath: file.path) {
+                let encoder = PropertyListEncoder()
+                encoder.outputFormat = .binary
+                if let data = Log.attempt("Heatmap kodieren", { try encoder.encode(sum) }) {
+                    // Dieselbe Schutzklasse wie die Linien: es sind dieselben Wege.
+                    Log.attempt("Heatmap schreiben") {
+                        try data.write(to: file, options: [.atomic, .completeFileProtectionUnlessOpen])
+                    }
+                }
+            }
+            return sum
+        }.value
+        heat = sum
+        return sum
+    }
+
     // MARK: Packing
 
     /// Compressed, because this goes into a store with a one-megabyte ceiling

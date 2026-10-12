@@ -112,19 +112,20 @@ struct RidePage: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// The one line the whole feature is about: how often one stood at a red
-    /// light and how long it cost altogether.
+    /// The one line the whole feature is about: how often one stood and how
+    /// long it cost altogether — gleich, ob an einer Ampel oder sonst wo.
     private var signals: some View {
-        HStack(spacing: 6) {
+        let stops = live.signalStops + live.otherStops
+        return HStack(spacing: 6) {
             Image(systemName: "light.beacon.max")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.yellow)
             VStack(alignment: .leading, spacing: 0) {
-                Text(L(live.signalStops == 1 ? "%d Ampelhalt" : "%d Ampelhalts", live.signalStops))
+                Text(L(stops == 1 ? "%d Halt" : "%d Halte", stops))
                     .font(.system(size: 14, weight: .bold, design: .rounded))
                     .monospacedDigit()
-                Text(live.signalStops == 0 ? L("keine Wartezeit")
-                     : L("%@ · Ø %@", Fmt.clock(live.signalWaitTotal), Fmt.clock(live.signalWaitAverage)))
+                Text(stops == 0 ? L("keine Wartezeit")
+                     : L("%@ · Ø %@", Fmt.clock(live.standingSeconds), Fmt.clock(live.standingSeconds / Double(stops))))
                     .font(.system(size: 11, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
@@ -138,8 +139,6 @@ struct RidePage: View {
     private func facts(now: Date) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             row(L("rollend"), Fmt.kmh(live.movingKmh))
-            row(L("gestanden"), Fmt.clock(live.standingSeconds))
-            if live.otherStops > 0 { row(L("andere Halte"), "\(live.otherStops)") }
             // The numbers come from the phone; when it is out of range they
             // stop being current, and saying so is the whole difference
             // between an old number and a wrong one.

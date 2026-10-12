@@ -107,7 +107,25 @@ final class RideTests: XCTestCase {
         XCTAssertEqual(m.signalWaitTotal, 22, accuracy: 1.5)
     }
 
-    func testAStopAwayFromAJunctionIsJustAStop() {
+    /// Warum man steht, ist gleich (Nutzer, 12.10.2026): ein Halt unterwegs
+    /// zählt wie eine Ampel, auch wo die Karte keine kennt und auch, wenn er
+    /// kurz war. Bis 1.20 zählte er daneben und wurde nie gelernt.
+    func testAStopAwayFromAJunctionCountsLikeALight() {
+        var m = RideMeter()
+        m.signals = [east(400)]
+        for i in 0...19 { m.add(fix(Double(i) * 5, Double(i), speed: 5)) }
+        for i in 20...32 { m.add(fix(95, Double(i), speed: 0.1)) }
+        for i in 33...37 { m.add(fix(95 + Double(i - 32) * 5, Double(i), speed: 5)) }
+        m.finish(at: start.addingTimeInterval(37))
+        XCTAssertEqual(m.signalStops, 1)
+        XCTAssertEqual(m.otherStops, 0)
+        XCTAssertEqual(m.signalWaitTotal, 14, accuracy: 1.5)
+        XCTAssertEqual(m.stops.first?.atSignal, true, "und wird damit gelernt")
+    }
+
+    /// Den letzten Halt schließt das Ende der Fahrt: das ist die Ankunft —
+    /// außer, die Karte kennt dort eine Kreuzung.
+    func testTheStopThatEndsTheRideOnlyCountsAtAKnownJunction() {
         var m = RideMeter()
         m.signals = [east(400)]
         for i in 0...19 { m.add(fix(Double(i) * 5, Double(i), speed: 5)) }
@@ -151,11 +169,18 @@ final class RideTests: XCTestCase {
         let live = m.liveSignals(at: start.addingTimeInterval(40))
         XCTAssertEqual(live.stops, 1)
         XCTAssertEqual(live.wait, 21, accuracy: 1.5)
-        XCTAssertTrue(m.standingAtSignal(at: start.addingTimeInterval(40)))
+        XCTAssertTrue(m.standingCounts(at: start.addingTimeInterval(40)))
+        // Auch ohne Kreuzung in der Nähe — aber erst, wenn es ein Halt ist und
+        // kein Wackeln am Bordstein.
+        var away = RideMeter()
+        for i in 0...19 { away.add(fix(Double(i) * 5, Double(i), speed: 5)) }
+        for i in 20...30 { away.add(fix(95, Double(i), speed: 0.1)) }
+        XCTAssertEqual(away.liveSignals(at: start.addingTimeInterval(22)).stops, 0)
+        XCTAssertEqual(away.liveSignals(at: start.addingTimeInterval(30)).stops, 1)
         // Und vor der ersten Kurbelumdrehung zählt auch das Stehen nicht mit.
         var home = RideMeter()
         for i in 0...40 { home.add(fix(0, Double(i), speed: 0)) }
-        XCTAssertFalse(home.standingAtSignal(at: start.addingTimeInterval(40)))
+        XCTAssertFalse(home.standingCounts(at: start.addingTimeInterval(40)))
         XCTAssertEqual(home.liveSignals(at: start.addingTimeInterval(40)).stops, 0)
     }
 

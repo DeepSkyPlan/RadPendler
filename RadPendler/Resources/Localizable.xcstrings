@@ -34,17 +34,6 @@
         }
       }
     },
-    "%@ gewartet · Ø %@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ waiting · avg %@"
-          }
-        }
-      }
-    },
     "%@ ist nicht gegangen: %@": {
       "extractionState": "manual",
       "localizations": {
@@ -85,6 +74,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ faster than planned"
+          }
+        }
+      }
+    },
+    "%@ · %d Halte": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · %d stops"
           }
         }
       }
@@ -221,6 +221,28 @@
         }
       }
     },
+    "%d Halt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d stop"
+          }
+        }
+      }
+    },
+    "%d Halte": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d stops"
+          }
+        }
+      }
+    },
     "%d Hauptstraßen queren": {
       "extractionState": "manual",
       "localizations": {
@@ -331,13 +353,13 @@
         }
       }
     },
-    "%d/%d Ampeln": {
+    "%d/%d Halte": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%d/%d lights"
+            "value": "%d/%d stops"
           }
         }
       }
@@ -397,13 +419,13 @@
         }
       }
     },
-    "%d× · %@ · Ø %@ · %d Ampeln": {
+    "%d× · %@ · Ø %@ · %d Halte": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%d× · %@ · avg %@ · %d lights"
+            "value": "%d× · %@ · avg %@ · %d stops"
           }
         }
       }
@@ -584,28 +606,6 @@
         }
       }
     },
-    "Ampelhalts": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Light stops"
-          }
-        }
-      }
-    },
-    "Ampeln / Plan": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lights / plan"
-          }
-        }
-      }
-    },
     "Ampeln unbekannt": {
       "extractionState": "manual",
       "localizations": {
@@ -646,17 +646,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Traffic lights, roads and map data: © OpenStreetMap contributors, ODbL 1.0, queried through the Overpass API."
-          }
-        }
-      }
-    },
-    "Ampelwartezeit (m:ss)": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Waiting at lights (m:ss)"
           }
         }
       }
@@ -771,13 +760,13 @@
         }
       }
     },
-    "Auf der Karte einer gefahrenen Fahrt sind die Ampeln gelb markiert und tragen ihre Wartezeit; andere Halte stehen klein und grau daneben.": {
+    "Auf der Karte einer gefahrenen Fahrt sind die Halte gelb markiert und tragen ihre Wartezeit; klein und grau steht nur das Stehen vor dem Losfahren und nach der Ankunft.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "On the map of a recorded ride the traffic lights are marked yellow and carry their waiting time; other stops sit beside them, small and grey."
+            "value": "On the map of a recorded ride the stops are marked yellow and carry their waiting time; only the standing before setting off and after arriving sits there small and grey."
           }
         }
       }
@@ -1178,13 +1167,13 @@
         }
       }
     },
-    "Der grüne Knopf rechts neben der gewählten Fahrt zeichnet auf, was du wirklich fährst: Strecke, Geschwindigkeit, Ampelhalts.": {
+    "Der grüne Knopf rechts neben der gewählten Fahrt zeichnet auf, was du wirklich fährst: Strecke, Geschwindigkeit, Halte.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The green button beside the chosen trip records what you actually ride: distance, speed, stops at lights."
+            "value": "The green button beside the chosen trip records what you actually ride: distance, speed, stops."
           }
         }
       }
@@ -1207,17 +1196,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "The red box only appears when there is a fixed departure: for trains and buses, or when an arrival time is set."
-          }
-        }
-      }
-    },
-    "Die Ampelzeile zählt „gehalten von geplant“ und läuft sekündlich mit, solange du stehst; die gelben Punkte auf der Karte sind die Ampeln, die die Planung kennt.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The traffic-light line counts “stopped of planned” and ticks along by the second while you stand; the yellow dots on the map are the lights the plan knows about."
           }
         }
       }
@@ -1273,6 +1251,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "The driving time comes from Apple Maps with live traffic. How much longer or shorter you really take, the app learns from your recorded car trips: time driven door to door divided by Apple's estimate, the median of the latest trips once there are three. Apple's time is multiplied by that factor — on any route, town or motorway; looking for parking and the overall average then no longer apply, they are part of it. Until then Apple plus parking counts, with your overall average as a lower bound, except where Apple drives the line more than one and a half times as fast as that."
+          }
+        }
+      }
+    },
+    "Die Haltezeile zählt „gehalten von geplant“ und wie lange du insgesamt gestanden hast, gleich warum; sie läuft sekündlich mit, solange du stehst. Die gelben Punkte auf der Karte sind die Ampeln und Halte, die die Planung kennt. Ein Tipp auf die Zahlen schaltet weiter: alle Zahlen → nur Tempo, Fahrzeit und Ankunft → die wichtigsten. Die kleine Karte unten links zeigt die ganze Route und wo du bist; ein Tipp darauf: doppelt so nah → aus → ganze Route.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The stops line counts “stopped of planned” and how long you stood in total, whatever the reason; it ticks along by the second while you stand. The yellow dots on the map are the lights and stops the plan knows about. A tap on the figures steps on: all figures → speed, ride time and arrival only → the main ones. The small map at the bottom left shows the whole route and where you are; a tap on it: twice as close → off → whole route."
           }
         }
       }
@@ -1574,13 +1563,13 @@
         }
       }
     },
-    "Ein Halt zählt ab fünf Sekunden Stillstand. Als Ampelhalt zählt er, wenn er an einer Ampelkreuzung der geplanten Route liegt — oder wenn er länger als 30 Sekunden dauert, denn so lange steht niemand ohne Grund. Das Stehen vor der ersten Kurbelumdrehung und das Stehen nach der Ankunft zählen nie als Ampel: das ist die eigene Haustür, keine Kreuzung.": {
+    "Ein Halt zählt ab fünf Sekunden Stillstand — gleich, warum du stehst: Ampel, Schranke, Vorfahrt, Stau. Nur das Stehen vor der ersten Kurbelumdrehung und das Stehen nach der Ankunft zählen nicht: das ist die eigene Haustür, keine Kreuzung.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "A stop counts from five seconds of standing still. It counts as a stop at a light if it lies at a signalised junction of the planned route — or if it lasts longer than 30 seconds, because nobody stands that long for no reason. Standing before the first pedal stroke and standing after arriving never count as a light: that is your own front door, not a junction."
+            "value": "A stop counts from five seconds of standing still — whatever the reason: a light, a barrier, giving way, a jam. Only standing before the first pedal stroke and standing after arriving do not count: that is your own front door, not a junction."
           }
         }
       }
@@ -1607,13 +1596,13 @@
         }
       }
     },
-    "Eine Fahrt antippen zeigt die gefahrene Linie, jede Zahl dazu und die längsten Halte. Die geplante Route liegt dünn und grau daneben — der Unterschied ist die eigentliche Auskunft.": {
+    "Eine Fahrt antippen zeigt zuerst jede Zahl dazu, dann die gefahrene Linie und die längsten Halte. Die geplante Route liegt dünn und grau daneben — der Unterschied ist die eigentliche Auskunft.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tapping a ride shows the track, every number belonging to it and the longest stops. The planned route lies thin and grey beside it — the difference is the real answer."
+            "value": "Tapping a ride shows every number belonging to it first, then the track and the longest stops. The planned route lies thin and grey beside it — the difference is the real answer."
           }
         }
       }
@@ -1889,6 +1878,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Trips from Transitous; bike times are their estimate"
+          }
+        }
+      }
+    },
+    "Fahrzeit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ride time"
           }
         }
       }
@@ -2219,6 +2219,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Stops"
+          }
+        }
+      }
+    },
+    "Halte / Plan": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stops / plan"
           }
         }
       }
@@ -2641,13 +2652,13 @@
         }
       }
     },
-    "Menü → Fahrten: alle Aufzeichnungen, nach Jahren und Monaten. Die Überschrift eines Monats zeigt Kilometer, Schnitt und Ampelhalts dieses Monats.": {
+    "Menü → Fahrten: alle Aufzeichnungen, nach Jahren und Monaten. Die Überschrift eines Monats zeigt Kilometer, Schnitt und Halte dieses Monats.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Menu → Rides: every recording, by year and month. A month heading shows that month's kilometres, average and stops at lights."
+            "value": "Menu → Rides: every recording, by year and month. A month heading shows that month's kilometres, average and stops."
           }
         }
       }
@@ -3466,13 +3477,13 @@
         }
       }
     },
-    "Solche Stellen merkt sich die App. Ab der nächsten Fahrt erkennt sie den Halt dort wieder, und die Ampel zählt auch beim Planen mit.": {
+    "Solche Stellen merkt sich die App. Beim Planen zählen sie wie eine Ampel — zusätzlich zu den Ampeln aus OpenStreetMap.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The app remembers such places. From the next ride on it recognises the stop there, and that light counts when planning too."
+            "value": "The app remembers such places. When planning they count like a traffic light — in addition to the lights from OpenStreetMap."
           }
         }
       }
@@ -3686,6 +3697,17 @@
         }
       }
     },
+    "Tempo %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speed %@"
+          }
+        }
+      }
+    },
     "Tempo Auto": {
       "extractionState": "manual",
       "localizations": {
@@ -3704,6 +3726,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Speed, bike"
+          }
+        }
+      }
+    },
+    "Tippen für %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap for %@"
           }
         }
       }
@@ -4181,13 +4214,13 @@
         }
       }
     },
-    "Zeigt die Ampel auf der Karte": {
+    "Zeigt die Stelle auf der Karte": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Shows the light on the map"
+            "value": "Shows the place on the map"
           }
         }
       }
@@ -4335,6 +4368,17 @@
         }
       }
     },
+    "alle Zahlen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "all figures"
+          }
+        }
+      }
+    },
     "alle geklärt": {
       "extractionState": "manual",
       "localizations": {
@@ -4342,17 +4386,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "all settled"
-          }
-        }
-      }
-    },
-    "andere Halte": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "other stops"
           }
         }
       }
@@ -4445,6 +4478,17 @@
         }
       }
     },
+    "die wichtigsten Zahlen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the main figures"
+          }
+        }
+      }
+    },
     "direkt": {
       "extractionState": "manual",
       "localizations": {
@@ -4452,6 +4496,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "direct"
+          }
+        }
+      }
+    },
+    "doppelt so nah": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "twice as close"
           }
         }
       }
@@ -4507,6 +4562,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "does not pass your fixed points"
+          }
+        }
+      }
+    },
+    "ganze Route": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "whole route"
           }
         }
       }
@@ -4595,17 +4661,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "standing (m:ss)"
-          }
-        }
-      }
-    },
-    "gestanden · %d sonst": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "standing · %d other"
           }
         }
       }
@@ -4918,6 +4973,17 @@
         }
       }
     },
+    "noch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "left"
+          }
+        }
+      }
+    },
     "noch %@": {
       "extractionState": "manual",
       "localizations": {
@@ -4925,6 +4991,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ to go"
+          }
+        }
+      }
+    },
+    "noch kein Halt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no stop yet"
           }
         }
       }
@@ -4940,17 +5017,6 @@
         }
       }
     },
-    "noch keine Wartezeit": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "no waiting time yet"
-          }
-        }
-      }
-    },
     "noch nicht gemessen": {
       "extractionState": "manual",
       "localizations": {
@@ -4958,6 +5024,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "not measured yet"
+          }
+        }
+      }
+    },
+    "nur Tempo, Fahrzeit, Ankunft": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "speed, ride time and arrival only"
           }
         }
       }
@@ -5024,6 +5101,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "rolling"
+          }
+        }
+      }
+    },
+    "rollend (min)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rolling (min)"
           }
         }
       }
@@ -5347,6 +5435,17 @@
         }
       }
     },
+    "Ø %@ je Halt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "avg %@ per stop"
+          }
+        }
+      }
+    },
     "Ø %@ je Halt · Ø %@ je Ampel · %d Vorbeifahrten": {
       "extractionState": "manual",
       "localizations": {
@@ -5402,13 +5501,13 @@
         }
       }
     },
-    "Ø je Ampel (m:ss)": {
+    "Ø je Halt (m:ss)": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ø per light (m:ss)"
+            "value": "Ø per stop (m:ss)"
           }
         }
       }
@@ -5435,35 +5534,13 @@
         }
       }
     },
-    "Übersichtskarte ausklappen": {
+    "Übersichtskarte: %@": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Expand overview map"
-          }
-        }
-      }
-    },
-    "Übersichtskarte einklappen": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Collapse overview map"
-          }
-        }
-      }
-    },
-    "Übersichtskarte: die ganze Route und wo du bist": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Overview map: the whole route and where you are"
+            "value": "Overview map: %@"
           }
         }
       }
@@ -5512,13 +5589,13 @@
         }
       }
     },
-    "„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — Eine Fahrt beginnt quer, oder so, wie du es während der letzten Fahrt zuletzt eingestellt hast; der Knopf dafür steht oben links auf dem Fahrtbildschirm. Nach der Fahrt gilt wieder die Ausrichtung von hier. — Steht die Aufzeichnung an derselben Stelle und ist dort keine bekannte Ampel, hält sie nach der ersten eingestellten Zeit von selbst an — und läuft weiter, sobald es weitergeht; die Ortung bleibt dabei an, aber sparsam. Nach der zweiten Zeit beendet sie sich und zählt bis zum Anfang des Stillstands: das ist der Fall „angekommen und vergessen, auf beenden zu tippen“. Der Knopf oben links auf dem Fahrtbildschirm schaltet beides für eine Fahrt ab, für den Stau, der gleich weitergeht. Eine gewollte Unterbrechung ist dagegen der Knopf „Pause“: er hält die Uhr an und schaltet die Ortung ganz ab, und die Pause zählt weder zur Fahrzeit noch als Halt — anders als das Stehen vor einer automatischen Pause, das ein Halt war wie jeder andere. — Während einer Aufzeichnung bleibt der Bildschirm an, bis du die Fahrt beendest; das kostet Strom und ist so gewollt. Er wird aber nach 30 Sekunden dunkel, solange du ihn nicht anfasst — und beim ersten Antippen wieder hell, ebenso wenn eine Abbiegung ansteht oder du neben der Route bist. Das ist während einer Fahrt der größte Posten auf der Stromrechnung, größer als die Ortung. Am Strom bleibt er hell, ohne dass du etwas umstellen musst. — Verlässt du die Route, zeigt ein Pfeil zurück. Neu berechnet wird ab 200 m daneben, und erst nach ein paar Sekunden am Stück, damit ein Bogen um eine Baustelle keine Neuplanung auslöst. — Wer länger als 30 Sekunden steht, stand an einer Ampel, auch wenn keine Karte dort eine kennt — nur das Stehen vor dem Losfahren und nach dem Ankommen zählt nie, das ist die eigene Haustür. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein. Mitgezählt wird auch, wo eine Aufzeichnung ohne Halt durchkam: eine gelernte Kreuzung kostet beim Planen ihre gemessene Zeit über alle Vorbeifahrten, nicht den eingestellten Mittelwert. Sie bleiben auf deinen Geräten und in deiner iCloud.": {
+    "„Automatisch“ lässt den Bildschirm mitdrehen; am Lenker ist das oft im Weg. — Eine Fahrt beginnt quer, oder so, wie du es während der letzten Fahrt zuletzt eingestellt hast; der Knopf dafür steht oben links auf dem Fahrtbildschirm. Nach der Fahrt gilt wieder die Ausrichtung von hier. — Steht die Aufzeichnung an derselben Stelle und ist dort keine bekannte Ampel, hält sie nach der ersten eingestellten Zeit von selbst an — und läuft weiter, sobald es weitergeht; die Ortung bleibt dabei an, aber sparsam. Nach der zweiten Zeit beendet sie sich und zählt bis zum Anfang des Stillstands: das ist der Fall „angekommen und vergessen, auf beenden zu tippen“. Der Knopf oben links auf dem Fahrtbildschirm schaltet beides für eine Fahrt ab, für den Stau, der gleich weitergeht. Eine gewollte Unterbrechung ist dagegen der Knopf „Pause“: er hält die Uhr an und schaltet die Ortung ganz ab, und die Pause zählt weder zur Fahrzeit noch als Halt — anders als das Stehen vor einer automatischen Pause, das ein Halt war wie jeder andere. — Während einer Aufzeichnung bleibt der Bildschirm an, bis du die Fahrt beendest; das kostet Strom und ist so gewollt. Er wird aber nach 30 Sekunden dunkel, solange du ihn nicht anfasst — und beim ersten Antippen wieder hell, ebenso wenn eine Abbiegung ansteht oder du neben der Route bist. Das ist während einer Fahrt der größte Posten auf der Stromrechnung, größer als die Ortung. Am Strom bleibt er hell, ohne dass du etwas umstellen musst. — Verlässt du die Route, zeigt ein Pfeil zurück. Neu berechnet wird ab 200 m daneben, und erst nach ein paar Sekunden am Stück, damit ein Bogen um eine Baustelle keine Neuplanung auslöst. — Wer unterwegs steht, hält — gleich, ob an einer Ampel oder sonst wo, auch wenn keine Karte dort eine kennt; nur das Stehen vor dem Losfahren und nach dem Ankommen zählt nie, das ist die eigene Haustür. Solche Stellen merkt sich die App und rechnet sie beim nächsten Mal mit ein. Mitgezählt wird auch, wo eine Aufzeichnung ohne Halt durchkam: eine gelernte Kreuzung kostet beim Planen ihre gemessene Zeit über alle Vorbeifahrten, nicht den eingestellten Mittelwert. Sie bleiben auf deinen Geräten und in deiner iCloud.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "“Automatic” lets the screen turn with the phone; on a handlebar that is often in the way. — A ride starts in landscape, or however you last set it during a ride; the button for it is at the top left of the ride screen. After the ride the orientation from here applies again. — If the recording stands in the same spot and there is no known traffic light there, it pauses by itself after the first time set — and carries on as soon as you move again; location stays on meanwhile, but frugally. After the second time it ends and counts up to the start of the standstill: that is the “arrived and forgot to tap end” case. The button at the top left of the ride screen switches both off for one ride, for the traffic jam that is about to move. A deliberate break is the “Pause” button instead: it stops the clock and switches location off entirely, and the break counts neither as ride time nor as a stop — unlike the standing before an automatic pause, which was a stop like any other. — While recording, the screen stays on until you end the ride; that costs battery and is meant to. It does go dark after 30 seconds while you are not touching it — and bright again at the first tap, and likewise when a turn is coming up or you are off the route. During a ride that is the largest item on the battery bill, larger than location tracking. While the phone is charging it stays bright, with nothing to switch. — If you leave the route, an arrow points back. It recalculates from 200 m off the route, and only after a few seconds in a row, so that a detour around road works does not trigger a replan. — Anyone standing longer than 30 seconds was standing at a traffic light, even where no map knows one — only standing before setting off and after arriving never counts, that is your own front door. The app remembers such places and counts them in next time. It also counts where a recording got through without stopping: a learned junction costs the plan its measured time across every pass, not the configured average. They stay on your devices and in your iCloud."
+            "value": "“Automatic” lets the screen turn with the phone; on a handlebar that is often in the way. — A ride starts in landscape, or however you last set it during a ride; the button for it is at the top left of the ride screen. After the ride the orientation from here applies again. — If the recording stands in the same spot and there is no known traffic light there, it pauses by itself after the first time set — and carries on as soon as you move again; location stays on meanwhile, but frugally. After the second time it ends and counts up to the start of the standstill: that is the “arrived and forgot to tap end” case. The button at the top left of the ride screen switches both off for one ride, for the traffic jam that is about to move. A deliberate break is the “Pause” button instead: it stops the clock and switches location off entirely, and the break counts neither as ride time nor as a stop — unlike the standing before an automatic pause, which was a stop like any other. — While recording, the screen stays on until you end the ride; that costs battery and is meant to. It does go dark after 30 seconds while you are not touching it — and bright again at the first tap, and likewise when a turn is coming up or you are off the route. During a ride that is the largest item on the battery bill, larger than location tracking. While the phone is charging it stays bright, with nothing to switch. — If you leave the route, an arrow points back. It recalculates from 200 m off the route, and only after a few seconds in a row, so that a detour around road works does not trigger a replan. — Anyone standing still on the way has stopped — at a traffic light or anywhere else, even where no map knows one; only standing before setting off and after arriving never counts, that is your own front door. The app remembers such places and counts them in next time. It also counts where a recording got through without stopping: a learned junction costs the plan its measured time across every pass, not the configured average. They stay on your devices and in your iCloud."
           }
         }
       }

@@ -1,5 +1,46 @@
 # Changelog
 
+## Unveröffentlicht
+
+Zehn Punkte aus dem Test von 1.20 (60) (Nutzer, 12.10.2026).
+
+- **Ein Halt ist ein Halt, gleich warum.** Bis 1.20 war ein Stillstand nur dann eine „Ampel“, wenn die
+  Karte dort eine kannte oder er länger als 30 s dauerte; alles andere zählte daneben („n sonst“) und
+  wurde nie gelernt. Jetzt zählt jeder Halt unterwegs ab 5 s gleich (`RideMeter.close`, das Feld heißt
+  weiter `atSignal`, weil es gespeichert ist) — und wird damit gelernt: die Planung nimmt die Ampeln
+  aus OpenStreetMap und ergänzt sie um die eigenen Halte, mit ihrer gemessenen Zeit über alle
+  Vorbeifahrten. Nicht gezählt wird weiter das Stehen vor dem Losfahren und nach der Ankunft. Die
+  30-Sekunden-Regel (`signalSeconds`) ist entfallen. **Folge:** ein einmaliger kurzer Halt kostet an
+  seiner Stelle zunächst etwa die eingestellte Wartezeit und verliert sich erst mit den Vorbeifahrten
+  ohne Halt (`LearnedSignal.prior`); die gemessene „Wartezeit je Ampel“ wird etwas steigen.
+- **Stand- und Ampelzeit sind eine Zahl.** Fahrtbildschirm: „3/9 Halte · Ø je Halt“ und daneben
+  „gestanden“. Fahrtansicht: „Halte / Plan“, „gestanden“, „Ø je Halt“, dazu neu „rollend (min)“.
+  Fahrtenliste, Monatsüberschrift und Uhr zählen Halte statt Ampelhalts. Ältere Fahrten zeigen die
+  Summe aus beidem.
+- **Fahrtansicht (Archiv und nach der Fahrt): erst die Zahlen, dann die Karte.**
+- **Fahrtbildschirm: das Tempo groß.** Die Zahl allein mit „km/h“ klein darunter, im Feld so hoch wie
+  die beiden Felder rechts daneben.
+- **Ein Tipp auf die Zahlen schaltet weiter:** alle → nur Tempo, Fahrzeit, Ankunft → Tempo,
+  Fahrzeit, Halte, gestanden, Restzeit, Ankunft. Die Wahl bleibt (`ridePanelDetail`).
+- **Übersichtskarte: der grüne Punkt wandert mit.** Er blieb am Start stehen, weil die Position nur im
+  Inhalt der `Map` gelesen wurde — dort meldet sie sich bei SwiftUI nicht als Änderung. Ein Tipp
+  schaltet jetzt ganze Route → doppelt so nah um den Fahrer → aus (`rideOverviewMode`; die alte
+  Einstellung „eingeklappt“ gilt nicht mehr).
+- **Heatmap: Karte gedämpft, Farben kräftig.** Gedämpfter Kartenstil plus ein Schleier unter der
+  Wolke; die Punkte satt, deckend, etwas größer und mit dunklem Saum.
+- **Heatmap: die Summe wird weggeschrieben** (`RideHeat.Sum`, `Rides/heat.plist`, geschützt wie die
+  Linien). Beim Öffnen wird nur gelesen und gerechnet, was seit dem letzten Mal dazukam; der Wechsel
+  des Verkehrsmittels ist nur noch ein Filter. Nach dem Löschen einer Fahrt wird einmal neu gerechnet.
+  Die Linien bleiben dafür nicht mehr im Speicher.
+- **Fahrttöne so laut wie das Gerät, wie Musik.** Tonmodus `.default` statt `.voicePrompt` (eigener
+  Pegel im Auto und an manchem Kopfhörer), und die Tonsitzung bleibt während der Fahrt an — ohne
+  abzusenken —, damit die Lautstärketasten die Medienlautstärke stellen. Für jeden Ton wird wie bisher
+  kurz abgesenkt. **Nur auf dem Gerät prüfbar** (Prüfliste t7, t8).
+- Geprüft: 387 Tests (4 neu: Summe wächst Fahrt für Fahrt und übersteht das Wegschreiben, naher
+  Ausschnitt, Halt ohne Karte, Töne folgen der Medienlautstärke). Im Simulator gesehen: Heatmap,
+  Fahrtansicht, Fahrtenliste, Fahrtbildschirm in allen drei Fassungen, wandernder Punkt in der
+  Übersichtskarte. Nicht geprüft: Töne, Uhr, Hochformat des Fahrtbildschirms.
+
 ## 1.20 (Build 60) — VBB-API, Demo-Fahrten für den Simulator
 
 - **Fahrplan in Berlin/Brandenburg über die offizielle VBB-API** (Nutzer, 12.10.2026: Zugang

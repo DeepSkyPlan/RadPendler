@@ -100,7 +100,7 @@ const GROUPS = [
     ["o7", "Richtung tauschen und sofort auf „Fahrt“ tippen, bevor der neue Plan da ist", "Solange geladen wird, steht keine Linie und kein Knopf „Fahrt“ da. Die Fahrt beginnt erst mit der Linie der neuen Richtung."],
     ["o8", "Hinweg planen, den Rückweg fahren und die Fahrt erst unterwegs starten, mehr als 400 m vom Ziel der Linie", "Nach etwa 20 Sekunden auf der Linie dreht die Route um und führt zum Start. Im Auto kommt kein Vorschlag, der zurück zum Abfahrtsort führt."],
     ["o9", "Mehr als 400 m vom eingetragenen Start und nicht auf der Linie stehen, dann auf „Fahrt“ tippen", "Orange Zeile „Du stehst nicht am Start …“, der Start ist dein Standort, ein neuer Plan erscheint. Der zweite Tipp startet die Fahrt."],
-    ["o10", "Während einer Fahrt auf die kleine Karte unten links sehen und sie antippen", "Sie zeigt die ganze Route nach Norden, das Ziel rot, dich grün. Ein Tipp klappt sie zu einem Knopf zusammen, ein zweiter wieder auf; bei der nächsten Fahrt steht sie wie zuletzt. Die große Karte ruckelt dadurch nicht."],
+    ["o10", "Während einer Fahrt auf die kleine Karte unten links sehen und sie antippen", "Sie zeigt die ganze Route nach Norden, das Ziel rot, dich grün — und der grüne Punkt wandert beim Fahren mit (neu: bis 1.20 blieb er am Start). Ein Tipp: doppelt so nah, du in der Mitte; noch einer: nur ein Knopf; noch einer: wieder die ganze Route. Bei der nächsten Fahrt steht sie wie zuletzt. Die große Karte ruckelt dadurch nicht."],
     ["o6", "Durch eine Unterführung oder einen Tunnel fahren", "Die Fahrt läuft weiter. Die Linie hat höchstens eine gerade Lücke, keinen Sprung."],
   ]},
   { id: "hintergrund", title: "Hintergrund und gesperrter Bildschirm", why: "Im Simulator geprüft: Hintergrund-Ortung nur zwischen Start und Ende, Kennung der Weckaufgabe. Nicht prüfbar: was iOS mit einer gesperrten App wirklich tut.", items: [
@@ -128,6 +128,8 @@ const GROUPS = [
     ["t3", "Bildschirm sperren und abbiegen", "Ein Ton zur Ankündigung, ein doppelter kurz vor der Abbiegung."],
     ["t4", "Mit Kopfhörern links und rechts abbiegen", "Links klingt tiefer und kommt von links, rechts höher und von rechts."],
     ["t5", "Töne in den Einstellungen ausschalten und mit Musik fahren", "Kein Ton, und die Musik wird nie leiser."],
+    ["t7", "Ohne Musik fahren und während der Fahrt die Lautstärketasten drücken", "Die Anzeige zeigt die Medienlautstärke (nicht „Klingelton“), und der nächste Abbiegeton ist entsprechend lauter oder leiser. Neu seit dieser Fassung."],
+    ["t8", "Mit Musik fahren, über Kopfhörer oder im Auto über Bluetooth", "Die Töne sind so laut wie die Musik, nicht leiser oder lauter als sie. Die Musik wird nur für den Ton kurz leiser — nicht die ganze Fahrt über."],
     ["t6", "Während der Fahrt einen Anruf annehmen und beenden", "Danach kommen die Abbiegetöne wieder."],
   ]},
   { id: "uhr", title: "Apple Watch", why: "Im Simulator geprüft: was das Telefon der Uhr schickt. Nicht prüfbar: die Verbindung.", items: [
@@ -136,11 +138,14 @@ const GROUPS = [
     ["u3", "Auf der Uhr eine andere Kategorie wählen", "Das Telefon zeigt dieselbe Kategorie."],
   ]},
   { id: "rueckblick", title: "Nach der Fahrt und Heatmap", why: "Im Simulator gesehen: die Ansicht nach der Fahrt und die Heatmap mit zwei kurzen Fahrten ohne Ampelhalt. Nicht prüfbar: echte Fahrten, Ampeln, viele Linien.", items: [
-    ["r1", "Eine Fahrt beenden", "Es erscheint dieselbe Ansicht wie später in der Fahrtenliste: Karte, Zahlen, Halte. Oben rechts „Teilen“, links „Fertig“."],
+    ["r1", "Eine Fahrt beenden", "Es erscheint dieselbe Ansicht wie später in der Fahrtenliste: erst die Zahlen, dann Karte und Halte. „Halte / Plan“, „gestanden“ und „Ø je Halt“ statt getrennter Ampel- und Standzeit. Oben rechts „Teilen“, links „Fertig“."],
     ["r2", "In dieser Ansicht auf „Teilen“ tippen und die Datei an den Mac schicken", "Es kommt eine RadPendler-Fahrt-….json an, die tools/ride_report.py auswertet."],
     ["r3", "Fahrten öffnen und oben links auf die Flamme tippen", "Die Karte zeigt alle Rad-, Rad+Bahn- und Autofahrten: die Strecken als Punktwolke — einmal Gefahrenes als kleine Punkte, der Arbeitsweg als große; die Farbe zeigt das mittlere Tempo dort (rot langsam, grün und türkis schnell). Die Ampelkreise bleiben davon unterscheidbar. Beim Hineinzoomen werden aus den Punkten einzelne Spuren. Mit vielen Fahrten bleibt die Karte flüssig."],
-    ["r4", "In der Heatmap die Kreise ansehen und einen antippen", "Kreise liegen an Ampeln, an denen gehalten wurde: größer = öfter, rot = lange gewartet. Der Tipp zeigt Halte, Mittel und längsten Halt."],
+    ["r4", "In der Heatmap die Kreise ansehen und einen antippen", "Kreise liegen dort, wo gehalten wurde: größer = öfter, rot = lange gewartet. Der Tipp zeigt Halte, Mittel und längsten Halt."],
     ["r5", "Unter der Karte eine Zeile aus „Wo die Zeit liegen bleibt“ antippen", "Die Zeilen tragen Straßennamen, sortiert nach gesamter Wartezeit. Die Karte springt zur Ampel."],
+    ["r7", "Heatmap öffnen, schließen, eine Fahrt aufzeichnen, Heatmap wieder öffnen", "Beim zweiten Öffnen ist sie sofort da, mit der neuen Fahrt darin. Die Karte ist blass, die Punkte kräftig und auch in Gelb gut zu sehen."],
+    ["r8", "Während der Fahrt auf die Zahlen im Kasten tippen, im Hoch- und im Querformat", "Alle Zahlen → nur Tempo, Fahrzeit, Ankunft → Tempo, Fahrzeit, Halte, gestanden, Restzeit, Ankunft → wieder alle. Das Tempo ist groß und lesbar, nichts ist abgeschnitten. Pause und „Fahrt beenden“ bleiben immer da."],
+    ["r9", "Unterwegs kurz anhalten, wo keine Ampel ist (Vorfahrt, Schranke), länger als fünf Sekunden", "Der Halt zählt in „Halte“ mit und steht nach der Fahrt gelb auf der Karte. Bei der nächsten Planung über diese Stelle ist sie ein gelber Punkt."],
     ["r6", "In der Heatmap zwischen „Alle“, „Fahrrad“ und „Auto“ wechseln", "Die Karte zeigt nur die Fahrten dieses Verkehrsmittels. Den Umschalter gibt es nur, wenn es mehr als eines gibt."],
   ]},
   { id: "danach", title: "Nach jeder Runde", why: "Seit dieser Fassung schreibt die App stumme Fehler in die geteilte Auswertung.", items: [

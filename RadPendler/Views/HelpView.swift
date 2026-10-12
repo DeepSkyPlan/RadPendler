@@ -41,7 +41,7 @@ struct HelpView: View {
                         L("Die gewählte Fahrt liegt farbig oben, die anderen blass darunter. Ein Tipp auf ein Schild in der Karte wählt diese Fahrt."),
                         L("Langes Drücken irgendwo auf der Karte holt die ganze Strecke wieder ins Bild."),
                         L("Gelbe Punkte sind vermutete Ampelkreuzungen der gewählten Radroute — aus OpenStreetMap und aus dem, was deine eigenen Fahrten gelernt haben."),
-                        L("Auf der Karte einer gefahrenen Fahrt sind die Ampeln gelb markiert und tragen ihre Wartezeit; andere Halte stehen klein und grau daneben."),
+                        L("Auf der Karte einer gefahrenen Fahrt sind die Halte gelb markiert und tragen ihre Wartezeit; klein und grau steht nur das Stehen vor dem Losfahren und nach der Ankunft."),
                     ])
                     section(L("Regenradar"), "cloud.rain", [
                         L("Der Schalter unten links auf der Karte zeigt das DWD-Radar. Rechts steht, welche Minute zu sehen ist — „jetzt 14:48“, „in 25 min 15:10“. Ein kleiner Kreisel daneben heißt: Bilder laden noch."),
@@ -54,18 +54,18 @@ struct HelpView: View {
                         L("Die Warnungen (Einstellungen → Countdown) kommen als Mitteilung aufs Sperrbild, auch wenn die App zu ist; bei offener App zusätzlich als Ton."),
                     ])
                     section(L("Fahrt aufzeichnen"), "record.circle", [
-                        L("Der grüne Knopf rechts neben der gewählten Fahrt zeichnet auf, was du wirklich fährst: Strecke, Geschwindigkeit, Ampelhalts."),
+                        L("Der grüne Knopf rechts neben der gewählten Fahrt zeichnet auf, was du wirklich fährst: Strecke, Geschwindigkeit, Halte."),
                         L("Vor einer Abbiegung steht oben ein grünes Band mit Pfeil und Metern — links abbiegen links, rechts abbiegen rechts. Dazu ein Ton bei 125 m (im Auto 250 m) und ein doppelter kurz davor, links tiefer, rechts höher. Neben der Route steht mittig ein rotes Band mit Abstand und Zeit. Die Kurven rechnet die App aus der geplanten Linie — es sind Hinweise, keine Navigation."),
                         L("Die große Zahl ist dein aktuelles Tempo, in der Farbe, in der die Linie gerade gezeichnet wird. Der Pfeil auf der Karte zeigt immer dahin, wo du hinfährst."),
                         L("Der Abbiegepfeil ist grün und kommt erst 125 m vor der Abbiegung, im Auto 250 m — ein Pfeil, der zwei Kilometer lang „rechts“ sagt, sieht man nicht mehr an, wenn es so weit ist. Rot ist nur eines: dass du neben der Route bist."),
                         L("Unten steht, was noch kommt: Reststrecke, Restzeit und die Uhrzeit der Ankunft. Oben in der Leiste stehen dieselben zwei Zahlen statt des Countdowns — losgehen musst du nicht mehr."),
-                        L("Die Ampelzeile zählt „gehalten von geplant“ und läuft sekündlich mit, solange du stehst; die gelben Punkte auf der Karte sind die Ampeln, die die Planung kennt."),
+                        L("Die Haltezeile zählt „gehalten von geplant“ und wie lange du insgesamt gestanden hast, gleich warum; sie läuft sekündlich mit, solange du stehst. Die gelben Punkte auf der Karte sind die Ampeln und Halte, die die Planung kennt. Ein Tipp auf die Zahlen schaltet weiter: alle Zahlen → nur Tempo, Fahrzeit und Ankunft → die wichtigsten. Die kleine Karte unten links zeigt die ganze Route und wo du bist; ein Tipp darauf: doppelt so nah → aus → ganze Route."),
                         L("Die Ausrichtung, die du im Fahrtmodus wählst, gilt ab dann für jede Fahrt. Nach „Fahrt beenden“ gilt wieder die Ausrichtung aus den Einstellungen."),
                         L("Nach Zoomen oder Schieben kommt die Karte 30 Sekunden später von selbst zu dir zurück. Der Knopf oben links schaltet das Folgen von Hand."),
                         L("Der Knopf daneben hält die Ausrichtung fest — automatisch, hochkant, querformat. Am Lenker will man keine Karte, die sich in der Kurve dreht."),
                         L("Die Karte geht auf ganze Seite und folgt dir; die gefahrene Linie färbt sich nach Tempo — rot unter 8, grün über 26 km/h. Ein Wisch über die Karte löst das Folgen, der Knopf oben links schaltet es wieder ein."),
-                        L("Ein Halt zählt ab fünf Sekunden Stillstand. Als Ampelhalt zählt er, wenn er an einer Ampelkreuzung der geplanten Route liegt — oder wenn er länger als 30 Sekunden dauert, denn so lange steht niemand ohne Grund. Das Stehen vor der ersten Kurbelumdrehung und das Stehen nach der Ankunft zählen nie als Ampel: das ist die eigene Haustür, keine Kreuzung."),
-                        L("Solche Stellen merkt sich die App. Ab der nächsten Fahrt erkennt sie den Halt dort wieder, und die Ampel zählt auch beim Planen mit."),
+                        L("Ein Halt zählt ab fünf Sekunden Stillstand — gleich, warum du stehst: Ampel, Schranke, Vorfahrt, Stau. Nur das Stehen vor der ersten Kurbelumdrehung und das Stehen nach der Ankunft zählen nicht: das ist die eigene Haustür, keine Kreuzung."),
+                        L("Solche Stellen merkt sich die App. Beim Planen zählen sie wie eine Ampel — zusätzlich zu den Ampeln aus OpenStreetMap."),
                         L("Dabei zählt jede Aufzeichnung auch, wo sie ohne Halt durchgekommen ist. Eine gelernte Kreuzung kostet beim Planen deshalb nicht den eingestellten Mittelwert, sondern das, was sie dich im Schnitt wirklich gekostet hat — über alle Vorbeifahrten, nicht nur über die Male mit Rot."),
                         L("Die Uhr zeigt dieselben Zahlen, solange das iPhone in Reichweite ist — sie rechnet nichts selbst."),
                         L("„Pause“ hält die Fahrt an: die Uhr steht, die Ortung ist so lange aus, und die Pause zählt weder zur Fahrzeit noch als Halt. „Weiter“ nimmt sie wieder auf. Das ist auch der Knopf, der während einer Fahrt am meisten Strom spart."),
@@ -77,8 +77,8 @@ struct HelpView: View {
                         L("Die Ortung läuft nur zwischen „Fahrt“ und „Fahrt beenden“, auch in der Tasche (iOS zeigt dabei die blaue Leiste). Danach hört sie auf."),
                     ])
                     section(L("Gefahrene Fahrten"), "list.bullet.rectangle", [
-                        L("Menü → Fahrten: alle Aufzeichnungen, nach Jahren und Monaten. Die Überschrift eines Monats zeigt Kilometer, Schnitt und Ampelhalts dieses Monats."),
-                        L("Eine Fahrt antippen zeigt die gefahrene Linie, jede Zahl dazu und die längsten Halte. Die geplante Route liegt dünn und grau daneben — der Unterschied ist die eigentliche Auskunft."),
+                        L("Menü → Fahrten: alle Aufzeichnungen, nach Jahren und Monaten. Die Überschrift eines Monats zeigt Kilometer, Schnitt und Halte dieses Monats."),
+                        L("Eine Fahrt antippen zeigt zuerst jede Zahl dazu, dann die gefahrene Linie und die längsten Halte. Die geplante Route liegt dünn und grau daneben — der Unterschied ist die eigentliche Auskunft."),
                         L("Darunter: das Höhenprofil der Fahrt, und was angekündigt war — Ampeln und Schnitt gegen das, was daraus wurde."),
                         L("Die Zahlen jeder Fahrt gehen über deine eigene iCloud auf deine anderen Geräte, die gefahrene Linie seit 1.3 ebenfalls — in deine private CloudKit-Datenbank, die außer dir niemand lesen kann. Nach links wischen löscht eine Fahrt, seit 1.4 auf allen deinen Geräten: was du löschst, bleibt gelöscht."),
                     ])

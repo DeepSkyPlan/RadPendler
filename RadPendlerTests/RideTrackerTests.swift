@@ -334,6 +334,63 @@ final class RideTrackerTests: XCTestCase {
         XCTAssertTrue(RideHeat.build([]).layers.isEmpty)
     }
 
+    /// Die Summe, die auf der Platte liegt: eine Fahrt nach der anderen dazu
+    /// ergibt dasselbe wie alle auf einmal, sie übersteht das Wegschreiben,
+    /// und dieselbe Fahrt zweimal ändert nichts.
+    func testTheStoredSumGrowsRideByRide() throws {
+        let street = stride(from: 0.0, through: 600, by: 10).map { east($0) }
+        func stop(_ metres: Double) -> RideStop {
+            RideStop(lat: east(metres).latitude, lon: east(metres).longitude, start: .now, seconds: 30, atSignal: true)
+        }
+        let (a, b, c) = (track(street, stops: [stop(100)]), track(street, stops: [stop(110)]), track(street.reversed()))
+        let modes = [a.id: "bike", b.id: "bike", c.id: "car"]
+        let whole = RideHeat.build([a, b, c], modes: modes)
+
+        var sum = RideHeat.Sum()
+        sum.add(a, mode: "bike")
+        sum.add(b, mode: "bike")
+        let encoder = PropertyListEncoder()
+        encoder.outputFormat = .binary
+        var stored = try PropertyListDecoder().decode(RideHeat.Sum.self, from: encoder.encode(sum))
+        stored.add(c, mode: "car")
+        stored.add(a, mode: "bike")
+        let grown = stored.heat()
+        XCTAssertEqual(grown.rides, 3)
+        func key(_ heat: RideHeat) -> [String] {
+            heat.layers[0].dots.map { "\($0.mode)|\($0.rides)|\(Int($0.coordinate.longitude * 1e6))|\(Int($0.kmh))" }.sorted()
+        }
+        XCTAssertEqual(key(grown), key(whole))
+        XCTAssertEqual(grown.signals.map(\.stops), whole.signals.map(\.stops))
+        XCTAssertEqual(grown.signals.first?.total, 60)
+
+        // Je Verkehrsmittel: nur dessen Wolke und dessen Halte.
+        let cars = stored.heat(only: "car")
+        XCTAssertEqual(cars.rides, 1)
+        XCTAssertEqual(Set(cars.layers[0].dots.map(\.mode)), ["car"])
+        XCTAssertTrue(cars.signals.isEmpty)
+
+        // Eine gelöschte Fahrt oder ein anderes Verkehrsmittel: neu rechnen.
+        XCTAssertTrue(stored.fits(modes))
+        XCTAssertTrue(stored.fits(modes.merging([UUID(): "bike"]) { x, _ in x }), "eine neue Fahrt kommt nur dazu")
+        XCTAssertFalse(stored.fits([a.id: "bike", b.id: "bike"]))
+        XCTAssertFalse(stored.fits([a.id: "bike", b.id: "car", c.id: "car"]))
+    }
+
+    /// Der nahe Ausschnitt der Übersichtskarte: halbe Kantenlänge, der Fahrer
+    /// in der Mitte.
+    func testTheNearOverviewIsHalfTheSizeAroundTheRider() throws {
+        let rect = try XCTUnwrap(RideOverview.rect(around: [east(0), east(5_000)]))
+        let near = RideOverview.zoomed(rect, on: east(4_000))
+        XCTAssertEqual(near.width, rect.width / 2, accuracy: 1)
+        XCTAssertEqual(near.height, rect.height / 2, accuracy: 1)
+        XCTAssertEqual(MKMapPoint(x: near.midX, y: near.midY).coordinate.distance(to: east(4_000)), 0, accuracy: 1)
+        let blind = RideOverview.zoomed(rect, on: nil)
+        XCTAssertEqual(blind.midX, rect.midX, accuracy: 1)
+        XCTAssertEqual(RideOverview.Mode.route.next, .near)
+        XCTAssertEqual(RideOverview.Mode.near.next, .off)
+        XCTAssertEqual(RideOverview.Mode.off.next, .route)
+    }
+
     /// Halte an derselben Kreuzung gehören zusammen, auch von der anderen
     /// Seite; ein Halt ohne Ampel zählt nicht. Sortiert nach der Zeit, die
     /// dort liegen blieb.
