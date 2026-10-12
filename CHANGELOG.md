@@ -22,6 +22,8 @@ Zehn Punkte aus dem Test von 1.20 (60) (Nutzer, 12.10.2026).
   die beiden Felder rechts daneben.
 - **Ein Tipp auf die Zahlen schaltet weiter:** alle → nur Tempo, Fahrzeit, Ankunft → Tempo,
   Fahrzeit, Halte, gestanden, Restzeit, Ankunft. Die Wahl bleibt (`ridePanelDetail`).
+  In den kurzen Fassungen sind die Zahlen größer und füllen den Platz (Tempo 84 bzw. 72 pt,
+  Fahrzeit und Ankunft 30 bzw. 26 pt).
 - **Übersichtskarte: der grüne Punkt wandert mit.** Er blieb am Start stehen, weil die Position nur im
   Inhalt der `Map` gelesen wurde — dort meldet sie sich bei SwiftUI nicht als Änderung. Ein Tipp
   schaltet jetzt ganze Route → doppelt so nah um den Fahrer → aus (`rideOverviewMode`; die alte

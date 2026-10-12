@@ -360,9 +360,15 @@ struct RideTrackingView: View {
                             arrivalRow(left, now: context.date)
                         }
                     case .minimal:
-                        speedRow(now: context.date, rows: [[.time, .arrival]])
+                        speedRow(now: context.date, side: [.time, .arrival], speed: 84, value: 30)
                     case .half:
-                        speedRow(now: context.date, rows: [[.time, .stops, .standing], [.left, .arrival]])
+                        speedRow(now: context.date, side: [.time, .arrival], speed: 72, value: 26)
+                        HStack(spacing: 6) {
+                            ForEach([Figure.stops, .standing, .left], id: \.self) {
+                                figure($0, now: context.date, size: 22)
+                            }
+                        }
+                        .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
@@ -382,37 +388,35 @@ struct RideTrackingView: View {
     }
 
     /// Die Zahlen der beiden kurzen Fassungen.
-    private enum Figure { case time, stops, standing, left, arrival }
+    private enum Figure: Hashable { case time, stops, standing, left, arrival }
 
-    /// Das Tempo groß und links, daneben Zeilen kleiner Felder — die beiden
-    /// kurzen Fassungen des Kastens.
-    private func speedRow(now: Date, rows: [[Figure]]) -> some View {
+    /// Das Tempo groß und links, daneben zwei Felder übereinander — die
+    /// beiden kurzen Fassungen des Kastens. Weniger Zahlen heißt größere
+    /// Zahlen (Nutzer, 12.10.2026): der Platz, den die weggelassenen frei
+    /// machen, gehört denen, die bleiben.
+    private func speedRow(now: Date, side: [Figure], speed: CGFloat, value: CGFloat) -> some View {
         HStack(spacing: 8) {
-            speedTile(size: rows.count > 1 ? 64 : 52)
+            speedTile(size: speed)
             VStack(spacing: 6) {
-                ForEach(rows.indices, id: \.self) { i in
-                    HStack(spacing: 6) {
-                        ForEach(rows[i].indices, id: \.self) { j in figure(rows[i][j], now: now) }
-                    }
-                }
+                ForEach(side, id: \.self) { figure($0, now: now, size: value) }
             }
             .frame(maxWidth: .infinity)
         }
         .fixedSize(horizontal: false, vertical: true)
     }
 
-    @ViewBuilder private func figure(_ figure: Figure, now: Date) -> some View {
+    @ViewBuilder private func figure(_ figure: Figure, now: Date, size: CGFloat) -> some View {
         let live = tracker.meter.liveSignals(at: now)
         switch figure {
-        case .time: tile(L("Fahrzeit"), Fmt.clock(tracker.seconds(at: now)), tint: .primary)
+        case .time: tile(L("Fahrzeit"), Fmt.clock(tracker.seconds(at: now)), tint: .primary, size: size)
         case .stops:
             let planned = tracker.progress?.plannedSignals ?? 0
-            tile(L("Halte"), planned > 0 ? "\(live.stops)/\(planned)" : "\(live.stops)", tint: .primary)
-        case .standing: tile(L("gestanden"), Fmt.clock(standing(at: now)), tint: .orange)
-        case .left: tile(L("noch"), remaining.map { Fmt.duration($0.seconds) } ?? "–", tint: .primary)
+            tile(L("Halte"), planned > 0 ? "\(live.stops)/\(planned)" : "\(live.stops)", tint: .primary, size: size)
+        case .standing: tile(L("gestanden"), Fmt.clock(standing(at: now)), tint: .orange, size: size)
+        case .left: tile(L("noch"), remaining.map { Fmt.duration($0.seconds) } ?? "–", tint: .primary, size: size)
         case .arrival:
             tile(L("Ankunft"), remaining.map { Fmt.time(now.addingTimeInterval($0.seconds)) } ?? "–",
-                 tint: LegKind.bike.color)
+                 tint: LegKind.bike.color, size: size)
         }
     }
 
@@ -646,6 +650,8 @@ struct RideTrackingView: View {
         Button { confirmStop = true } label: {
             Label(L("Fahrt beenden"), systemImage: "stop.circle.fill")
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
                 .background(Theme.gradient(.red), in: Capsule())
@@ -654,7 +660,7 @@ struct RideTrackingView: View {
         .buttonStyle(.plain)
     }
 
-    private func tile(_ title: String, _ value: String, tint: Color) -> some View {
+    private func tile(_ title: String, _ value: String, tint: Color, size: CGFloat? = nil) -> some View {
         VStack(spacing: -1) {
             Text(title)
                 .font(.system(size: 10, design: .rounded))
@@ -662,7 +668,8 @@ struct RideTrackingView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
             Text(value)
-                .font(.system(.subheadline, design: .rounded, weight: .bold))
+                .font(size.map { .system(size: $0, weight: .heavy, design: .rounded) }
+                      ?? .system(.subheadline, design: .rounded, weight: .bold))
                 .monospacedDigit()
                 .foregroundStyle(tint)
                 .minimumScaleFactor(0.6)
