@@ -1,5 +1,5 @@
 {
- "_": "Referenzrouten: was eine Planung auf bekannten Strecken ergeben muss. Nur öffentliche Orte — die eigene Strecke steht in ~/.config/radpendler/referenzrouten.json (gleiches Format) und nie hier. Geprüft von ReferenceRouteTests über ./dev routes, vor jedem ./dev testflight. Die Schwellen liegen bei rund drei Vierteln dessen, was am 10.10.2026 gemessen wurde: Steglitz → Hbf 1099 m an der Prinzregentenstraße und 2,2 km Fahrradstraße (zurück 368 m und 2,2 km), Pinneberg 3,5–4,9 km Fahrradstraße bei 23,1–23,5 km, München 3,0 km bei 14,5 km; Kopfsteinpflaster höchstens 40 m je Linie, gepflasterte Einmündungen.",
+ "_": "Referenzrouten: was eine Planung auf bekannten Strecken ergeben muss. Nur öffentliche Orte — die eigene Strecke steht in ~/.config/radpendler/referenzrouten.json (gleiches Format) und nie hier. Geprüft von ReferenceRouteTests über ./dev routes, vor jedem ./dev testflight. Die Schwellen liegen bei rund drei Vierteln dessen, was am 10.10.2026 gemessen wurde: Steglitz → Hbf 1099 m an der Prinzregentenstraße und 2,2 km Fahrradstraße (zurück 368 m und 2,2 km), Pinneberg 3,5–4,9 km Fahrradstraße bei 23,1–23,5 km, München 3,0 km bei 14,5 km — das aber ohne Straßendaten; mit ihnen ist die Mischlinie dort ein Umweg (25 % über der kürzesten) und „optimal“ die 13,7-km-Linie mit 1,6 km Fahrradstraße, daher seit 12.10.2026 die Schwelle 1200 m; Kopfsteinpflaster höchstens 40 m je Linie, gepflasterte Einmündungen.",
  "streets": {
   "prinzregentenstrasse": [
    [
@@ -182,7 +182,7 @@
     11.6045
    ],
    "optimal": {
-    "minCycleStreetMeters": 2000,
+    "minCycleStreetMeters": 1200,
     "maxKm": 15.5
    },
    "every": {
