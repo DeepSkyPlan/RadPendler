@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — VBB-API, Demo-Fahrten für den Simulator
+## 1.20 (Build 60) — VBB-API, Demo-Fahrten für den Simulator
 
 - **Fahrplan in Berlin/Brandenburg über die offizielle VBB-API** (Nutzer, 12.10.2026: Zugang
   freigeschaltet). `Hafas.swift` fragt jetzt `fahrinfo.vbb.de/restproxy/latest` — Bahnhöfe in der
