@@ -84,6 +84,15 @@ struct ContentView: View {
     private var isLandscapePhone: Bool { heightClass == .compact && widthClass == .compact }
     private var isTwoColumn: Bool { isWide || isLandscapePhone }
 
+    /// Das Wetter für die Leiste: das der gewählten Fahrt — oder, wo die
+    /// keine Radstrecke hat (Auto, Bahn), das der ersten, die eine hat. Es ist
+    /// derselbe Himmel.
+    private var weather: RainAssessment? {
+        let own = model.selected?.rain
+        if let own, own.hasData { return own }
+        return model.options.compactMap(\.rain).first(where: \.hasData)
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -99,9 +108,20 @@ struct ContentView: View {
                     // Während einer Fahrt ist der Name im Weg: er liegt über
                     // dem Abbiegepfeil und über den drei Knöpfen links. Das
                     // Zeichen allein reicht — man weiß, welche App man fährt.
+                    // Und sonst das Wetter auf der gewählten Strecke statt des
+                    // Namens (Nutzer, 13.10.2026): ob es die Regenjacke
+                    // braucht, ist die eine Auskunft, für die man vor dem
+                    // Losfahren bisher den Radar bedienen musste. Während der
+                    // Fahrt die Uhrzeit — der Fahrtbildschirm lässt keine
+                    // Statusleiste übrig. Der Name steht, solange es noch
+                    // kein Wetter gibt.
                     HStack(spacing: 8) {
                         AppMark(size: 32)
-                        if !tracker.isRecording {
+                        if tracker.isRecording {
+                            RideClock()
+                        } else if let weather {
+                            WeatherPill(rain: weather)
+                        } else {
                             Text("RadPendler").display(.headline)
                         }
                     }
@@ -109,7 +129,8 @@ struct ContentView: View {
                     // width as it likes and drops the name.
                     .fixedSize()
                     .accessibilityElement(children: .combine)
-                    .accessibilityLabel("RadPendler")
+                    .accessibilityLabel(tracker.isRecording || weather == nil ? "RadPendler"
+                                        : "RadPendler, " + WeatherPill.spoken(weather))
                 }
                 // Between the name and the burger, so the one number that is
                 // about to matter sits above everything else.
@@ -546,4 +567,61 @@ struct ContentView: View {
         }
     }
 
+}
+
+/// Wetter auf der gewählten Strecke, in der Leiste neben dem Zeichen: wie warm
+/// beim Losfahren, und ob und ab wann es regnet.
+struct WeatherPill: View {
+    var rain: RainAssessment
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: -1) {
+            HStack(spacing: 4) {
+                Image(systemName: rain.level.symbol)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(rain.level == .dry ? Color.orange : rain.level.color)
+                if let t = rain.temperature {
+                    Text(Self.degrees(t))
+                        .font(.system(size: 17, weight: .heavy, design: .rounded))
+                        .monospacedDigit()
+                }
+            }
+            Text(rain.short)
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .foregroundStyle(rain.level == .dry ? Color.secondary : rain.level.color)
+                .lineLimit(1)
+        }
+    }
+
+    /// Über `Int`, nicht über die Rundung allein: aus −0,4 würde sonst „-0°“.
+    static func degrees(_ celsius: Double) -> String { "\(Int(celsius.rounded()))°" }
+
+    static func spoken(_ rain: RainAssessment?) -> String {
+        guard let rain else { return "" }
+        return [rain.temperature.map { L("%d Grad", Int($0.rounded())) }, rain.short]
+            .compactMap { $0 }.joined(separator: ", ")
+    }
+}
+
+/// Die Uhrzeit während einer Fahrt. Eigene Uhr statt `TimelineView`: in einer
+/// Werkzeugleiste legt ein `TimelineView` die Leiste bei jedem Takt neu aus
+/// (der Hänger aus 1.2) — hier ändert sich einmal je Minute ein Text.
+struct RideClock: View {
+    @State private var now = Date.now
+
+    var body: some View {
+        Text(Fmt.time(now))
+            .font(.system(size: 17, weight: .heavy, design: .rounded))
+            .monospacedDigit()
+            .accessibilityLabel(L("Uhrzeit %@", Fmt.time(now)))
+            .task {
+                while !Task.isCancelled {
+                    // Bis zur nächsten vollen Minute, dann stimmt die Anzeige
+                    // mit der Uhr überein, ohne sekündlich zu ticken.
+                    let wait = 60 - now.timeIntervalSince1970.truncatingRemainder(dividingBy: 60) + 0.2
+                    try? await Task.sleep(for: .seconds(wait))
+                    now = .now
+                }
+            }
+    }
 }

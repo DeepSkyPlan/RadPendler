@@ -58,6 +58,45 @@ final class RainTests: XCTestCase {
         XCTAssertEqual(series[1].slot(containing: t0.addingTimeInterval(300))?.mm, 0, "a real 0.0 stays 0.0")
     }
 
+    /// Die Temperatur kommt mit derselben Abfrage — und fehlt sie, fehlt nur
+    /// sie: der Regen wird gelesen wie zuvor.
+    func testTheTemperatureComesWithTheRain() throws {
+        let json = """
+        [{"minutely_15":{"time":["2026-09-21T15:15","2026-09-21T15:30"],
+          "precipitation":[0.0,0.6],"precipitation_probability":[5,80],"temperature_2m":[14.4,null]}}]
+        """
+        let series = try RainService.parse(Data(json.utf8))
+        XCTAssertEqual(series[0].temperature(at: t0), 14.4)
+        XCTAssertNil(series[0].temperature(at: t0.addingTimeInterval(600)), "null ist unbekannt, nicht null Grad")
+        XCTAssertNil(series[0].temperature(at: t0.addingTimeInterval(3_600)), "hinter dem Ende der Vorhersage")
+        let old = try RainService.parse(Data(#"[{"minutely_15":{"time":["2026-09-21T15:15"],"precipitation":[0.2]}}]"#.utf8))
+        XCTAssertNil(old[0].temperature(at: t0))
+        XCTAssertEqual(old[0].slot(containing: t0)?.mm, 0.2)
+    }
+
+    /// Was in der Leiste steht: wie warm beim Losfahren, und in zwei, drei
+    /// Wörtern, ob und ab wann es regnet.
+    func testThePillSaysHowWarmAndFromWhenItRains() {
+        let place = CLLocationCoordinate2D(latitude: 52.5, longitude: 13.4)
+        func reading(_ minutes: Double, mm: Double, _ temperature: Double?) -> RainReading {
+            RainReading(sample: RainSample(coordinate: place, time: t0.addingTimeInterval(minutes * 60)),
+                        millimetres: mm, probability: mm > 0 ? 90 : 0, temperature: temperature)
+        }
+        let dry = RainAssessment(readings: [reading(0, mm: 0, nil), reading(15, mm: 0, 13.6)])
+        XCTAssertEqual(dry.temperature, 13.6, "die erste Stelle, die eine hat")
+        XCTAssertEqual(dry.short, RainLevel.dry.label)
+        XCTAssertEqual(WeatherPill.degrees(13.6), "14°")
+        XCTAssertEqual(WeatherPill.degrees(-0.4), "0°", "kein „-0°“")
+        let wet = RainAssessment(readings: [reading(0, mm: 0, 12), reading(15, mm: 0.8, 11), reading(30, mm: 0.1, 11)])
+        XCTAssertEqual(wet.temperature, 12)
+        XCTAssertTrue(wet.short.hasPrefix(RainLevel.rain.label))
+        XCTAssertTrue(wet.short.hasSuffix(Fmt.time(t0.addingTimeInterval(900))), wet.short)
+        XCTAssertEqual(RainAssessment(readings: []).short, L("keine Regendaten"))
+        // Das Radarbild der Übersichtskarte: der letzte volle Fünf-Minuten-Schritt.
+        let frame = RideOverview.radarFrame(at: Date(timeIntervalSince1970: 1_780_000_199))
+        XCTAssertEqual(frame.timeIntervalSince1970, 1_780_000_200 - 300)
+    }
+
     func testARideTheForecastDoesNotReachIsUnknownNotDry() {
         let point = RainSample(coordinate: CLLocationCoordinate2D(latitude: 52.5, longitude: 13.4), time: t0)
         let nothing = RainAssessment(readings: [RainReading(sample: point, millimetres: nil, probability: nil)])

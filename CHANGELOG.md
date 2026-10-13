@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — Übersicht zeigt die ganze Fahrt, Pfeil und Karte gleiten
+## Unveröffentlicht — Wetter in der Leiste, Radar in der Übersicht, Pfeil und Karte gleiten
 
 - **Übersichtskarte: immer die ganze Fahrt** (Nutzer, 13.10.2026). Nach einer Neuplanung unterwegs
   begann die gültige Linie beim Fahrer, und die Übersicht zeigte nur noch den Rest. Jetzt umfasst der
@@ -14,6 +14,16 @@
   erste Fix und die Rückkehr zum Folgen werden nicht geglitten. Im Simulator mit einer gespielten
   Fahrt (50 km/h) gesehen: kein Vor und Zurück des Pfeils mehr; Prozessorlast dabei rund 25 %
   (Simulator). **Auf dem Gerät offen:** Wärme und Akku (Prüfliste o11).
+- **Die Pille links oben zeigt das Wetter der gewählten Strecke** (Nutzer, 13.10.2026): wie warm es
+  beim Losfahren ist und ob und ab wann es regnet („15° · trocken“, „12° · Regen ab 17:40“). Die
+  Temperatur kommt mit derselben Open-Meteo-Abfrage wie der Regen (`temperature_2m`), kein
+  zusätzlicher Aufruf. Hat die gewählte Fahrt keine Radstrecke (Auto, Bahn), gilt das Wetter der
+  ersten, die eine hat. Solange es keins gibt, steht dort der Name. **Während der Fahrt die Uhrzeit**
+  (`RideClock`, tickt einmal je Minute, kein `TimelineView` in der Leiste).
+- **Regenradar auf der Übersichtskarte während der Fahrt** (Nutzer, 13.10.2026): das Bild von jetzt,
+  alle fünf Minuten neu. Die Übersicht ist dafür eine `MKMapView` (`OverviewMap`) statt SwiftUIs
+  `Map`, die keine Kachelauflage zeigen kann. Im Simulator bei trockenem Wetter gesehen: die Auflage
+  liegt da; **echter Regen darauf ist ungesehen** (Prüfliste o12).
 - Prüfliste: „Runde abschließen“ hält die Runde fest (geprüft, offen, Notizen) und beginnt neu — auch
   mit offenen Häkchen. „Verwerfen“ löscht ohne Festhalten.
 

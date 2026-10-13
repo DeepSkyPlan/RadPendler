@@ -23,6 +23,17 @@
         }
       }
     },
+    "%@ ab %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ from %2$@"
+          }
+        }
+      }
+    },
     "%@ an Hauptstraßen": {
       "extractionState": "manual",
       "localizations": {
@@ -217,6 +228,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "%d rides · circle: the larger, the more stops; colour: average wait"
+          }
+        }
+      }
+    },
+    "%d Grad": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d degrees"
           }
         }
       }
@@ -3803,6 +3825,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Metro/tram"
+          }
+        }
+      }
+    },
+    "Uhrzeit %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time %@"
           }
         }
       }

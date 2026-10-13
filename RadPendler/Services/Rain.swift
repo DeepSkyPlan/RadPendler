@@ -21,6 +21,8 @@ struct RainReading {
     var millimetres: Double?
     /// Probability of any precipitation in that slot, percent; nil as above.
     var probability: Int?
+    /// Lufttemperatur in zwei Metern Höhe, °C — dort und dann. nil wie oben.
+    var temperature: Double? = nil
 }
 
 enum RainLevel: Int, Comparable {
@@ -83,6 +85,20 @@ struct RainAssessment {
     /// First moment on the ride that is wetter than "possible".
     var firstWet: Date? {
         measured.filter { $0.level >= .light }.map(\.reading.sample.time).min()
+    }
+
+    /// Wie warm es beim Losfahren ist — die erste Stelle der Fahrt, für die
+    /// die Vorhersage eine Temperatur hat.
+    var temperature: Double? { readings.compactMap(\.temperature).first }
+
+    /// Für die Leiste: zwei, drei Wörter. „trocken“, „Schauer möglich“,
+    /// „Regen ab 17:40“ — die Millimeter stehen in der Fahrt selbst.
+    var short: String {
+        guard hasData else { return L("keine Regendaten") }
+        switch level {
+        case .dry, .possible: return level.label
+        default: return firstWet.map { L("%@ ab %@", level.label, Fmt.time($0)) } ?? level.label
+        }
     }
 
     var summary: String {
@@ -166,7 +182,7 @@ struct RainService {
         comps.queryItems = [
             .init(name: "latitude", value: points.map { String(format: "%.3f", $0.lat) }.joined(separator: ",")),
             .init(name: "longitude", value: points.map { String(format: "%.3f", $0.lon) }.joined(separator: ",")),
-            .init(name: "minutely_15", value: "precipitation,precipitation_probability"),
+            .init(name: "minutely_15", value: "precipitation,precipitation_probability,temperature_2m"),
             .init(name: "timezone", value: "GMT"),
             .init(name: "start_minutely_15", value: Self.slotString(start)),
             .init(name: "end_minutely_15", value: Self.slotString(end)),
@@ -182,7 +198,8 @@ struct RainService {
 
         return samples.map { s in
             let slot = byPoint[GridPoint(s.coordinate)]?.slot(containing: s.time)
-            return RainReading(sample: s, millimetres: slot?.mm, probability: slot?.probability)
+            return RainReading(sample: s, millimetres: slot?.mm, probability: slot?.probability,
+                               temperature: byPoint[GridPoint(s.coordinate)]?.temperature(at: s.time))
         }
     }
 
@@ -190,6 +207,14 @@ struct RainService {
         var times: [Date]
         var mm: [Double?]
         var probability: [Int?]
+        /// °C je Zeitschritt; leer, wenn der Dienst keine schickt.
+        var temperature: [Double?] = []
+
+        /// Die Temperatur im selben Zeitschritt wie `slot(containing:)`.
+        func temperature(at t: Date) -> Double? {
+            guard let i = times.firstIndex(where: { $0 >= t }), temperature.indices.contains(i) else { return nil }
+            return temperature[i]
+        }
 
         /// Open-Meteo stamps a 15-minute sum with the END of its interval.
         /// Both arrays are indexed defensively: a service that sends fewer
@@ -215,7 +240,8 @@ struct RainService {
             // A `null` means "no forecast for this slot", not "no rain".
             let mm = (m["precipitation"] as? [Any] ?? []).map { $0 as? Double }
             let p = (m["precipitation_probability"] as? [Any] ?? []).map { $0 as? Int }
-            return Series(times: t.compactMap { fmt.date(from: $0) }, mm: mm, probability: p)
+            let temp = (m["temperature_2m"] as? [Any] ?? []).map { $0 as? Double }
+            return Series(times: t.compactMap { fmt.date(from: $0) }, mm: mm, probability: p, temperature: temp)
         }
     }
 
