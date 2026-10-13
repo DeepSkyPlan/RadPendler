@@ -1,5 +1,22 @@
 # Changelog
 
+## Unveröffentlicht — Übersicht zeigt die ganze Fahrt, Pfeil und Karte gleiten
+
+- **Übersichtskarte: immer die ganze Fahrt** (Nutzer, 13.10.2026). Nach einer Neuplanung unterwegs
+  begann die gültige Linie beim Fahrer, und die Übersicht zeigte nur noch den Rest. Jetzt umfasst der
+  Ausschnitt die ursprüngliche Linie, die gültige und den Ort, an dem die Aufzeichnung begann; was
+  gefahren ist, liegt grün darin (höchstens 150 Punkte, `RideOverview.sparse`). „Doppelt so nah“ ist
+  die Hälfte davon.
+- **Pfeil und Karte gleiten von Ortung zu Ortung** (Nutzer, 13.10.2026: im Auto ruckelt es). Bisher
+  sprang der Pfeil einmal je Sekunde — im Auto dreißig Meter —, und MapKits Kameraanimation bremste
+  vor jeder Ortung ab. Jetzt führt ein Bildtakt (30 Bilder je Sekunde, nur solange sich etwas bewegt)
+  beide gemeinsam: `RouteMapView.Coordinator.glide…`, auch neben der Route. Sprünge über 150 m, der
+  erste Fix und die Rückkehr zum Folgen werden nicht geglitten. Im Simulator mit einer gespielten
+  Fahrt (50 km/h) gesehen: kein Vor und Zurück des Pfeils mehr; Prozessorlast dabei rund 25 %
+  (Simulator). **Auf dem Gerät offen:** Wärme und Akku (Prüfliste o11).
+- Prüfliste: „Runde abschließen“ hält die Runde fest (geprüft, offen, Notizen) und beginnt neu — auch
+  mit offenen Häkchen. „Verwerfen“ löscht ohne Festhalten.
+
 ## 1.21 (Build 61) — Halt = Ampel, großes Tempo, Heatmap als Summe, Töne wie Musik
 
 Zehn Punkte aus dem Test von 1.20 (60) (Nutzer, 12.10.2026).

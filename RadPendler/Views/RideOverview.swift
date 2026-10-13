@@ -44,11 +44,12 @@ struct RideOverview: View {
         // Punkt deshalb am Start stehen (Nutzer, 12.10.2026).
         let here = tracker.here
         let route = tracker.plannedRoute
+        let ridden = Self.sparse(tracker.meter.points)
         return Button {
             withAnimation(.snappy(duration: 0.2)) { mode = mode.next }
-            frame(tracker.plannedRoute, here: tracker.here)
+            frame()
         } label: {
-            if mode == .off { button } else { map(route, here: here) }
+            if mode == .off { button } else { map(route, ridden: ridden, here: here) }
         }
         .accessibilityLabel(L("Übersichtskarte: %@", mode.title))
         .accessibilityHint(L("Tippen für %@", mode.next.title))
@@ -63,8 +64,14 @@ struct RideOverview: View {
             .contentShape(Circle())
     }
 
-    private func map(_ route: [CLLocationCoordinate2D], here: CLLocationCoordinate2D?) -> some View {
+    private func map(_ route: [CLLocationCoordinate2D], ridden: [CLLocationCoordinate2D],
+                     here: CLLocationCoordinate2D?) -> some View {
         Map(position: $camera, interactionModes: []) {
+            // Was schon gefahren ist, grün wie auf der großen Karte — nach
+            // einer Neuplanung beginnt die blaue Linie erst beim Fahrer.
+            if ridden.count > 1 {
+                MapPolyline(coordinates: ridden).stroke(.green, lineWidth: 3)
+            }
             if route.count > 1 {
                 MapPolyline(coordinates: route).stroke(.blue, lineWidth: 3)
             }
@@ -94,10 +101,10 @@ struct RideOverview: View {
         // Die ganze Route: der Ausschnitt ändert sich nur mit der Linie.
         // Nah: er wandert mit dem Fahrer, aber erst nach ein paar Metern —
         // nicht je Ortung.
-        .onAppear { frame(route, here: here) }
-        .onChange(of: Self.key(route)) { frame(tracker.plannedRoute, here: tracker.here) }
+        .onAppear { frame() }
+        .onChange(of: Self.key(route)) { frame() }
         .onChange(of: here.map(Self.step)) {
-            if mode == .near { frame(tracker.plannedRoute, here: tracker.here) }
+            if mode == .near { frame() }
         }
     }
 
@@ -112,9 +119,32 @@ struct RideOverview: View {
         "\(route.count)|\(route.first?.latitude ?? 0)|\(route.first?.longitude ?? 0)|\(route.last?.latitude ?? 0)"
     }
 
-    private func frame(_ route: [CLLocationCoordinate2D], here: CLLocationCoordinate2D?) {
-        guard let rect = Self.rect(around: route + [here].compactMap { $0 }) else { return }
-        camera = .rect(mode == .near ? Self.zoomed(rect, on: here) : rect)
+    /// Immer die **ganze** Fahrt — von dort, wo sie begann, bis zum Ziel —
+    /// oder der nahe Ausschnitt davon. Bis 1.21 nur die Linie, die gerade
+    /// galt: nach einer Neuplanung unterwegs begann sie beim Fahrer, und die
+    /// Übersicht zeigte nur noch den Rest (Nutzer, 13.10.2026).
+    private func frame() {
+        let whole = Self.whole(original: tracker.originalRoute, planned: tracker.plannedRoute,
+                               ridden: tracker.meter.points.first?.coordinate, here: tracker.here)
+        guard let rect = Self.rect(around: whole) else { return }
+        camera = .rect(mode == .near ? Self.zoomed(rect, on: tracker.here) : rect)
+    }
+
+    /// Alles, was ins Bild muss: die ursprüngliche Linie, die jetzt gültige,
+    /// wo die Aufzeichnung begann und wo der Fahrer ist.
+    static func whole(original: [CLLocationCoordinate2D], planned: [CLLocationCoordinate2D],
+                      ridden: CLLocationCoordinate2D?, here: CLLocationCoordinate2D?) -> [CLLocationCoordinate2D] {
+        original + planned + [ridden, here].compactMap { $0 }
+    }
+
+    /// Die gefahrene Linie in höchstens `most` Punkten: für ein Kärtchen von
+    /// der Größe eines Daumens reicht das, und es wird je Ortung neu gebaut.
+    static func sparse(_ points: [RidePoint], most: Int = 150) -> [CLLocationCoordinate2D] {
+        guard points.count > most else { return points.map(\.coordinate) }
+        let step = (points.count + most - 1) / most
+        var out = stride(from: 0, to: points.count, by: step).map { points[$0].coordinate }
+        if let last = points.last { out.append(last.coordinate) }
+        return out
     }
 
     /// Derselbe Ausschnitt in halber Kantenlänge, um den Fahrer herum. Ohne

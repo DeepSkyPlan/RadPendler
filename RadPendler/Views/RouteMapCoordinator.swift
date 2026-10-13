@@ -49,9 +49,6 @@ extension RouteMapView {
         private var drawnTrack = 0
         private var stopKey = 0
         private var rideSignals = -1
-        private var lastCamera: (center: CLLocationCoordinate2D, heading: CLLocationDirection)?
-        private var lastBoth: (CLLocationCoordinate2D, CLLocationCoordinate2D)?
-        private var lastBothHeading: CLLocationDirection = 0
         private var endsKey: String?
         /// What we last told the map. Never read back from the view: that is
         /// how the margins loop started.
@@ -324,6 +321,8 @@ extension RouteMapView {
         private func updateLive(_ map: MKMapView, _ view: RouteMapView) {
             guard let here = view.rider else {
                 if let live { map.removeAnnotation(live); self.live = nil }
+                endGlide()
+                glideTo = nil
                 return
             }
             if live == nil {
@@ -331,38 +330,87 @@ extension RouteMapView {
                 live = r
                 map.addAnnotation(r)
             }
-            live?.coordinate = here
-            live?.course = view.course
-            if view.following, let other = view.showBoth {
-                fitBoth(map, here, other,
-                        heading: view.course >= 0 ? view.course : map.camera.heading)
-            } else if view.following {
-                let heading = view.course >= 0 ? view.course : map.camera.heading
-                // Only when something actually moved. A camera animation
-                // started every second, each one interrupting the last, is a
-                // map that never settles.
-                let moved = lastCamera.map {
-                    $0.center.distance(to: here) > 3 || abs($0.heading - heading) > 4
-                } ?? true
-                if moved {
-                    lastCamera = (here, heading)
-                    map.setCamera(MKMapCamera(lookingAtCenter: here, fromDistance: 700,
-                                              pitch: 0, heading: heading), animated: true)
+            // Der Pfeil gleitet zur neuen Ortung, statt zu springen — und die
+            // Karte mit ihm, Bild für Bild (`glide`).
+            let heading = view.course >= 0 ? view.course : map.camera.heading
+            // Wohin die Karte soll: auf den Fahrer, neben der Route auf beides
+            // — oder nirgendhin, solange eine Hand auf ihr liegt.
+            let target: Cam? = !view.following ? nil
+                : view.showBoth.map { Self.both(here, $0, heading: heading) }
+                    ?? Cam(center: here, distance: Self.followDistance, heading: heading)
+            if let live {
+                let far = live.coordinate.distance(to: here) > Self.glideLimit
+                live.course = view.course
+                if far || glideTo == nil || (target != nil && camTo == nil) {
+                    // Der erste Fix, das Ende eines Tunnels, die Rückkehr zum
+                    // Folgen nach einem Wisch: dorthin wird nicht geglitten.
+                    stopGlide()
+                    live.coordinate = here
+                    glideTo = here
+                    camTo = target
+                    if let target { map.setCamera(target.camera, animated: !far) }
+                } else if let to = glideTo, to.distance(to: here) > 0.5 || !Cam.same(camTo, target) {
+                    startGlide(map, from: live.coordinate, to: here,
+                               camera: target.map { (Cam(map.camera), $0) })
                 }
-            } else {
-                lastCamera = nil
             }
-            if view.showBoth == nil { lastBoth = nil }
-            // After the camera, not before: the arrow is drawn against the
-            // heading the map is about to have.
             if let live, let v = map.view(for: live) as? RiderView {
-                v.configure(live, mapHeading: view.following && view.course >= 0 ? view.course : map.camera.heading)
+                v.configure(live, mapHeading: map.camera.heading)
             }
         }
 
-        /// Beides ins Bild: der Fahrer und der nächste Punkt der Route. Neu
-        /// eingepasst wird nur, wenn sich wirklich etwas bewegt hat — sonst
-        /// setzt sich die Karte im Sekundentakt selbst neu und steht nie still.
+        // MARK: Gleiten
+
+        /// Die Ortung kommt einmal je Sekunde, und im Auto sind das dreißig
+        /// Meter: als Sprung ein Ruckeln (Nutzer, 13.10.2026). Zwischen zwei
+        /// Ortungen wandern Pfeil und Karte deshalb gleichmäßig — **zusammen
+        /// und in einem Takt**. Zwei Animationen nebeneinander (MapKits für
+        /// die Karte, UIKits für den Pfeil) liefen im Simulator auseinander:
+        /// der Pfeil pendelte im Bild um vierzig Punkte vor und zurück.
+        private var glideFrom: CLLocationCoordinate2D?
+        private var glideTo: CLLocationCoordinate2D?
+        private var camFrom: Cam?
+        private var camTo: Cam?
+        private var glideStart: CFTimeInterval = 0
+        private var glideLink: CADisplayLink?
+        private weak var glideMap: MKMapView?
+
+        /// Wo die Karte steht: Mitte, Abstand, Richtung.
+        struct Cam {
+            var center: CLLocationCoordinate2D
+            var distance: CLLocationDistance
+            var heading: CLLocationDirection
+
+            init(center: CLLocationCoordinate2D, distance: CLLocationDistance, heading: CLLocationDirection) {
+                (self.center, self.distance, self.heading) = (center, distance, heading)
+            }
+
+            init(_ camera: MKMapCamera) {
+                self.init(center: camera.centerCoordinate, distance: camera.centerCoordinateDistance,
+                          heading: camera.heading)
+            }
+
+            var camera: MKMapCamera {
+                MKMapCamera(lookingAtCenter: center, fromDistance: distance, pitch: 0, heading: heading)
+            }
+
+            /// Ob sich etwas bewegt hat, das man sähe.
+            static func same(_ a: Cam?, _ b: Cam?) -> Bool {
+                guard let a, let b else { return a == nil && b == nil }
+                return a.center.distance(to: b.center) <= 0.5 && abs(a.heading - b.heading) <= 1
+                    && abs(a.distance - b.distance) <= 10
+            }
+        }
+
+        /// Etwas länger als der Abstand der Ortungen (eine Sekunde): die
+        /// nächste übernimmt aus der laufenden Bewegung, statt auf eine
+        /// stehende zu treffen.
+        static let glideSeconds = 1.1
+        /// Weiter als das ist kein Schritt, sondern ein Sprung.
+        static let glideLimit = 150.0
+        static let followDistance = 700.0
+
+        /// Beides ins Bild: der Fahrer und der nächste Punkt der Route.
         ///
         /// **Die Karte bleibt dabei in Fahrtrichtung gedreht.** Sie kurz auf
         /// Norden zu stellen war ein Fehlgriff: auf dem Rad liest man die
@@ -370,21 +418,78 @@ extension RouteMapView {
         /// Verlassen der Route plötzlich dreht, ist genau dann unlesbar, wenn
         /// man sie am nötigsten braucht. Der Pfeil zeigt entsprechend auf
         /// `Richtung − Kurs`, wie der Fahrerpfeil auch.
-        private func fitBoth(_ map: MKMapView, _ here: CLLocationCoordinate2D,
-                             _ other: CLLocationCoordinate2D, heading: CLLocationDirection) {
-            if let last = lastBoth, last.0.distance(to: here) < 25, last.1.distance(to: other) < 25,
-               abs(lastBothHeading - heading) < 4 { return }
-            lastBoth = (here, other)
-            lastBothHeading = heading
-            lastCamera = nil
+        static func both(_ here: CLLocationCoordinate2D, _ other: CLLocationCoordinate2D,
+                         heading: CLLocationDirection) -> Cam {
             let mid = CLLocationCoordinate2D(latitude: (here.latitude + other.latitude) / 2,
                                              longitude: (here.longitude + other.longitude) / 2)
             // Anderthalbmal der Abstand, mindestens so viel, dass man noch
             // Straßen erkennt: ein Bild, das genau die beiden Punkte umfasst,
             // zeigt sie am Rand und nichts dazwischen.
-            let apart = here.distance(to: other)
-            map.setCamera(MKMapCamera(lookingAtCenter: mid, fromDistance: Swift.max(apart * 2.5, 600),
-                                      pitch: 0, heading: heading), animated: true)
+            return Cam(center: mid, distance: Swift.max(here.distance(to: other) * 2.5, 600), heading: heading)
+        }
+
+        private func startGlide(_ map: MKMapView, from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
+                                camera: (from: Cam, to: Cam)?) {
+            glideFrom = from
+            glideTo = to
+            camFrom = camera?.from
+            camTo = camera?.to
+            glideStart = CACurrentMediaTime()
+            glideMap = map
+            if glideLink == nil {
+                // Über einen Mittler: ein `CADisplayLink` hält sein Ziel fest,
+                // und der Coordinator soll mit der Karte verschwinden dürfen.
+                let link = CADisplayLink(target: GlideProxy(self), selector: #selector(GlideProxy.tick))
+                // Dreißig Bilder reichen für eine Karte und kosten die Hälfte.
+                link.preferredFrameRateRange = CAFrameRateRange(minimum: 20, maximum: 30, preferred: 30)
+                link.add(to: .main, forMode: .common)
+                glideLink = link
+            }
+            glideLink?.isPaused = false
+        }
+
+        func stopGlide() {
+            glideLink?.isPaused = true
+            glideFrom = nil
+        }
+
+        /// Ganz aus — wenn die Karte verschwindet.
+        func endGlide() {
+            glideLink?.invalidate()
+            glideLink = nil
+        }
+
+        fileprivate func glideTick() {
+            guard let map = glideMap, let live, let from = glideFrom, let to = glideTo else {
+                glideLink?.isPaused = true
+                return
+            }
+            let f = Swift.min(1, (CACurrentMediaTime() - glideStart) / Self.glideSeconds)
+            live.coordinate = Self.between(from, to, f)
+            if let a = camFrom, let b = camTo { map.camera = Self.between(a, b, f).camera }
+            if let v = map.view(for: live) as? RiderView { v.configure(live, mapHeading: map.camera.heading) }
+            if f >= 1 { stopGlide() }
+        }
+
+        static func between(_ a: CLLocationCoordinate2D, _ b: CLLocationCoordinate2D, _ f: Double) -> CLLocationCoordinate2D {
+            CLLocationCoordinate2D(latitude: a.latitude + (b.latitude - a.latitude) * f,
+                                   longitude: a.longitude + (b.longitude - a.longitude) * f)
+        }
+
+        /// Der Stand zwischen zwei Ortungen, `f` von 0 bis 1 — die Richtung
+        /// auf dem kurzen Weg um den Kreis: von 350° nach 10° sind es zwanzig
+        /// Grad, nicht dreihundertvierzig.
+        static func between(_ a: Cam, _ b: Cam, _ f: Double) -> Cam {
+            let turn = (b.heading - a.heading + 540).truncatingRemainder(dividingBy: 360) - 180
+            return Cam(center: between(a.center, b.center, f),
+                       distance: a.distance + (b.distance - a.distance) * f,
+                       heading: (a.heading + turn * f + 360).truncatingRemainder(dividingBy: 360))
+        }
+
+        final class GlideProxy {
+            weak var owner: Coordinator?
+            init(_ owner: Coordinator) { self.owner = owner }
+            @objc func tick() { owner?.glideTick() }
         }
 
         private func drawRoutes(_ map: MKMapView, _ view: RouteMapView) {

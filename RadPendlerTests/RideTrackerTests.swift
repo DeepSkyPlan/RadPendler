@@ -376,6 +376,27 @@ final class RideTrackerTests: XCTestCase {
         XCTAssertFalse(stored.fits([a.id: "bike", b.id: "car", c.id: "car"]))
     }
 
+    /// Zwischen zwei Ortungen gleiten Pfeil und Karte: auf halbem Weg in der
+    /// Mitte, und die Richtung auf dem kurzen Weg um den Kreis.
+    func testTheGlideTakesTheShortWayRound() {
+        typealias Cam = RouteMapView.Coordinator.Cam
+        let a = Cam(center: east(0), distance: 700, heading: 350)
+        let b = Cam(center: east(30), distance: 900, heading: 10)
+        let half = RouteMapView.Coordinator.between(a, b, 0.5)
+        XCTAssertEqual(half.center.distance(to: east(15)), 0, accuracy: 0.5)
+        XCTAssertEqual(half.distance, 800, accuracy: 0.1)
+        XCTAssertEqual(half.heading, 0, accuracy: 0.001, "über Norden, nicht über Süden")
+        XCTAssertEqual(RouteMapView.Coordinator.between(a, b, 1).heading, 10, accuracy: 0.001)
+        XCTAssertEqual(RouteMapView.Coordinator.between(b, a, 0.25).heading, 5, accuracy: 0.001)
+        XCTAssertTrue(Cam.same(a, a))
+        XCTAssertFalse(Cam.same(a, b))
+        XCTAssertFalse(Cam.same(a, nil))
+        // Neben der Route: beides im Bild, die Mitte dazwischen.
+        let both = RouteMapView.Coordinator.both(east(0), east(400), heading: 90)
+        XCTAssertEqual(both.center.distance(to: east(200)), 0, accuracy: 0.5)
+        XCTAssertEqual(both.distance, 1_000, accuracy: 5)
+    }
+
     /// Der nahe Ausschnitt der Übersichtskarte: halbe Kantenlänge, der Fahrer
     /// in der Mitte.
     func testTheNearOverviewIsHalfTheSizeAroundTheRider() throws {
@@ -386,6 +407,18 @@ final class RideTrackerTests: XCTestCase {
         XCTAssertEqual(MKMapPoint(x: near.midX, y: near.midY).coordinate.distance(to: east(4_000)), 0, accuracy: 1)
         let blind = RideOverview.zoomed(rect, on: nil)
         XCTAssertEqual(blind.midX, rect.midX, accuracy: 1)
+        // Nach einer Neuplanung beginnt die gültige Linie beim Fahrer — ins
+        // Bild gehört trotzdem die ganze Fahrt, vom ursprünglichen Start an.
+        let replanned = RideOverview.whole(original: [east(0), east(5_000)], planned: [east(3_000), east(5_000)],
+                                           ridden: east(0), here: east(3_000))
+        let all = try XCTUnwrap(RideOverview.rect(around: replanned))
+        XCTAssertTrue(all.contains(MKMapPoint(east(0))))
+        XCTAssertTrue(all.contains(MKMapPoint(east(5_000))))
+        // Und die gefahrene Linie bleibt klein, mit ihrem letzten Punkt.
+        let long = (0..<2_000).map { RidePoint(lat: east(Double($0)).latitude, lon: east(Double($0)).longitude, t: .now, v: 5) }
+        let sparse = RideOverview.sparse(long)
+        XCTAssertLessThanOrEqual(sparse.count, 152)
+        XCTAssertEqual(sparse.last?.longitude, long.last?.lon)
         XCTAssertEqual(RideOverview.Mode.route.next, .near)
         XCTAssertEqual(RideOverview.Mode.near.next, .off)
         XCTAssertEqual(RideOverview.Mode.off.next, .route)

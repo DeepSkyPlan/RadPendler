@@ -96,6 +96,10 @@ struct RouteMapView: UIViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
+    static func dismantleUIView(_ map: MKMapView, coordinator: Coordinator) {
+        coordinator.endGlide()
+    }
+
     final class LegLine: MKPolyline {
         var kind: LegKind = .walk
         var emphasized = true
