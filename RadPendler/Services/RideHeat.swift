@@ -88,7 +88,8 @@ struct RideHeat {
     /// neu gerechnet.
     struct Sum: Codable, Sendable {
         /// Hochzählen, wenn sich ändert, wie gerechnet wird.
-        static let version = 1
+        /// 2: Halte an Start und Ziel zählen nicht mehr (1.22).
+        static let version = 2
 
         struct Cell: Hashable, Sendable {
             var x: Int32
@@ -153,7 +154,12 @@ struct RideHeat {
             // Fahrten über dieselbe Straße träfen sonst selten dieselbe Zelle.
             let line = Array(RideHeat.resampled(track.points).joined())
             rides[track.id] = Entry(mode: mode, line: !line.isEmpty)
-            waits += track.stops.filter(\.atSignal).map {
+            // Auch für Fahrten von vor 1.22: Start und Ziel sind keine Halte.
+            let stops = RideStop.awayFromDoors(track.stops, start: track.points.first?.coordinate,
+                                               end: track.points.last?.coordinate,
+                                               rideMeters: zip(track.points, track.points.dropFirst())
+                                                   .reduce(0) { $0 + $1.0.coordinate.distance(to: $1.1.coordinate) })
+            waits += stops.filter(\.atSignal).map {
                 Wait(lat: $0.lat, lon: $0.lon, seconds: $0.seconds, mode: mode)
             }
             guard let first = line.first else { return }

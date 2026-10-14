@@ -123,6 +123,35 @@ final class RideTests: XCTestCase {
         XCTAssertEqual(m.stops.first?.atSignal, true, "und wird damit gelernt")
     }
 
+    /// Drinnen springt die Ortung beim Einschalten: das gilt als Losfahren,
+    /// und das Stehen danach vor der Tür wäre ein Halt. Ebenso am Ziel, wenn
+    /// ein Fix vor dem Ausschalten „weiterfuhr“. Beides zählt nicht — auch
+    /// nicht in der Heatmap, auch für alte Fahrten.
+    func testStopsAtStartAndEndAreTheDoorNotALight() {
+        var m = RideMeter()
+        for i in 0...2 { m.add(fix(Double(i) * 4, Double(i), speed: 3)) }        // Sprung beim Einschalten
+        for i in 3...40 { m.add(fix(8, Double(i), speed: 0)) }                    // noch vor der Tür
+        for i in 41...140 { m.add(fix(8 + Double(i - 40) * 5, Double(i), speed: 5)) }   // unterwegs, bis 508 m
+        for i in 141...170 { m.add(fix(508, Double(i), speed: 0)) }               // Halt mitten auf der Strecke
+        for i in 171...300 { m.add(fix(508 + Double(i - 170) * 5, Double(i), speed: 5)) }  // bis 1158 m
+        for i in 301...330 { m.add(fix(1158, Double(i), speed: 0)) }              // angekommen
+        for i in 331...333 { m.add(fix(1160, Double(i), speed: 3)) }             // ein Fix „fährt weiter“
+        for i in 334...360 { m.add(fix(1160, Double(i), speed: 0)) }
+        m.finish(at: start.addingTimeInterval(360))
+        XCTAssertEqual(m.stops.filter(\.atSignal).count, 1, "nur der Halt unterwegs")
+        XCTAssertEqual(m.stops.first(where: \.atSignal)?.coordinate.distance(to: east(508)) ?? 99, 0, accuracy: 1)
+        XCTAssertGreaterThanOrEqual(m.otherStops, 2, "gestanden wurde trotzdem")
+
+        // Eine alte Linie, in der die Tür noch als Halt steht: die Heatmap nimmt ihn nicht.
+        let old = RideTrack(id: UUID(), points: [east(0), east(600), east(1_200)].map {
+            RidePoint(lat: $0.latitude, lon: $0.longitude, t: start, v: 5)
+        }, stops: [east(30), east(600), east(1_150)].map {
+            RideStop(lat: $0.latitude, lon: $0.longitude, start: start, seconds: 90, atSignal: true)
+        })
+        XCTAssertEqual(RideHeat.build([old]).signals.count, 1)
+        XCTAssertEqual(RideHeat.build([old]).signals.first?.coordinate.distance(to: east(600)) ?? 99, 0, accuracy: 1)
+    }
+
     /// Den letzten Halt schließt das Ende der Fahrt: das ist die Ankunft —
     /// außer, die Karte kennt dort eine Kreuzung.
     func testTheStopThatEndsTheRideOnlyCountsAtAKnownJunction() {

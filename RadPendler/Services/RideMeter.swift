@@ -347,6 +347,9 @@ struct RideMeter {
         resume(at: end)
         if let since = standingSince { close(since: since, until: end, ending: true) }
         currentSpeed = 0
+        // Erst jetzt steht fest, wo die Fahrt endet.
+        stops = RideStop.awayFromDoors(stops, start: points.first?.coordinate, end: lastFix?.coordinate,
+                                       rideMeters: meters)
     }
 
     /// Flat approximation on purpose: this runs against every lit junction of

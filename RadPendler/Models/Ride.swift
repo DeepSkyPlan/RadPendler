@@ -63,6 +63,34 @@ struct RideStop: Codable, Equatable, Identifiable {
     var atSignal: Bool
 
     var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: lat, longitude: lon) }
+
+    /// So nah an Start oder Ziel ist ein Halt die eigene Tür, keine Kreuzung.
+    ///
+    /// Die Regel „vor der ersten Kurbelumdrehung und nach der Ankunft zählt
+    /// nichts“ reichte nicht (Nutzer, 14.10.2026): drinnen springt die Ortung
+    /// beim Einschalten ein paar Meter hin und her, das gilt als Losfahren —
+    /// und das Stehen danach, noch vor der Tür, war ein Halt. Ebenso am Ziel,
+    /// wenn ein Fix vor dem Ausschalten „weiterfuhr“. In der Heatmap stand
+    /// dann an Haustür und Büro eine Ampel mit minutenlanger Wartezeit, und
+    /// gelernt wurde sie auch. 150 m: so weit kann eine Ortung drinnen
+    /// danebenliegen — und nur auf Fahrten ab einem Kilometer.
+    static let doorMeters = 150.0
+    /// Erst ab dieser Länge: auf einer Fahrt um den Block wäre sonst alles
+    /// Tür.
+    static let doorRideMeters = 1_000.0
+
+    /// Die Halte, mit denen an Start und Ziel nichts gezählt wird.
+    static func awayFromDoors(_ stops: [RideStop], start: CLLocationCoordinate2D?,
+                              end: CLLocationCoordinate2D?, rideMeters: Double) -> [RideStop] {
+        guard rideMeters >= doorRideMeters else { return stops }
+        let doors = [start, end].compactMap { $0 }
+        return stops.map { stop in
+            guard stop.atSignal, doors.contains(where: { $0.distance(to: stop.coordinate) <= doorMeters }) else { return stop }
+            var s = stop
+            s.atSignal = false
+            return s
+        }
+    }
 }
 
 /// The line and the stops of one ride. Kept apart from the summary on purpose:

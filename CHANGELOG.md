@@ -24,6 +24,14 @@
   alle fünf Minuten neu. Die Übersicht ist dafür eine `MKMapView` (`OverviewMap`) statt SwiftUIs
   `Map`, die keine Kachelauflage zeigen kann. Im Simulator bei trockenem Wetter gesehen: die Auflage
   liegt da; **echter Regen darauf ist ungesehen** (Prüfliste o12).
+- **Start und Ziel zählen nicht als Halt** (Nutzer, 14.10.2026: in der Heatmap standen Haustür und Büro
+  wie Ampeln mit langer Wartezeit). Drinnen springt die Ortung beim Einschalten ein paar Meter — das
+  galt als Losfahren, und das Stehen danach vor der Tür war ein Halt; ebenso am Ziel, wenn ein Fix
+  vor dem Ausschalten „weiterfuhr“. Jetzt zählt kein Halt innerhalb von 150 m um Start und Ziel
+  (`RideStop.awayFromDoors`, auf Fahrten ab 1 km): nicht in der Fahrt, nicht beim Lernen, und in der Heatmap auch für alle
+  alten Fahrten (die gespeicherte Summe wird dafür einmal neu gerechnet). Schon gelernte Stellen an
+  Start und Ziel bleiben, bis man sie unter Einstellungen → „Gelernte Ampeln vergessen“ löscht.
+  Eine echte Ampel in diesen 150 m zählt ebenfalls nicht mehr.
 - Prüfliste: „Runde abschließen“ hält die Runde fest (geprüft, offen, Notizen) und beginnt neu — auch
   mit offenen Häkchen. „Verwerfen“ löscht ohne Festhalten.
 
