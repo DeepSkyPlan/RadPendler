@@ -1,3 +1,4 @@
+import Network
 import SwiftUI
 import TipKit
 
@@ -118,7 +119,7 @@ struct ContentView: View {
                     HStack(spacing: 8) {
                         AppMark(size: 32)
                         if tracker.isRecording {
-                            RideClock()
+                            RideClock(weather: weather)
                         } else if let weather {
                             WeatherPill(rain: weather)
                         } else {
@@ -200,8 +201,11 @@ struct ContentView: View {
                 WatchLink.shared.onChoice = { [model] choice in model.apply(choice) }
                 // Beendet sich eine Fahrt von selbst, muss dasselbe passieren
                 // wie beim Tippen auf „Fahrt beenden" — nur sieht es niemand.
-                tracker.onAutoStop = { [tracker, settings, rides] in
-                    RideSession.finish(tracker: tracker, settings: settings, rides: rides)
+                tracker.onAutoStop = { [tracker, settings, rides, model] in
+                    if RideSession.finish(tracker: tracker, settings: settings, rides: rides) {
+                        model.applyDefaultWhen(settings: settings)
+                        model.refresh(settings: settings)
+                    }
                 }
                 model.applyDefaultWhen(settings: settings)
                 refresh()
@@ -223,7 +227,13 @@ struct ContentView: View {
             // A ride under way is the whole screen: everything the planning
             // page offers is about a trip that has not started yet.
             RideTrackingView(options: model.options, selectedID: model.selected?.id,
-                             onStop: { RideSession.stop(tracker: tracker, settings: settings, rides: rides) })
+                             onStop: {
+                                 // Am Ziel: gleich die Rückfahrt planen.
+                                 if RideSession.stop(tracker: tracker, settings: settings, rides: rides) {
+                                     model.applyDefaultWhen(settings: settings)
+                                     refresh()
+                                 }
+                             })
         } else if isTwoColumn {
             HStack(alignment: .top, spacing: 0) {
                 VStack(spacing: isWide ? 14 : 8) {
@@ -603,25 +613,105 @@ struct WeatherPill: View {
     }
 }
 
-/// Die Uhrzeit während einer Fahrt. Eigene Uhr statt `TimelineView`: in einer
-/// Werkzeugleiste legt ein `TimelineView` die Leiste bei jedem Takt neu aus
-/// (der Hänger aus 1.2) — hier ändert sich einmal je Minute ein Text.
+/// Während einer Fahrt das, was sonst die Statusleiste sagt — und das Wetter.
+///
+/// Im Querformat blendet iOS auf einem iPhone mit Kameraaussparung die
+/// Statusleiste aus, und keine App kann sie dort zurückholen. Am Lenker liegt
+/// die Fahrt aber quer. Deshalb stehen Uhrzeit, Akku und „kein Netz“ hier
+/// (Nutzer, 15.10.2026), dazu die Temperatur. Die Stärke des Mobilfunks gibt
+/// iOS keiner App heraus; was sich sagen lässt, ist, ob Netz da ist.
+///
+/// Eigene Uhr statt `TimelineView`: in einer Werkzeugleiste legt ein
+/// `TimelineView` die Leiste bei jedem Takt neu aus (der Hänger aus 1.2) —
+/// hier ändert sich einmal je Minute ein Text.
 struct RideClock: View {
+    var weather: RainAssessment?
     @State private var now = Date.now
+    @State private var battery = RideClock.batteryPercent()
+    private var network = NetworkWatch.shared
+
+    init(weather: RainAssessment?) { self.weather = weather }
 
     var body: some View {
-        Text(Fmt.time(now))
-            .font(.system(size: 17, weight: .heavy, design: .rounded))
+        VStack(alignment: .leading, spacing: -2) {
+            Text(Fmt.time(now))
+                .font(.system(size: 17, weight: .heavy, design: .rounded))
+                .monospacedDigit()
+            HStack(spacing: 5) {
+                if let battery {
+                    Label("\(battery) %", systemImage: Self.batterySymbol(battery))
+                        .foregroundStyle(battery <= 20 ? Color.red : .secondary)
+                }
+                if !network.online {
+                    Image(systemName: "antenna.radiowaves.left.and.right.slash")
+                        .foregroundStyle(.orange)
+                }
+                if let weather, let t = weather.temperature {
+                    Label(WeatherPill.degrees(t), systemImage: weather.level.symbol)
+                        .foregroundStyle(weather.level == .dry ? Color.secondary : weather.level.color)
+                }
+            }
+            .labelStyle(TightLabel())
+            .font(.system(size: 10, weight: .semibold, design: .rounded))
             .monospacedDigit()
-            .accessibilityLabel(L("Uhrzeit %@", Fmt.time(now)))
-            .task {
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel([L("Uhrzeit %@", Fmt.time(now)), battery.map { L("Akku %d %%", $0) },
+                             network.online ? nil : L("kein Netz"), WeatherPill.spoken(weather)]
+                            .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", "))
+        .onReceive(NotificationCenter.default.publisher(for: UIDevice.batteryLevelDidChangeNotification)) { _ in
+            battery = Self.batteryPercent()
+        }
+        .task {
                 while !Task.isCancelled {
                     // Bis zur nächsten vollen Minute, dann stimmt die Anzeige
                     // mit der Uhr überein, ohne sekündlich zu ticken.
                     let wait = 60 - now.timeIntervalSince1970.truncatingRemainder(dividingBy: 60) + 0.2
                     try? await Task.sleep(for: .seconds(wait))
                     now = .now
+                    battery = Self.batteryPercent()
                 }
             }
+    }
+
+    /// Der Akku in Prozent; nil im Simulator und wo iOS es nicht weiß.
+    static func batteryPercent() -> Int? {
+        if !UIDevice.current.isBatteryMonitoringEnabled { UIDevice.current.isBatteryMonitoringEnabled = true }
+        let level = UIDevice.current.batteryLevel
+        return level < 0 ? nil : Int((level * 100).rounded())
+    }
+
+    static func batterySymbol(_ percent: Int) -> String {
+        switch percent {
+        case ..<13: "battery.0percent"
+        case ..<38: "battery.25percent"
+        case ..<63: "battery.50percent"
+        case ..<88: "battery.75percent"
+        default: "battery.100percent"
+        }
+    }
+
+    /// Zeichen und Text enger als ein `Label` von sich aus.
+    struct TightLabel: LabelStyle {
+        func makeBody(configuration: Configuration) -> some View {
+            HStack(spacing: 2) { configuration.icon; configuration.title }
+        }
+    }
+}
+
+/// Ob gerade Netz da ist — für die Zeile, die während der Fahrt die
+/// Statusleiste ersetzt.
+@MainActor @Observable
+final class NetworkWatch {
+    static let shared = NetworkWatch()
+    private(set) var online = true
+    private let monitor = NWPathMonitor()
+
+    private init() {
+        monitor.pathUpdateHandler = { path in
+            let up = path.status == .satisfied
+            Task { @MainActor in NetworkWatch.shared.online = up }
+        }
+        monitor.start(queue: DispatchQueue(label: "NetworkWatch"))
     }
 }

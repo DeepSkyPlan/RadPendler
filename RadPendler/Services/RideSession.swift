@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 
 /// Was vor und nach einer Fahrt passiert und keine Ansicht braucht: die
@@ -20,14 +21,16 @@ enum RideSession {
     }
 
     /// Der Knopf „Fahrt beenden".
-    static func stop(tracker: RideTracker, settings: AppSettings, rides: RideStore) {
+    @discardableResult
+    static func stop(tracker: RideTracker, settings: AppSettings, rides: RideStore) -> Bool {
         tracker.stop()
-        finish(tracker: tracker, settings: settings, rides: rides)
+        return finish(tracker: tracker, settings: settings, rides: rides)
     }
 
     /// Was nach jeder Fahrt passiert, egal wer sie beendet hat: nachmessen,
     /// dazulernen, die eigene Ausrichtung wiederherstellen.
-    static func finish(tracker: RideTracker, settings: AppSettings, rides: RideStore) {
+    @discardableResult
+    static func finish(tracker: RideTracker, settings: AppSettings, rides: RideStore) -> Bool {
         // Hell, bevor irgendetwas anderes passiert — die Zusammenfassung will
         // gelesen werden.
         ScreenDim.shared.wake()
@@ -46,5 +49,28 @@ enum RideSession {
         // Zeit, als die Fahrt dieselbe Einstellung verstellte; seit es
         // `rideOrientation` gibt, löschte das nur die Wahl des Nutzers.
         settings.orientation.apply()
+        // Die letzte Ortung, nicht der letzte Punkt der Linie: in die Linie
+        // kommt nicht, was nach einem Sprung aussieht.
+        return turnAround(at: tracker.here ?? tracker.meter.points.last?.coordinate, settings: settings)
+    }
+
+    /// Wer am Ziel angekommen ist, fährt als Nächstes zurück: die Richtung
+    /// dreht sich sofort, nicht erst beim nächsten Losfahren (Nutzer,
+    /// 15.10.2026). Nur am Ziel — eine Fahrt, die unterwegs endet, lässt den
+    /// Plan, wie er ist. Gibt zurück, ob gedreht wurde.
+    @discardableResult
+    static func turnAround(at end: CLLocationCoordinate2D?, settings: AppSettings) -> Bool {
+        guard shouldTurn(at: end, destination: settings.destination?.coordinate) else { return false }
+        settings.swapDirection()
+        return true
+    }
+
+    /// So nah am Ziel heißt angekommen — derselbe Kreis, mit dem die
+    /// Pendelrichtung den Standort liest (`AppSettings.commuteDestination`).
+    nonisolated static let arrivedMeters = 400.0
+
+    nonisolated static func shouldTurn(at end: CLLocationCoordinate2D?, destination: CLLocationCoordinate2D?) -> Bool {
+        guard let end, let destination else { return false }
+        return end.distance(to: destination) <= arrivedMeters
     }
 }

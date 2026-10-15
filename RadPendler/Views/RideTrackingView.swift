@@ -91,6 +91,9 @@ struct RideTrackingView: View {
                 HStack(alignment: .top, spacing: 8) {
                     VStack(alignment: .leading, spacing: 8) {
                         banner
+                            // Unter der Zeile mit Uhr und Wetter oben links,
+                            // nicht über ihr.
+                            .padding(.top, 14)
                         controls(settings: $settings.rideOrientation)
                         Spacer(minLength: 0)
                         RideOverview(side: 112)
@@ -301,31 +304,8 @@ struct RideTrackingView: View {
         HStack(spacing: 8) {
             followButton
             OrientationButton(lock: orientation)
-            automaticsButton
             Spacer(minLength: 0)
         }
-    }
-
-    /// Was die Aufzeichnung bei langem Stillstand von selbst tun darf —
-    /// im Kreis: anhalten und beenden → nur beenden → durchfahren.
-    ///
-    /// Die Stellung gilt für **diese** Fahrt; beim nächsten Start steht sie
-    /// wieder auf der ersten. Es ist ein Knopf für die Ausnahme, keine
-    /// Einstellung — die steht in den Einstellungen.
-    private var automaticsButton: some View {
-        Button {
-            tracker.cycleAutomatic()
-        } label: {
-            Image(systemName: tracker.automatic.symbol)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(tracker.automatic == .full ? Theme.accent : .white)
-                .frame(width: 36, height: 36)
-                .background(tracker.automatic == .full ? AnyShapeStyle(.regularMaterial)
-                                                      : AnyShapeStyle(Theme.gradient(tracker.automatic == .off ? .red : .orange)),
-                            in: Circle())
-        }
-        .accessibilityLabel(L("Automatik: %@. Tippen für %@.",
-                              tracker.automatic.title, tracker.automatic.next.title))
     }
 
     /// Following gives way to a hand on the map; this is the way back, and it
@@ -413,7 +393,7 @@ struct RideTrackingView: View {
             let planned = tracker.progress?.plannedSignals ?? 0
             tile(L("Halte"), planned > 0 ? "\(live.stops)/\(planned)" : "\(live.stops)", tint: .primary, size: size)
         case .standing: tile(L("gestanden"), Fmt.clock(standing(at: now)), tint: .orange, size: size)
-        case .left: tile(L("noch"), remaining.map { Fmt.duration($0.seconds) } ?? "–", tint: .primary, size: size)
+        case .left: tile(L("noch"), remaining.map { Fmt.km($0.meters) } ?? "–", tint: .primary, size: size)
         case .arrival:
             tile(L("Ankunft"), remaining.map { Fmt.time(now.addingTimeInterval($0.seconds)) } ?? "–",
                  tint: LegKind.bike.color, size: size)
@@ -434,11 +414,18 @@ struct RideTrackingView: View {
             }
             // Das Ziel ist ein Knopf: unterwegs woandershin, ohne die Fahrt
             // zu beenden.
+            // Zweizeilig (Nutzer, 15.10.2026): in einer Zeile war am Lenker
+            // immer eins von beiden abgeschnitten.
             Button { choosingDestination = true } label: {
                 HStack(spacing: 4) {
-                    Text("\(tracker.subject?.origin ?? "") → \(tracker.subject?.destination ?? "")")
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(tracker.subject?.origin ?? "")
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                        Text("→ " + (tracker.subject?.destination ?? ""))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
                     Image(systemName: "pencil.circle.fill")
                         .foregroundStyle(Theme.accent)
                 }
@@ -605,11 +592,13 @@ struct RideTrackingView: View {
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(LegKind.bike.color)
             VStack(alignment: .leading, spacing: 0) {
-                Text(L("noch %@", Fmt.duration(left.seconds)))
+                // Die Strecke, nicht die Zeit: die Restzeit steht schon oben
+                // rechts in der Leiste (Nutzer, 15.10.2026).
+                Text(L("noch %@", Fmt.km(left.meters)))
                     .font(.system(.subheadline, design: .rounded, weight: .bold))
                     .monospacedDigit()
                     .contentTransition(.numericText())
-                Text(left.signals > 0 ? L("%@ · %d Halte", Fmt.km(left.meters), left.signals) : Fmt.km(left.meters))
+                Text(left.signals > 0 ? L(left.signals == 1 ? "%d Halt" : "%d Halte", left.signals) : L("ohne Halt"))
                     .font(.system(size: 11, design: .rounded))
                     .foregroundStyle(.secondary)
             }

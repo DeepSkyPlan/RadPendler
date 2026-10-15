@@ -397,6 +397,14 @@ final class RideTrackerTests: XCTestCase {
         XCTAssertEqual(both.distance, 1_000, accuracy: 5)
     }
 
+    /// Am Ziel angekommen, dreht sich die Richtung gleich — unterwegs nicht.
+    func testArrivingTurnsTheDirectionAround() {
+        XCTAssertTrue(RideSession.shouldTurn(at: east(300), destination: east(0)))
+        XCTAssertFalse(RideSession.shouldTurn(at: east(2_000), destination: east(0)), "unterwegs beendet")
+        XCTAssertFalse(RideSession.shouldTurn(at: nil, destination: east(0)))
+        XCTAssertFalse(RideSession.shouldTurn(at: east(0), destination: nil))
+    }
+
     /// Der nahe Ausschnitt der Übersichtskarte: halbe Kantenlänge, der Fahrer
     /// in der Mitte.
     func testTheNearOverviewIsHalfTheSizeAroundTheRider() throws {

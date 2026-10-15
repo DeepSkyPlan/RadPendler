@@ -24,6 +24,20 @@
   alle fünf Minuten neu. Die Übersicht ist dafür eine `MKMapView` (`OverviewMap`) statt SwiftUIs
   `Map`, die keine Kachelauflage zeigen kann. Im Simulator bei trockenem Wetter gesehen: die Auflage
   liegt da; **echter Regen darauf ist ungesehen** (Prüfliste o12).
+- **Fahrtbildschirm aufgeräumt** (Nutzer, 15.10.2026):
+  - Oben links während der Fahrt **Uhrzeit, Akku, „kein Netz“ und die Temperatur**. iOS blendet im
+    Querformat auf iPhones mit Kameraaussparung die Statusleiste aus, und keine App kann sie dort
+    zurückholen; im Hochformat bleibt sie, wie sie ist. Die Stärke des Mobilfunks gibt iOS keiner App
+    heraus — angezeigt wird nur, wenn gar kein Netz da ist (`NetworkWatch`).
+  - Der Knopf für die Automatik (Anhalten/Beenden bei Stillstand) ist weg; die Automatik selbst und
+    ihre Zeiten in den Einstellungen bleiben, „Pause“ auch.
+  - Start und Ziel stehen in zwei Zeilen statt abgeschnitten in einer.
+  - Im Kasten „noch 20,9 km“ statt „noch 58 min“ — die Restzeit steht schon oben rechts.
+  - Das Abbiegeband sitzt im Querformat unter der Zeile oben links statt über ihr.
+- **Nach dem Fahrtende am Ziel dreht sich die Richtung sofort** (Nutzer, 15.10.2026), nicht erst beim
+  nächsten Losfahren — auch, wenn die Fahrt sich von selbst beendet. Am Ziel heißt: die letzte Ortung
+  liegt höchstens 400 m davon entfernt (`RideSession.turnAround`). Eine Fahrt, die unterwegs endet,
+  lässt den Plan, wie er ist.
 - **Start und Ziel zählen nicht als Halt** (Nutzer, 14.10.2026: in der Heatmap standen Haustür und Büro
   wie Ampeln mit langer Wartezeit). Drinnen springt die Ortung beim Einschalten ein paar Meter — das
   galt als Losfahren, und das Stehen danach vor der Tür war ein Halt; ebenso am Ziel, wenn ein Fix
