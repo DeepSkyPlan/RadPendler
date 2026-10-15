@@ -397,6 +397,15 @@ final class RideTrackerTests: XCTestCase {
         XCTAssertEqual(both.distance, 1_000, accuracy: 5)
     }
 
+    /// Nach einer Bewertung gefragt wird einmal je Fassung, ab der zweiten Fahrt.
+    func testTheReviewIsAskedOncePerRelease() {
+        XCTAssertTrue(ReviewPrompt.due(version: "1.22", asked: nil, rides: 2))
+        XCTAssertTrue(ReviewPrompt.due(version: "1.22", asked: "1.21", rides: 40), "neue Fassung, neue Frage")
+        XCTAssertFalse(ReviewPrompt.due(version: "1.22", asked: "1.22", rides: 40), "dieselbe Fassung nur einmal")
+        XCTAssertFalse(ReviewPrompt.due(version: "1.22", asked: nil, rides: 1), "nach der ersten Fahrt noch nicht")
+        XCTAssertFalse(ReviewPrompt.due(version: nil, asked: nil, rides: 5))
+    }
+
     /// Am Ziel angekommen, dreht sich die Richtung gleich — unterwegs nicht.
     func testArrivingTurnsTheDirectionAround() {
         XCTAssertTrue(RideSession.shouldTurn(at: east(300), destination: east(0)))

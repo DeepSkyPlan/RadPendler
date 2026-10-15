@@ -745,21 +745,23 @@ struct RideArrivalPill: View {
     var body: some View {
         let left = RideRemaining.from(progress: tracker.progress, tracker: tracker, settings: settings)
         HStack(spacing: 4) {
+            // Größer seit 1.22 (Nutzer, 15.10.2026): am Lenker die Zahl, die
+            // man oben rechts sucht.
             Image(systemName: "flag.checkered")
-                .font(.system(size: 9, weight: .bold))
+                .font(.system(size: 13, weight: .bold))
             Text(left.map { Fmt.duration($0.seconds) } ?? L("läuft"))
-                .font(.system(size: 14, weight: .heavy, design: .rounded))
+                .font(.system(size: 21, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .contentTransition(.numericText(countsDown: true))
             if let left {
                 Text(Fmt.time(now.addingTimeInterval(left.seconds)))
-                    .font(.system(size: 9, weight: .bold, design: .rounded))
-                    .padding(.horizontal, 3).padding(.vertical, 0.5)
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .padding(.horizontal, 4).padding(.vertical, 1)
                     .background(.white.opacity(0.25), in: RoundedRectangle(cornerRadius: 3))
             }
         }
         .foregroundStyle(.white)
-        .padding(.horizontal, 8).padding(.vertical, 4)
+        .padding(.horizontal, 10).padding(.vertical, 5)
         .background(Theme.gradient(LegKind.bike.color), in: Capsule())
         .accessibilityElement(children: .combine)
         .accessibilityLabel(left.map { L("Noch %@, Ankunft %@", Fmt.duration($0.seconds), Fmt.time(now.addingTimeInterval($0.seconds))) }

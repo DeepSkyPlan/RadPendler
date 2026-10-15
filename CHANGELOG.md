@@ -34,10 +34,16 @@
   - Start und Ziel stehen in zwei Zeilen statt abgeschnitten in einer.
   - Im Kasten „noch 20,9 km“ statt „noch 58 min“ — die Restzeit steht schon oben rechts.
   - Das Abbiegeband sitzt im Querformat unter der Zeile oben links statt über ihr.
+  - Oben rechts „noch x min“ und die Ankunft größer (21 statt 14 pt).
 - **Nach dem Fahrtende am Ziel dreht sich die Richtung sofort** (Nutzer, 15.10.2026), nicht erst beim
   nächsten Losfahren — auch, wenn die Fahrt sich von selbst beendet. Am Ziel heißt: die letzte Ortung
   liegt höchstens 400 m davon entfernt (`RideSession.turnAround`). Eine Fahrt, die unterwegs endet,
   lässt den Plan, wie er ist.
+- **Bitte um Bewertung im App Store, einmal je neuer Fassung** (Nutzer, 15.10.2026): beim Schließen der
+  Zusammenfassung nach einer Fahrt, ab der zweiten Fahrt (`ReviewPrompt`). Es ist Apples eigenes
+  Fenster — Sterne, von dort weiter zur Rezension. Ob es erscheint, entscheidet iOS: höchstens dreimal
+  in 365 Tagen, **nie in TestFlight**, nicht bei abgeschalteter Einstellung. Prüfbar also erst mit der
+  Store-Fassung; im Simulator zeigt Xcode es bei jedem Aufruf.
 - **Start und Ziel zählen nicht als Halt** (Nutzer, 14.10.2026: in der Heatmap standen Haustür und Büro
   wie Ampeln mit langer Wartezeit). Drinnen springt die Ortung beim Einschalten ein paar Meter — das
   galt als Losfahren, und das Stehen danach vor der Tür war ein Halt; ebenso am Ziel, wenn ein Fix

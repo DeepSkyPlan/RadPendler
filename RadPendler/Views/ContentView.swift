@@ -1,4 +1,5 @@
 import Network
+import StoreKit
 import SwiftUI
 import TipKit
 
@@ -16,6 +17,7 @@ struct ContentView: View {
     /// die Quelle für Tempo und Ampelwartezeit.
     @Environment(RideStore.self) private var rides
     @Environment(\.horizontalSizeClass) private var widthClass
+    @Environment(\.requestReview) private var requestReview
     @Environment(\.verticalSizeClass) private var heightClass
     @State private var model = PlanModel()
     /// Welche der vier Einstellungsseiten offen ist; nil heißt keine.
@@ -181,7 +183,8 @@ struct ContentView: View {
             .sheet(isPresented: $showWaypoints, onDismiss: refresh) { WaypointSheet() }
             .sheet(isPresented: $showRides) { RidesView() }
             // Right after arriving is the one moment the numbers get read.
-            .sheet(item: Binding(get: { tracker.finished }, set: { if $0 == nil { tracker.clearFinished() } })) { ride in
+            .sheet(item: Binding(get: { tracker.finished }, set: { if $0 == nil { tracker.clearFinished() } }),
+                   onDismiss: askForReviewIfDue) { ride in
                 RideSummarySheet(ride: ride)
             }
             .sheet(item: $editing, onDismiss: {
@@ -553,6 +556,22 @@ struct ContentView: View {
         let v = info?["CFBundleShortVersionString"] as? String ?? "?"
         let b = info?["CFBundleVersion"] as? String ?? "?"
         return "v\(v) (\(b))"
+    }
+
+    /// Einmal je neuer Fassung nach einer Bewertung im App Store fragen
+    /// (Nutzer, 15.10.2026) — siehe `ReviewPrompt`.
+    private func askForReviewIfDue() {
+        let defaults = UserDefaults.standard
+        guard ReviewPrompt.due(version: ReviewPrompt.currentVersion,
+                               asked: defaults.string(forKey: ReviewPrompt.key),
+                               rides: rides.rides.count) else { return }
+        defaults.set(ReviewPrompt.currentVersion, forKey: ReviewPrompt.key)
+        Task {
+            // Erst, wenn die Zusammenfassung ganz weg ist: ein Fenster über
+            // einem, das gerade zugeht, verschluckt iOS.
+            try? await Task.sleep(for: .seconds(1))
+            requestReview()
+        }
     }
 
     private func refresh() {
