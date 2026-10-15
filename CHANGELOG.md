@@ -39,6 +39,9 @@
   nächsten Losfahren — auch, wenn die Fahrt sich von selbst beendet. Am Ziel heißt: die letzte Ortung
   liegt höchstens 400 m davon entfernt (`RideSession.turnAround`). Eine Fahrt, die unterwegs endet,
   lässt den Plan, wie er ist.
+- Referenzrouten: Pinneberg → Hamburg Hbf darf „optimal“ jetzt bis 25,0 km lang sein (bisher 24,5). Die
+  Linie ist seit dem 13.10.2026 24,6 km mit 4,9 km Fahrradstraße — derselbe Wert mit dem Stand von 1.21,
+  also eine Änderung der Kartendaten, nicht der App.
 - **Bitte um Bewertung im App Store, einmal je neuer Fassung** (Nutzer, 15.10.2026): beim Schließen der
   Zusammenfassung nach einer Fahrt, ab der zweiten Fahrt (`ReviewPrompt`). Es ist Apples eigenes
   Fenster — Sterne, von dort weiter zur Rezension. Ob es erscheint, entscheidet iOS: höchstens dreimal
