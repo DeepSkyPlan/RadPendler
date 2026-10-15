@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — Wetter in der Leiste, Radar in der Übersicht, Pfeil und Karte gleiten
+## 1.22 (Build 62) — Wetter in der Leiste, Radar in der Übersicht, Pfeil und Karte gleiten
 
 - **Übersichtskarte: immer die ganze Fahrt** (Nutzer, 13.10.2026). Nach einer Neuplanung unterwegs
   begann die gültige Linie beim Fahrer, und die Übersicht zeigte nur noch den Rest. Jetzt umfasst der
