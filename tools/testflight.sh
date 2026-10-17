@@ -9,13 +9,25 @@
 #   4. Commit „<version> (<n>) an TestFlight" und push.
 #
 # Scheitert ein Schritt, werden project.yml und CHANGELOG zurückgesetzt.
-# Nur auf Ansage des Nutzers benutzen. Vor allem anderen laufen die
-# Referenzrouten (./dev routes; SKIP_ROUTES=1 lässt sie aus). SKIP_TESTS=1 überspringt die Tests,
+# Nur auf Ansage des Nutzers benutzen. Gleich nach der Prüfung des
+# Arbeitsbaums laufen die Routenregeln (./dev rules, offline, Sekunden: nie
+# gegen die Fahrtrichtung, nie Kopfstein); rot heißt, es wird nichts
+# angefasst und nichts hochgeladen. SKIP_RULES=1 lässt sie aus — nur auf
+# ausdrückliche Ansage des Nutzers. Danach die Referenzrouten (./dev routes;
+# SKIP_ROUTES=1 lässt sie aus). SKIP_TESTS=1 überspringt die Tests,
 # DRY_RUN=1 baut nur das Archiv und setzt alles zurück.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 [ -z "$(git status --porcelain)" ] || { echo "Arbeitsbaum nicht sauber — erst committen." >&2; exit 1; }
+
+# Routenregeln vor allem anderen, noch bevor project.yml und CHANGELOG
+# angefasst werden: zwei Wochen hintereinander ging eine Fassung hinaus, die
+# im Auto Geisterfahrer-Vorschläge machte (Nutzer, 11.10.2026). Offline, in
+# Sekunden. SKIP_RULES=1 nur auf ausdrückliche Ansage des Nutzers.
+if [ -z "${SKIP_RULES:-}" ]; then
+  ./dev rules || { echo "Routenregeln rot — nichts hochgeladen." >&2; exit 1; }
+fi
 
 KEY_ID=PAGC3W2GBL
 KEY=~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8

@@ -288,6 +288,25 @@ struct BikeCandidate {
     /// Ab diesem Anteil fährt man die Linie ohnehin.
     static let habitual = 0.8
 
+    /// So viele Meter Pflaster hat eine Linie, die es meidet: gepflasterte
+    /// Einmündungen und Überwege, die kein Profil umfährt (Teststrecke mit
+    /// dem Aufschlag von 1.17: 0 bis 43 m). Dieselbe Grenze wie die
+    /// strengste in `Fixtures/referenzrouten.json` für jede gezeigte Linie.
+    static let cobbleAllowance = 60.0
+
+    /// Nie Kopfstein (Nutzer, 07.10.2026: „Nie Kopfstein, egal welche
+    /// Route"). Die Profile machen Pflaster teuer — aber wenn sich eines
+    /// nicht hochladen lässt, fragt der Client BRouters eigenes, ohne die
+    /// Regel, und die Linie kommt mit allem Pflaster zurück. Bis 1.22 bekam
+    /// sie trotzdem ihre Rolle, als schnellste und kürzeste meist gleich
+    /// zwei (Routenregeln, 17.10.2026). Jetzt fällt jede Linie mit Pflaster
+    /// weg, solange eine ohne dasteht — auch die gewohnte. Haben alle
+    /// Pflaster, bleiben sie: lieber eine Linie mit als gar keine.
+    static func avoidingCobbles(_ all: [BikeCandidate]) -> [BikeCandidate] {
+        let clean = all.filter { $0.route.cobbleMeters <= cobbleAllowance }
+        return clean.isEmpty ? all : clean
+    }
+
     /// schnellst = least riding time (traffic lights included), ruhigst =
     /// least disturbance, verkehrsarm = fewest places where traffic makes one
     /// stop (lit junctions and main roads crossed), optimal = best balance of
@@ -359,7 +378,7 @@ struct BikeCandidate {
         // dann wieder nicht"). Jetzt vergeben die vier Linien ihre Rollen
         // unter sich, und die gewohnte kommt als eigener, fünfter Weg dazu —
         // außer sie **ist** eine der vier, dann steht sie schon da.
-        let levelledAll = levelled(candidates)
+        let levelledAll = levelled(s.avoidCobbles ? avoidingCobbles(candidates) : candidates)
         let all = distinct(levelledAll.filter { $0.source != .habit })
         let habit = levelledAll.first { c in c.source == .habit && !all.contains { sameLine($0.route, c.route) } }
         guard !all.isEmpty else { return habit.map { [($0, [.alternative])] } ?? [] }

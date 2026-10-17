@@ -55,6 +55,24 @@ case "${1:-test}" in
     else
       echo "Referenzrouten: NICHT in Ordnung (Protokoll: $LOG)." >&2; exit 1
     fi ;;
+  # Routenregeln: was der Planer nie vorschlagen darf — im Auto nie gegen die
+  # Fahrtrichtung, mit dem Rad nie über Kopfsteinpflaster
+  # (RadPendlerTests/RouteRulesTests.swift). Ohne Netz, in Sekunden; läuft vor
+  # jedem ./dev testflight als Erstes. Was die echte Karte daraus macht, sagt
+  # `routes`. Generiert jedes Mal: fehlt eine neue Testdatei im Projekt, liefe
+  # sonst gar nichts — und das zählt hier als rot, nicht als grün.
+  rules)
+    generate >/dev/null
+    LOG=$(mktemp)
+    tools/run_tests.sh -project "$PROJ" -scheme "$SCHEME" -destination "$DEST" \
+      -only-testing:RadPendlerTests/RouteRulesTests > "$LOG" 2>&1 || true
+    grep -E "error: -\[|Test Case .*(passed|failed)" "$LOG" \
+      | sed -E 's/.*RouteRulesTests (test[A-Za-z]+)\]\x27 passed.*/✓ \1/; s/.*RouteRulesTests (test[A-Za-z]+)\]\x27 failed.*/✗ \1/; s/.*RouteRulesTests (test[A-Za-z]+)\] : /  \1: /' || true
+    if grep -q '\*\* TEST SUCCEEDED \*\*' "$LOG" && grep -q "Test Suite 'RouteRulesTests' passed" "$LOG"; then
+      rm -f "$LOG"; echo "Routenregeln: in Ordnung."
+    else
+      echo "Routenregeln: NICHT in Ordnung (Protokoll: $LOG)." >&2; exit 1
+    fi ;;
   # Das Paket für App Store Connect: jedes Feld als Datei, die Screenshots
   # daneben, ein Zip — aus appstore/metadata.md. Prüft die Längen und lädt
   # nichts hoch.
@@ -76,5 +94,5 @@ case "${1:-test}" in
     echo "Demo-Fahrten werden angelegt (ein paar Sekunden, braucht Netz für die Linien)." ;;
   # Nur auf Ansage: Buildnummer +1, Tests, Archiv, Upload, Commit, Push.
   testflight) shift; exec tools/testflight.sh "$@" ;;
-  *) echo "usage: ./dev [generate|build|test|lint [baseline]|check|routes|store|demo [anzahl]|open|clean|testflight [version]]" >&2; exit 2 ;;
+  *) echo "usage: ./dev [generate|build|test|lint [baseline]|check|rules|routes|store|demo [anzahl]|open|clean|testflight [version]]" >&2; exit 2 ;;
 esac

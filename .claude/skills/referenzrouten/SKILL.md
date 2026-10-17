@@ -8,6 +8,10 @@ description: RadPendler — die Radplanung dieser Fassung auf bekannten Strecken
 Prüft mit dem Planer der App selbst (kein nachgebautes Skript), frisch gegen brouter.de, ohne
 Zwischenspeicher. Dauert rund eine Minute.
 
+Nicht zu verwechseln mit `./dev rules`: das prüft die Regeln selbst (nie gegen die Fahrtrichtung, nie
+Kopfstein) offline in Sekunden gegen nachgestellte Router; hier geht es darum, was die echte Karte daraus
+macht.
+
 1. Im Repo `RadPendler`: `./dev routes`. Die Ausgabe nennt je Strecke jede gezeigte Linie mit Rolle,
    Länge, Metern Fahrradstraße und Kopfsteinpflaster; darunter jede verletzte Regel mit `✗` und am
    Ende „in Ordnung" oder „NICHT in Ordnung" (Exit 1).
@@ -40,7 +44,7 @@ Zwischenspeicher. Dauert rund eine Minute.
 
 ## Vor TestFlight
 
-`./dev testflight` ruft `./dev routes` selbst als Erstes auf und lädt bei Rot nichts hoch
+`./dev testflight` ruft nach `./dev rules` (offline) `./dev routes` selbst auf und lädt bei Rot nichts hoch
 (`SKIP_ROUTES=1` nur auf ausdrückliche Ansage des Nutzers). Der Skill `/testflight` startet diesen
 hier trotzdem vorher — damit ein roter Befund besprochen ist, bevor Buildnummer und CHANGELOG
 angefasst werden.

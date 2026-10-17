@@ -50,6 +50,12 @@ final class Replanner {
     /// Ein unterwegs neu gewähltes Ziel (`redirect`). Gilt ab da für jede
     /// Neuplanung; nil heißt: das Ende der geplanten Linie.
     private(set) var target: CLLocationCoordinate2D?
+    /// Die Linie ist nur umgedreht, nicht geplant (`turnAround`): sie liegt
+    /// auf der Gegenfahrbahn und in Einbahnstraßen falsch herum — so nah an
+    /// der Fahrt, dass nie „neben der Route" gemeldet wird. Bis eine
+    /// Neuplanung übernommen ist, fragt jede Ortung nach einer (höchstens
+    /// einmal die Minute).
+    private(set) var needsReplan = false
     private var task: Task<Void, Never>?
 
     /// Ins Protokoll der Fahrt (`RideEvent`).
@@ -88,6 +94,7 @@ final class Replanner {
         offSince = nil
         lastReplan = .distantPast
         target = nil
+        needsReplan = false
         task?.cancel()
         task = nil
     }
@@ -112,10 +119,21 @@ final class Replanner {
     /// hin. Linie und Fixpunkte drehen sich mit; neu geplant wird danach
     /// über `replan`, denn die umgedrehte Linie liegt auf der Gegenfahrbahn
     /// und in Einbahnstraßen falsch herum.
+    ///
+    /// Sofort, ohne die Minute Abstand: bis 1.22 fiel die Neuplanung aus,
+    /// wenn kurz vorher eine als Wende verworfen worden war, und danach
+    /// fragte nie wieder jemand — die umgedrehte Linie wurde bis zum Ziel
+    /// geführt (Routenregeln, 17.10.2026). Eine Anfrage, die noch unterwegs
+    /// ist, fragt nach dem alten Ziel, das jetzt hinter einem liegt; sie
+    /// gilt nicht mehr.
     func turnAround() {
         plannedRoute.reverse()
         originalRoute.reverse()
         config.via.reverse()
+        task?.cancel()
+        task = nil
+        lastReplan = .distantPast
+        needsReplan = true
     }
 
     /// Wartet, bis die laufende Neuplanung durch ist — für Tests.
@@ -133,6 +151,7 @@ final class Replanner {
             if detour != nil { detour = nil }
             return
         }
+        if needsReplan { replan(from: here, course: course) }
         let next = OffRoute.isOff(fix.meters, was: detour != nil) ? fix : nil
         if (detour == nil) != (next == nil) {
             log(next == nil ? "zurück" : "abseits", next.map { "\(Int($0.meters)) m neben der Route" }, here)
@@ -252,6 +271,7 @@ final class Replanner {
         log("übernommen", "\(Int(TurnGuide.cumulative(route.coordinates).last ?? 0)) m bis zum Ziel", nil)
         pastRoutes.append(plannedRoute)
         plannedRoute = route.coordinates
+        needsReplan = false
         if detour != nil { detour = nil }
         offSince = nil
         replans += 1

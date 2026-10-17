@@ -1,5 +1,25 @@
 # Changelog
 
+## Unveröffentlicht — Routenregeln als Tests
+
+- **Routenregeln als Tests** (Nutzer, 17.10.2026: „nie gegen die Fahrtrichtung, nie Kopfstein“ — nach
+  der zweiten Woche mit Geisterfahrer-Vorschlägen im Auto). `./dev rules` prüft offline in Sekunden,
+  was der Planer nie tun darf, am Ausgang von Planer, Neuplanung und Aufzeichnung
+  (`RouteRulesTests`); `./dev testflight` lässt sie als Erstes laufen und lädt bei Rot nichts hoch.
+  Zwei Lücken haben sie dabei gefunden, beide behoben:
+  - **Eine umgedrehte Linie wurde unter Umständen bis zum Ziel geführt.** Dreht die Fahrt sich um
+    (am Ziel losgefahren, gegen die Linie gefahren), liegt die umgedrehte Linie auf der Gegenfahrbahn
+    und muss neu geplant werden. War kurz vorher eine Neuplanung als Wende verworfen worden, fiel
+    diese aus, weil die Minute Abstand noch lief — und danach fragte niemand mehr, denn auf der
+    Gegenfahrbahn ist man nie „neben der Route“. Dasselbe nach einer Neuplanung ohne Antwort. Jetzt
+    plant die Fahrt sofort neu, eine noch laufende Anfrage zum alten Ziel gilt nicht mehr, und bis
+    eine neue Linie übernommen ist, wird es einmal die Minute wieder versucht
+    (`Replanner.turnAround`, `needsReplan`). Nicht am Gerät geprüft.
+  - **Rad: eine Linie mit Kopfsteinpflaster konnte eine Rolle bekommen.** Lässt sich ein Profil nicht
+    hochladen, fragt die App BRouters eigenes, ohne Pflasterregel; diese Linie bekam bisher ihre Rolle
+    wie jede andere, als kürzeste und schnellste meist gleich zwei. Jetzt fällt jede Linie mit mehr als
+    60 m Pflaster weg, solange eine ohne dasteht — auch die gewohnte (`BikeCandidate.avoidingCobbles`).
+
 ## 1.22 (Build 62) — Wetter in der Leiste, Radar in der Übersicht, Pfeil und Karte gleiten
 
 - **Übersichtskarte: immer die ganze Fahrt** (Nutzer, 13.10.2026). Nach einer Neuplanung unterwegs

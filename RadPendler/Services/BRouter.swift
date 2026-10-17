@@ -344,8 +344,15 @@ actor BRouterGate {
 /// ohne Ablauf — und weil er auch die Ersatzlinie von Apple behielt, blieb
 /// ein einziger Aussetzer von BRouter bis zum Neustart stehen.
 actor CompositeRouter: StreetRouting {
-    private let apple = MapKitRouter()
-    private let brouter = BRouterClient()
+    private let apple: StreetRouting
+    private let brouter: BRouterClient
+
+    /// Austauschbar, damit ein Test die Neuplanung unterwegs bis zum
+    /// hochgeladenen Profil verfolgen kann, ohne ins Netz zu gehen.
+    init(brouter: BRouterClient = BRouterClient(), apple: StreetRouting = MapKitRouter()) {
+        self.brouter = brouter
+        self.apple = apple
+    }
 
     func route(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
                mode: StreetMode, departure: Date?) async throws -> StreetRoute {
