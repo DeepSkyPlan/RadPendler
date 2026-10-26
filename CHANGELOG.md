@@ -18,7 +18,10 @@
   - **Rad: eine Linie mit Kopfsteinpflaster konnte eine Rolle bekommen.** Lässt sich ein Profil nicht
     hochladen, fragt die App BRouters eigenes, ohne Pflasterregel; diese Linie bekam bisher ihre Rolle
     wie jede andere, als kürzeste und schnellste meist gleich zwei. Jetzt fällt jede Linie mit mehr als
-    60 m Pflaster weg, solange eine ohne dasteht — auch die gewohnte (`BikeCandidate.avoidingCobbles`).
+    200 m Pflaster weg, solange eine ohne dasteht — auch die gewohnte (`BikeCandidate.avoidingCobbles`).
+- **Kopfstein bis 200 m ist in Ordnung** (Nutzer, 26.10.2026). Bisher fiel eine Linie schon ab 60 m
+  Pflaster weg — gepflasterte Einmündungen und kurze Stücke reichten, eine sonst gute Linie zu verlieren.
+  Ein Test in `RouteRulesTests` hält fest, dass 180 m die Rolle nicht kosten.
 
 ## 1.22 (Build 62) — Wetter in der Leiste, Radar in der Übersicht, Pfeil und Karte gleiten
 

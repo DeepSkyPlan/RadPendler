@@ -1,31 +1,22 @@
-# RadPendler — Übergabe (Stand 07.10.2026 · 1.16 / Build 56 in TestFlight)
+# RadPendler — Übergabe (Stand 26.10.2026 · 1.22 / Build 62 in TestFlight, 1.23 unterwegs)
 
-> **Zum Wiedereinstieg (07.10.2026):** 1.16 (56) ist in TestFlight. Danach, unveröffentlicht
-> (CHANGELOG „Unveröffentlicht“): die Ergebnisse einer bewusst misstrauischen Durchsicht —
-> `Log` statt nacktem `try?`, CloudKit meldet abgewiesene Datensätze, Straßendaten bei gesperrtem
-> Gerät lesbar, ein User-Agent für alle Dienste, 353 Tests. **Die Historie ist am 07.10.2026
-> umgeschrieben** (Orte der eigenen Strecke entfernt, `main` und `hotfix/1.1-build27`): alle
-> Commit-Hashes von davor sind andere — auch die weiter unten in dieser Datei. Ein zweiter Klon
-> holt neu: `git fetch && git reset --hard origin/main`. GitHub liefert die alten Commits per
-> Hash weiter aus, bis der Support sie löscht.
+> **Zum Wiedereinstieg (26.10.2026):** 1.22 (62) ist seit 15.10. in TestFlight. Seitdem (CHANGELOG
+> „Unveröffentlicht“, geht als 1.23): **Routenregeln als Tests** — `./dev rules` (`RouteRulesTests`)
+> prüft offline in Sekunden, was der Planer nie tun darf (Auto nie gegen die Fahrtrichtung, Rad nie
+> Kopfstein), und läuft vor jedem `./dev testflight` als Erstes. Dabei behoben: Neuplanung nach dem
+> Wenden (`Replanner.turnAround`, am Gerät ungeprüft) und Linien mit Pflaster ohne Rolle
+> (`BikeCandidate.avoidingCobbles`); erlaubt sind seit 26.10.2026 bis 200 m Pflaster je Linie.
+> Was 1.16 bis 1.22 gebracht haben (VBB-API, Halt = Ampel, Heatmap als Summe, Wetter in der Leiste,
+> Bewertung je Fassung), steht im CHANGELOG.
 >
 > **Was nur auf dem Gerät prüfbar ist**, steht als abhakbare Liste in `tools/pruefliste.html`
 > (veröffentlicht: <https://claude.ai/artifact/1cPcVH6bKB63rFqTYmGCLk>, der Stand wird dort
-> gespeichert). Neu darin und noch ungeprüft: Neuplanung bei gesperrtem Gerät (h6) und die
-> Meldezeile in der Fahrtenliste (c6). Nach jeder Runde eine Fahrt teilen →
-> `python3 tools/ride_report.py` → Zeile „Stumme Fehler“.
-> **VBB-API (12.10.2026):** der Zugang ist freigeschaltet, die App fragt jetzt die offizielle
-> Schnittstelle `fahrinfo.vbb.de/restproxy/latest` (`Hafas.swift`), die inoffizielle mgate-Anbindung
-> ist entfernt. Die Access-ID steht in `Secrets.xcconfig` (lokal) und kommt über `Config.xcconfig`
-> und `RadPendlerInfo.plist` (`VBBAccessID`) ins Paket; ohne sie — CI, fremde Builds — antwortet
-> überall Transitous. `./dev testflight` bricht ohne sie ab. Echte Abfrage:
-> `TEST_RUNNER_VBB_LIVE=1 ./dev test`. Noch in keiner TestFlight-Fassung. Auf `main` liegt außerdem
-> unveröffentlicht „optimal ist die Mischlinie“ (CHANGELOG).
-> **Nach 1.20 (60), unveröffentlicht (12.10.2026):** zehn Punkte aus dem Test — Halt = Ampel
-> (jeder Halt unterwegs zählt und wird gelernt), Stand- und Ampelzeit eine Zahl, Zahlen vor der Karte,
-> Tempo groß, Tipp auf die Zahlen und auf die Übersichtskarte schaltet weiter, Heatmap gedämpft und
-> als weggeschriebene Summe (`RideHeat.Sum`), Töne folgen der Medienlautstärke. Siehe CHANGELOG
-> „Unveröffentlicht“; auf dem Gerät offen: Prüfliste t7, t8, o10, r7.
+> gespeichert). Nach jeder Runde eine Fahrt teilen → `python3 tools/ride_report.py` → Zeile „Stumme Fehler“.
+> **VBB-API:** offizielle Schnittstelle (`Hafas.swift`), Access-ID nur in `Secrets.xcconfig` (lokal) →
+> `Config.xcconfig` → Info.plist `VBBAccessID`; ohne sie antwortet überall Transitous, `./dev testflight`
+> bricht ohne sie ab. Echte Abfrage: `TEST_RUNNER_VBB_LIVE=1 ./dev test`.
+> **Die Historie ist am 07.10.2026 umgeschrieben** (Orte der eigenen Strecke entfernt): Commit-Hashes
+> von davor, auch weiter unten in dieser Datei, gibt es so nicht mehr.
 > Ausliefern nur auf Ansage: `./dev testflight [version]`.
 
 Multimodaler Pendel-Planer für iPhone, iPad und Apple Watch: Büro ↔ Zuhause mit Fahrrad, Rad + Bahn, Auto und ÖPNV, inklusive Ampeln,

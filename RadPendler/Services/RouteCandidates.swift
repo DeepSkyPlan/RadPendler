@@ -288,19 +288,20 @@ struct BikeCandidate {
     /// Ab diesem Anteil fährt man die Linie ohnehin.
     static let habitual = 0.8
 
-    /// So viele Meter Pflaster hat eine Linie, die es meidet: gepflasterte
-    /// Einmündungen und Überwege, die kein Profil umfährt (Teststrecke mit
-    /// dem Aufschlag von 1.17: 0 bis 43 m). Dieselbe Grenze wie die
-    /// strengste in `Fixtures/referenzrouten.json` für jede gezeigte Linie.
-    static let cobbleAllowance = 60.0
+    /// So viel Pflaster darf eine gezeigte Linie haben (Nutzer, 26.10.2026:
+    /// „Kopfstein bis 200 m ok“). Gepflasterte Einmündungen und Überwege
+    /// umfährt kein Profil (Teststrecke mit dem Aufschlag von 1.17: 0 bis
+    /// 43 m); bis 1.22 galten 60 m, und eine sonst gute Linie mit einem
+    /// kurzen Pflasterstück fiel weg.
+    static let cobbleAllowance = 200.0
 
     /// Nie Kopfstein (Nutzer, 07.10.2026: „Nie Kopfstein, egal welche
     /// Route"). Die Profile machen Pflaster teuer — aber wenn sich eines
     /// nicht hochladen lässt, fragt der Client BRouters eigenes, ohne die
     /// Regel, und die Linie kommt mit allem Pflaster zurück. Bis 1.22 bekam
     /// sie trotzdem ihre Rolle, als schnellste und kürzeste meist gleich
-    /// zwei (Routenregeln, 17.10.2026). Jetzt fällt jede Linie mit Pflaster
-    /// weg, solange eine ohne dasteht — auch die gewohnte. Haben alle
+    /// zwei (Routenregeln, 17.10.2026). Jetzt fällt jede Linie mit mehr
+    /// Pflaster als `cobbleAllowance` weg, solange eine ohne dasteht — auch die gewohnte. Haben alle
     /// Pflaster, bleiben sie: lieber eine Linie mit als gar keine.
     static func avoidingCobbles(_ all: [BikeCandidate]) -> [BikeCandidate] {
         let clean = all.filter { $0.route.cobbleMeters <= cobbleAllowance }

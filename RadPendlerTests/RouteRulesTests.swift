@@ -335,6 +335,14 @@ final class RouteRulesTests: XCTestCase {
                        "gezeigt: \(picked.map { "\($0.0.source) \(Int($0.0.route.cobbleMeters)) m" })")
         XCTAssertTrue(picked.contains { $0.1.contains(.fastest) }, "„schnellst“ geht an die schnellste ohne Pflaster")
 
+        // Nutzer, 26.10.2026: „Kopfstein bis 200 m ok“ — ein kurzes Stück
+        // kostet die Linie ihre Rolle nicht.
+        let short = candidate(.brouter(.fastbike), km: 4.0, cobbles: 180, bend: 0)
+        let withShort = BikeCandidate.pick([short] + clean, settings: s)
+        XCTAssertTrue(withShort.contains { $0.0.route.cobbleMeters == 180 && $0.1.contains(.fastest) },
+                      "180 m Pflaster ist erlaubt")
+        XCTAssertGreaterThan(cobbled.route.cobbleMeters, BikeCandidate.cobbleAllowance)
+
         let onlyCobbled = BikeCandidate.pick([cobbled], settings: s)
         XCTAssertEqual(onlyCobbled.count, 1, "lieber eine Linie mit Pflaster als keine")
     }
