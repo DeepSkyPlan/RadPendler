@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — Routenregeln als Tests
+## 1.23 (Build 63) — Routenregeln als Tests
 
 - **Routenregeln als Tests** (Nutzer, 17.10.2026: „nie gegen die Fahrtrichtung, nie Kopfstein“ — nach
   der zweiten Woche mit Geisterfahrer-Vorschlägen im Auto). `./dev rules` prüft offline in Sekunden,
