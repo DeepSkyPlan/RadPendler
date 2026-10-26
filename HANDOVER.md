@@ -1,7 +1,7 @@
-# RadPendler — Übergabe (Stand 26.10.2026 · 1.22 / Build 62 in TestFlight, 1.23 unterwegs)
+# RadPendler — Übergabe (Stand 26.10.2026 · 1.23 / Build 63 in TestFlight)
 
-> **Zum Wiedereinstieg (26.10.2026):** 1.22 (62) ist seit 15.10. in TestFlight. Seitdem (CHANGELOG
-> „Unveröffentlicht“, geht als 1.23): **Routenregeln als Tests** — `./dev rules` (`RouteRulesTests`)
+> **Zum Wiedereinstieg (26.10.2026):** 1.23 (63) ist in TestFlight. Neu darin (CHANGELOG
+> 1.23): **Routenregeln als Tests** — `./dev rules` (`RouteRulesTests`)
 > prüft offline in Sekunden, was der Planer nie tun darf (Auto nie gegen die Fahrtrichtung, Rad nie
 > Kopfstein), und läuft vor jedem `./dev testflight` als Erstes. Dabei behoben: Neuplanung nach dem
 > Wenden (`Replanner.turnAround`, am Gerät ungeprüft) und Linien mit Pflaster ohne Rolle
