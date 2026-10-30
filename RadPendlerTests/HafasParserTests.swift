@@ -107,6 +107,7 @@ final class HafasParserTests: XCTestCase {
         config.protocolClasses = [RecordingProtocol.self]
         var client = HafasClient()
         client.session = URLSession(configuration: config)
+        client.endpoint = HafasClient.cloudEndpoint
         client.accessID = "geheim-123"
         RecordingProtocol.seen = nil
         let there = HafasClient.Location.address(name: "Ziel", coordinate: .init(latitude: 52.4213, longitude: 13.1794))
@@ -115,7 +116,8 @@ final class HafasParserTests: XCTestCase {
                                        arriveBy: true, bikeCarriage: true, productMask: 65, results: 2)
         let request = try XCTUnwrap(RecordingProtocol.seen)
         let url = try XCTUnwrap(request.url?.absoluteString)
-        XCTAssertTrue(url.hasPrefix("https://fahrinfo.vbb.de/restproxy/latest/trip?"), url)
+        XCTAssertTrue(url.hasPrefix("https://vbb.hafas.cloud/api/fahrinfo/latest/trip?"), url)
+        XCTAssertFalse(url.contains("CoordName"), "mit Namen findet das neue System nichts")
         XCTAssertFalse(url.contains("geheim-123"))
         XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer geheim-123")
         XCTAssertEqual(request.value(forHTTPHeaderField: "User-Agent"), AppIdentity.userAgent)
@@ -132,6 +134,41 @@ final class HafasParserTests: XCTestCase {
         } catch HafasClient.HafasError.denied {
             XCTAssertNil(RecordingProtocol.seen, "ohne Schlüssel keine Anfrage")
         }
+    }
+
+    /// Der VBB stellt am 30.11.2026 um; eine Fassung von heute wechselt dann
+    /// von selbst, um Mitternacht Berliner Zeit.
+    func testEndpointMovesToTheCloudOnTheThirtiethOfNovember() {
+        XCTAssertEqual(HafasClient.endpoint(on: berlin("2026-11-29", "23:59:00")), HafasClient.legacyEndpoint)
+        XCTAssertEqual(HafasClient.endpoint(on: berlin("2026-11-30", "00:00:00")), HafasClient.cloudEndpoint)
+        XCTAssertEqual(HafasClient.endpoint(on: berlin("2027-03-01", "08:00:00")), HafasClient.cloudEndpoint)
+    }
+
+    /// Mastscharf: sechs Masten heißen „S+U Alexanderplatz Bhf", gefragt und
+    /// verglichen wird aber der Haltestellenbereich 900100003.
+    func testMastsCollapseIntoTheirStopArea() throws {
+        let stations = HafasParser.stations(try fixture("vbb_nearby_masts"), productMask: TransitProduct.bikeStationMask)
+        let alex = try XCTUnwrap(stations.first { $0.name == "S+U Alexanderplatz Bhf (Berlin)" })
+        XCTAssertEqual(alex.lid, "900100003")
+        XCTAssertEqual(alex.coordinate.latitude, 52.521508, accuracy: 1e-6, "Mittelpunkt des Bereichs, nicht ein Mast")
+        XCTAssertEqual(Set(stations.map(\.lid)).count, stations.count)
+        XCTAssertTrue(stations.allSatisfy { $0.lid.hasPrefix("9") }, "\(stations.map(\.lid))")
+        XCTAssertEqual(stations.map(\.distance), stations.map(\.distance).sorted())
+    }
+
+    /// Das neue System schickt Umstiege als echten Fußweg durch den Bahnhof und
+    /// nennt Adressen nach ihren Koordinaten.
+    func testMastJourneyKeepsTheWalkInsideTheStationAndTheAddressNames() throws {
+        let journeys = HafasParser.journeys(try fixture("vbb_trip_masts"))
+            .map { HafasParser.named($0, from: "Start", to: "Ziel") }
+        XCTAssertEqual(journeys.count, 2)
+        XCTAssertTrue(journeys.allSatisfy { $0.first?.fromName == "Start" && $0.last?.toName == "Ziel" })
+        let change = try XCTUnwrap(journeys[1].first {
+            $0.kind == .walk && $0.fromName == "S Charlottenburg Bhf (Berlin)" && $0.toName == $0.fromName
+        })
+        XCTAssertEqual(change.distance, 238)
+        XCTAssertEqual(change.arrival.timeIntervalSince(change.departure), 180, accuracy: 60)
+        XCTAssertEqual(journeys[1].filter(\.isTransit).count, 2)
     }
 
     func testFormatIsBerlinLocalTime() {
@@ -180,8 +217,16 @@ extension HafasParserTests {
     func testLiveStationsAndBikeJourneysFromTheVBB() async throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["VBB_LIVE"] == "1",
                           "set TEST_RUNNER_VBB_LIVE=1 to call the real API")
-        let client = HafasClient()
-        try XCTSkipUnless(client.isConfigured, "keine VBB_ACCESS_ID in Secrets.xcconfig")
+        try XCTSkipUnless(HafasClient().isConfigured, "keine VBB_ACCESS_ID in Secrets.xcconfig")
+        for endpoint in [HafasClient.legacyEndpoint, HafasClient.cloudEndpoint] {
+            var client = HafasClient()
+            client.endpoint = endpoint
+            await StationCache.shared.clear()
+            try await liveStationsAndBikeJourneys(client)
+        }
+    }
+
+    private func liveStationsAndBikeJourneys(_ client: HafasClient) async throws {
         let alex = CLLocationCoordinate2D(latitude: 52.5210, longitude: 13.4130)
         let wannsee = CLLocationCoordinate2D(latitude: 52.4213, longitude: 13.1794)
         let from = try await client.nearbyStations(around: alex, radius: 5000)
@@ -208,8 +253,16 @@ extension HafasParserTests {
     func testLivePlanThroughTheVBB() async throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["VBB_LIVE"] == "1",
                           "set TEST_RUNNER_VBB_LIVE=1 to call the real API")
-        let planner = TripPlanner()
-        try XCTSkipUnless(planner.hafas.isConfigured, "keine VBB_ACCESS_ID in Secrets.xcconfig")
+        try XCTSkipUnless(TripPlanner().hafas.isConfigured, "keine VBB_ACCESS_ID in Secrets.xcconfig")
+        for endpoint in [HafasClient.legacyEndpoint, HafasClient.cloudEndpoint] {
+            var planner = TripPlanner()
+            planner.hafas.endpoint = endpoint
+            await StationCache.shared.clear()
+            try await livePlan(planner, endpoint.host() ?? "?")
+        }
+    }
+
+    private func livePlan(_ planner: TripPlanner, _ host: String) async throws {
         let req = PlanRequest(origin: Place(name: "Start", latitude: 52.5210, longitude: 13.4130),
                               destination: Place(name: "Ziel", latitude: 52.4213, longitude: 13.1794),
                               target: .departAfter(.now), settings: PlanSettings())
@@ -218,7 +271,7 @@ extension HafasParserTests {
         XCTAssertFalse(transit.isEmpty)
         let started = Date.now
         let bikeRail = try await planner.bikeTransitOptions(req)
-        print("LIVE vbb: Rad + Bahn", bikeRail.count, "Vorschläge in",
+        print("LIVE \(host): Rad + Bahn", bikeRail.count, "Vorschläge in",
               String(format: "%.1f s", Date.now.timeIntervalSince(started)),
               bikeRail.map { $0.legs.compactMap(\.lineName).joined(separator: "+") })
         XCTAssertFalse(bikeRail.isEmpty)

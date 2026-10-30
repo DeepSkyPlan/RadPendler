@@ -4,7 +4,8 @@ Liest die Access-ID aus Secrets.xcconfig (lokal) und gibt sie nie aus.
 """
 import json, pathlib, re, subprocess, sys, urllib.parse
 
-BASE = "https://fahrinfo.vbb.de/restproxy/latest"
+# Ab 30.11.2026 der neue Server (mastscharf); der alte geht danach aus.
+BASE = "https://vbb.hafas.cloud/api/fahrinfo/latest"
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 

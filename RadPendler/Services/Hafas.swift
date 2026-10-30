@@ -15,33 +15,52 @@ enum VbbAccess {
     }
 }
 
-/// Client for the VBB's official HAFAS ReST API (`fahrinfo.vbb.de/restproxy`).
+/// Client for the VBB's official HAFAS ReST API.
 ///
 /// Used with the VBB's consent (08.10.2026) and an access id of our own. Until
 /// 1.19 the app spoke to the "mgate" endpoint of the VBB web app instead, with
 /// the client block of the open-source `hafas-client` profile — that was never
 /// a published interface, and it is gone from here.
 struct HafasClient {
-    var endpoint = URL(string: "https://fahrinfo.vbb.de/restproxy/latest")!
+    var endpoint = HafasClient.endpoint(on: .now)
     var accessID: String? = VbbAccess.id
     var session: URLSession = .shared
 
     var isConfigured: Bool { accessID != nil }
+
+    /// Am 30.11.2026 stellt der VBB auf die mastscharfe Auskunft um und zieht
+    /// auf neue Server (`vbb.hafas.cloud`). Der neue steht schon, aber mit
+    /// unvollständiger Echtzeit; der alte geht danach aus. Eine Fassung, die
+    /// heute hinausgeht, muss an diesem Tag von selbst wechseln.
+    static let legacyEndpoint = URL(string: "https://fahrinfo.vbb.de/restproxy/latest")!
+    static let cloudEndpoint = URL(string: "https://vbb.hafas.cloud/api/fahrinfo/latest")!
+    static let switchover = Date(timeIntervalSince1970: 1_795_993_200)   // 30.11.2026 00:00 Berlin (MEZ)
+
+    static func endpoint(on date: Date) -> URL {
+        date < switchover ? legacyEndpoint : cloudEndpoint
+    }
 
     enum Location {
         case station(lid: String)
         case address(name: String, coordinate: CLLocationCoordinate2D)
 
         /// `origin…` or `dest…`, as the trip search names its two ends.
+        ///
+        /// Ohne `…CoordName`: das neue System findet mit Namen keine einzige
+        /// Verbindung (`SVC_NO_RESULT`, geprüft 30.10.2026), das alte braucht
+        /// ihn nicht. Den Namen setzt `named` hinterher wieder ein.
         func query(_ end: String) -> [URLQueryItem] {
             switch self {
             case .station(let lid):
                 return [URLQueryItem(name: "\(end)Id", value: lid)]
-            case .address(let name, let c):
+            case .address(_, let c):
                 return [URLQueryItem(name: "\(end)CoordLat", value: String(format: "%.6f", c.latitude)),
-                        URLQueryItem(name: "\(end)CoordLong", value: String(format: "%.6f", c.longitude)),
-                        URLQueryItem(name: "\(end)CoordName", value: name)]
+                        URLQueryItem(name: "\(end)CoordLong", value: String(format: "%.6f", c.longitude))]
             }
+        }
+
+        var addressName: String? {
+            if case .address(let name, _) = self { name } else { nil }
         }
     }
 
@@ -126,6 +145,7 @@ struct HafasClient {
         if bikeCarriage { query.append(URLQueryItem(name: "bikeCarriage", value: "1")) }
         do {
             return HafasParser.journeys(try await call("trip", query))
+                .map { HafasParser.named($0, from: from.addressName, to: to.addressName) }
         } catch HafasError.server(let code, _) where HafasParser.emptyCodes.contains(code) {
             return []   // "no connection found" / "departure = arrival"
         }
@@ -179,6 +199,8 @@ actor StationCache {
         }
         entries[key] = (stations, .now)
     }
+
+    func clear() { entries.removeAll() }
 }
 
 /// HAFAS clock strings: "2026-09-21" and "17:15:00". Times are local
@@ -260,17 +282,22 @@ enum HafasParser {
         return root
     }
 
+    /// Seit der mastscharfen Auskunft kommt jeder Bahnsteig und jeder Mast als
+    /// eigener Halt (`3…`); der Haltestellenbereich (`9…`), nach dem der Planer
+    /// fragt und vergleicht, steht dann in `mainMastExtId`, sein Mittelpunkt in
+    /// `mainMastLat`/`-Lon`.
     static func stations(_ res: [String: Any], productMask: Int) -> [Station] {
-        var seen = Set<String>()
+        var names = Set<String>(), areas = Set<String>()
         var out: [Station] = []
         for entry in res["stopLocationOrCoordLocation"] as? [[String: Any]] ?? [] {
             guard let l = entry["StopLocation"] as? [String: Any],
-                  let name = l["name"] as? String, let lid = l["extId"] as? String ?? l["id"] as? String,
-                  let c = coordinate(l) else { continue }
+                  let name = l["name"] as? String,
+                  let lid = l["mainMastExtId"] as? String ?? l["extId"] as? String ?? l["id"] as? String,
+                  let c = mainMastCoordinate(l) ?? coordinate(l) else { continue }
             let mask = l["products"] as? Int ?? 0
             guard mask & productMask != 0 else { continue }
             let base = baseName(name)
-            guard seen.insert(base).inserted else { continue }
+            guard names.insert(base).inserted, areas.insert(lid).inserted else { continue }
             out.append(Station(name: name, lid: lid, coordinate: c,
                                distance: l["dist"] as? Double ?? 0, productMask: mask))
         }
@@ -288,8 +315,22 @@ enum HafasParser {
         (res["Trip"] as? [[String: Any]] ?? []).compactMap(journey)
     }
 
+    /// Ohne `…CoordName` heißt eine Adresse in der Antwort „52.521000,
+    /// 13.413000"; vorn und hinten steht wieder ihr Name.
+    static func named(_ legs: [Leg], from: String?, to: String?) -> [Leg] {
+        var legs = legs
+        if let from, !legs.isEmpty { legs[0].fromName = from }
+        if let to, !legs.isEmpty { legs[legs.count - 1].toName = to }
+        return legs
+    }
+
     private static func coordinate(_ stop: [String: Any]) -> CLLocationCoordinate2D? {
         guard let lat = stop["lat"] as? Double, let lon = stop["lon"] as? Double else { return nil }
+        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+    }
+
+    private static func mainMastCoordinate(_ stop: [String: Any]) -> CLLocationCoordinate2D? {
+        guard let lat = stop["mainMastLat"] as? Double, let lon = stop["mainMastLon"] as? Double else { return nil }
         return CLLocationCoordinate2D(latitude: lat, longitude: lon)
     }
 

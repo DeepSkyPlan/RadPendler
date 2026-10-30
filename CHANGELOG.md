@@ -1,5 +1,21 @@
 # Changelog
 
+## Unveröffentlicht — VBB-Umstellung am 30.11.2026
+
+- **VBB-API wechselt am 30.11.2026 von selbst auf den neuen Server** (`vbb.hafas.cloud`, mastscharfe
+  Auskunft; der alte `fahrinfo.vbb.de/restproxy` geht dann aus). Gleiche Access-ID, gleicher Kopf; vorher
+  bleibt es beim alten, weil die Echtzeit auf dem neuen noch unvollständig sein kann
+  (`HafasClient.endpoint(on:)`).
+- **Adressen ohne Namen an den VBB.** Mit `originCoordName`/`destCoordName` findet das neue System keine
+  einzige Verbindung (nachgemessen 30.10.2026); ohne Namen antworten beide Systeme gleich. Die Namen
+  setzt die App an Anfang und Ende wieder ein, sonst stünden dort Koordinaten.
+- **Bahnhofssuche mastscharf:** Das neue System liefert jeden Bahnsteig und Mast einzeln; die App fasst
+  sie zum Haltestellenbereich zusammen (`mainMastExtId`, dessen Mittelpunkt), damit Rad + Bahn weiter
+  je Bahnhof einmal fragt.
+- Neu sichtbar ab der Umstellung: Umstiege im Bahnhof als echter Fußweg mit Länge und Dauer statt
+  pauschal. Live gegen beide Systeme geprüft (`TEST_RUNNER_VBB_LIVE=1 ./dev test`), Planung Rad + Bahn
+  Alexanderplatz → Wannsee auf beiden mit vier Vorschlägen.
+
 ## 1.23 (Build 63) — Routenregeln als Tests
 
 - **Routenregeln als Tests** (Nutzer, 17.10.2026: „nie gegen die Fahrtrichtung, nie Kopfstein“ — nach

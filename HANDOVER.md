@@ -68,7 +68,7 @@ die Seite im Netz muss beschreiben, was die App im Store tut, nicht was TestFlig
    Nachsehen unter
    <https://appstoreconnect.apple.com/apps/6813997635/distribution/privacy>.
    Der Grund, falls er je wieder infrage steht: auch ohne Aufzeichnung gehen Start- und
-   Zielkoordinaten an `brouter.de`, `overpass-api.de`, `fahrinfo.vbb.de`,
+   Zielkoordinaten an `brouter.de`, `overpass-api.de`, `fahrinfo.vbb.de` (ab 30.11.2026 `vbb.hafas.cloud`),
    `api.transitous.org`, `api.open-meteo.com` und `maps.dwd.de`. Tracking-SDKs, IDFA oder
    eine Kennung in einer Anfrage gibt es dagegen nicht — geprüft im Quelltext.
 3. **CloudKit-Schema übernehmen** — **erledigt am 26.09.2026**: `RideTrack` liegt in
@@ -249,6 +249,14 @@ Fahrradmitnahme-Texte der VBB-Auskunft!), der User-Agent, JSON-Schlüssel und al
   `polyEnc` kommt die Linie als Zahlenliste). Fehler stehen als `errorCode` in der Antwort, teils mit
   HTTP 200: `SVC_NO_RESULT`/`SVC_LOC_EQUAL` = leere Liste, `API_AUTH`/`API_QUOTA` = Transitous springt
   ein. Bis 1.19 lief das über die inoffizielle mgate-Schnittstelle der VBB-Webapp.
+- **Umstellung am 30.11.2026** (Rundmail des VBB, Okt. 2026): mastscharfe Auskunft und neuer Server
+  `https://vbb.hafas.cloud/api/fahrinfo/latest` (Test: `vbb.demo.hafas.cloud`), gleiche Access-ID, gleicher
+  Bearer-Kopf. `HafasClient.endpoint(on:)` wechselt an diesem Tag um Mitternacht von selbst. Am 30.10.
+  nachgemessen: **`…CoordName` macht auf dem neuen System jede Suche zu `SVC_NO_RESULT`** → wird nicht
+  mehr geschickt, der Name kommt hinterher wieder an die Enden (`HafasParser.named`).
+  `location.nearbystops` liefert Masten (`3…`, sechs je Alexanderplatz); der Bereich steht in
+  `mainMastExtId`/`mainMastLat`/`-Lon` und ist die `lid`. Umstiege kommen als echter Fußweg durch den
+  Bahnhof (Charlottenburg 238 m, 3 min) statt pauschal. Beide Systeme prüft `TEST_RUNNER_VBB_LIVE=1 ./dev test`.
 - Fahrradmitnahme = Vermerk **`FK`** je Fahrt. Der Filter `{"type":"BC"…}` liefert nur zwischen
   Haltestellen Ergebnisse, mit Adressen kommt H890 → die App wählt die Bahnhöfe selbst (3 × 4
   bevorzugte S/RE-Paare plus 3 × 3 beliebige für die U-Bahn/Tram-Alternative: je Ende die zwei

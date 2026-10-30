@@ -47,7 +47,7 @@ eingecheckt — die Struktur steht in `project.yml` (XcodeGen).
 
 ## Datenquellen
 
-- **VBB-API** (`fahrinfo.vbb.de/restproxy`, die offizielle HAFAS-ReST-Schnittstelle der
+- **VBB-API** (`fahrinfo.vbb.de/restproxy`, ab 30.11.2026 `vbb.hafas.cloud/api/fahrinfo`; die offizielle HAFAS-ReST-Schnittstelle der
   VBB Verkehrsverbund Berlin-Brandenburg GmbH) — Fahrplan, Echtzeit und Fahrradmitnahme je
   Zug für Berlin/Brandenburg. Genutzt mit Zustimmung des VBB und einer eigenen Access-ID;
   die steht nicht im Repository. Wer selbst baut, beantragt eine beim VBB und trägt sie in
