@@ -42,7 +42,9 @@ extension TripPlanner {
     /// Der Weg zu Fuß zur ersten Haltestelle und von der letzten zum Ziel,
     /// über die Straßen statt als Strich: HAFAS schickt nur die beiden Enden,
     /// Transitous eine Linie ohne Beleuchtung. Geplant mit dem eigenen
-    /// Fußprofil (`radpendler-foot.brf`), mit `onlyLit` über beleuchtete Wege.
+    /// Fußprofil (`radpendler-foot.brf`), mit `onlyLit` über beleuchtete Wege —
+    /// aber nur im Dunkeln: ab Sonnenuntergang, an Anfang oder Ende des Wegs
+    /// (`Sun.isDark`). Bei Tag gilt der kurze Weg.
     ///
     /// Die Zeit des Fahrplans bleibt das Tempo: ein Weg, der länger wird,
     /// fängt entsprechend früher an (bzw. kommt später an) — der Zug fährt,
@@ -51,32 +53,45 @@ extension TripPlanner {
         var walker = brouter
         walker.avoidCobbles = false
         let foot = walker
-        let profile: BRouterClient.Profile = onlyLit ? .footLit : .foot
         // Dieselben Wege kommen in jeder Verbindung wieder: Haustür → Haltestelle.
-        var ends: [String: (CLLocationCoordinate2D, CLLocationCoordinate2D)] = [:]
+        var wanted: [String: Walk] = [:]
         for legs in journeys {
             for i in Self.accessWalks(legs) {
-                guard let (a, b) = Self.ends(legs[i]) else { continue }
-                ends[Self.walkKey(a, b)] = (a, b)
+                guard let w = Self.walk(legs[i], onlyLit: onlyLit) else { continue }
+                wanted[w.key] = w
             }
         }
-        guard !ends.isEmpty else { return journeys }
-        let pairs = Array(ends.values)
-        let routed = await Self.gathered(pairs, atOnce: 3) { pair in
+        guard !wanted.isEmpty else { return journeys }
+        let routed = await Self.gathered(Array(wanted.values), atOnce: 3) { w in
             await Log.attemptAsync("Fußweg zur Haltestelle") {
-                try await foot.route(from: pair.0, to: pair.1, profile: profile)
+                try await foot.route(from: w.from, to: w.to, profile: w.lit ? .footLit : .foot)
             }
         }
-        let byKey = Dictionary(routed.map { (Self.walkKey($0.0.0, $0.0.1), $0.1) }, uniquingKeysWith: { a, _ in a })
+        let byKey = Dictionary(routed.map { ($0.0.key, $0.1) }, uniquingKeysWith: { a, _ in a })
         return journeys.map { legs in
             var legs = legs
             let first = legs.firstIndex(where: \.isTransit) ?? 0
             for i in Self.accessWalks(legs) {
-                guard let (a, b) = Self.ends(legs[i]), let r = byKey[Self.walkKey(a, b)] else { continue }
+                guard let w = Self.walk(legs[i], onlyLit: onlyLit), let r = byKey[w.key] else { continue }
                 legs[i] = Self.walked(legs[i], on: r, before: i < first)
             }
             return legs
         }
+    }
+
+    struct Walk: Sendable {
+        var from: CLLocationCoordinate2D
+        var to: CLLocationCoordinate2D
+        var lit: Bool
+        var key: String { TripPlanner.walkKey(from, to) + (lit ? "|licht" : "") }
+    }
+
+    /// Welcher Weg für diesen Fußweg gefragt wird: beleuchtet nur, wenn es
+    /// eingeschaltet ist und es an einem seiner Enden dunkel ist.
+    static func walk(_ leg: Leg, onlyLit: Bool) -> Walk? {
+        guard let (a, b) = ends(leg) else { return nil }
+        let dark = onlyLit && (Sun.isDark(at: leg.departure, a) || Sun.isDark(at: leg.arrival, b))
+        return Walk(from: a, to: b, lit: dark)
     }
 
     /// Die Fußwege vor dem ersten und nach dem letzten Zug, die eine Linie

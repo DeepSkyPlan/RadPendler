@@ -19,7 +19,8 @@
   letzten zum Ziel kommt über BRouter mit eigenem Fußprofil (`radpendler-foot.brf`) statt als Strich
   zwischen zwei Punkten; wird er länger, fängt er im Tempo des Fahrplans entsprechend früher an.
   Umsteigewege bleiben, wie der Fahrplan sie schickt. Ohne BRouter bleibt alles wie bisher.
-- **Einstellung „Nur beleuchtete Wege“** (Bus & Bahn): unbeleuchtete Wege kosten das Zwanzigfache;
+- **Einstellung „Nur beleuchtete Wege“** (Bus & Bahn): im Dunkeln — ab Sonnenuntergang bis Sonnenaufgang
+  am Ort und zur Zeit des Fußwegs (`Sun`) — kosten unbeleuchtete Wege das Zwanzigfache, bei Tag gilt der kurze;
   das Fahrtdetail zeigt am Fußweg „beleuchtet“ oder die dunklen Meter. Dunkel ist `lit=no` und jeder
   Fuß-/Parkweg ohne Angabe, eine Straße ohne Angabe gilt als beleuchtet. Live (Alexanderplatz):
   835 m mit 139 m dunkel → 953 m ganz beleuchtet (`TEST_RUNNER_WALK_LIVE=1 ./dev test`).

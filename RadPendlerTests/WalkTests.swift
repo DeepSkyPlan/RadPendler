@@ -8,8 +8,9 @@ final class WalkTests: XCTestCase {
     private let stop = CLLocationCoordinate2D(latitude: 52.5250, longitude: 13.4180)
     private let t0 = Date(timeIntervalSince1970: 1_800_000_000)
 
-    private func journey() -> [Leg] {
-        [Leg(kind: .walk, fromName: "Start", toName: "S Alexanderplatz",
+    private func journey(at t0: Date? = nil) -> [Leg] {
+        let t0 = t0 ?? self.t0
+        return [Leg(kind: .walk, fromName: "Start", toName: "S Alexanderplatz",
              departure: t0, arrival: t0.addingTimeInterval(400), distance: 500, coordinates: [alex, stop]),
          Leg(kind: .transit(line: "S7", product: .suburban), fromName: "S Alexanderplatz", toName: "S Wannsee",
              departure: t0.addingTimeInterval(500), arrival: t0.addingTimeInterval(2500),
@@ -17,6 +18,26 @@ final class WalkTests: XCTestCase {
          Leg(kind: .walk, fromName: "S Wannsee", toName: "Ziel",
              departure: t0.addingTimeInterval(2500), arrival: t0.addingTimeInterval(2700), distance: 250,
              coordinates: [alex, stop])]
+    }
+
+    /// 31.10.2026, Sonnenuntergang am Alexanderplatz 16:37 Uhr (15:37 UTC).
+    private let dusk = Date(timeIntervalSince1970: 1_793_461_020)
+    private var night: Date { dusk.addingTimeInterval(3 * 3600) }
+
+    func testItIsDarkFromSunsetToSunrise() {
+        XCTAssertFalse(Sun.isDark(at: dusk.addingTimeInterval(-15 * 60), alex))
+        XCTAssertTrue(Sun.isDark(at: dusk.addingTimeInterval(15 * 60), alex))
+        XCTAssertTrue(Sun.isDark(at: night, alex))
+        // Mittag im Sommer: hoch oben.
+        XCTAssertGreaterThan(Sun.elevation(at: Date(timeIntervalSince1970: 1_782_043_200), alex), 55)
+    }
+
+    func testLitPathsOnlyCountInTheDark() {
+        let day = journey(at: dusk.addingTimeInterval(-4 * 3600))[0]
+        let dark = journey(at: night)[0]
+        XCTAssertEqual(TripPlanner.walk(day, onlyLit: true)?.lit, false, "bei Tag gilt der kurze Weg")
+        XCTAssertEqual(TripPlanner.walk(dark, onlyLit: true)?.lit, true)
+        XCTAssertEqual(TripPlanner.walk(dark, onlyLit: false)?.lit, false)
     }
 
     func testDarkMeansUnlitOrAPathWithoutAnyNote() {
@@ -73,8 +94,8 @@ final class WalkTests: XCTestCase {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["WALK_LIVE"] == "1", "set WALK_LIVE=1")
         var planner = TripPlanner()
         planner.brouter.cached = false
-        let plain = await planner.walkedOnStreets([journey()], onlyLit: false)[0][0]
-        let lit = await planner.walkedOnStreets([journey()], onlyLit: true)[0][0]
+        let plain = await planner.walkedOnStreets([journey(at: night)], onlyLit: false)[0][0]
+        let lit = await planner.walkedOnStreets([journey(at: night)], onlyLit: true)[0][0]
         print("Fußweg: \(plain.length ?? 0) m, dunkel \(plain.darkMeters ?? -1) m; beleuchtet: \(lit.length ?? 0) m, dunkel \(lit.darkMeters ?? -1) m")
         XCTAssertGreaterThan(plain.coordinates.count, 2)
         XCTAssertNotNil(lit.darkMeters)

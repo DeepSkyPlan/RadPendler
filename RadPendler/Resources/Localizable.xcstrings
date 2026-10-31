@@ -1112,13 +1112,13 @@
         }
       }
     },
-    "Der Fußweg zur ersten Haltestelle und von der letzten zum Ziel wird über die Straßen geplant (BRouter, OpenStreetMap). „Nur beleuchtete Wege“ macht unbeleuchtete Wege zwanzigmal teurer: genommen werden sie nur noch, wenn es nicht anders geht — dann steht im Fahrtdetail, wie viele Meter dunkel sind. Als dunkel gilt, was in OpenStreetMap als unbeleuchtet eingetragen ist, und jeder Fuß- oder Parkweg ohne Angabe; Straßen ohne Angabe gelten als beleuchtet.": {
+    "Der Fußweg zur ersten Haltestelle und von der letzten zum Ziel wird über die Straßen geplant (BRouter, OpenStreetMap). „Nur beleuchtete Wege“ macht ab Sonnenuntergang bis Sonnenaufgang unbeleuchtete Wege zwanzigmal teurer — bei Tag gilt der kurze Weg: genommen werden sie nur noch, wenn es nicht anders geht — dann steht im Fahrtdetail, wie viele Meter dunkel sind. Als dunkel gilt, was in OpenStreetMap als unbeleuchtet eingetragen ist, und jeder Fuß- oder Parkweg ohne Angabe; Straßen ohne Angabe gelten als beleuchtet.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The walk to the first stop and from the last one to your destination is planned along the streets (BRouter, OpenStreetMap). “Lit paths only” makes unlit paths twenty times as costly: they are only taken when there is no other way — the trip details then say how many metres are dark. Dark means marked as unlit in OpenStreetMap, plus any footpath or park path without a note; streets without a note count as lit."
+            "value": "The walk to the first stop and from the last one to your destination is planned along the streets (BRouter, OpenStreetMap). “Lit paths only” makes unlit paths twenty times as costly from sunset to sunrise — by day the short way applies: they are only taken when there is no other way — the trip details then say how many metres are dark. Dark means marked as unlit in OpenStreetMap, plus any footpath or park path without a note; streets without a note count as lit."
           }
         }
       }
