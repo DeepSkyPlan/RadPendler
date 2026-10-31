@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — VBB-Umstellung am 30.11.2026
+## 1.24 (Build 64) — VBB-Umstellung am 30.11.2026
 
 - **VBB-API wechselt am 30.11.2026 von selbst auf den neuen Server** (`vbb.hafas.cloud`, mastscharfe
   Auskunft; der alte `fahrinfo.vbb.de/restproxy` geht dann aus). Gleiche Access-ID, gleicher Kopf; vorher
