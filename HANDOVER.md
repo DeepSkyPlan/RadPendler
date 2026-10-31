@@ -1,11 +1,11 @@
-# RadPendler — Übergabe (Stand 31.10.2026 · 1.23 / Build 63 in TestFlight, VBB-Umstellung auf main)
+# RadPendler — Übergabe (Stand 31.10.2026 · 1.24 / Build 64 in TestFlight: VBB-Umstellung, Fußweg zur Haltestelle, „Nur beleuchtete Wege“)
 
 > **Offen, mit Frist (31.10.2026): VBB-Umstellung vor dem 30.11.2026 in den Store.** Auf `main`
 > (`3056ebf`, CHANGELOG „Unveröffentlicht“): `HafasClient` wechselt am 30.11. 00:00 von selbst auf
 > `vbb.hafas.cloud`, Adressen gehen ohne `…CoordName` hinaus (sonst `SVC_NO_RESULT` auf dem neuen System),
 > Masten werden über `mainMastExtId` zum Bereich. Live gegen beide Systeme grün. Fassungen davor finden
-> ab dem 30.11. für Adressen keine VBB-Verbindung mehr. Zu tun, auf Ansage: Version festlegen,
-> `./dev testflight`, Einreichen (`/whatsnew`, `/storepaket`), Datenschutzseite
+> ab dem 30.11. für Adressen keine VBB-Verbindung mehr. Seit 31.10. als 1.24 (64) in TestFlight. Zu tun, auf Ansage:
+> nach dem Gerätetest Einreichen (`/whatsnew`, `/storepaket`), Datenschutzseite
 > `appstore/pages/radpendler-privacy` neu veröffentlichen (nennt jetzt `vbb.hafas.cloud`). Offen gelassen:
 > der Quellenhinweis in den Einstellungen nennt weiter `fahrinfo.vbb.de` (Übersetzungsschlüssel).
 > Erinnerungen per Push: 16.11. und 24.11. (`trig_012K29jQSqrfoAJ3357Px6qK`, `trig_01RpXuCua38J6j2SWP6ECjXF`).
