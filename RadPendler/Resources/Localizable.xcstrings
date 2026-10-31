@@ -89,6 +89,17 @@
         }
       }
     },
+    "%@ unbeleuchtet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ unlit"
+          }
+        }
+      }
+    },
     "%@ · %d Halte": {
       "extractionState": "manual",
       "localizations": {
@@ -1097,6 +1108,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "The countdown at the top right counts down to setting off for trains and buses — and with “arrive by …” for every trip. Warnings arrive 10, 5 and 1 minute ahead as notifications even when the app is closed; with the app open there is a sound as well."
+          }
+        }
+      }
+    },
+    "Der Fußweg zur ersten Haltestelle und von der letzten zum Ziel wird über die Straßen geplant (BRouter, OpenStreetMap). „Nur beleuchtete Wege“ macht unbeleuchtete Wege zwanzigmal teurer: genommen werden sie nur noch, wenn es nicht anders geht — dann steht im Fahrtdetail, wie viele Meter dunkel sind. Als dunkel gilt, was in OpenStreetMap als unbeleuchtet eingetragen ist, und jeder Fuß- oder Parkweg ohne Angabe; Straßen ohne Angabe gelten als beleuchtet.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The walk to the first stop and from the last one to your destination is planned along the streets (BRouter, OpenStreetMap). “Lit paths only” makes unlit paths twenty times as costly: they are only taken when there is no other way — the trip details then say how many metres are dark. Dark means marked as unlit in OpenStreetMap, plus any footpath or park path without a note; streets without a note count as lit."
           }
         }
       }
@@ -2872,6 +2894,17 @@
         }
       }
     },
+    "Nur beleuchtete Wege": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lit paths only"
+          }
+        }
+      }
+    },
     "Nur die Route von Apple Karten — BRouter antwortet gerade nicht": {
       "extractionState": "manual",
       "localizations": {
@@ -4463,6 +4496,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "off — calculation only"
+          }
+        }
+      }
+    },
+    "beleuchtet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "lit"
           }
         }
       }

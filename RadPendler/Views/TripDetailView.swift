@@ -319,6 +319,11 @@ struct LegTimelineRow: View {
                     }
                     if let m = leg.length { Chip(text: Fmt.km(m), symbol: "ruler") }
                     Chip(text: Fmt.duration(leg.duration), symbol: "clock")
+                    if let dark = leg.darkMeters {
+                        // Unter 20 m ist es die Einmündung oder der Hauseingang.
+                        if dark < 20 { Chip(text: L("beleuchtet"), symbol: "lightbulb") }
+                        else { Chip(text: L("%@ unbeleuchtet", Fmt.km(dark)), symbol: "moon") }
+                    }
                 }
                 if leg.isTransit {
                     Label(leg.bikeCarriage.legNote, systemImage: leg.bikeCarriage.symbol)

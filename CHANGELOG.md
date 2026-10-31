@@ -15,6 +15,14 @@
 - Neu sichtbar ab der Umstellung: Umstiege im Bahnhof als echter Fußweg mit Länge und Dauer statt
   pauschal. Live gegen beide Systeme geprüft (`TEST_RUNNER_VBB_LIVE=1 ./dev test`), Planung Rad + Bahn
   Alexanderplatz → Wannsee auf beiden mit vier Vorschlägen.
+- **Fußweg zur Haltestelle auf der Straße** (Bus & Bahn): der Weg zur ersten Haltestelle und von der
+  letzten zum Ziel kommt über BRouter mit eigenem Fußprofil (`radpendler-foot.brf`) statt als Strich
+  zwischen zwei Punkten; wird er länger, fängt er im Tempo des Fahrplans entsprechend früher an.
+  Umsteigewege bleiben, wie der Fahrplan sie schickt. Ohne BRouter bleibt alles wie bisher.
+- **Einstellung „Nur beleuchtete Wege“** (Bus & Bahn): unbeleuchtete Wege kosten das Zwanzigfache;
+  das Fahrtdetail zeigt am Fußweg „beleuchtet“ oder die dunklen Meter. Dunkel ist `lit=no` und jeder
+  Fuß-/Parkweg ohne Angabe, eine Straße ohne Angabe gilt als beleuchtet. Live (Alexanderplatz):
+  835 m mit 139 m dunkel → 953 m ganz beleuchtet (`TEST_RUNNER_WALK_LIVE=1 ./dev test`).
 
 ## 1.23 (Build 63) — Routenregeln als Tests
 

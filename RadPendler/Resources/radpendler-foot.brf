@@ -1,0 +1,87 @@
+# RadPendler: zu Fuß zur Haltestelle und von ihr weg.
+# Nach „shortest“ (brouter.de/brouter/profiles2, MIT-Lizenz), nur für Fußgänger.
+# `onlyLit` setzt die App beim Hochladen (BRouterClient.Profile.footLit):
+# dann kostet ein dunkler Meter das Zwanzigfache — kein Ausschluss, die
+# Haustür muss erreichbar bleiben.
+#
+# Dunkel heißt: lit=no überall, und Wege ohne Straße daneben (Fußweg, Pfad,
+# Feldweg, Treppe, Steg) ohne lit-Angabe. Eine Straße ohne Angabe gilt als
+# beleuchtet — in der Stadt ist sie es fast immer, und getaggt ist es selten.
+---context:global
+
+assign downhillcost 0
+assign downhillcutoff 1.5
+assign uphillcost 0
+assign uphillcutoff 1.5
+
+assign turnInstructionMode = 0
+assign validForFoot 1
+
+assign onlyLit = false
+
+---context:way
+
+assign turncost 0
+
+assign initialclassifier = if route=ferry then 1 else 0
+assign initialcost switch route=ferry 10000 0
+
+assign defaultaccess
+       switch access=
+              (
+                    if motorroad=yes then false
+                    else if highway=motorway|motorway_link|trunk|trunk_link then false
+                    else true
+              )
+              switch or access=private access=no
+                     false
+                     true
+
+assign footaccess
+       switch foot=
+              defaultaccess
+              not or foot=private or foot=no foot=use_sidepath
+
+assign accesspenalty switch footaccess 0 100000
+
+assign islit = lit=yes|24/7|automatic
+assign isdark =
+       if lit=no then true
+       else if islit then false
+       else if highway=footway|path|track|steps|bridleway|cycleway then true
+       else false
+
+assign costfactor_base
+  add accesspenalty
+
+  switch and highway= not route=ferry  100000
+
+  switch    route=ferry                             5.67
+  switch or highway=motorway highway=motorway_link  100000
+  switch or highway=proposed highway=abandoned      100000
+  1
+
+assign costfactor
+  multiply costfactor_base
+           switch and onlyLit isdark 20 1
+
+assign priorityclassifier = 0
+assign classifiermask 0
+
+---context:node
+
+assign defaultaccess
+       switch access=
+              1
+              switch or access=private access=no
+                     0
+                     1
+
+assign footaccess
+       switch foot=
+              defaultaccess
+              switch or foot=private foot=no
+                     0
+                     1
+
+assign initialcost switch footaccess 0 1000000

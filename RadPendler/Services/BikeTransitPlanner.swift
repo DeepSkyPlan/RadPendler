@@ -27,7 +27,8 @@ extension TripPlanner {
             }
         }
         let penalty = req.settings.transferPenalty
-        let running = journeys.filter { !$0.contains(where: \.cancelled) }
+        let running = await walkedOnStreets(journeys.filter { !$0.contains(where: \.cancelled) },
+                                            onlyLit: req.settings.onlyLitWalks)
         var options = running.map { TripOption(mode: .transit, legs: $0, prep: req.settings.prep) }
         if let by = req.arriveBy {
             let limit = by.addingTimeInterval(60)
@@ -36,6 +37,85 @@ extension TripPlanner {
         options.sort { TripPlanner.ranking($0, $1, penalty: penalty, arrival: req.isArrival,
                                            order: req.settings.modeOrder) }
         return Array(options.prefix(3))
+    }
+
+    /// Der Weg zu Fuß zur ersten Haltestelle und von der letzten zum Ziel,
+    /// über die Straßen statt als Strich: HAFAS schickt nur die beiden Enden,
+    /// Transitous eine Linie ohne Beleuchtung. Geplant mit dem eigenen
+    /// Fußprofil (`radpendler-foot.brf`), mit `onlyLit` über beleuchtete Wege.
+    ///
+    /// Die Zeit des Fahrplans bleibt das Tempo: ein Weg, der länger wird,
+    /// fängt entsprechend früher an (bzw. kommt später an) — der Zug fährt,
+    /// wann er fährt. Findet BRouter nichts, bleibt der Weg, wie er kam.
+    func walkedOnStreets(_ journeys: [[Leg]], onlyLit: Bool) async -> [[Leg]] {
+        var walker = brouter
+        walker.avoidCobbles = false
+        let foot = walker
+        let profile: BRouterClient.Profile = onlyLit ? .footLit : .foot
+        // Dieselben Wege kommen in jeder Verbindung wieder: Haustür → Haltestelle.
+        var ends: [String: (CLLocationCoordinate2D, CLLocationCoordinate2D)] = [:]
+        for legs in journeys {
+            for i in Self.accessWalks(legs) {
+                guard let (a, b) = Self.ends(legs[i]) else { continue }
+                ends[Self.walkKey(a, b)] = (a, b)
+            }
+        }
+        guard !ends.isEmpty else { return journeys }
+        let pairs = Array(ends.values)
+        let routed = await Self.gathered(pairs, atOnce: 3) { pair in
+            await Log.attemptAsync("Fußweg zur Haltestelle") {
+                try await foot.route(from: pair.0, to: pair.1, profile: profile)
+            }
+        }
+        let byKey = Dictionary(routed.map { (Self.walkKey($0.0.0, $0.0.1), $0.1) }, uniquingKeysWith: { a, _ in a })
+        return journeys.map { legs in
+            var legs = legs
+            let first = legs.firstIndex(where: \.isTransit) ?? 0
+            for i in Self.accessWalks(legs) {
+                guard let (a, b) = Self.ends(legs[i]), let r = byKey[Self.walkKey(a, b)] else { continue }
+                legs[i] = Self.walked(legs[i], on: r, before: i < first)
+            }
+            return legs
+        }
+    }
+
+    /// Die Fußwege vor dem ersten und nach dem letzten Zug, die eine Linie
+    /// verdienen: Umsteigewege bleiben, wie sie sind.
+    static func accessWalks(_ legs: [Leg]) -> [Int] {
+        guard let first = legs.firstIndex(where: \.isTransit),
+              let last = legs.lastIndex(where: \.isTransit) else { return [] }
+        return legs.indices.filter { i in
+            guard i < first || i > last, legs[i].kind == .walk, let (a, b) = ends(legs[i]) else { return false }
+            return a.distance(to: b) >= 30
+        }
+    }
+
+    static func ends(_ leg: Leg) -> (CLLocationCoordinate2D, CLLocationCoordinate2D)? {
+        guard leg.coordinates.count >= 2, let a = leg.coordinates.first, let b = leg.coordinates.last else { return nil }
+        return (a, b)
+    }
+
+    static func walkKey(_ a: CLLocationCoordinate2D, _ b: CLLocationCoordinate2D) -> String {
+        String(format: "%.5f,%.5f|%.5f,%.5f", a.latitude, a.longitude, b.latitude, b.longitude)
+    }
+
+    /// Ein Fußweg auf der geplanten Linie. `before`: er führt zum ersten Zug
+    /// und muss deshalb früher anfangen, nicht später ankommen.
+    static func walked(_ leg: Leg, on r: StreetRoute, before: Bool) -> Leg {
+        var l = leg
+        // Das Tempo des Fahrplans, wo er Weg und Zeit nennt; sonst das von BRouter.
+        let speed: Double
+        if let d = leg.distance, d > 0, leg.duration > 0 { speed = d / leg.duration }
+        else if r.expectedTravelTime > 0 { speed = r.distance / r.expectedTravelTime }
+        else { speed = 1.25 }
+        let t = r.distance / speed
+        // Die neue Zeit ist keine Verspätung: der alte Plan verschwindet mit.
+        if before { l.departure = leg.arrival.addingTimeInterval(-t); l.plannedDeparture = nil }
+        else { l.arrival = leg.departure.addingTimeInterval(t); l.plannedArrival = nil }
+        l.distance = r.distance
+        l.coordinates = r.coordinates
+        l.darkMeters = r.darkMeters
+        return l
     }
 
     private func motisTransitJourneys(_ req: PlanRequest) async throws -> [[Leg]] {

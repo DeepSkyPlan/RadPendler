@@ -15,8 +15,14 @@ struct BRouterClient {
         /// und Verkehr (`Resources/radpendler-quiet.brf`). Liegt nicht auf
         /// dem Server, sondern wird hochgeladen — siehe `CustomProfile`.
         case quiet = "radpendler-quiet"
+        /// Zu Fuß zur Haltestelle und von ihr weg (`Resources/radpendler-foot.brf`),
+        /// auch das hochgeladen. `footLit` ist dasselbe Profil mit `onlyLit`:
+        /// unbeleuchtete Wege kosten das Zwanzigfache.
+        case foot = "radpendler-foot"
+        case footLit = "radpendler-foot-lit"
 
-        var isCustom: Bool { self == .quiet }
+        var isCustom: Bool { self == .quiet || isFoot }
+        var isFoot: Bool { self == .foot || self == .footLit }
         /// Um wie viel alles andere teurer ist als eine Fahrradstraße — nil,
         /// wo sie nicht zählt. „ruhig" **ist** die Linie über Fahrradstraßen
         /// (Nutzer, 07.10.2026: „Schnell ist schnell. Kurz ist kurz. Ruhig
@@ -98,6 +104,9 @@ struct BRouterClient {
                     // und sieht auf dem Bildschirm aus wie immer. Wenigstens
                     // steht es im Protokoll.
                     Log.note("BRouter: eigenes Profil (\(profile.rawValue)) nicht nutzbar, Rückfall", error)
+                    // Zu Fuß gibt es kein Ersatzprofil: ein Radprofil schickte
+                    // den Fußgänger um jede Treppe. Dann bleibt die Linie des Fahrplans.
+                    if profile.isFoot { throw error }
                     var plain = self
                     if avoidCobbles {
                         plain.avoidCobbles = false
@@ -162,6 +171,7 @@ struct BRouterClient {
                            mix: roads.mix, roadPoints: roads.points,
                            cycleStreetMeters: Self.cycleStreetMeters(messages),
                            cobbleMeters: Self.meters(messages) { $0.contains("surface=sett") || $0.contains("surface=cobblestone") },
+                           darkMeters: Self.meters(messages, where: Self.isDark),
                            ascent: Self.ascent(props: props, coordinates: coords))
     }
 
@@ -169,6 +179,18 @@ struct BRouterClient {
     /// aus der die Straßenklassen kommen. Daran wird „ruhig" gemessen.
     static func cycleStreetMeters(_ messages: [[String]]?) -> Double {
         meters(messages) { $0.contains("bicycle_road=yes") || $0.contains("cyclestreet=yes") }
+    }
+
+    /// Unbeleuchtet nach derselben Regel wie `radpendler-foot.brf`: `lit=no`
+    /// überall, und ein Weg ohne Straße (Fußweg, Pfad, Feldweg, Treppe) ohne
+    /// Angabe. Eine Straße ohne Angabe gilt als beleuchtet. Nennen kann es nur
+    /// ein Profil, das `lit` abfragt — die Radprofile tun das nicht.
+    static func isDark(_ wayTags: String) -> Bool {
+        let tags = Set(wayTags.split(separator: " ").map(String.init))
+        if tags.contains("lit=no") { return true }
+        if tags.contains(where: { ["lit=yes", "lit=24/7", "lit=automatic"].contains($0) }) { return false }
+        return tags.contains { ["highway=footway", "highway=path", "highway=track", "highway=steps",
+                                "highway=bridleway", "highway=cycleway"].contains($0) }
     }
 
     /// Die Meter aller Abschnitte, deren Merkmale `matches` erfüllen.
@@ -407,7 +429,8 @@ actor CustomProfile {
         var withoutCobbles: Bool
 
         var resource: String {
-            profile.isCustom ? profile.rawValue : "brouter-\(profile.rawValue)"
+            if profile.isFoot { return BRouterClient.Profile.foot.rawValue }
+            return profile.isCustom ? profile.rawValue : "brouter-\(profile.rawValue)"
         }
     }
 
@@ -421,7 +444,10 @@ actor CustomProfile {
     func id(_ kind: Kind, session: URLSession, renew: Bool = false) async throws -> String {
         guard let url = Bundle.main.url(forResource: kind.resource, withExtension: "brf"),
               var text = try? String(contentsOf: url, encoding: .utf8) else { throw BRouterClient.BRouterError.malformed }
-        text = Self.adjusted(text, withoutCobbles: kind.withoutCobbles,
+        if kind.profile == .footLit {
+            text = text.replacingOccurrences(of: "assign onlyLit = false", with: "assign onlyLit = true")
+        }
+        text = Self.adjusted(text, withoutCobbles: kind.withoutCobbles && !kind.profile.isFoot,
                              cycleStreets: kind.profile.cycleStreetAdvantage)
         // Der Schlüssel hängt am Text: ändert eine neue Fassung der App einen
         // Faktor, ist es ein anderes Profil und wird neu hochgeladen.

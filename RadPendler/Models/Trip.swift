@@ -339,6 +339,9 @@ struct Leg: Identifiable {
     /// settings. Nothing is guessed.
     var bikeCarriage: BikeCarriage = .unknown
     var cancelled = false
+    /// Zu Fuß: Meter ohne Beleuchtung, wenn der Weg über BRouter geplant ist.
+    /// nil heißt unbekannt — die Linie kam so aus dem Fahrplan.
+    var darkMeters: Double? = nil
 
     var duration: TimeInterval { arrival.timeIntervalSince(departure) }
 

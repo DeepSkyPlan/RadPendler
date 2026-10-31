@@ -327,6 +327,9 @@ struct ModeSettingsView: View {
                          : L("Die Fahrzeit kommt von Apple Karten mit Verkehrslage. Wie viel länger oder kürzer du wirklich brauchst, lernt die App aus deinen aufgezeichneten Autofahrten: gefahrene Zeit Tür zu Tür geteilt durch Apples Ansage, der Median der letzten Fahrten, sobald es drei gibt. Mit diesem Faktor wird Apples Zeit malgenommen — auf jeder Strecke, Stadt wie Autobahn; Parkplatzsuche und Gesamtschnitt gelten dann nicht mehr, sie stecken darin. Bis dahin gilt Apple plus Parkplatzsuche, und dein Gesamtschnitt als Untergrenze, außer wo Apple die Linie mehr als anderthalbmal so schnell fährt wie er."))
                 }
                 Section {
+                    Toggle(isOn: $settings.onlyLitWalks) {
+                        Label(L("Nur beleuchtete Wege"), systemImage: "lightbulb")
+                    }
                     Link(destination: URL(string: "https://www.vbb.de/vbb-services/api-open-data/api/")!) {
                         Label(L("VBB-API (vbb.de)"), systemImage: "arrow.up.right.square")
                     }
@@ -339,7 +342,7 @@ struct ModeSettingsView: View {
                 } header: {
                     Text(L("Bus & Bahn"))
                 } footer: {
-                    Hint(L("Jeder Umstieg wird beim Sortieren und Empfehlen wie 10 Minuten längere Fahrt gewertet: eine direkte Verbindung gewinnt, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.") + "\n\n" + L("Den Fahrplan liefert die VBB-API des Verkehrsverbunds Berlin-Brandenburg, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link."))
+                    Hint(L("Der Fußweg zur ersten Haltestelle und von der letzten zum Ziel wird über die Straßen geplant (BRouter, OpenStreetMap). „Nur beleuchtete Wege“ macht unbeleuchtete Wege zwanzigmal teurer: genommen werden sie nur noch, wenn es nicht anders geht — dann steht im Fahrtdetail, wie viele Meter dunkel sind. Als dunkel gilt, was in OpenStreetMap als unbeleuchtet eingetragen ist, und jeder Fuß- oder Parkweg ohne Angabe; Straßen ohne Angabe gelten als beleuchtet.") + "\n\n" + L("Jeder Umstieg wird beim Sortieren und Empfehlen wie 10 Minuten längere Fahrt gewertet: eine direkte Verbindung gewinnt, solange die mit Umstieg nicht mehr als diese Zeit früher ankommt.") + "\n\n" + L("Den Fahrplan liefert die VBB-API des Verkehrsverbunds Berlin-Brandenburg, solange Start und Ziel in Berlin/Brandenburg liegen — dort ist er genauer und sagt als Einziger, welcher Zug Räder mitnimmt. Alles darüber hinaus beantwortet Transitous, eine von Freiwilligen betriebene MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Transitous plant Rad und Bahn in einem Zug und sucht sich die Bahnhöfe selbst. Woher deren Daten kommen, steht hinter dem Link."))
                 }
                 Section {
                     NavigationLink {
