@@ -103,7 +103,9 @@ struct TripPlanner {
                 // jedes Verkehrsmittel. Bei den Fahrplänen sind es die
                 // nächsten Abfahrten, bei Rad und Auto die obersten Rollen.
                 // Beim Rad dazu die gewohnte Linie, wenn es sie gibt — sie steht für sich.
-                let limit = mode == .bike ? req.settings.bikeOptions + 1 : req.settings.optionsPerMode
+                // Bei Bus & Bahn dazu die Verbindung mit Leihroller, wenn eingeschaltet.
+                let limit = mode == .bike ? req.settings.bikeOptions + 1
+                    : req.settings.optionsPerMode + (mode == .transit && req.settings.rentalWalks ? Self.rentalOffered : 0)
                 result.options += options.prefix(Swift.max(1, limit))
             case .failure(let error): result.failures[mode] = error.localizedDescription
             }

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unveröffentlicht — Leihroller und -räder zur Haltestelle
+
+- **Bus & Bahn mit Leihroller oder Leihrad** (Einstellung „Leihroller und -räder zur Haltestelle“, aus
+  bis zum Einschalten): daneben fragt die App Transitous mit `RENTAL` an beiden Enden (GBFS der Anbieter,
+  in Berlin z. B. Dott, nextbike, Call a Bike) und zeigt die beste solche Verbindung als Alternative —
+  nur wenn sie früher ankommt als zu Fuß, nie als Empfehlung. Im Fahrtdetail Anbieter und „In der App
+  öffnen“ (Link direkt zum Fahrzeug). Auch im VBB-Gebiet, weil der VBB keine Leihgeräte kennt.
+  Ein Gerät, das die App nicht kennt (Auto, Moped mit Sitz …), lässt die Verbindung weg.
+
 ## 1.24 (Build 64) — VBB-Umstellung am 30.11.2026
 
 - **VBB-API wechselt am 30.11.2026 von selbst auf den neuen Server** (`vbb.hafas.cloud`, mastscharfe

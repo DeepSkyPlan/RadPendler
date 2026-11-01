@@ -170,7 +170,10 @@ struct TripNotes: View {
                                     open.joined(separator: ", ")),
                             symbol: "questionmark.circle", tint: .orange))
         }
-        if option.isAlternative {
+        if option.usesRental {
+            out.append(Note(text: L("Alternative mit Leihroller oder -rad"),
+                            symbol: "scooter", tint: .teal))
+        } else if option.isAlternative {
             out.append(Note(text: L("Alternative mit U-Bahn/Tram — kein festes Radabteil"),
                             symbol: "arrow.triangle.branch", tint: .orange))
         }
@@ -323,6 +326,17 @@ struct LegTimelineRow: View {
                         // Unter 20 m ist es die Einmündung oder der Hauseingang.
                         if dark < 20 { Chip(text: L("beleuchtet"), symbol: "lightbulb") }
                         else { Chip(text: L("%@ unbeleuchtet", Fmt.km(dark)), symbol: "moon") }
+                    }
+                }
+                if let rental = leg.rental {
+                    HStack(spacing: 6) {
+                        Text(rental.system).font(.system(.caption, design: .rounded, weight: .semibold))
+                        if let url = rental.appURL {
+                            Link(destination: url) {
+                                Label(L("In der App öffnen"), systemImage: "arrow.up.right.square")
+                            }
+                            .font(.system(.caption, design: .rounded))
+                        }
                     }
                 }
                 if leg.isTransit {

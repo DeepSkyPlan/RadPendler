@@ -92,13 +92,14 @@ final class MotisTests: XCTestCase {
     }
 }
 
-private extension LegKind {
+extension LegKind {
     var short: String {
         switch self {
         case .walk: "walk"
         case .bike: "bike"
         case .car: "car"
         case .transit: "transit"
+        case .rental: "rental"
         }
     }
 }

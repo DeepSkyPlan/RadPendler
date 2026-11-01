@@ -75,6 +75,8 @@ final class AppSettings {
     var rideSounds: Bool = true { didSet { defaults.set(rideSounds, forKey: "rideSounds") } }
     /// Zu Fuß zur Haltestelle nur über beleuchtete Wege, wo es sie gibt.
     var onlyLitWalks: Bool = false { didSet { defaults.set(onlyLitWalks, forKey: "onlyLitWalks") } }
+    /// Bus & Bahn auch mit Leihroller oder -rad zur Haltestelle (Transitous).
+    var rentalWalks: Bool = false { didSet { defaults.set(rentalWalks, forKey: "rentalWalks") } }
 
     /// Addresses that have been used before, with how often — the list the
     /// search offers before anything is typed. Device only, like the addresses.
@@ -256,7 +258,7 @@ final class AppSettings {
         "parkingMinutes", "motorcycle", "signalWaitSeconds", "departurePresets2",
         "arrivalBufferMinutes",
         "modeOrder", "bikeVariantOrder", "rainSwitchLevel", "quietExtraPercent",
-        "bikeLines", "onlyLitWalks",
+        "bikeLines", "onlyLitWalks", "rentalWalks",
         // Countdown
         "alertsOn",
         // Aufzeichnen
@@ -385,6 +387,7 @@ final class AppSettings {
         assign(\.autoStopMinutes, Self.double("autoStopMinutes", defaults) ?? autoStopMinutes)
         assign(\.rideSounds, defaults.object(forKey: "rideSounds") as? Bool ?? rideSounds)
         assign(\.onlyLitWalks, defaults.object(forKey: "onlyLitWalks") as? Bool ?? onlyLitWalks)
+        assign(\.rentalWalks, defaults.object(forKey: "rentalWalks") as? Bool ?? rentalWalks)
         assign(\.autoPauseMinutes, Self.double("autoPauseMinutes", defaults) ?? autoPauseMinutes)
         assign(\.tombstones, defaults.data(forKey: "tombstones")
             .flatMap(Tombstones.decode) ?? tombstones)
@@ -515,7 +518,7 @@ final class AppSettings {
                      measuredOverallKmh: bikeOverallKmh > 0 ? bikeOverallKmh : nil,
                      carOverallKmh: carOverallKmh > 0 ? carOverallKmh : nil,
                      carAppleFactor: carAppleFactor > 0 ? carAppleFactor : nil,
-                     motorcycle: motorcycle, onlyLitWalks: onlyLitWalks)
+                     motorcycle: motorcycle, onlyLitWalks: onlyLitWalks, rentalWalks: rentalWalks)
     }
 
     private func save(_ place: Place?, _ key: String) {
@@ -587,6 +590,8 @@ struct PlanSettings: Equatable {
     var motorcycle = false
     /// Fußwege zur Haltestelle über beleuchtete Wege (`AppSettings.onlyLitWalks`).
     var onlyLitWalks = false
+    /// Leihroller und -räder zur Haltestelle (`AppSettings.rentalWalks`).
+    var rentalWalks = false
     /// Beyond this, the whole way by bike is a curiosity rather than a plan:
     /// its box moves to the end of the row and the OpenStreetMap corridor gets
     /// too big to ask Overpass for.

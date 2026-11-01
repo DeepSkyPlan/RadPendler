@@ -19,6 +19,9 @@ struct MotisClient {
     enum Access: String {
         case walk = "WALK"
         case bike = "BIKE"
+        /// Leihroller und -räder aus den GBFS-Feeds, die Transitous kennt.
+        /// Zu Fuß bleibt dabei erlaubt — bis zum Fahrzeug und für kurze Wege.
+        case rental = "RENTAL"
     }
 
     /// One plan request. `access` is how the traveller gets to the first stop
@@ -26,7 +29,7 @@ struct MotisClient {
     func journeys(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D,
                   at date: Date, arriveBy: Bool, access: Access, results: Int = 4) async throws -> [[Leg]] {
         var c = URLComponents(url: endpoint, resolvingAgainstBaseURL: false)!
-        c.queryItems = [
+        var items: [URLQueryItem] = [
             .init(name: "fromPlace", value: Self.place(from)),
             .init(name: "toPlace", value: Self.place(to)),
             .init(name: "time", value: ISO8601DateFormatter().string(from: date)),
@@ -34,10 +37,19 @@ struct MotisClient {
             .init(name: "numItineraries", value: String(results)),
             .init(name: "preTransitModes", value: access.rawValue),
             .init(name: "postTransitModes", value: access.rawValue),
+        ]
+        if access == .rental {
+            items += [
+                .init(name: "preTransitRentalFormFactors", value: Self.rentalForms),
+                .init(name: "postTransitRentalFormFactors", value: Self.rentalForms),
+            ]
+        }
+        items += [
             // The app has its own bike and car routing; MOTIS is asked for the
             // timetable, not for a ride it would rate differently.
             .init(name: "directModes", value: "WALK"),
         ]
+        c.queryItems = items
         var request = URLRequest(url: c.url!, timeoutInterval: 25)
         request.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
         let (data, response) = try await session.data(for: request)
@@ -46,6 +58,8 @@ struct MotisClient {
         }
         return try MotisParser.journeys(data)
     }
+
+    static let rentalForms = "SCOOTER_STANDING,BICYCLE"
 
     /// Name, version and a way of contact, as the usage policy asks for.
     static var userAgent: String { AppIdentity.userAgent }
@@ -95,6 +109,12 @@ enum MotisParser {
         case "WALK": kind = .walk
         case "BIKE": kind = .bike
         case "CAR": kind = .car
+        case "RENTAL":
+            // Ein Gerät, das die App nicht kennt (Auto, Lastenmoped …), ist
+            // keine Fahrt, die sie anbieten will: dann die ganze Verbindung nicht.
+            guard let r = l["rental"] as? [String: Any],
+                  let form = RentalForm(gbfs: r["formFactor"] as? String ?? "") else { return nil }
+            kind = .rental(form)
         default: kind = .transit(line: line ?? mode, product: product(l))
         }
         var leg = Leg(kind: kind,
@@ -112,6 +132,13 @@ enum MotisParser {
         // no comes from the user's own line list.
         leg.bikeCarriage = (l["bikesAllowed"] as? Bool == true) ? .yes : .unknown
         leg.cancelled = l["cancelled"] as? Bool ?? false
+        if let r = l["rental"] as? [String: Any], leg.isRental {
+            let name = (r["systemName"] as? String) ?? (r["providerGroupId"] as? String) ?? ""
+            leg.rental = Rental(system: name,
+                                appURL: (r["rentalUriIOS"] as? String).flatMap { $0.isEmpty ? nil : URL(string: $0) })
+            // MOTIS nennt den Abholort nach dem Anbieter; das ist kein Ort.
+            if leg.fromName == name { leg.fromName = "" }
+        }
         return leg
     }
 

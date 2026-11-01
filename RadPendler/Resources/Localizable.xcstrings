@@ -617,6 +617,17 @@
         }
       }
     },
+    "Alternative mit Leihroller oder -rad": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alternative with a rental scooter or bike"
+          }
+        }
+      }
+    },
     "Alternative mit U-Bahn/Tram — kein festes Radabteil": {
       "extractionState": "manual",
       "localizations": {
@@ -2399,6 +2410,17 @@
         }
       }
     },
+    "In der App öffnen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open in the app"
+          }
+        }
+      }
+    },
     "Ist das Ziel die Arbeitsadresse (Einstellungen → Arbeitsweg), startet die Suche mit „Ankunft“, sonst mit „Abfahrt jetzt“.": {
       "extractionState": "manual",
       "localizations": {
@@ -2615,6 +2637,39 @@
           "stringUnit": {
             "state": "translated",
             "value": "Press and hold anywhere on the map to bring the whole route back into view."
+          }
+        }
+      }
+    },
+    "Leihroller": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rental scooter"
+          }
+        }
+      }
+    },
+    "Leihroller und -räder zur Haltestelle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rental scooters and bikes to the stop"
+          }
+        }
+      }
+    },
+    "Leihgeräte von Transitous (GBFS) — Verfügbarkeit beim Losgehen prüfen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rental vehicles from Transitous (GBFS) — check availability before you leave"
           }
         }
       }
@@ -5662,6 +5717,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "“Automatic” lets the screen turn with the phone; on a handlebar that is often in the way. — A ride starts in landscape, or however you last set it during a ride; the button for it is at the top left of the ride screen. After the ride the orientation from here applies again. — If the recording stands in the same spot and there is no known traffic light there, it pauses by itself after the first time set — and carries on as soon as you move again; location stays on meanwhile, but frugally. After the second time it ends and counts up to the start of the standstill: that is the “arrived and forgot to tap end” case. A deliberate break is the “Pause” button instead: it stops the clock and switches location off entirely, and the break counts neither as ride time nor as a stop — unlike the standing before an automatic pause, which was a stop like any other. — While recording, the screen stays on until you end the ride; that costs battery and is meant to. It does go dark after 30 seconds while you are not touching it — and bright again at the first tap, and likewise when a turn is coming up or you are off the route. During a ride that is the largest item on the battery bill, larger than location tracking. While the phone is charging it stays bright, with nothing to switch. — If you leave the route, an arrow points back. It recalculates from 200 m off the route, and only after a few seconds in a row, so that a detour around road works does not trigger a replan. — Anyone standing still on the way has stopped — at a traffic light or anywhere else, even where no map knows one; only standing before setting off and after arriving never counts, that is your own front door. The app remembers such places and counts them in next time. It also counts where a recording got through without stopping: a learned junction costs the plan its measured time across every pass, not the configured average. They stay on your devices and in your iCloud."
+          }
+        }
+      }
+    },
+    "„Leihroller und -räder“ zeigt bei Bus & Bahn zusätzlich die beste Verbindung, bei der ein Leihroller oder Leihrad den Weg zur Haltestelle oder von ihr weg übernimmt — nur wenn sie früher ankommt als zu Fuß. Welche Fahrzeuge wo stehen, weiß Transitous aus den offenen Daten der Anbieter (GBFS, z. B. Dott, nextbike, Call a Bike); ob das Fahrzeug noch da ist, zeigt erst die App des Anbieters.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“Rental scooters and bikes” adds, under bus & train, the best connection where a rental scooter or bike covers the way to or from the stop — only if it arrives earlier than on foot. Transitous knows which vehicles stand where from the providers’ open data (GBFS, e.g. Dott, nextbike, Call a Bike); whether the vehicle is still there only the provider’s app can tell."
           }
         }
       }

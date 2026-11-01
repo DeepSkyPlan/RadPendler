@@ -11,6 +11,8 @@ extension LegKind {
         case .walk: .systemGray
         case .bike: UIColor(red: 0.09, green: 0.65, blue: 0.29, alpha: 1)
         case .car: UIColor(red: 0.89, green: 0.11, blue: 0.18, alpha: 1)
+        // Geliehen: türkis — weder das eigene Rad noch ein Zug.
+        case .rental: UIColor(red: 0.00, green: 0.66, blue: 0.62, alpha: 1)
         case .transit(_, let p):
             switch p {
             case .suburban: UIColor(red: 0.04, green: 0.52, blue: 1.00, alpha: 1)
@@ -31,6 +33,7 @@ extension LegKind {
         case .walk: "figure.walk"
         case .bike: "bicycle"
         case .car: Vehicle.symbol
+        case .rental(let form): form == .scooter ? "scooter" : "bicycle.circle"
         case .transit(_, let p):
             switch p {
             case .bus: "bus.fill"

@@ -317,6 +317,27 @@ enum LegKind: Equatable {
     case bike
     case car
     case transit(line: String, product: TransitProduct)
+    /// Ein Leihgerät zur Haltestelle oder von ihr weg (Transitous, GBFS).
+    case rental(RentalForm)
+}
+
+/// Was geliehen wird. GBFS kennt mehr; gefragt wird nur nach diesen beiden.
+enum RentalForm: String, Equatable {
+    case scooter, bike
+
+    init?(gbfs: String) {
+        switch gbfs {
+        case "SCOOTER_STANDING", "SCOOTER_SEATED", "SCOOTER", "MOPED": self = .scooter
+        case "BICYCLE", "CARGO_BICYCLE": self = .bike
+        default: return nil
+        }
+    }
+}
+
+/// Wer verleiht, und der Link, der dessen App gleich beim Fahrzeug öffnet.
+struct Rental: Equatable {
+    var system: String
+    var appURL: URL?
 }
 
 struct Leg: Identifiable {
@@ -342,6 +363,8 @@ struct Leg: Identifiable {
     /// Zu Fuß: Meter ohne Beleuchtung, wenn der Weg über BRouter geplant ist.
     /// nil heißt unbekannt — die Linie kam so aus dem Fahrplan.
     var darkMeters: Double? = nil
+    /// Bei einem Leihgerät: Anbieter und Link in dessen App.
+    var rental: Rental? = nil
 
     var duration: TimeInterval { arrival.timeIntervalSince(departure) }
 
@@ -358,6 +381,10 @@ struct Leg: Identifiable {
 
     var isTransit: Bool {
         if case .transit = kind { true } else { false }
+    }
+
+    var isRental: Bool {
+        if case .rental = kind { true } else { false }
     }
 
     var lineName: String? {
@@ -411,7 +438,8 @@ struct TripOption: Identifiable {
             }
             // Zu Fuß ganz ohne Zug: dann eben die Abfahrt und die Strecke.
             guard !trains.isEmpty else { return [mode.rawValue, minute(leave), hm].joined(separator: "|") }
-            return ([mode.rawValue] + trains).joined(separator: "|")
+            // Dieselben Züge mit dem Roller zur Haltestelle sind eine andere Möglichkeit.
+            return ([mode.rawValue] + (usesRental ? ["leih"] : []) + trains).joined(separator: "|")
         }
     }
 
@@ -458,9 +486,14 @@ struct TripOption: Identifiable {
     /// Bike+rail using U-Bahn or tram somewhere: shown, but only as the
     /// alternative to S-Bahn/regional trains with a bike compartment.
     var isAlternative: Bool {
-        mode == .bikeTransit && transitLegs.contains {
+        if usesRental { return true }
+        return mode == .bikeTransit && transitLegs.contains {
             if case .transit(_, let p) = $0.kind { !p.hasBikeCompartment } else { false }
         }
     }
+
+    /// Bus & Bahn mit Leihroller oder -rad an einem Ende — immer nur die
+    /// Alternative zum Weg zu Fuß.
+    var usesRental: Bool { legs.contains(where: \.isRental) }
 
 }

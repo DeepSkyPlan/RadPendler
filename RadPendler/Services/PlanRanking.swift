@@ -71,7 +71,10 @@ extension TripPlanner {
         // No connection that takes the bike: fall back in the user's own order,
         // minus bike + rail, which just had its turn.
         for mode in order where mode != .bikeTransit {
-            if let pick = options.filter({ $0.mode == mode }).min(by: { arrival($0) < arrival($1) }) {
+            // Der Leihroller ist die Alternative, nicht die Empfehlung.
+            let ofMode = options.filter { $0.mode == mode }
+            let plain = ofMode.contains { !$0.isAlternative } ? ofMode.filter { !$0.isAlternative } : ofMode
+            if let pick = plain.min(by: { arrival($0) < arrival($1) }) {
                 return Recommendation(optionID: pick.id, reason: L("keine Verbindung mit Radmitnahme gefunden"))
             }
         }

@@ -240,6 +240,9 @@ struct SelectedTripBar: View {
         if option.bikeCarriageUnclear {
             return Note(text: L("Rad ungeklärt"), symbol: "questionmark.circle", tint: .orange)
         }
+        if option.usesRental {
+            return Note(text: L("Leihroller"), symbol: "scooter", tint: .teal)
+        }
         if option.isAlternative {
             return Note(text: L("U-Bahn/Tram"), symbol: "arrow.triangle.branch", tint: .orange)
         }

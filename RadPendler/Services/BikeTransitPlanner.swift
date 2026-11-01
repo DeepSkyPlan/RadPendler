@@ -7,6 +7,9 @@ import Foundation
 
 extension TripPlanner {
     func transitOptions(_ req: PlanRequest) async throws -> [TripOption] {
+        // Daneben, wenn eingeschaltet, dieselbe Frage mit Leihroller und
+        // -rad an beiden Enden. Scheitert sie, bleibt es beim Weg zu Fuß.
+        async let rented = req.settings.rentalWalks ? rentalJourneys(req) : []
         let journeys: [[Leg]]
         if source(req) == .transitous {
             journeys = try await motisTransitJourneys(req)
@@ -36,7 +39,40 @@ extension TripPlanner {
         }
         options.sort { TripPlanner.ranking($0, $1, penalty: penalty, arrival: req.isArrival,
                                            order: req.settings.modeOrder) }
-        return Array(options.prefix(3))
+        return Array(options.prefix(3)) + (await rentalOptions(rented, req, beside: options))
+    }
+
+    /// Transitous mit Leihgeräten an den Enden. Nur was wirklich eins nimmt,
+    /// und nie ausgefallene Züge.
+    private func rentalJourneys(_ req: PlanRequest) async -> [[Leg]] {
+        let found = await Log.attemptAsync("Leihroller zur Haltestelle") {
+            try await motis.journeys(from: req.origin.coordinate, to: req.destination.coordinate,
+                                     at: req.arriveBy ?? req.earliestLeave, arriveBy: req.isArrival,
+                                     access: .rental, results: 4)
+        } ?? []
+        return found.filter { legs in
+            legs.contains(where: \.isRental) && legs.contains(where: \.isTransit) && !legs.contains(where: \.cancelled)
+        }
+    }
+
+    /// Die beste Verbindung mit Leihgerät, als Alternative — wenn sie früher
+    /// ankommt (bzw. später losgeht) als die beste zu Fuß; sonst lohnt sie nicht.
+    static let rentalOffered = 1
+
+    private func rentalOptions(_ journeys: [[Leg]], _ req: PlanRequest, beside walking: [TripOption]) async -> [TripOption] {
+        guard !journeys.isEmpty else { return [] }
+        let penalty = req.settings.transferPenalty
+        let walked = await walkedOnStreets(journeys, onlyLit: req.settings.onlyLitWalks)
+        var options = walked.map { TripOption(mode: .transit, legs: $0, prep: req.settings.prep,
+                                              note: L("Leihgeräte von Transitous (GBFS) — Verfügbarkeit beim Losgehen prüfen")) }
+        if let by = req.arriveBy {
+            options = options.filter { $0.arrival <= by.addingTimeInterval(60) }
+        }
+        if let best = walking.first {
+            options = options.filter { TripPlanner.ranking($0, best, penalty: penalty, arrival: req.isArrival) }
+        }
+        options.sort { TripPlanner.ranking($0, $1, penalty: penalty, arrival: req.isArrival) }
+        return Array(options.prefix(Self.rentalOffered))
     }
 
     /// Der Weg zu Fuß zur ersten Haltestelle und von der letzten zum Ziel,
