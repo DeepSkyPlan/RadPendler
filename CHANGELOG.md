@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — Leihroller und -räder zur Haltestelle
+## 1.25 (Build 65) — Leihroller und -räder zur Haltestelle
 
 - **Bus & Bahn mit Leihroller oder Leihrad** (Einstellung „Leihroller und -räder zur Haltestelle“, aus
   bis zum Einschalten): daneben fragt die App Transitous mit `RENTAL` an beiden Enden (GBFS der Anbieter,
