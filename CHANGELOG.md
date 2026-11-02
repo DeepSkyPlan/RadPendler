@@ -1,5 +1,11 @@
 # Changelog
 
+## Unveröffentlicht — Fahrt beenden: wozu gespeichert wird
+
+- **„Fahrt beenden?“ sagt, was mit der Fahrt passiert:** sie bleibt auf den eigenen Geräten und in der
+  privaten iCloud, und sie hilft: gewohnte Wege werden bevorzugt, Ampelwartezeiten und Tempo werden
+  realistischer, die Heatmap zeigt die gefahrenen Strecken.
+
 ## 1.25 (Build 65) — Leihroller und -räder zur Haltestelle
 
 - **Bus & Bahn mit Leihroller oder Leihrad** (Einstellung „Leihroller und -räder zur Haltestelle“, aus

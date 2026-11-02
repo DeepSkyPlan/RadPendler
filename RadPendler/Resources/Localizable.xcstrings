@@ -1288,6 +1288,17 @@
         }
       }
     },
+    "Die Fahrt wird gespeichert, die Ortung hört auf. Sie bleibt auf deinen Geräten und in deiner privaten iCloud — sonst sieht sie niemand.\n\n• Deine gewohnten Wege werden bevorzugt vorgeschlagen\n• Ampelwartezeiten und dein Tempo werden realistischer\n• Die Heatmap zeigt, wo du gefahren bist": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The ride is saved and location stops. It stays on your devices and in your private iCloud — no one else sees it.\n\n• Your usual routes are suggested first\n• Signal waits and your speed get more realistic\n• The heatmap shows where you have ridden"
+          }
+        }
+      }
+    },
     "Die Fahrzeit kommt von Apple Karten mit Verkehrslage. Wie viel länger oder kürzer du wirklich brauchst, lernt die App aus deinen aufgezeichneten Autofahrten: gefahrene Zeit Tür zu Tür geteilt durch Apples Ansage, der Median der letzten Fahrten, sobald es drei gibt. Mit diesem Faktor wird Apples Zeit malgenommen — auf jeder Strecke, Stadt wie Autobahn; Parkplatzsuche und Gesamtschnitt gelten dann nicht mehr, sie stecken darin. Bis dahin gilt Apple plus Parkplatzsuche, und dein Gesamtschnitt als Untergrenze, außer wo Apple die Linie mehr als anderthalbmal so schnell fährt wie er.": {
       "extractionState": "manual",
       "localizations": {
