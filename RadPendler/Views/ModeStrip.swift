@@ -214,6 +214,9 @@ struct SelectedTripBar: View {
                 // Blick — wie viel davon ist Hauptstraße?
                 if let mix = option.bikeRoute?.mix, !mix.isEmpty {
                     RoadMixBar(mix: mix, compact: true)
+                } else if let ways = option.wayMix {
+                    // Bei Bus & Bahn: zu Fuß, im Dunkeln zu Fuß, Bahn, Bus.
+                    WayMixBar(mix: ways, compact: true)
                 }
             }
             .padding(.horizontal, 12)
@@ -245,6 +248,9 @@ struct SelectedTripBar: View {
         }
         if option.isAlternative {
             return Note(text: L("U-Bahn/Tram"), symbol: "arrow.triangle.branch", tint: .orange)
+        }
+        if option.darkWalkMeters >= 20 {
+            return Note(text: L("%@ dunkel", Fmt.km(option.darkWalkMeters)), symbol: "moon", tint: .indigo)
         }
         if !option.passesWaypoints {
             return Note(text: L("ohne Fixpunkte"), symbol: "point.topleft.down.to.point.bottomright.curvepath",

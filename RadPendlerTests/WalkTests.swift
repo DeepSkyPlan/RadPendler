@@ -102,3 +102,37 @@ final class WalkTests: XCTestCase {
         XCTAssertLessThanOrEqual(lit.darkMeters ?? .infinity, plain.darkMeters ?? 0)
     }
 }
+
+/// Der Balken bei Bus & Bahn: Fußweg und Fußweg unbeleuchtet getrennt.
+final class WayMixTests: XCTestCase {
+    private let a = CLLocationCoordinate2D(latitude: 52.5210, longitude: 13.4130)
+    private let t0 = Date(timeIntervalSince1970: 1_800_000_000)
+
+    private func leg(_ kind: LegKind, _ m: Double, dark: Double? = nil) -> Leg {
+        var l = Leg(kind: kind, fromName: "", toName: "", departure: t0, arrival: t0.addingTimeInterval(60),
+                    distance: m, coordinates: [a, a])
+        l.darkMeters = dark
+        return l
+    }
+
+    func testTheWalkSplitsIntoLitAndUnlit() {
+        let option = TripOption(mode: .transit, legs: [
+            leg(.walk, 800, dark: 139),
+            leg(.transit(line: "S7", product: .suburban), 20_000),
+            leg(.transit(line: "X10", product: .bus), 3000),
+            leg(.walk, 250),
+        ], prep: 0)
+        let mix = try? XCTUnwrap(option.wayMix)
+        XCTAssertEqual(mix?[.walk], 911)
+        XCTAssertEqual(mix?[.walkDark], 139)
+        XCTAssertEqual(mix?[.rail], 20_000)
+        XCTAssertEqual(mix?[.bus], 3000)
+        XCTAssertEqual(option.darkWalkMeters, 139)
+        XCTAssertEqual(mix?.present, [.walk, .walkDark, .rail, .bus])
+    }
+
+    func testOnlyTripsWithATimetableHaveTheBar() {
+        XCTAssertNil(TripOption(mode: .bike, legs: [leg(.bike, 5000)], prep: 0).wayMix)
+        XCTAssertNotNil(TripOption(mode: .bikeTransit, legs: [leg(.bike, 2000), leg(.rental(.scooter), 900)], prep: 0).wayMix)
+    }
+}

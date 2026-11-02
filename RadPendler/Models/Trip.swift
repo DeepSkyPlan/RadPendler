@@ -306,6 +306,55 @@ struct BikeRouteInfo {
     }
 }
 
+/// Womit eine Fahrt mit Fahrplan zurückgelegt wird, nach Metern — der Balken
+/// bei Bus & Bahn und Rad + Bahn. Der Fußweg zerfällt in beleuchtet und
+/// unbeleuchtet, sobald BRouter ihn geplant hat; vorher zählt er als Fußweg.
+enum WaySort: CaseIterable, Hashable {
+    case walk, walkDark, rental, bike, rail, bus
+
+    var title: String {
+        switch self {
+        case .walk: L("Fußweg")
+        case .walkDark: L("Fußweg unbeleuchtet")
+        case .rental: L("Leihgerät")
+        case .bike: L("Rad")
+        case .rail: L("Bahn")
+        case .bus: L("Bus")
+        }
+    }
+}
+
+struct WayMix: Equatable {
+    private(set) var meters: [WaySort: Double] = [:]
+
+    init(_ legs: [Leg]) {
+        for leg in legs {
+            guard let m = leg.length, m > 0 else { continue }
+            switch leg.kind {
+            case .walk:
+                let dark = Swift.min(leg.darkMeters ?? 0, m)
+                add(m - dark, .walk)
+                add(dark, .walkDark)
+            case .rental: add(m, .rental)
+            case .bike: add(m, .bike)
+            case .car: continue
+            case .transit(_, let p): add(m, p == .bus ? .bus : .rail)
+            }
+        }
+    }
+
+    private mutating func add(_ m: Double, _ sort: WaySort) {
+        guard m > 0 else { return }
+        meters[sort, default: 0] += m
+    }
+
+    subscript(_ sort: WaySort) -> Double { meters[sort] ?? 0 }
+    var total: Double { meters.values.reduce(0, +) }
+    var isEmpty: Bool { total <= 0 }
+    var present: [WaySort] { WaySort.allCases.filter { self[$0] > 0 } }
+    func share(_ sort: WaySort) -> Double { total > 0 ? self[sort] / total : 0 }
+}
+
 /// Whether the bike may come along. `unknown` is a real answer, not a missing
 /// one: the trip is still offered, with a warning, until the user has said.
 enum BikeCarriage: String, Codable, Equatable {
@@ -495,5 +544,15 @@ struct TripOption: Identifiable {
     /// Bus & Bahn mit Leihroller oder -rad an einem Ende — immer nur die
     /// Alternative zum Weg zu Fuß.
     var usesRental: Bool { legs.contains(where: \.isRental) }
+
+    /// Die Wegeanteile für den Balken — nur bei Fahrten mit Fahrplan.
+    var wayMix: WayMix? {
+        guard mode == .transit || mode == .bikeTransit else { return nil }
+        let mix = WayMix(legs)
+        return mix.isEmpty ? nil : mix
+    }
+
+    /// Meter zu Fuß ohne Beleuchtung, soweit bekannt.
+    var darkWalkMeters: Double { WayMix(legs)[.walkDark] }
 
 }

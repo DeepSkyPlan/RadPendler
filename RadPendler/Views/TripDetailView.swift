@@ -119,6 +119,9 @@ struct TripDetailView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            if let ways = option.wayMix {
+                WayMixBar(mix: ways)
+            }
             if let rain = option.rain {
                 Label(rain.summary, systemImage: rain.level.symbol)
                     .font(.system(.subheadline, design: .rounded))
@@ -176,6 +179,10 @@ struct TripNotes: View {
         } else if option.isAlternative {
             out.append(Note(text: L("Alternative mit U-Bahn/Tram — kein festes Radabteil"),
                             symbol: "arrow.triangle.branch", tint: .orange))
+        }
+        if option.darkWalkMeters >= 20 {
+            out.append(Note(text: L("%@ zu Fuß auf unbeleuchteten Wegen", Fmt.km(option.darkWalkMeters)),
+                            symbol: "moon", tint: .indigo))
         }
         if !option.passesWaypoints {
             out.append(Note(text: L("führt nicht über die Fixpunkte"),

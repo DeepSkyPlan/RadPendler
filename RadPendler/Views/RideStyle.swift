@@ -203,3 +203,68 @@ struct RoadMixBar: View {
         classes.map { "\($0.title) \(Fmt.km(mix[$0]))" }.joined(separator: ", ")
     }
 }
+
+extension WaySort {
+    var color: Color {
+        switch self {
+        case .walk: Color(uiColor: .systemGray2)
+        // Dunkel, aber nicht schwarz: im Dunkelmodus muss es noch zu sehen sein.
+        case .walkDark: .indigo
+        case .rental: LegKind.rental(.scooter).color
+        case .bike: LegKind.bike.color
+        case .rail: LegKind.transit(line: "", product: .suburban).color
+        case .bus: LegKind.transit(line: "", product: .bus).color
+        }
+    }
+}
+
+/// Wie `RoadMixBar`, aber für Fahrten mit Fahrplan: Fußweg (beleuchtet und
+/// unbeleuchtet), Leihgerät, Rad, Bahn, Bus — nach Metern.
+struct WayMixBar: View {
+    var mix: WayMix
+    var compact = false
+
+    private static let gap: CGFloat = 1.5
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            bar
+            if !compact { legend }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(mix.present.map { "\($0.title) \(Fmt.km(mix[$0]))" }.joined(separator: ", ")))
+    }
+
+    private var bar: some View {
+        let sorts = mix.present
+        return Canvas { context, size in
+            let gaps = Self.gap * CGFloat(max(sorts.count - 1, 0))
+            let usable = max(size.width - gaps, 1)
+            var x: CGFloat = 0
+            for s in sorts {
+                let w = max(2, usable * mix.share(s))
+                context.fill(Path(roundedRect: CGRect(x: x, y: 0, width: w, height: size.height),
+                                  cornerRadius: Swift.min(2.5, size.height / 2)),
+                             with: .color(s.color))
+                x += w + Self.gap
+            }
+        }
+        .frame(height: compact ? 5 : 11)
+    }
+
+    private var legend: some View {
+        HStack(spacing: 5) {
+            ForEach(mix.present, id: \.self) { s in
+                HStack(spacing: 3) {
+                    Circle().fill(s.color).frame(width: 6, height: 6)
+                    Text("\(s.title) \(Fmt.km(mix[s]))")
+                        .font(.system(size: 10, design: .rounded))
+                        .foregroundStyle(s == .walkDark ? s.color : .secondary)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+    }
+}

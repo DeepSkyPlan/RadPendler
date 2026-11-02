@@ -1,10 +1,14 @@
 # Changelog
 
-## Unveröffentlicht — Fahrt beenden: wozu gespeichert wird
+## Unveröffentlicht — Fahrt beenden: wozu gespeichert wird · Wegeanteile bei Bus & Bahn
 
 - **„Fahrt beenden?“ sagt, was mit der Fahrt passiert:** sie bleibt auf den eigenen Geräten und in der
   privaten iCloud, und sie hilft: gewohnte Wege werden bevorzugt, Ampelwartezeiten und Tempo werden
   realistischer, die Heatmap zeigt die gefahrenen Strecken.
+- **Wegeanteile bei Bus & Bahn und Rad + Bahn:** ein Balken wie bei der Radroute — Fußweg, Fußweg
+  unbeleuchtet, Leihgerät, Rad, Bahn, Bus, nach Metern; im Detail mit Legende. Unbeleuchtete Meter zu
+  Fuß stehen dazu als Hinweis („… zu Fuß auf unbeleuchteten Wegen“) und auf dem Kasten („… dunkel“) —
+  auch ohne „Nur beleuchtete Wege“, sobald BRouter den Fußweg geplant hat.
 
 ## 1.25 (Build 65) — Leihroller und -räder zur Haltestelle
 

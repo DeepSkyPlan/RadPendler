@@ -45,6 +45,17 @@
         }
       }
     },
+    "%@ dunkel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ dark"
+          }
+        }
+      }
+    },
     "%@ ist nicht gegangen: %@": {
       "extractionState": "manual",
       "localizations": {
@@ -96,6 +107,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ unlit"
+          }
+        }
+      }
+    },
+    "%@ zu Fuß auf unbeleuchteten Wegen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ on foot along unlit paths"
           }
         }
       }
@@ -914,6 +936,17 @@
         }
       }
     },
+    "Bahn": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Train"
+          }
+        }
+      }
+    },
     "Behalten": {
       "extractionState": "manual",
       "localizations": {
@@ -987,6 +1020,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Computed %@. Tap to plan again."
+          }
+        }
+      }
+    },
+    "Bus": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bus"
           }
         }
       }
@@ -2124,6 +2168,17 @@
         }
       }
     },
+    "Fußweg unbeleuchtet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Walk, unlit"
+          }
+        }
+      }
+    },
     "Fällt aus": {
       "extractionState": "manual",
       "localizations": {
@@ -2670,6 +2725,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rental scooters and bikes to the stop"
+          }
+        }
+      }
+    },
+    "Leihgerät": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rental"
           }
         }
       }
