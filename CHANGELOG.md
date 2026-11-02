@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht — Fahrt beenden: wozu gespeichert wird · Wegeanteile bei Bus & Bahn
+## 1.26 (Build 66) — Fahrt beenden: wozu gespeichert wird · Wegeanteile bei Bus & Bahn
 
 - **„Fahrt beenden?“ sagt, was mit der Fahrt passiert:** sie bleibt auf den eigenen Geräten und in der
   privaten iCloud, und sie hilft: gewohnte Wege werden bevorzugt, Ampelwartezeiten und Tempo werden
