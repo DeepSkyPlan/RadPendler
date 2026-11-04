@@ -10,7 +10,23 @@ Fassung von Name, Untertitel, Keywords und Beschreibung steht am Ende und
 gehört in die Lokalisierung **Englisch (USA)**, damit die Seite in Stores
 außerhalb Deutschlands nicht leer aussieht.
 
-## Einreichungs-Checkliste (1.18, Build 58 — die einzureichende Fassung)
+## Einreichungs-Checkliste (1.26, Build 66 — die einzureichende Fassung)
+
+Im Store steht 1.21 (freigegeben 15.10.2026); 1.22 bis 1.25 waren nur TestFlight. Muss vor dem
+30.11.2026 freigegeben sein — ab dann finden ältere Fassungen für Adressen keine VBB-Verbindung.
+Paket: `/storepaket` → `build/storepaket-1.26/` (Felder, Bilder, `LIESMICH.md`).
+
+1. **Build 1.26 (66)** auswählen — seit dem 02.11.2026 in TestFlight.
+2. **Screenshots neu, 04.11.2026, `./dev shots`**: `screenshots/iphone-6.3/` in „iPhone mit
+   Dynamic Island (mittleres Display)“, `screenshots/iphone-6.9/` (1320 × 2868) nur, wenn der
+   große Schacht verlangt wird; der 6,5″-Satz ist entfallen. `ipad-13/` wie gehabt, `watch-46/`
+   unverändert vom 10.10.2026 (die vier gezeigten Uhrseiten sind seither gleich).
+3. **Was ist neu** — Text unten, **für 1.26**, deutsch und englisch.
+4. Hinweis an die Prüfung, Kategorie, Alter, URLs wie 1.18.
+5. App-Datenschutz unverändert. Neu angesprochen: `vbb.hafas.cloud` (VBB, ab 30.11.), die
+   Leihgeräte kommen über Transitous; die Datenschutzseite nennt beides, veröffentlicht 04.11.2026.
+
+## Einreichungs-Checkliste (1.18, Build 58)
 
 Was seit der 1.8.1-Liste dazugekommen ist; alles andere gilt wie dort. Im Store steht 1.13;
 1.14 bis 1.17 waren nur TestFlight.
@@ -197,7 +213,7 @@ neu ist, nicht was immer gilt.
 
 ## Beschreibung (max 4000)
 
-Länge: **3998** von 4000 Zeichen. Stand 1.18.
+Länge: **3991** von 4000 Zeichen. Stand 1.26.
 
 ```
 Wie kommst du heute zur Arbeit?
@@ -205,9 +221,6 @@ Wie kommst du heute zur Arbeit?
 RadPendler rechnet dieselbe Strecke auf vier Arten und stellt sie
 nebeneinander: Rad, Rad und Bahn, Auto, Bus & Bahn. Vier Kästen, vier
 Fahrzeiten, ein Stern an dem, der heute gewinnt — auf einer Seite.
-
-Gebaut für einen echten Arbeitsweg — und sie sagt, was sie nicht weiß, statt
-zu raten.
 
 DIE VIER WEGE
 • Fahrrad in vier Linien: schnellst, kürzest, ruhig (über Fahrradstraßen) und
@@ -217,7 +230,9 @@ DIE VIER WEGE
   radelt weiter
 • Auto: optimal, schnellst, kürzest oder wenig Ampeln — jede Linie, die
   Apple Karten anbietet, nicht nur die schnellste
-• Bus & Bahn: die Fahrplanverbindung mit Umstiegen, Gleisen und Echtzeit
+• Bus & Bahn: die Fahrplanverbindung mit Umstiegen, Gleisen und Echtzeit;
+  der Fußweg zur Haltestelle auf echten Wegen, auf Wunsch nur beleuchtet
+  oder mit Leihroller
 
 AMPELN, DIE MITZÄHLEN
 Eine Radzeit ohne Ampeln ist eine Radzeit für ein leeres Land. RadPendler holt
@@ -239,8 +254,7 @@ Schnitt neben dem geplanten, die Restzeit mit Ankunftszeit und die Ampeln als
 „3/18“ samt der Zeit, die du an ihnen gestanden hast. Wer vom Weg abkommt,
 sieht, wie weit — und bekommt eine neue Route in Fahrtrichtung. „Pause“ für
 die gewollte Unterbrechung; von selbst hält die Aufzeichnung an, wenn du lange
-stehst, und läuft weiter, sobald es weitergeht. Der Bildschirm dunkelt ab,
-solange niemand ihn anfasst, und bleibt am Ladekabel hell.
+stehst, und läuft weiter, sobald es weitergeht.
 
 REGEN, WO DU FÄHRST
 Nicht „Regenwahrscheinlichkeit 40 %“, sondern Regen an den Punkten deiner
@@ -261,7 +275,8 @@ zu ist.
 BUNDESWEIT, DEUTSCH UND ENGLISCH
 In Berlin und Brandenburg antwortet der VBB — genauer, und als Einziger sagt
 er je Zug, ob Räder mitdürfen. Alles darüber hinaus beantwortet
-Transitous, die MOTIS-Instanz auf dem bundesweiten DELFI-Datensatz. Die Sprache stellst du im Menü um, ohne Neustart.
+Transitous auf dem bundesweiten DELFI-Datensatz. Die Sprache stellst du im
+Menü um, ohne Neustart.
 
 iPAD UND APPLE WATCH
 Auf dem iPad steht alles nebeneinander: links Adressen, Zeitwahl, die vier
@@ -285,6 +300,78 @@ BRouter und Overpass auf OpenStreetMap-Daten (© OpenStreetMap-Mitwirkende,
 ODbL), Deutscher Wetterdienst und Open-Meteo.
 
 Alle Zeiten ohne Gewähr.
+```
+
+## Was ist neu (1.26)
+
+Für das Feld „Neue Funktionen“ der Version 1.26 (DE 1848, EN 1802 Zeichen, max 4000). Deckt alles
+seit 1.21 ab — das ist die Fassung im Store (iTunes-Abfrage am 04.11.2026, freigegeben 15.10.2026);
+1.22 bis 1.25 waren nur TestFlight.
+
+```
+• Bereit für den neuen VBB-Fahrplanserver: Ab dem 30. November findet die App
+  Bus- und Bahnverbindungen über das neue System — ältere Fassungen finden
+  dann für Adressen keine VBB-Verbindung mehr. Bitte aktualisieren.
+• Fußweg zur Haltestelle auf echten Wegen: Der Weg zur ersten Haltestelle und
+  von der letzten zum Ziel wird über Straßen und Wege geplant, nicht mehr als
+  Luftlinie.
+• Neu: „Nur beleuchtete Wege“ — im Dunkeln meidet der Fußweg unbeleuchtete
+  Wege. Wo trotzdem dunkle Meter dabei sind, sagt es die Fahrt.
+• Neu: „Leihroller und -räder zur Haltestelle“ — die App zeigt zusätzlich die
+  beste Verbindung mit Leihroller oder Leihrad, wenn sie früher ankommt, und
+  öffnet das Fahrzeug direkt in der App des Anbieters.
+• Bus & Bahn und Rad + Bahn zeigen ihre Wegeanteile als Balken wie die
+  Radroute: Fußweg, unbeleuchtet, Leihgerät, Rad, Bahn, Bus.
+• Die Pille oben links zeigt das Wetter deiner Strecke: Temperatur und ob und
+  ab wann es regnet. Während der Fahrt stehen dort Uhrzeit, Akku und Wetter.
+• Während der Fahrt zeigt die Übersichtskarte die ganze Strecke, das
+  Regenradar von jetzt und die gefahrene Linie. Pfeil und Karte gleiten
+  flüssig statt zu springen — auch im Auto.
+• Aufgeräumter Fahrtbildschirm: Start und Ziel in zwei Zeilen, verbleibende
+  Kilometer im Kasten, Restzeit und Ankunft größer.
+• Am Ziel angekommen, dreht sich die Richtung sofort für den Rückweg.
+• Start und Ziel zählen nicht mehr als Halt — auch nicht in der Heatmap.
+• „Fahrt beenden?“ sagt, wo die Fahrt bleibt: auf deinen Geräten und in deiner
+  privaten iCloud, und wozu sie hilft.
+• Kurze Stücke Kopfsteinpflaster (bis 200 m) kosten eine sonst gute Radlinie
+  nicht mehr ihren Platz; längere meidet die App weiter.
+• Behoben: Nach einer Wende konnte die Neuplanung ausbleiben und die Route auf
+  der Gegenrichtung stehen bleiben.
+```
+
+English:
+
+```
+• Ready for the new VBB timetable server: from 30 November the app finds bus
+  and train connections on the new system — older versions will then find no
+  VBB connection for addresses. Please update.
+• Walking to the stop along real paths: the walk to the first stop and from
+  the last one to your destination is now routed along streets and paths
+  instead of a straight line.
+• New: “Lit paths only” — after dark, the walk avoids unlit paths. Where unlit
+  metres remain, the trip says so.
+• New: “Rental scooters and bikes to the stop” — the app also shows the best
+  connection with a rental scooter or bike when it arrives earlier, and opens
+  the vehicle right in the provider’s app.
+• Transit and Bike + rail show what the trip is made of as a bar, like the
+  bike route: walk, unlit, rental, bike, train, bus.
+• The pill at the top left shows the weather on your route: temperature and
+  whether and when it will rain. While riding it shows time, battery and
+  weather.
+• While riding, the overview map shows the whole trip, the current rain radar
+  and the track so far. Arrow and map glide smoothly instead of jumping — in
+  the car, too.
+• A tidier ride screen: start and destination on two lines, remaining
+  kilometres in the box, time left and arrival larger.
+• Once you arrive, the direction flips right away for the way back.
+• Start and destination no longer count as stops — not in the heat map
+  either.
+• “End the ride?” tells you where the ride is kept — on your devices and in
+  your private iCloud — and what it is good for.
+• Short stretches of cobblestones (up to 200 m) no longer cost an otherwise
+  good bike line its place; longer ones are still avoided.
+• Fixed: after turning around, the new route could fail to appear and the old
+  one stayed on the opposite direction.
 ```
 
 ## Was ist neu (1.18)
@@ -714,9 +801,9 @@ beiden Schächte annimmt, sind kurz; alles andere wird beim Hochladen abgelehnt:
 
 | Geräteklasse | Simulator | Größe | Ordner |
 |---|---|---|---|
-| iPhone 6,1″/6,3″ | iPhone 17 | 1206 × 2622 | `screenshots/iphone-6.3/` |
-| iPhone 6,5″ | DF-iphone65 (iPhone 13 Pro Max) | 1284 × 2778 | `screenshots/iphone-6.5/` |
-| iPad 13″ | iPad Pro 13-inch (M5) | 2064 × 2752 | `screenshots/ipad-13/` |
+| iPhone 6,1″/6,3″ | RP iPhone 17 Pro | 1206 × 2622 | `screenshots/iphone-6.3/` |
+| iPhone 6,9″ | RP iPhone 17 Pro Max | 1320 × 2868 | `screenshots/iphone-6.9/` |
+| iPad 13″ | RP iPad Pro 13 | 2064 × 2752 | `screenshots/ipad-13/` |
 | Apple Watch 46 mm | Apple Watch Series 11 (46mm) | 416 × 496 | `screenshots/watch-46/` |
 
 Die Größe muss zum Schacht passen: der 6,5″-Satz im 6,1″/6,3″-Schacht wird abgelehnt
@@ -760,6 +847,15 @@ gehen in die nächste Planung ein. Deshalb gehört sie in die Bilder — ohne si
 sieht die App wie ein reiner Planer aus.
 
 ### Neu aufnehmen
+
+**Seit 04.11.2026 in einem Befehl: `./dev shots [iphone-6.3|iphone-6.9|ipad-13]`**
+(`tools/store_shots.sh`) — eigene Simulatoren `RP …`, Adressen, Ortung und zwei Läufe je Gerät wie
+unten beschrieben, Bilder ohne Alphakanal nach `screenshots/<schacht>/`. Die Uhr bleibt von Hand.
+Steht in `3-fahrt` „Ampeln und Hauptstraßen unbekannt“, war Overpass überlastet (am 04.11. 28–40 s
+je Abfrage, die App gibt nach 30 s auf): den Ordner `Library/Caches/osm-roads` aus dem Container
+eines Geräts mit Ampeln in die anderen kopieren und neu aufnehmen.
+
+Von Hand, wie es das Skript tut:
 
 Die Aufnahmen macht `RadPendlerUITests/ScreenshotTests` — ein eigenes Schema
 `RadPendlerShots`, damit `./dev test` schnell bleibt. Es tippt sich durch die
@@ -962,7 +1058,8 @@ THE FOUR WAYS
 • Car: best, fastest, shortest or fewest lights — every line Apple Maps
   offers, not only the quickest
 • Bus and train: the plain timetable connection, with changes, platforms and
-  real-time data as far as the service gives it
+  real-time data as far as the service gives it; the walk to the stop along real
+  paths, lit paths only if you like, or by rental scooter
 
 TRAFFIC LIGHTS THAT COUNT
 A cycling time without traffic lights is a cycling time for an empty country.

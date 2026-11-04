@@ -77,6 +77,9 @@ case "${1:-test}" in
   # daneben, ein Zip — aus appstore/metadata.md. Prüft die Längen und lädt
   # nichts hoch.
   store) python3 tools/store_package.py ;;
+  # Die Store-Bilder frisch: iPhone 6,3″ und 6,9″, iPad 13″ auf eigenen RP-Simulatoren
+  # (Schema RadPendlerShots, rund eine halbe Stunde, braucht Netz).
+  shots) shift; exec tools/store_shots.sh "$@" ;;
   # Was CI tut, in derselben Reihenfolge.
   check)  "$0" lint && "$0" test ;;
   # Erfundene Fahrten in den Simulator, damit Fahrtenliste und Heatmap etwas
@@ -94,5 +97,5 @@ case "${1:-test}" in
     echo "Demo-Fahrten werden angelegt (ein paar Sekunden, braucht Netz für die Linien)." ;;
   # Nur auf Ansage: Buildnummer +1, Tests, Archiv, Upload, Commit, Push.
   testflight) shift; exec tools/testflight.sh "$@" ;;
-  *) echo "usage: ./dev [generate|build|test|lint [baseline]|check|rules|routes|store|demo [anzahl]|open|clean|testflight [version]]" >&2; exit 2 ;;
+  *) echo "usage: ./dev [generate|build|test|lint [baseline]|check|rules|routes|store|shots|demo [anzahl]|open|clean|testflight [version]]" >&2; exit 2 ;;
 esac

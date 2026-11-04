@@ -4,7 +4,7 @@ Multimodaler Pendel-Planer (iPhone, iPad, Watch). SwiftUI, XcodeGen, iOS 17+, `d
 
 **Wiedereinstieg: Kopf von `HANDOVER.md` lesen.** Dort stehen Stand, Build und die offene Prüfliste.
 
-- Einziger Einstieg ist `./dev` (`generate|build|test|lint|check|rules|routes|store|demo|open|clean|testflight`). Kein eigenes
+- Einziger Einstieg ist `./dev` (`generate|build|test|lint|check|rules|routes|store|shots|demo|open|clean|testflight`). Kein eigenes
   `-derivedDataPath` — Xcode und Kommandozeile teilen sich die Standard-DerivedData.
 - Tests: `./dev test` (~380 Tests, rund 10 s). `MOTIS_LIVE=1` schaltet den echten Transitous-Aufruf zu,
   `TEST_RUNNER_VBB_LIVE=1 ./dev test` den echten Aufruf der VBB-API.
@@ -23,6 +23,9 @@ Multimodaler Pendel-Planer (iPhone, iPad, Watch). SwiftUI, XcodeGen, iOS 17+, `d
 - Store-Paket: `./dev store` baut aus `appstore/metadata.md` `build/appstore-<version>/` und ein Zip
   (jedes Feld als Datei, DE und EN, Screenshots, Prüfhinweis) und bricht ab, wenn ein Feld über seiner
   Grenze liegt. Lädt nichts hoch. Die Texte werden nur in `metadata.md` geändert.
+- Store-Bilder: `./dev shots [iphone-6.3|iphone-6.9|ipad-13]` (`tools/store_shots.sh`, eigene RP-Simulatoren,
+  rund 8 min je Gerät, braucht Netz); Paket mit Skill `/storepaket`. Support-/Datenschutzseite veröffentlichen:
+  `appstore/pages/veroeffentlichen.sh`.
 - Leerer Simulator: `./dev demo [anzahl]` legt erfundene Fahrten an (nur Debug, `DemoRides`), damit
   Fahrtenliste und Heatmap etwas zeigen; `DEMO_DEVICE="…"` wählt das Gerät. Ansehen mit `simweb radpendler`.
 - Ausliefern nur auf Ansage: `./dev testflight [version]` bzw. Skill `/testflight`.
