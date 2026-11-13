@@ -34,6 +34,9 @@ struct RoadData {
     /// den Ampeln der Karte, nicht zwischen ihnen: eine zwischengespeicherte
     /// Antwort bleibt, was der Server geschickt hat.
     var learned: [LearnedSignal] = []
+    /// Die Kreisverkehre am Weg — dafür, dass keine Radlinie sie gegen den
+    /// Verkehr umfährt (`RoundaboutRule`).
+    var rings: [RoundaboutRule.Ring] = []
 
     /// Overpass JSON: signal nodes via `out skel`, roads via `convert … out geom`.
     static func parse(_ data: Data) throws -> RoadData {
@@ -44,6 +47,7 @@ struct RoadData {
         // Ein gewachsener Schlauch besteht aus mehreren Antworten, und wo sie
         // sich überlappen, steht dieselbe Ampel und dieselbe Straße zweimal da.
         var seenSignals = Set<String>(), seenRoads = Set<String>()
+        var ringPieces: [[CLLocationCoordinate2D]] = [], seenPieces = Set<String>()
         for e in elements {
             if e["type"] as? String == "node", let lat = e["lat"] as? Double, let lon = e["lon"] as? Double {
                 let c = CLLocationCoordinate2D(latitude: lat, longitude: lon)
@@ -52,19 +56,29 @@ struct RoadData {
             }
             guard let tags = e["tags"] as? [String: String],
                   let geom = e["geometry"] as? [String: Any], let coords = geom["coordinates"] as? [[Double]] else { continue }
+            let points = Geo.validated(coords.filter { $0.count >= 2 }
+                .map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) })
+            // Die Kreisverkehre kommen als eigene Elemente (`junction`), auch
+            // wenn dieselbe Fahrbahn als Hauptstraße schon dasteht.
+            if let junction = tags["junction"], !junction.isEmpty {
+                if points.count >= 2, let first = points.first, let last = points.last,
+                   seenPieces.insert(String(format: "%d|%.6f,%.6f|%.6f,%.6f", points.count, first.latitude,
+                                            first.longitude, last.latitude, last.longitude)).inserted {
+                    ringPieces.append(points)
+                }
+                continue
+            }
             // A road in a tunnel is not something the rider crosses.
             if let t = tags["tunnel"], !t.isEmpty, t != "no" { continue }
             let ref = tags["ref"].flatMap { $0.isEmpty ? nil : $0.replacingOccurrences(of: ";", with: "/") }
             let name = [ref, tags["name"].flatMap { $0.isEmpty ? nil : $0 }].compactMap { $0 }.first ?? L("Hauptstraße")
-            let points = Geo.validated(coords.filter { $0.count >= 2 }
-                .map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) })
             guard points.count >= 2, let first = points.first, let last = points.last else { continue }
             let key = String(format: "%@|%d|%.6f,%.6f|%.6f,%.6f", name, points.count,
                              first.latitude, first.longitude, last.latitude, last.longitude)
             guard seenRoads.insert(key).inserted else { continue }
             roads.append(Road(name: name, points: points))
         }
-        return RoadData(signals: signals, roads: roads)
+        return RoadData(signals: signals, roads: roads, rings: RoundaboutRule.rings(ringPieces))
     }
 
     /// Zwei Antworten in einer, als dieselbe Art Datei: die Elemente beider
@@ -309,8 +323,25 @@ actor RoadDataStore {
     /// jedes Mal die Platte. Mehr ist ein Leck, kein Zwischenspeicher.
     static let maxBoxesInMemory = 3
     private let maxAge: TimeInterval = 30 * 86_400
+    /// `osm-roads-2` seit 1.27: die Antworten tragen jetzt auch die
+    /// Kreisverkehre. Eine ältere hätte keine und ließe dreißig Tage lang
+    /// jede Linie gegen den Verkehr um den Ring durch; der alte Ordner wird
+    /// beim ersten Zugriff gelöscht.
     private var directory: URL {
-        folder ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent("osm-roads")
+        if let folder { return folder }
+        let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        Self.dropLegacy(in: caches)
+        return caches.appendingPathComponent("osm-roads-2")
+    }
+
+    nonisolated(unsafe) private static var legacyChecked = false
+
+    private static func dropLegacy(in caches: URL) {
+        guard !legacyChecked else { return }
+        legacyChecked = true
+        let old = caches.appendingPathComponent("osm-roads")
+        guard FileManager.default.fileExists(atPath: old.path) else { return }
+        Log.attempt("alte Straßendaten löschen") { try FileManager.default.removeItem(at: old) }
     }
 
     /// So lange wartet eine Planung auf Straßendaten, die erst geholt werden
@@ -652,6 +683,8 @@ actor RoadDataStore {
         node(around:\(r),\(around))[~"^(highway|crossing)$"~"^traffic_signals$"];out skel qt;
         way(around:\(r),\(around))[highway~"^(trunk|primary|secondary)(_link)?$"];
         convert way ::geom=geom(),ref=t["ref"],name=t["name"],tunnel=t["tunnel"];out geom qt;
+        way(around:\(r),\(around))[junction~"^(roundabout|circular)$"][highway];
+        convert way ::geom=geom(),junction=t["junction"];out geom qt;
         """
     }
 

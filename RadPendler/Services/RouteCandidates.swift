@@ -190,6 +190,13 @@ struct BikeCandidate {
     /// Anteil der Meter auf Wegen, die dieser Fahrer schon gefahren ist
     /// (`RiddenPaths`), 0…1.
     var familiar: Double = 0
+    /// Wo die Linie einen Kreisverkehr im Uhrzeigersinn umfährt — gegen den
+    /// Verkehr (`RoundaboutRule`). Leer ohne Straßendaten.
+    var wrongWay: [RoundaboutRule.Passage] = []
+    /// Die Zwischenpunkte, mit denen diese Linie gefragt wurde, wenn es nicht
+    /// die der Planung sind — nach einer Korrektur am Kreisverkehr. Die
+    /// Neuplanung unterwegs fährt sie mit an.
+    var via: [CLLocationCoordinate2D]?
 
     /// Apple Karten liefert keine Höhen. Eine Linie, deren Anstieg niemand
     /// kennt, darf dadurch weder gewinnen noch verlieren — sie bekommt für
@@ -308,6 +315,15 @@ struct BikeCandidate {
         return clean.isEmpty ? all : clean
     }
 
+    /// Nie gegen die Kreisverkehrsrichtung (Nutzer, 13.11.2026). Was der
+    /// Planer nicht umlenken konnte (`TripPlanner.rightWayRound`), fällt weg,
+    /// solange eine andere Linie dasteht — wie beim Pflaster: lieber eine
+    /// falsche als gar keine, aber nie eine falsche statt einer richtigen.
+    static func avoidingWrongWay(_ all: [BikeCandidate]) -> [BikeCandidate] {
+        let clean = all.filter { $0.wrongWay.isEmpty }
+        return clean.isEmpty ? all : clean
+    }
+
     /// schnellst = least riding time (traffic lights included), ruhigst =
     /// least disturbance, verkehrsarm = fewest places where traffic makes one
     /// stop (lit junctions and main roads crossed), optimal = best balance of
@@ -379,7 +395,7 @@ struct BikeCandidate {
         // dann wieder nicht"). Jetzt vergeben die vier Linien ihre Rollen
         // unter sich, und die gewohnte kommt als eigener, fünfter Weg dazu —
         // außer sie **ist** eine der vier, dann steht sie schon da.
-        let levelledAll = levelled(s.avoidCobbles ? avoidingCobbles(candidates) : candidates)
+        let levelledAll = levelled(avoidingWrongWay(s.avoidCobbles ? avoidingCobbles(candidates) : candidates))
         let all = distinct(levelledAll.filter { $0.source != .habit })
         let habit = levelledAll.first { c in c.source == .habit && !all.contains { sameLine($0.route, c.route) } }
         guard !all.isEmpty else { return habit.map { [($0, [.alternative])] } ?? [] }

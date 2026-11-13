@@ -68,7 +68,8 @@ extension TripPlanner {
                     group.addTask {
                         (i, BikeCandidate(source: name, route: route,
                                           stats: data.map { RouteAnalyzer.analyze(route.coordinates, roads: $0) },
-                                          familiar: RiddenPaths.familiarShare(route.coordinates, ridden: ridden)))
+                                          familiar: RiddenPaths.familiarShare(route.coordinates, ridden: ridden),
+                                          wrongWay: data.map { RoundaboutRule.wrongWay(route.coordinates, rings: $0.rings) } ?? []))
                     }
                 }
                 var out: [(Int, BikeCandidate)] = []
@@ -105,7 +106,8 @@ extension TripPlanner {
         }
         guard !found.isEmpty else { throw PlannerError.noBikeRoute }
         var data = Self.withLearned(try? await roads.data(covering: found.flatMap { $0.1.coordinates }), req.settings)
-        var candidates = await judge(found, data)
+        var candidates = await Self.rightWayRound(await judge(found, data), data: data, brouter: brouter, from: o, to: d,
+                                                     via: via, habitVia: habitVia, ridden: ridden)
         var picked = BikeCandidate.pick(candidates, settings: req.settings, fill: false)
         // **Eine Route ist immer doof.** Gewinnt eine Linie mehrere der
         // obersten Rollen, bleiben Plätze frei — dann geht es die eigene
@@ -119,7 +121,8 @@ extension TripPlanner {
                 if !extra.isEmpty {
                     found += extra
                     data = Self.withLearned(try? await roads.data(covering: found.flatMap { $0.1.coordinates }), req.settings)
-                    candidates = await judge(found, data)
+                    candidates = await Self.rightWayRound(await judge(found, data), data: data, brouter: brouter, from: o, to: d,
+                                                     via: via, habitVia: habitVia, ridden: ridden)
                 }
             }
         }
@@ -151,8 +154,8 @@ extension TripPlanner {
                                                              familiar: c.familiar,
                                                              cycleStreetMeters: c.route.cycleStreetMeters,
                                                              cobbleMeters: c.route.cobbleMeters,
-                                                             via: c.source == .habit ? habitVia ?? via
-                                                                 : c.source == .apple ? [] : via))
+                                                             via: c.via ?? (c.source == .habit ? habitVia ?? via
+                                                                 : c.source == .apple ? [] : via)))
             // Only the route that matches the user's first choice is the one
             // the recommendation weighs; the others are alternatives.
             option.isPreferredVariant = index == 0
@@ -168,6 +171,45 @@ extension TripPlanner {
         if brouterMissing { return L("Nur die Route von Apple Karten — BRouter antwortet gerade nicht") }
         guard roadData == nil else { return nil }
         return noRoadDataNote(km: km, settings: settings)
+    }
+
+    /// Nie gegen die Kreisverkehrsrichtung (Nutzer, 13.11.2026): eine Linie,
+    /// die einen Ring rechts herum umfährt, wird mit einem Zwischenpunkt auf
+    /// seiner anderen Seite neu gefragt (`RoundaboutRule.detour`). Fährt auch
+    /// die neue falsch herum, bleibt die alte stehen und fällt bei der
+    /// Rollenvergabe weg (`BikeCandidate.avoidingWrongWay`).
+    static func rightWayRound(_ list: [BikeCandidate], data: RoadData?, brouter: BRouterClient,
+                              from o: CLLocationCoordinate2D, to d: CLLocationCoordinate2D,
+                              via: [CLLocationCoordinate2D], habitVia: [CLLocationCoordinate2D]?,
+                              ridden: [[CLLocationCoordinate2D]]) async -> [BikeCandidate] {
+        guard let data, list.contains(where: { !$0.wrongWay.isEmpty }) else { return list }
+        return await withTaskGroup(of: (Int, BikeCandidate).self) { group in
+            for (i, c) in list.enumerated() {
+                let profile: BRouterClient.Profile
+                let base: [CLLocationCoordinate2D]
+                switch c.source {
+                case .brouter(let p): (profile, base) = (p, via)
+                case .habit: (profile, base) = (.trekking, habitVia ?? via)
+                default: group.addTask { (i, c) }; continue
+                }
+                guard !c.wrongWay.isEmpty else { group.addTask { (i, c) }; continue }
+                let fixed = WaypointRouting.ordered((c.via ?? base) + c.wrongWay.map(RoundaboutRule.detour),
+                                                    from: o, to: d)
+                group.addTask {
+                    guard let route = await Log.attemptAsync("Radroute (\(profile.rawValue), Kreisverkehr)", {
+                        try await brouter.route(from: o, to: d, via: fixed, profile: profile)
+                    }), RoundaboutRule.wrongWay(route.coordinates, rings: data.rings).isEmpty else { return (i, c) }
+                    var better = BikeCandidate(source: c.source, route: route,
+                                               stats: RouteAnalyzer.analyze(route.coordinates, roads: data),
+                                               familiar: RiddenPaths.familiarShare(route.coordinates, ridden: ridden))
+                    better.via = fixed
+                    return (i, better)
+                }
+            }
+            var out: [(Int, BikeCandidate)] = []
+            for await pair in group { out.append(pair) }
+            return out.sorted { $0.0 < $1.0 }.map(\.1)
+        }
     }
 
     /// OpenStreetMap's lit junctions plus the ones this rider has ridden

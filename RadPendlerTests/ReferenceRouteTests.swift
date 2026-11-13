@@ -85,7 +85,9 @@ final class ReferenceRouteTests: XCTestCase {
                 XCTFail("\(title): keine Radroute — \(error.localizedDescription)")
                 continue
             }
-            print("REF == \(title)")
+            let rings = (try? await planner.roads.data(covering: options.flatMap { $0.legs.flatMap(\.coordinates) },
+                                                       patience: nil))?.rings ?? []
+            print("REF == \(title) · " + (rings.isEmpty ? "Kreisverkehre ungeprüft (keine Straßendaten)" : "\(rings.count) Kreisverkehre am Weg"))
             for option in options {
                 guard let info = option.bikeRoute else { continue }
                 let line = option.legs.flatMap(\.coordinates)
@@ -110,6 +112,12 @@ final class ReferenceRouteTests: XCTestCase {
                         XCTAssertLessThanOrEqual(option.totalDistance / 1000, most,
                                                  "\(title), \(whose): \(String(format: "%.1f", option.totalDistance / 1000)) km, erlaubt \(most)")
                     }
+                }
+                // Nie gegen die Kreisverkehrsrichtung (Nutzer, 13.11.2026).
+                let wrong = RoundaboutRule.wrongWay(line, rings: rings)
+                XCTAssertTrue(wrong.isEmpty, "\(title), „\(roles)“: \(wrong.count)× rechts herum um einen Kreisverkehr")
+                if !rings.isEmpty, RoundaboutRule.passages(line, rings: rings).contains(where: { abs($0.sweep) > 45 }) {
+                    notes.append("Kreisverkehr links herum")
                 }
                 check(reference.every, "„\(roles)“")
                 if info.variants.contains(.balanced) { check(reference.optimal, "optimal") }

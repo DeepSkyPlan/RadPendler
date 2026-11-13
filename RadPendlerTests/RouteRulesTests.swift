@@ -13,6 +13,9 @@ import XCTest
 ///    CHANGELOG 1.19.
 /// 2. **Nie Kopfstein** (Rad; Nutzer, 07.10.2026: „Nie Kopfstein, egal welche
 ///    Route“).
+/// 3. **Nie gegen die Kreisverkehrsrichtung** (Rad; Nutzer, 13.11.2026:
+///    „fordert er jedesmal Umfahren … im Uhrzeigersinn, also gegen die
+///    Verkehrsrichtung — das ist gefährlich“). `RoundaboutRule`.
 ///
 /// Geprüft wird dort, wo die Entscheidung fällt — Planer, Neuplanung,
 /// Aufzeichnung —, mit erfundenen Routern und einem nachgestellten BRouter,
@@ -379,6 +382,117 @@ final class RouteRulesTests: XCTestCase {
         XCTAssertEqual(FakeBRouter.answeredCobbles, [0], "die neue Linie fährt nicht über Pflaster")
     }
 
+    // MARK: - Nie gegen die Kreisverkehrsrichtung
+
+    /// Ein Kreisverkehr mit 70 m Halbmesser 2 km östlich vom Alexanderplatz,
+    /// in vier Stücken wie in OpenStreetMap, und ein Radweg 24 m außen herum.
+    private var ringCenter: CLLocationCoordinate2D { east(2_000) }
+
+    private func around(_ center: CLLocationCoordinate2D, radius: Double, from a: Double, to b: Double,
+                        step: Double = 10) -> [CLLocationCoordinate2D] {
+        let flat = Flat(latitude: center.latitude)
+        let c = flat.point(center)
+        let n = Swift.max(1, Int(abs(b - a) / step))
+        return (0...n).map { i in
+            let angle = (a + (b - a) * Double(i) / Double(n)) * .pi / 180
+            return flat.coordinate(c + SIMD2(cos(angle), sin(angle)) * radius)
+        }
+    }
+
+    private var ringPieces: [[CLLocationCoordinate2D]] {
+        stride(from: 0.0, to: 360, by: 90).map { around(ringCenter, radius: 70, from: $0, to: $0 + 90) }
+    }
+
+    /// Von Westen auf den Radweg, `sweep` Grad um den Ring (negativ = im
+    /// Uhrzeigersinn), dann weiter nach Osten.
+    private func lineAroundRing(sweep: Double) -> [CLLocationCoordinate2D] {
+        let arc = around(ringCenter, radius: 94, from: 180, to: 180 + sweep)
+        return ScriptedRouter.straight(east(0), arc[0]) + arc.dropFirst()
+            + ScriptedRouter.straight(arc.last!, east(4_000)).dropFirst()
+    }
+
+    func testRingsAreAssembledFromTheirPieces() throws {
+        let rings = RoundaboutRule.rings(ringPieces)
+        XCTAssertEqual(rings.count, 1, "vier Stücke, ein Kreisverkehr")
+        let ring = try XCTUnwrap(rings.first)
+        XCTAssertEqual(ring.radius, 70, accuracy: 2)
+        XCTAssertLessThan(ring.center.distance(to: ringCenter), 3)
+        // Ein Kreisel von 8 m fährt das Rad auf der Fahrbahn mit — keine Regel nötig.
+        XCTAssertEqual(RoundaboutRule.rings([around(ringCenter, radius: 8, from: 0, to: 360)]), [])
+    }
+
+    func testClockwiseAroundARingIsWrongWay() throws {
+        let rings = RoundaboutRule.rings(ringPieces)
+        let wrong = RoundaboutRule.wrongWay(lineAroundRing(sweep: -180), rings: rings)
+        XCTAssertEqual(wrong.count, 1, "rechts herum = gegen den Verkehr")
+        XCTAssertEqual(try XCTUnwrap(wrong.first).sweep, -180, accuracy: 15)
+        XCTAssertEqual(RoundaboutRule.wrongWay(lineAroundRing(sweep: 180), rings: rings).count, 0, "links herum ist richtig")
+        // Gemessen 13.11.2026: die Falschfahrten überstrichen 91° bis 149°.
+        XCTAssertEqual(RoundaboutRule.wrongWay(lineAroundRing(sweep: -91), rings: rings).count, 1)
+        // Eine Straße, die am Ring nur vorbeiführt, ist keine Fahrt um ihn herum.
+        let passing = ScriptedRouter.straight(CLLocationCoordinate2D(latitude: ringCenter.latitude - 130 / 111_320,
+                                                                     longitude: east(0).longitude),
+                                              CLLocationCoordinate2D(latitude: ringCenter.latitude - 130 / 111_320,
+                                                                     longitude: east(4_000).longitude))
+        XCTAssertEqual(RoundaboutRule.wrongWay(passing, rings: rings).count, 0)
+    }
+
+    /// Der Zwischenpunkt liegt auf der anderen Seite: wer im Westen
+    /// hineinfährt und im Osten hinaus, soll links herum über den Süden.
+    func testTheDetourLiesOnTheOtherSideOfTheRing() throws {
+        let rings = RoundaboutRule.rings(ringPieces)
+        let wrong = try XCTUnwrap(RoundaboutRule.wrongWay(lineAroundRing(sweep: -180), rings: rings).first)
+        let via = RoundaboutRule.detour(wrong)
+        XCTAssertLessThan(via.latitude, ringCenter.latitude - 80 / 111_320, "südlich des Rings")
+        XCTAssertEqual(via.distance(to: ringCenter), 94, accuracy: 5, "auf dem Radweg")
+    }
+
+    /// Nutzer, 13.11.2026. Die ganze Radplanung gegen einen nachgestellten
+    /// BRouter, der jeden Ring rechts herum umfährt, solange kein
+    /// Zwischenpunkt ihn auf die andere Seite zwingt — wie der echte auf dem
+    /// Radweg mit `oneway=no`. Keine gezeigte Linie fährt gegen den Verkehr,
+    /// und die Neuplanung unterwegs bekommt den Zwischenpunkt mit.
+    func testThePlannedBikeLinesGoRoundTheRingTheRightWay() async throws {
+        RingWorld.configure(center: ringCenter, pieces: ringPieces)
+        var planner = TripPlanner.offline
+        planner.brouter.session = RingWorld.session()
+        planner.roads = RoadDataStore(session: RingWorld.session(), folder: folder.appending(path: "osm"))
+        let req = PlanRequest(origin: Place(name: "A", latitude: alex.latitude, longitude: alex.longitude),
+                              destination: Place(name: "B", latitude: alex.latitude, longitude: east(4_000).longitude),
+                              target: .departAfter(.now), settings: PlanSettings())
+        let options = try await planner.bikeOptions(req)
+
+        XCTAssertFalse(options.isEmpty)
+        XCTAssertGreaterThan(RingWorld.plainAsked, 0, "der Router fuhr zuerst falsch herum")
+        let rings = RoundaboutRule.rings(ringPieces)
+        for option in options {
+            let info = try XCTUnwrap(option.bikeRoute)
+            let line = option.legs.flatMap(\.coordinates)
+            XCTAssertEqual(RoundaboutRule.wrongWay(line, rings: rings).count, 0, "\(info.variants) gegen den Verkehr")
+            XCTAssertTrue(info.via.contains { $0.latitude < ringCenter.latitude && $0.distance(to: ringCenter) < 150 },
+                          "\(info.variants): die Neuplanung braucht den Zwischenpunkt")
+        }
+    }
+
+    /// Ohne Ausweg — der Router fährt immer rechts herum — fällt die Linie
+    /// nicht ersatzlos weg, wenn sie die einzige ist; neben einer richtigen
+    /// steht sie nicht.
+    func testRoleAssignmentSkipsLinesAgainstTheRing() throws {
+        let rings = RoundaboutRule.rings(ringPieces)
+        func candidate(_ source: BikeLineSource, sweep: Double) -> BikeCandidate {
+            let line = lineAroundRing(sweep: sweep)
+            return BikeCandidate(source: source,
+                                 route: StreetRoute(distance: TurnGuide.cumulative(line).last ?? 0,
+                                                    expectedTravelTime: 0, coordinates: line),
+                                 wrongWay: RoundaboutRule.wrongWay(line, rings: rings))
+        }
+        let wrong = candidate(.brouter(.trekking), sweep: -150)
+        let right = candidate(.brouter(.quiet), sweep: 210)
+        let picked = BikeCandidate.pick([wrong, right], settings: PlanSettings())
+        XCTAssertFalse(picked.contains { !$0.0.wrongWay.isEmpty })
+        XCTAssertEqual(BikeCandidate.pick([wrong], settings: PlanSettings()).count, 1, "lieber eine als keine")
+    }
+
     // MARK: - Werkzeug
 
     private func bikeRequest() -> PlanRequest {
@@ -599,5 +713,83 @@ private final class FakeBRouter: URLProtocol {
                            "filtered ascend": "0", "messages": rows],
         ]
         return try! JSONSerialization.data(withJSONObject: ["type": "FeatureCollection", "features": [feature]])
+    }
+}
+
+/// brouter.de und Overpass um einen Kreisverkehr, nachgestellt: Overpass
+/// kennt den Ring, BRouter fährt ihn rechts herum (Einfahrt im Westen,
+/// Ausfahrt im Osten, über den Norden) — außer ein Zwischenpunkt liegt auf
+/// der Südseite, dann über ihn links herum.
+private final class RingWorld: URLProtocol {
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var center = CLLocationCoordinate2D()
+    nonisolated(unsafe) private static var pieces: [[CLLocationCoordinate2D]] = []
+    nonisolated(unsafe) private static var plain = 0
+
+    static func configure(center c: CLLocationCoordinate2D, pieces p: [[CLLocationCoordinate2D]]) {
+        lock.withLock { center = c; pieces = p; plain = 0 }
+    }
+
+    /// Wie oft eine Route ohne Zwischenpunkt gefragt wurde.
+    static var plainAsked: Int { lock.withLock { plain } }
+
+    static func session() -> URLSession {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [RingWorld.self]
+        return URLSession(configuration: config)
+    }
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func stopLoading() {}
+
+    override func startLoading() {
+        guard let url = request.url else { return }
+        let (center, pieces) = Self.lock.withLock { (Self.center, Self.pieces) }
+        if url.host?.contains("overpass") == true {
+            let elements: [[String: Any]] = pieces.map { piece in
+                ["type": "way", "tags": ["junction": "roundabout"],
+                 "geometry": ["type": "LineString", "coordinates": piece.map { [$0.longitude, $0.latitude] }]]
+            }
+            return reply(try! JSONSerialization.data(withJSONObject: ["elements": elements]))
+        }
+        if url.path.hasSuffix("/profile") {
+            return reply(try! JSONSerialization.data(withJSONObject: ["profileid": "custom_\(UUID().uuidString)"]))
+        }
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        let points = (items.first { $0.name == "lonlats" }?.value ?? "").split(separator: "|").map { pair in
+            let v = pair.split(separator: ",").compactMap { Double($0) }
+            return CLLocationCoordinate2D(latitude: v[1], longitude: v[0])
+        }
+        guard let from = points.first, let to = points.last else { return reply(Data()) }
+        let southVia = points.dropFirst().dropLast().contains { $0.latitude < center.latitude }
+        if !southVia { Self.lock.withLock { Self.plain += 1 } }
+        let flat = Flat(latitude: center.latitude)
+        let c = flat.point(center)
+        let arc = stride(from: 0.0, through: 18, by: 1).map { i -> CLLocationCoordinate2D in
+            let angle = (180 + (southVia ? 10 : -10) * i) * .pi / 180
+            return flat.coordinate(c + SIMD2(cos(angle), sin(angle)) * 94)
+        }
+        let line = ScriptedRouter.straight(from, arc[0]) + arc.dropFirst()
+            + ScriptedRouter.straight(arc.last!, to).dropFirst()
+        let length = TurnGuide.cumulative(line).last ?? 0
+        let feature: [String: Any] = [
+            "type": "Feature",
+            "geometry": ["type": "LineString", "coordinates": line.map { [$0.longitude, $0.latitude, 40] }],
+            "properties": ["track-length": String(Int(length)), "total-time": String(Int(length / 5)),
+                           "filtered ascend": "0",
+                           "messages": [["Longitude", "Latitude", "Distance", "WayTags"],
+                                        [String(Int(from.longitude * 1e6)), String(Int(from.latitude * 1e6)),
+                                         String(Int(length)), "highway=cycleway oneway=no surface=asphalt"]]],
+        ]
+        reply(try! JSONSerialization.data(withJSONObject: ["type": "FeatureCollection", "features": [feature]]))
+    }
+
+    private func reply(_ data: Data) {
+        guard let url = request.url,
+              let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil) else { return }
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: data)
+        client?.urlProtocolDidFinishLoading(self)
     }
 }

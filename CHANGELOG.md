@@ -2,6 +2,13 @@
 
 ## Unveröffentlicht
 
+- **Nie gegen die Kreisverkehrsrichtung (Rad):** um große Kreisverkehre führt oft ein eigener Radweg, der in
+  OpenStreetMap als in beiden Richtungen befahrbar erfasst ist — BRouter schickte „optimal“, „kürzest“ und „ruhig“
+  deshalb rechts herum um den Ring, gegen den Verkehr. Die Straßendaten bringen jetzt die Kreisverkehre mit
+  (`RoundaboutRule`); eine Linie, die einen rechts herum umfährt, wird mit einem Zwischenpunkt auf der anderen Seite
+  neu gefragt, und was sich so nicht richten lässt, wird nicht gezeigt, solange eine richtige dasteht. Die
+  Neuplanung unterwegs fährt den Zwischenpunkt mit an. Neue Routenregel in `RouteRulesTests`, `./dev routes` prüft sie
+  auf den Referenzstrecken. Der Straßendaten-Zwischenspeicher wird dafür einmal neu geholt.
 - **„Fahrt beenden?“ wieder kurz:** der lange Text schnitt den Knopf „Weiterfahren“ ab; jetzt zwei Sätze.
 
 ## 1.26 (Build 66) — Fahrt beenden: wozu gespeichert wird · Wegeanteile bei Bus & Bahn
