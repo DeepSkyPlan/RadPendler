@@ -164,8 +164,9 @@ struct RideTrackingView: View {
             Button(L("Fahrt beenden"), role: .destructive, action: onStop)
             Button(L("Weiterfahren"), role: .cancel) {}
         } message: {
-            // Wozu gespeichert wird und wo es bleibt (Nutzer, 02.11.2026).
-            Text(L("Die Fahrt wird gespeichert, die Ortung hört auf. Sie bleibt auf deinen Geräten und in deiner privaten iCloud — sonst sieht sie niemand.\n\n• Deine gewohnten Wege werden bevorzugt vorgeschlagen\n• Ampelwartezeiten und dein Tempo werden realistischer\n• Die Heatmap zeigt, wo du gefahren bist"))
+            // Wozu gespeichert wird und wo es bleibt (Nutzer, 02.11.2026) — kurz halten, sonst schneidet
+            // der Dialog „Weiterfahren“ ab (Nutzer, 13.11.2026).
+            Text(L("Die Fahrt wird gespeichert, die Ortung hört auf. Sie bleibt privat in deiner iCloud und macht Vorschläge, Ampelzeiten und Tempo genauer."))
         }
     }
 

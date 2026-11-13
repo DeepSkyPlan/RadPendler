@@ -1,5 +1,9 @@
 # Changelog
 
+## Unveröffentlicht
+
+- **„Fahrt beenden?“ wieder kurz:** der lange Text schnitt den Knopf „Weiterfahren“ ab; jetzt zwei Sätze.
+
 ## 1.26 (Build 66) — Fahrt beenden: wozu gespeichert wird · Wegeanteile bei Bus & Bahn
 
 - **„Fahrt beenden?“ sagt, was mit der Fahrt passiert:** sie bleibt auf den eigenen Geräten und in der

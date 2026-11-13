@@ -1332,13 +1332,13 @@
         }
       }
     },
-    "Die Fahrt wird gespeichert, die Ortung hört auf. Sie bleibt auf deinen Geräten und in deiner privaten iCloud — sonst sieht sie niemand.\n\n• Deine gewohnten Wege werden bevorzugt vorgeschlagen\n• Ampelwartezeiten und dein Tempo werden realistischer\n• Die Heatmap zeigt, wo du gefahren bist": {
+    "Die Fahrt wird gespeichert, die Ortung hört auf. Sie bleibt privat in deiner iCloud und macht Vorschläge, Ampelzeiten und Tempo genauer.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The ride is saved and location stops. It stays on your devices and in your private iCloud — no one else sees it.\n\n• Your usual routes are suggested first\n• Signal waits and your speed get more realistic\n• The heatmap shows where you have ridden"
+            "value": "The ride is saved and location stops. It stays private in your iCloud and makes suggestions, signal waits and speed more accurate."
           }
         }
       }
