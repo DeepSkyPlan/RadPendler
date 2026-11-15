@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht
+## 1.27 (Build 67)
 
 - **Nie gegen die Kreisverkehrsrichtung (Rad):** um große Kreisverkehre führt oft ein eigener Radweg, der in
   OpenStreetMap als in beiden Richtungen befahrbar erfasst ist — BRouter schickte „optimal“, „kürzest“ und „ruhig“
